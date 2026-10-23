@@ -1,0 +1,204 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "main.tscn",
+    "ui",
+    "game/PauseMenu.cs",
+    "game/ResultMenu.cs",
+    "scripts/Ladder.cs",
+    "scripts/SaveStore.cs",
+    "scripts/LaunchOptions.cs",
+    "scripts/TextFormat.cs",
+    "data.json",
+    "i18n",
+    "sounds",
+    "plan",
+    "docs",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "architecture.json",
+    "test/flows",
+    "test/DuelRulesTest.cs",
+    "test/FatigueTest.cs",
+    "test/AiTest.cs",
+    "test/CardsTest.cs",
+    "test/RivalsTest.cs",
+    "test/LadderTest.cs",
+    "test/SaveStoreTest.cs",
+    "test/DuelSaveTest.cs",
+    "test/LaunchOptionsTest.cs",
+    "test/GameTest.cs"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "run/main_scene=\"res://main.tscn\"",
+      "replace": "run/main_scene=\"res://game/game.tscn\""
+    },
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.1.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "[internationalization]\n\nlocale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")\n\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/Duel.cs",
+      "find": "    /// <summary>Draws the top card. A card drawn into a full hand goes to the discard pile; an empty deck costs light (fatigue).</summary>\n    public bool DrawCard(int seat)\n    {\n        Keeper keeper = Keepers[seat];\n        if (keeper.Deck.Count == 0)\n        {\n            keeper.Fatigue += 1;\n            Burn(seat, keeper.Fatigue);\n            return false;\n        }\n",
+      "replace": "    /// <summary>Draws the top card. A card drawn into a full hand goes to the discard pile; an empty deck gives nothing.</summary>\n    public bool DrawCard(int seat)\n    {\n        Keeper keeper = Keepers[seat];\n        if (keeper.Deck.Count == 0)\n            return false;\n"
+    },
+    {
+      "file": "scripts/Keeper.cs",
+      "find": "    /// <summary>How many times it drew from an empty deck; the nth such draw costs n light.</summary>\n    public int Fatigue { get; set; }\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/Keeper.cs",
+      "find": "            [\"fatigue\"] = Fatigue,\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/Keeper.cs",
+      "find": "        keeper.Fatigue = JsonData.Int(data[\"fatigue\"], 0);\n",
+      "replace": ""
+    },
+    {
+      "file": "game/Table.cs",
+      "find": "string nameText = Tr(Cards.Get(wisp.Id).Name);",
+      "replace": "string nameText = wisp.Id.Capitalize();"
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "when the rival has no wisp on the table, their own wisps never strike it: the turn goes straight from Main to End and the rival's light stays where it was"
+      },
+      "edits": [
+        {
+          "file": "scripts/Duel.cs",
+          "find": "Go(Keepers[Active].WispCount() > 0 ? Phase.Clash : Phase.End);",
+          "replace": "Go(Keepers[1 - Active].WispCount() > 0 ? Phase.Clash : Phase.End);"
+        }
+      ],
+      "unchanged": [
+        "test/TurnTest.cs"
+      ],
+      "hidden": [
+        "hidden/HiddenClashTest.cs"
+      ],
+      "reference": "solutions/prototype/fix-bug",
+      "decoy": "solutions/prototype/fix-bug-decoy"
+    },
+    {
+      "template": "write-tests",
+      "vars": {
+        "subject": "Duel class (scripts/Duel.cs: kindling, playing cards, the lanes, the Clash, the discard pile and the hand limit)",
+        "file": "test/DuelRulesTest.cs",
+        "rules": "a card costs kindling and one that costs more than is left cannot be played, a keeper's kindling each turn is its own turn number up to 6, a wisp goes to the first free lane of its row and none can be played into a full row, the wisps across a lane strike each other with their power, a wisp whose guard reaches 0 falls to its owner's discard pile, a wisp with an empty lane across strikes the other keeper's light, and a card drawn into a hand of 7 goes to the discard pile",
+        "code": "scripts/Duel.cs"
+      },
+      "unchanged": [
+        "scripts/Duel.cs"
+      ],
+      "mutantTests": [
+        "test/DuelRulesTest.cs"
+      ],
+      "mutants": [
+        {
+          "name": "a card costing more than the kindling left can be played",
+          "file": "scripts/Duel.cs",
+          "find": "if (card.Cost > keeper.Kindling)",
+          "replace": "if (card.Cost > keeper.Kindling + 1)"
+        },
+        {
+          "name": "kindling does not grow with the turns",
+          "file": "scripts/Duel.cs",
+          "find": "keeper.Kindling = Math.Min(keeper.Turns, MaxKindling);",
+          "replace": "keeper.Kindling = Math.Min(1, MaxKindling);"
+        },
+        {
+          "name": "a wisp can be played into a full row",
+          "file": "scripts/Duel.cs",
+          "find": "return keeper.FreeLane() >= 0;",
+          "replace": "return true;"
+        },
+        {
+          "name": "the wisp across does not strike back",
+          "file": "scripts/Duel.cs",
+          "find": "Wound(Active, lane, taken);",
+          "replace": "Wound(Active, lane, 0);"
+        },
+        {
+          "name": "a fallen wisp is not discarded",
+          "file": "scripts/Duel.cs",
+          "find": "            Keepers[seat].Discard.Add(wisp.Id);\n",
+          "replace": ""
+        },
+        {
+          "name": "a card drawn into a full hand is kept",
+          "file": "scripts/Duel.cs",
+          "find": "if (keeper.Hand.Count >= HandMax)",
+          "replace": "if (keeper.Hand.Count > HandMax)"
+        },
+        {
+          "name": "an unblocked wisp does not burn the keeper",
+          "file": "scripts/Duel.cs",
+          "find": "            Burn(1 - Active, wisp.Power);\n",
+          "replace": "            Burn(1 - Active, 0);\n"
+        }
+      ],
+      "reference": "solutions/prototype/write-tests"
+    },
+    {
+      "template": "add-feature",
+      "vars": {
+        "feature": "fatigue: when a keeper must draw from an empty deck (Duel.DrawCard), it loses light equal to the number of times it has drawn from an empty deck in this duel (1 the first time, then 2, then 3), counted in a new public Keeper property Fatigue (an int with a getter and a setter) for each keeper, and a keeper whose light reaches 0 that way loses the duel (the phase becomes Over and the other keeper is the winner)"
+      },
+      "hidden": [
+        "hidden/HiddenFatigueTest.cs"
+      ],
+      "reference": "solutions/prototype/add-feature"
+    },
+    {
+      "template": "explain-failure",
+      "edits": [
+        {
+          "file": "scripts/Duel.cs",
+          "find": "            case \"bolt\":\n                Burn(1 - seat, amount);\n",
+          "replace": "            case \"bolt\":\n                Burn(1 - seat, amount);\n                Burn(1 - seat, amount);\n"
+        }
+      ],
+      "unchanged": [
+        "scripts/Duel.cs",
+        "scripts/Keeper.cs",
+        "scripts/Ai.cs",
+        "scripts/Deck.cs",
+        "scripts/Cards.cs",
+        "game/Game.cs",
+        "test/DuelTest.cs",
+        "test/TurnTest.cs",
+        "test/DeckTest.cs"
+      ],
+      "expected": {
+        "mustInclude": [
+          "Flare_burns_the_rival_for_three",
+          "re:DuelTest\\.cs\\D{0,40}\\b25\\b",
+          "re:(?<![\\d.])17(?!\\d)",
+          "re:(?<![\\d.])14(?!\\d)"
+        ]
+      },
+      "reference": "solutions/prototype/explain-failure"
+    }
+  ]
+}
