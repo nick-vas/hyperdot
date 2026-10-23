@@ -44,8 +44,8 @@ func test_the_start_room_is_quiet_and_the_stairs_are_elsewhere():
 
 
 func test_the_same_seed_builds_the_same_floor():
-	var first := Dungeon.generate(2026, floors.spec(3))
-	var second := Dungeon.generate(2026, floors.spec(3))
+	var first := Dungeon.generate(2026, floors.spec(1))
+	var second := Dungeon.generate(2026, floors.spec(1))
 	assert_eq(second.to_text(), first.to_text())
 
 
