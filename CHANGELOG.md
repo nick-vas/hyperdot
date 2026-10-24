@@ -1,6 +1,14 @@
 # Changelog
 
 ## Unreleased
+- **The card game in C#.** Lanternfen now has its C# version (`benchmark/games/cards/csharp/`), written from the
+  language-neutral contract in its `DESIGN.md`: the same scenes, node names, data files, flows, named phases, bot and
+  juice runs, with 55 gdUnit4 tests in place of the GUT ones and a Linux export only. Both versions shuffle with the
+  engine's seeded generator and score with the same arithmetic, so a seed deals the same duel and the AI makes the same
+  choices: the bot run prints the same log lines, line for line. Its four stages carry the same 17 tasks and three
+  milestones as the GDScript version, each with hidden checks in C# and a reference solution, most with a decoy; all
+  pass `tests/Test-GameProgramme.ps1 -Genre cards -Language csharp`. `DESIGN.md`'s "As built" records the port's
+  choices.
 - **The platformer in C#.** Glowmoss Ridge now has its C# version (`benchmark/games/platformer/csharp/`), written from
   the language-neutral contract in its `DESIGN.md`: the same level scenes, scene tree, node names, data files, flows,
   bot and juice runs and log lines, with 34 gdUnit4 tests in place of the GUT ones and a Linux export only. Its four
@@ -17,7 +25,7 @@
   the whole ladder, juice, three languages, store art rendered from the game and credits. Its four stages carry 17
   tasks and three milestones, each with hidden checks and a reference solution, most with a decoy; all pass
   `tests/Test-GameProgramme.ps1 -Genre cards -Language gdscript`. `DESIGN.md` holds the language-neutral contract for
-  the C# port, which is still to come.
+  the C# port.
 - **Blind review and the judge's calibration.** `benchmark/Invoke-SideBySide.ps1 -ReviewOut` writes the pairs the judge
   sees for a person instead (A and B in a seeded order, nothing naming the plugin, the key kept apart);
   `benchmark/review-page.html` shows them and keeps the owner's verdicts in its own store; `benchmark/Get-JudgeAgreement.ps1`
@@ -114,7 +122,7 @@
   GUT tests, four flows, a bot that finishes five levels, juice, three languages, store art and credits. Its four stages
   carry 17 tasks and three milestones, each with hidden checks and a reference solution, most with a decoy; all pass
   `tests/Test-GameProgramme.ps1 -Genre platformer -Language gdscript`. `DESIGN.md` holds the language-neutral contract
-  for the C# port, which is still to come.
+  for the C# port.
 - **Benchmark sessions as a separate user** (`-Isolate`, `benchmark/Isolation.ps1`; benchmark/PLAN.md stage 5). Each
   session runs as a user made for the run (`useradd`; `runuser` as root, `sudo -n -u` otherwise) whose only folder is its
   game copy: the runner's temporary files move into a folder it cannot list, the checkout is closed to other users for the

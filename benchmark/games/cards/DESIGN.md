@@ -4,7 +4,7 @@ The fourth genre of the staged game programme (`benchmark/PLAN.md`): the one tha
 AI. A turn is written as named phases with a test for each transition (`godot-patterns`), the cards, decks and rivals
 are JSON checked by the `data` runner (`godot-data`), the rivals are played by a utility AI (`godot-game-ai`), every
 duel shuffles from its own seed, and a save keeps the duel in progress (`godot-saves`). One game, written twice:
-`gdscript/` (built) and `csharp/` (to come, from this design). Both behave the same, use the same data files, scene
+`gdscript/` and `csharp/` (ported from this design), both built. Both behave the same, use the same data files, scene
 tree, node names and log lines, and pass the same flows. Only the code and the test framework differ: GUT for GDScript,
 gdUnit4 (run by the kit's `gdunit4` runner) for C#.
 
@@ -143,7 +143,7 @@ simulation code, `nondeterministic-sim` an error); a seed deals the same duel in
 
 | Part | Files |
 |---|---|
-| Tests | GDScript: `test/unit/test_*.gd` (GUT), 55 tests: a test per turn transition (`test_turn.gd`), the rules (`test_duel_rules.gd`), each rite (`test_duel.gd`), the shuffle and legal decks, fatigue, the AI, the rivals' balance, the ladder, saves and the duel kept in them, the launch options and the game scene. C#: `test/*Test.cs` (gdUnit4) |
+| Tests | GDScript: `test/unit/test_*.gd` (GUT), 55 tests: a test per turn transition (`test_turn.gd`), the rules (`test_duel_rules.gd`), each rite (`test_duel.gd`), the shuffle and legal decks, fatigue, the AI, the rivals' balance, the ladder, saves and the duel kept in them, the launch options and the game scene. C#: `test/*Test.cs` (gdUnit4), the same 55 one for one |
 | Flows | `test/flows/start.flow.json` (menu, rival select, rival 1), `select.flow.json` (the rival select's Back), `pause.flow.json`, `play.flow.json` (a card, End turn, the rival's turn, the next Main), `settings.flow.json` (French and back) |
 | Data | `data/cards.json`, `data/decks.json` (cards `ref` the catalogue), `data/rivals.json` (deck `ref` the decks; light 10 to 30, weights 0.1 to 2); `data.json` |
 | Bot runs | `playthrough.json`: `--autoplay --seed=1 --no-save`, `[Run] rival 1 won` to `[Run] rival 5 won` and `[Run] victory` within 10800 frames (it takes about 5470, losing once to rival 4). `juice.json`: 1800 frames; card_played gets sfx, keeper_hit flash, shake and sfx, wisp_fell pop and sfx, each within 100 ms |
@@ -241,7 +241,7 @@ Its reference is every file of the next stage that the earlier one lacks or has 
 
 ## As built
 
-Choices made in the GDScript build where the design was open. The C# port follows them.
+Choices made in the GDScript build where the design was open. The C# port follows them; its own choices come after.
 
 - **The rules live in Duel, not in nodes.** The game node paces a duel (ticks between phases, the AI's thinking time)
   and animates it from Duel's signals; it never decides a phase. So the rules tests, the AI tests and the balance
@@ -276,3 +276,37 @@ Choices made in the GDScript build where the design was open. The C# port follow
 - **Decoys:** fix-bug (prototype, alpha, beta), fix-playthrough and fill-translations. The beta fix-bug decoy, seeding
   the global generator, is deterministic: it fails because it moves the pinned seed and disturbs the global generator,
   which a hidden test checks.
+
+### C#
+
+- **Same behaviour, checked line for line.** The bot run (`--autoplay --seed=1 --no-save`) prints the same `[Turn]`,
+  `[AI]`, `[Run]` and `[juice]` lines in both languages, and `Ai.PlayOut` gives the same winner, turn count and lights
+  for every rival and seeds 1 to 50 (47, 45, 44, 38 and 34 wins). There is no hand-written generator to port: `Duel`
+  holds the engine's `RandomNumberGenerator` and `Deck.Shuffled` calls `RandiRange(0, i)` as the GDScript does, and the
+  AI's arithmetic is in doubles in the GDScript order. `DeckTest` pins seed 7 to the same six cards.
+- **Names:** `Game` keeps the snake_case names the flows and the contract use: `rival`, `state`, `duel`, `phase`,
+  `active`, `turn`, `suggested`, `suggest_checks`, `start_rival`, `resume`, `play_card`, `end_turn`, `next_rival` and
+  `rematch`. `start_rival` is two overloads, `(id)` and `(id, seed)`, not a default argument, because the engine calls
+  a C# method only with all its arguments (the rival-4 flow calls it with one). The rest is C#'s own case: `Duel.Start`,
+  `Advance`, `EndMain`, `CanPlay`, `Play`, `DrawCard`, `ToDict` and `FromDict`, `Keeper.Fatigue`, `Ai.Choose`,
+  `Ai.PlayOut`, `Rivals.StartDuel`, `Rivals.DeckOf` (a method named `Deck` would hide the `Deck` class), `Cards.Get`.
+- **Plain classes and C# events.** `Duel`, `Keeper`, `Ai`, `Cards`, `Rivals` and `Ladder` are plain C# classes; the
+  duel's signals and the screens' are C# events, as `Checkpoint` carries a `JsonObject` no Godot signal can. A card is
+  a `Card` record, a wisp a `Wisp` record whose guard changes, so rows compare by value in the tests.
+- **Saves:** `SaveStore` takes a file path (Main passes `user://save.json`, globalised) and uses `System.Text.Json`, so
+  its tests use temporary files. `SaveData` holds `Record` (a `SortedDictionary`, so no simulation code iterates a
+  `Dictionary`, which the architecture runner would flag), `Duel` (a `JsonObject`), `Volume` and `Locale`. `JsonData`
+  reads numbers as GDScript's `int()` does, so a save from either version loads in the other.
+- **Tests:** gdUnit4 suites in `test/*Test.cs`, run by the kit's `dotnet` runner, and `gdunit4` for the mutants. The
+  suites that read `res://` or shuffle are `[RequireGodotRuntime]`; the game scene's tests and hidden tests load it with
+  `ISceneRunner` and wait whole physics ticks. `SaveStore`, `Ladder` and `LaunchOptions` are tested without the engine.
+- **The explain-failure test** is `Flare_burns_the_rival_for_three`, `test/DuelTest.cs` line 25.
+- **The beta fix-bug defect** draws `j` from `GD.Randi()`, the global generator, and its decoy seeds that generator with
+  `GD.Seed(rng.Seed)` first: deterministic, but the pinned seed 7 moves, the global generator is disturbed, and the
+  architecture runner flags `GD.Randi` in `scripts`.
+- **Stages** lay overlays of `game/Game.cs` (prototype, alpha) and `ui/Main.cs` (alpha, beta), as the GDScript stages do
+  with `game.gd` and `main.gd`; the rest is edits. The milestone references follow the rule above, generated from the
+  built stages.
+- **Export:** Linux only (Godot 4.7 cannot export C# to the Web), so the planted export defect adds `data/*` to that
+  preset's `exclude_filter="test/*"`. `THIRD-PARTY-NOTICES.txt` comes from `credits` on the C# game, with the .NET
+  runtime's notices; the store art, docs, data, translations, sounds and flows are the GDScript version's files.
