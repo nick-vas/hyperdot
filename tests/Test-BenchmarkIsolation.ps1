@@ -87,7 +87,7 @@ try {
     $env:FAKE_LINGER = '1'; $env:FAKE_HOSTILE = '1'; $env:FAKE_HOSTILE_LINK = 'test/test_hidden_multiplier.gd'; $env:FAKE_CANARY = $canary
     $iso = Invoke-Run @('-Tier', 'min', '-Isolate')
     foreach ($name in 'FAKE_LINGER', 'FAKE_HOSTILE', 'FAKE_HOSTILE_LINK', 'FAKE_CANARY') { [Environment]::SetEnvironmentVariable($name, $null) }
-    Assert-True ($iso.Code -eq 0 -and $iso.Rows.Count -eq 2 -and @($iso.Rows | Where-Object success).Count -eq 2) "isolated, good work still passes its grading ($(@($iso.Rows | Where-Object { -not $_.success } | ForEach-Object { "$($_.task): $($_.reasons)" }) -join '; '))"
+    Assert-True ($iso.Code -eq 0 -and $iso.Rows.Count -eq 2 -and @($iso.Rows | Where-Object success).Count -eq 2) "isolated, good work still passes its grading (exit $($iso.Code), $($iso.Rows.Count) result(s); $(@($iso.Rows | Where-Object { -not $_.success } | ForEach-Object { "$($_.task): $($_.reasons)" }) -join '; '))"
     $users = @($iso.Calls | ForEach-Object user | Sort-Object -Unique)
     Assert-True ($iso.Calls.Count -eq 2 -and $users.Count -eq 1 -and $users[0] -like 'hyperdot-s*' -and $users[0] -ne $runner) "every session runs as the run's own user ($($users -join ', '))"
     Assert-True (@($iso.Calls | Where-Object { -not (Test-Probes $_ $false) }).Count -eq 0) 'isolated, it cannot read the benchmark, a hidden test, the folder beside its game or the checkout'
@@ -99,7 +99,7 @@ try {
     Assert-True (-not (Test-Path -LiteralPath "$canary.git-ran")) 'the grader''s git does not run what the session configured'
     $uid = @($iso.Calls | ForEach-Object uid | Select-Object -First 1)
     Assert-True ($uid -and @(& ps -eo 'uid=' | ForEach-Object Trim | Where-Object { $_ -eq "$uid" }).Count -eq 0) 'nothing the session started is still running'
-    Assert-True (-not (& getent passwd $users[0])) 'the session user is removed'
+    Assert-True (@($users | Where-Object { & getent passwd $_ }).Count -eq 0) 'the session user is removed'
     Assert-True ((& stat -c '%a' $root).Trim() -eq $repoMode) "the checkout's mode is restored ($repoMode)"
     Assert-True (@(Get-ChildItem -LiteralPath $privateTemp -Force -Filter 'hyperdot-*').Count -eq 0) 'the run leaves none of its folders in the temporary folder'
 
