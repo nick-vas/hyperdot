@@ -1,0 +1,41 @@
+keys,en
+MENU_TITLE,Wickerdeep
+MENU_EMBERS,Embers banked: %d   Deepest floor: %d
+MENU_START,Descend
+MENU_CONTINUE,Continue
+MENU_SHRINE,Shrine
+MENU_SETTINGS,Settings
+MENU_QUIT,Quit
+MENU_VERSION,Version %s
+HUD_FLOOR,Floor %d: %s
+HUD_HP,Wick: %d / %d
+HUD_EMBERS,Embers: %d
+HUD_ENEMIES,Enemies left: %d
+HUD_STAIRS_OPEN,The stairs are open
+HUD_PAUSE,Pause
+FLOOR_1,The Wax Cellar
+FLOOR_2,The Ossuary
+FLOOR_3,The Drowned Nave
+ENEMY_SHADE,Shade
+ENEMY_BAT,Cinder bat
+ENEMY_BRUTE,Tallow brute
+PAUSE_TITLE,Paused
+PAUSE_RESUME,Resume
+PAUSE_QUIT,Quit to menu
+RUN_WON,The wick burns on
+RUN_LOST,The wick is out
+RUN_WON_MESSAGE,You reached the bottom of the crypt. %d embers go to the bank.
+RUN_LOST_MESSAGE,Snuffed on floor %d. %d embers go to the bank.
+RUN_AGAIN,Descend again
+RUN_MENU,Back to menu
+SHRINE_TITLE,The shrine
+SHRINE_EMBERS,Embers: %d
+SHRINE_VIGOR,Vigor %d / %d: the wick has %d hp
+SHRINE_BUY,Buy vigor (%d embers)
+SHRINE_FULL,Vigor is full
+SHRINE_BACK,Back
+SETTINGS_TITLE,Settings
+SETTINGS_VOLUME,Volume
+SETTINGS_LANGUAGE,Language
+SETTINGS_BACK,Back
+LANG_EN,English

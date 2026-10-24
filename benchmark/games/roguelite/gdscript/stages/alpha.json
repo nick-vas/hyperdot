@@ -1,0 +1,193 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/credits.gd",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "test/flows/settings.flow.json"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.5.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\")"
+    },
+    {
+      "file": "main.tscn",
+      "find": "[node name=\"CreditsButton\" type=\"Button\" parent=\"Menu\"]\ncustom_minimum_size = Vector2(0, 88)\ntheme_override_font_sizes/font_size = 28\ntext = \"Credits\"\n\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/save_store.gd",
+      "find": "## Version 2 is current; version 1 kept only the embers and the deepest floor, and players still have such files.\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/save_store.gd",
+      "find": "\tvar version := int(raw.get(\"version\", 1))\n\tif version == 1:\n\t\t# Version 1 had no shrine, no runs counted and no run kept: only the bank and the deepest floor.\n\t\tdata.meta.embers = maxi(0, int(raw.get(\"embers\", 0)))\n\t\tdata.meta.best_floor = maxi(0, int(raw.get(\"best\", 0)))\n\t\treturn data\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/save_store.gd",
+      "find": "## Any version's data as the current version.",
+      "replace": "## The saved data, with defaults for anything missing."
+    },
+    {
+      "file": "test/unit/test_save_store.gd",
+      "find": "func test_a_version_1_save_keeps_its_embers_and_deepest_floor():\n\t_write_raw('{\"version\": 1, \"embers\": 23, \"best\": 3}')\n\tvar data := SaveStore.new(PATH).read()\n\tassert_eq(int(data.meta.embers), 23)\n\tassert_eq(int(data.meta.best_floor), 3)\n\tassert_eq(int(data.meta.vigor), 0)\n\tassert_null(data.run)\n\n\n",
+      "replace": ""
+    },
+    {
+      "file": "test/unit/test_save_store.gd",
+      "find": "## SaveStore: reading, writing, the run kept for Continue, and the move from version 1.",
+      "replace": "## SaveStore: reading, writing and the run kept for Continue."
+    },
+    {
+      "file": "test/unit/test_meta.gd",
+      "find": "func test_runs_add_to_the_bank_and_keep_the_deepest_floor():\n\tvar save := SaveStore.defaults()\n\tMeta.bank(save, 6, 3, false)\n\tMeta.bank(save, 4, 1, false)\n\tMeta.bank(save, 5, 4, true)\n\tassert_eq(int(save.meta.embers), 10)\n\tassert_eq(int(save.meta.best_floor), 4)\n\tassert_eq(int(save.meta.runs), 3)\n\n\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/launch_options.gd",
+      "find": "## The game's own flags, after \"--\" on the command line: --autoplay, --seed=N, --no-save, --floor=N, --swarm=N.\n\nvar autoplay := false\n",
+      "replace": "## The game's own flags, after \"--\" on the command line: --seed=N, --no-save, --floor=N, --swarm=N.\n\n"
+    },
+    {
+      "file": "scripts/launch_options.gd",
+      "find": "\t\tif arg == \"--autoplay\":\n\t\t\toptions.autoplay = true\n\t\telif arg == \"--no-save\":",
+      "replace": "\t\tif arg == \"--no-save\":"
+    },
+    {
+      "file": "test/unit/test_launch_options.gd",
+      "find": "LaunchOptions.parse(PackedStringArray([\"--autoplay\", \"--seed=7\", \"--no-save\", \"--floor=3\", \"--swarm=200\"]))\n\tassert_true(options.autoplay)\n",
+      "replace": "LaunchOptions.parse(PackedStringArray([\"--seed=7\", \"--no-save\", \"--floor=3\", \"--swarm=200\"]))\n"
+    },
+    {
+      "file": "test/unit/test_launch_options.gd",
+      "find": "\tassert_false(options.autoplay)\n",
+      "replace": ""
+    },
+    {
+      "file": "test/unit/test_launch_options.gd",
+      "find": "## LaunchOptions: the flags bot runs and tests pass after \"--\".",
+      "replace": "## LaunchOptions: the flags runs and tests pass after \"--\"."
+    },
+    {
+      "file": "game/game.gd",
+      "find": "\tif options.autoplay:\n\t\t_bot = Bot.new()\n",
+      "replace": ""
+    },
+    {
+      "file": "game/game.gd",
+      "find": "\t# On its own (a flow, or the game scene run alone) nobody listens; a bot run then ends here.\n\tif options.autoplay and finished.get_connections().is_empty():\n\t\tget_tree().quit()\n",
+      "replace": ""
+    }
+  ],
+  "tasks": [
+    {
+      "template": "add-content",
+      "vars": {
+        "content": "floor 3, The Drowned Nave (its name under the key FLOOR_3 in i18n/strings.csv), in data/floors.json: 44 by 26 cells with 6 to 8 rooms, holding shades, bats and a new kind of enemy in data/enemies.json, the tallow brute (id brute, its name under the key ENEMY_BRUTE): 3 hp, blows of 2 damage, slower to step than a shade, and 3 embers. The floor must be fair: with the game's Bot in the wick's place at 5 hp (World.play_out on Dungeon.generate(seed * 1009 + 3, its spec), seeds 1 to 20, 7200 ticks each), it is cleared at least 15 times and costs the wick at least 10 hp over the twenty"
+      },
+      "hidden": [
+        "hidden/test_hidden_floor3.gd",
+        {
+          "from": "hidden/floor3.flow.json",
+          "to": "test/flows/floor3.flow.json"
+        }
+      ],
+      "reference": "solutions/alpha/add-content"
+    },
+    {
+      "template": "fix-architecture",
+      "vars": {
+        "problem": "the architecture runner fails with an error in game/creatures.gd (per-frame-lookup)"
+      },
+      "edits": [
+        {
+          "file": "game/game.gd",
+          "find": "\t_hp_label.text = tr(\"HUD_HP\") % [world.wick.hp, world.wick.max_hp]\n",
+          "replace": ""
+        },
+        {
+          "file": "game/creatures.gd",
+          "find": "func _draw() -> void:\n",
+          "replace": "func _process(_delta: float) -> void:\n\tif world != null:\n\t\tget_node(\"../HUD/HpLabel\").text = tr(\"HUD_HP\") % [world.wick.hp, world.wick.max_hp]\n\n\nfunc _draw() -> void:\n"
+        }
+      ],
+      "hidden": [
+        "hidden/test_hidden_hp_label.gd"
+      ],
+      "reference": "solutions/alpha/fix-architecture"
+    },
+    {
+      "template": "migrate-save",
+      "vars": {
+        "report": "their banked embers and their deepest floor are gone after the update. The previous version saved user://save.json as {\"version\": 1, \"embers\": <embers banked>, \"best\": <deepest floor reached>}, with no shrine, no runs counted, no run kept and no settings"
+      },
+      "hidden": [
+        "hidden/test_hidden_save_migration.gd"
+      ],
+      "reference": "solutions/alpha/migrate-save"
+    },
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "when a run ends, the embers they had banked over earlier runs are gone: the bank holds only what the last run brought home"
+      },
+      "edits": [
+        {
+          "file": "scripts/meta.gd",
+          "find": "\tif won:\n\t\tmeta.embers = int(meta.embers) + run_embers\n\telse:\n\t\tmeta.embers = int(meta.embers) + run_embers / 2\n",
+          "replace": "\tif won:\n\t\tmeta.embers = run_embers\n\telse:\n\t\tmeta.embers = run_embers / 2\n"
+        }
+      ],
+      "unchanged": [
+        "test/unit/test_meta.gd"
+      ],
+      "hidden": [
+        "hidden/test_hidden_bank.gd"
+      ],
+      "reference": "solutions/alpha/fix-bug",
+      "decoy": "solutions/alpha/fix-bug-decoy"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "a title menu as the main scene res://main.tscn (root Main) with Menu/StartButton, Menu/ContinueButton, Menu/ShrineButton, Menu/SettingsButton and Menu/QuitButton, where Start adds the game scene res://game/game.tscn as a child of Main named Game (hiding the menu), whose property floor_number is 1 and whose HUD/FloorLabel reads Floor 1: The Wax Cellar and HUD/HpLabel Wick: 5 / 5; pause: the button HUD/PauseButton of the game (or Escape) shows its PauseMenu node (a CanvasLayer with ResumeButton and QuitButton) and pauses the tree, ResumeButton hides it and resumes; floor 2, The Ossuary, in data/floors.json, with shades and a new kind of enemy in data/enemies.json, the cinder bat (id bat: 1 hp, quicker than a shade); a data.json for the kit's data runner; meta progress in a Meta class (scripts/meta.gd: Meta.bank(save, run_embers, floor_reached, won) adds the run's embers to save.meta.embers, half of them rounded down after a death, keeps the deepest floor in save.meta.best_floor and counts save.meta.runs; Meta.buy_vigor(save) spends 5, then 10, then 15 embers for up to 3 levels of save.meta.vigor; Meta.max_hp(save) is 5 plus the vigor) spent at a shrine (Menu/ShrineButton opens a child of Main named Shrine with Box/VigorButton and Box/BackButton back to the menu); and a save by a SaveStore class (scripts/save_store.gd: SaveStore.new(path), read() and write(data) of a dictionary with meta and run, the run in progress as Run.to_dict() gives it, kept at the start of each floor) in user://save.json, so that ContinueButton carries on that run on its floor"
+    },
+    "hidden": [
+      {
+        "from": "game/test/flows/start.flow.json",
+        "to": "test/flows/start.flow.json"
+      },
+      {
+        "from": "game/test/flows/pause.flow.json",
+        "to": "test/flows/pause.flow.json"
+      },
+      {
+        "from": "game/test/flows/shrine.flow.json",
+        "to": "test/flows/shrine.flow.json"
+      },
+      "hidden/test_hidden_alpha.gd",
+      {
+        "from": "game/data.json",
+        "to": "data.json"
+      }
+    ],
+    "reference": "solutions/milestone-alpha"
+  }
+}
