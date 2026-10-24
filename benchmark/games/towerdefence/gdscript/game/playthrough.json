@@ -1,0 +1,5 @@
+{
+  "frames": 10800,
+  "args": ["--autoplay", "--seed=1", "--no-save"],
+  "expect": ["[Run] map 1 won", "[Run] map 2 won", "[Run] map 3 won", "[Run] victory"]
+}
