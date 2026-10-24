@@ -67,8 +67,12 @@ public partial class Game : Node2D
         start_rival(1);
     }
 
+    /// <summary>A new duel against a rival, as start_rival(id, -1).</summary>
+    /// <remarks>An overload, not a default argument: the engine (a flow's call step) calls a C# method only with all its arguments.</remarks>
+    public void start_rival(int id) => start_rival(id, -1);
+
     /// <summary>A new duel against a rival; seed -1 shuffles at random.</summary>
-    public void start_rival(int id, long seed = -1)
+    public void start_rival(int id, long seed)
     {
         rival = id;
         duel = Rivals.StartDuel(Cards, id, seed >= 0 ? seed : GD.Randi() % 1000000);
