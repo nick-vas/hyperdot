@@ -1,0 +1,187 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/credits.gd"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.9.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\")"
+    },
+    {
+      "file": "main.tscn",
+      "find": "[node name=\"CreditsButton\" type=\"Button\" parent=\"Menu\"]\ncustom_minimum_size = Vector2(0, 88)\ntheme_override_font_sizes/font_size = 28\ntext = \"Credits\"\n\n",
+      "replace": ""
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-playthrough",
+      "vars": {
+        "report": "the bot that plays it through (playthrough.json) stops on one of the first floors with enemies left that it never reaches, so the stairs stay sealed"
+      },
+      "edits": [
+        {
+          "file": "scripts/world.gd",
+          "find": "\tvar next := enemy.cell + Dungeon.DIRS[roll]\n\tif _can_enter(next):\n",
+          "replace": "\tvar next := enemy.cell + Dungeon.DIRS[roll]\n\tif dungeon.in_bounds(next) and not _occupied.has(next):\n"
+        }
+      ],
+      "hidden": [
+        "hidden/test_hidden_walls.gd"
+      ],
+      "reference": "solutions/beta/fix-playthrough",
+      "decoy": "solutions/beta/fix-playthrough-decoy"
+    },
+    {
+      "template": "add-feedback",
+      "vars": {
+        "report": "snuffing an enemy feels flat"
+      },
+      "edits": [
+        {
+          "file": "game/game.gd",
+          "find": "\t_play(_sfx_snuff)\n",
+          "replace": ""
+        }
+      ],
+      "reference": "solutions/beta/add-feedback"
+    },
+    {
+      "template": "fill-translations",
+      "vars": {
+        "locale": "French",
+        "report": "the panel shown at the end of a run partly in English"
+      },
+      "edits": [
+        {
+          "file": "i18n/strings.csv",
+          "find": "RUN_WON_MESSAGE,You reached the bottom of the crypt. %d embers go to the bank.,Vous avez atteint le fond de la crypte. %d braises vont en réserve.\n",
+          "replace": "RUN_WON_MESSAGE,You reached the bottom of the crypt. %d embers go to the bank.,\n"
+        },
+        {
+          "file": "i18n/strings.csv",
+          "find": "RUN_LOST_MESSAGE,Snuffed on floor %d. %d embers go to the bank.,Soufflée à l'étage %d. %d braises vont en réserve.\n",
+          "replace": "RUN_LOST_MESSAGE,Snuffed on floor %d. %d embers go to the bank.,\n"
+        },
+        {
+          "file": "i18n/strings.csv",
+          "find": "RUN_AGAIN,Descend again,Redescendre\n",
+          "replace": "RUN_AGAIN,Descend again,\n"
+        }
+      ],
+      "unchanged": [
+        "game/run_over_menu.gd",
+        "game/game.tscn"
+      ],
+      "reference": "solutions/beta/fill-translations",
+      "decoy": "solutions/beta/fill-translations-decoy"
+    },
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "two players who start a run with the same --seed=N get different floors, so a floor from a bug report cannot be played again"
+      },
+      "edits": [
+        {
+          "file": "scripts/dungeon.gd",
+          "find": "\t\tvar size := Vector2i(rng.randi_range(low, high), rng.randi_range(low, high))\n",
+          "replace": "\t\tvar size := Vector2i(randi_range(low, high), rng.randi_range(low, high))\n"
+        }
+      ],
+      "unchanged": [
+        "test/unit/test_dungeon.gd"
+      ],
+      "hidden": [
+        "hidden/test_hidden_seeds.gd"
+      ],
+      "reference": "solutions/beta/fix-bug",
+      "decoy": "solutions/beta/fix-bug-decoy"
+    },
+    {
+      "template": "fix-performance",
+      "vars": {
+        "situation": "a big swarm of cinder bats hunts the wick (start it with -- --swarm=200)"
+      },
+      "edits": [
+        {
+          "file": "scripts/world.gd",
+          "find": "## Enemies wander until they see the wick (within their sight, no wall in between), then hunt it down the floor's one\n## distance field, which is searched again only when the wick changes cell: a hundred hunters cost one search, not a\n## hundred. Next to the wick",
+          "replace": "## Enemies wander until they see the wick (within their sight, no wall in between), then hunt it down the shortest\n## way. Next to the wick"
+        },
+        {
+          "file": "scripts/world.gd",
+          "find": "var _occupied := {}\nvar _field := PackedInt32Array()\nvar _field_from := Vector2i(-1, -1)\n",
+          "replace": "var _occupied := {}\n"
+        },
+        {
+          "file": "scripts/world.gd",
+          "find": "\t_refresh_field()\n\tfor enemy in enemies.duplicate():",
+          "replace": "\tfor enemy in enemies.duplicate():"
+        },
+        {
+          "file": "scripts/world.gd",
+          "find": "\tvar field := _field\n",
+          "replace": "\tvar field := _search(wick.cell)\n"
+        },
+        {
+          "file": "scripts/world.gd",
+          "find": "## The field the hunters follow, searched again only when the wick has moved.\nfunc _refresh_field() -> void:\n\tif wick.cell != _field_from:\n\t\t_field = _search(wick.cell)\n\t\t_field_from = wick.cell\n\n\n",
+          "replace": ""
+        }
+      ],
+      "hidden": [
+        "hidden/test_hidden_path_searches.gd"
+      ],
+      "reference": "solutions/beta/fix-performance"
+    },
+    {
+      "template": "fix-flow",
+      "vars": {
+        "report": "the Back button of the settings screen does nothing, so players are stuck there"
+      },
+      "edits": [
+        {
+          "file": "ui/settings.gd",
+          "find": "\t_back.pressed.connect(closed.emit)\n",
+          "replace": ""
+        }
+      ],
+      "reference": "solutions/beta/fix-flow"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "floors 3, The Drowned Nave, and 4, The Wick's End (keys FLOOR_3 and FLOOR_4), in data/floors.json, holding shades, bats and a new kind of enemy in data/enemies.json, the tallow brute (id brute, key ENEMY_BRUTE: 3 hp, blows of 2 damage, slower to step than a shade), each floor fair to the game's Bot (with a wick of 5 hp it clears floor N in at least 15 of the twenty floors Dungeon.generate(seed * 1009 + N, its spec) for seeds 1 to 20, and loses hp there); a bot: with --autoplay (after --) the game plays from the main scene with Bot in the wick's place, floor after floor from --floor=N (1 by default), prints [Run] floor N cleared as it takes each floor's stairs and [Run] died on floor N when the wick is snuffed, starts a new run with the next seed after a death, and after the last floor prints [Run] victory and quits, every random choice from generators seeded by --seed=N and nothing saved with --no-save; juice: print [juice] event enemy_hit <ms>, [juice] event wick_hurt <ms> and [juice] event enemy_snuffed <ms> in game time (ms), each answered within 100 ms by [juice] feedback sfx <ms> for a sound, and also [juice] feedback flash <ms> and [juice] feedback shake <ms> for wick_hurt and [juice] feedback pop <ms> for enemy_snuffed, for a visible flash, a camera shake and a ring where the enemy was; a version 1 save ({\"version\": 1, \"embers\": <embers>, \"best\": <deepest floor>}) loaded into the current one; and French: every visible text through tr() with an fr column in the translation table, and a settings screen (Menu/SettingsButton opens a child of Main named Settings with a button Box/Languages/<Locale>Button per language, FrButton and EnButton, and Box/BackButton back to the menu)"
+    },
+    "hidden": [
+      {
+        "from": "game/playthrough.json",
+        "to": "playthrough.json"
+      },
+      {
+        "from": "game/juice.json",
+        "to": "juice.json"
+      },
+      {
+        "from": "game/test/flows/settings.flow.json",
+        "to": "test/flows/settings.flow.json"
+      },
+      "hidden/test_hidden_french.gd",
+      "hidden/test_hidden_four_floors.gd"
+    ],
+    "reference": "solutions/milestone-beta"
+  }
+}
