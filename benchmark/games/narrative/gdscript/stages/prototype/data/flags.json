@@ -1,0 +1,5 @@
+[
+  { "id": "trust", "kind": "count" },
+  { "id": "lied", "kind": "switch" },
+  { "id": "afraid", "kind": "switch" }
+]
