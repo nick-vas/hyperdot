@@ -1,13 +1,27 @@
 # Changelog
 
 ## Unreleased
+- **Bug reports pinned on their level.** `ci/godot/templates/addons/hyperdot_report_pins/`, an add-on a game copies:
+  `bug_report.gd` saves the feedback key's report (`user://reports/<time>.json`: the line typed, the scene, the
+  player's position and the camera's view in 2D or 3D, the seed, the commit, a screenshot), and the editor plugin pins
+  each report of the open scene on it (a dot where the player stood, a ring where the camera was) and lists them in a
+  Reports dock with the seed to replay. GDScript, so C# games use it too with no build. `tests/Test-ReportPins.ps1`.
+- **`doctor`'s Steam names follow constants and the solution.** An achievement, stat or `steam_display` value passed
+  as a string constant (C# `const string` or `static readonly string`, several to a line; GDScript `const`) is checked
+  like a literal, and the solution's C# outside the Godot folder is read too, less its test projects. The C# example's
+  `BreakoutProgress` names were invisible before; the example now keeps `steam/achievements.json` and
+  `steam/rich_presence.vdf`, which `doctor` checks them against.
+- **`placement` reads limits from C# too.** A `placement.json` limit may name a C# file and field
+  (`"res://Tuning.cs:Reach"`): a `const` or `static readonly` field set to a number, `true`, `false`, a plain string or
+  arithmetic on the file's other such fields (`JumpVelocity * JumpVelocity / (2f * Gravity) + BodyHeight`, divided as C#
+  divides), read from the source past comments, since Godot gives no constants for a C# script. A field it cannot work
+  out (`Mathf.Pi * 2`) is refused by name. The standard build reads it as well as the .NET one.
 - **The platformer in C#.** Glowmoss Ridge now has its C# version (`benchmark/games/platformer/csharp/`), written from
   the language-neutral contract in its `DESIGN.md`: the same level scenes, scene tree, node names, data files, flows,
   bot and juice runs and log lines, with 34 gdUnit4 tests in place of the GUT ones and a Linux export only. Its four
   stages carry the same tasks and milestones as the GDScript version, each with hidden checks in C# and a reference
-  solution, most with a decoy; all pass `tests/Test-GameProgramme.ps1 -Genre platformer -Language csharp`. The
-  `placement` runner reads limits from GDScript constants only, so the C# game writes the climber's reach into
-  `placement.json` as a number; `DESIGN.md`'s "As built" records this and the port's other choices.
+  solution, most with a decoy; all pass `tests/Test-GameProgramme.ps1 -Genre platformer -Language csharp`. Its
+  `placement.json` names `Movement.Reach` in the C# source; `DESIGN.md`'s "As built" records the port's choices.
 - **The staged game programme's fourth genre: a turn-based card game**, Lanternfen, in GDScript
   (`benchmark/games/cards/`). Two lantern-keepers duel with wisps that strike across three lanes and rites that act
   once; a turn is written as named phases (Draw, Main, Clash, End) in a plain class, each transition logged and tested.

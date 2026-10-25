@@ -155,8 +155,7 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
   It would be built from the repository's Markdown by a workflow, so it never drifts from them. The scope and look are
   still to agree with the owner.
 
-- **Bug-report pins in the editor.** `godot-automation-hooks` asks reports to save scene, position and view; nothing
-  shows them. A small C# `[Tool]` node that draws each report for the open scene.
+
 - **Add-on status from release zips and the API.** `ci/godot/addons-status.json`'s names were confirmed from each
   repository's files and build scripts with git, because GitHub's release downloads and API answered 403 in the sandbox
   that built it; Godot Jolt's, PerfBullets' and py4godot's `archived` are still `null`. The canary's first run fills
@@ -165,12 +164,7 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 - **`-GpuValidation` beyond Vulkan on Linux.** Tested with Mesa's lavapipe under Xvfb only. Not run: a real GPU, Windows
   (Vulkan SDK layer), D3D12 (Godot's debug-layer messages are read by the same pattern as Vulkan's debug-utils ones, from
   the source, never seen in a log) and Metal; on D3D12 and Metal `layerLoaded` is `null` because their logs do not say.
-- **Placement checks in C#.** The `placement` runner reads its limits from GDScript constants only: Godot returns no
-  constants for a C# script (`get_script_constant_map()` on the C# example's `Main.cs`, 4.7.2 mono, was empty), so a C#
-  game writes the numbers in `placement.json`. Reading them from C# needs a parser or a small `[Tool]` node that
-  exposes them.
-- **Steam names held in constants.** `doctor`'s Steamworks checks read string literals only; following constants (as
-  The C# example's `BreakoutProgress` uses) or code outside the Godot project needs a C# and GDScript parser.
+
 - **CI:** the GitLab template (`ci/gitlab/hyperdot.gitlab-ci.yml`) has never run on GitLab: no GitLab project or runner
   was reachable from the sandbox that wrote it. Run it once on a GitLab project (a copy of `examples/gdscript` and of
   `examples/csharp`) and fix what breaks. A container image with Godot and its templates already in it was not built: the
@@ -207,6 +201,9 @@ In the skills:
 - Real power-loss testing of `SaveStore` (needs a VM or `dm-log-writes`); directory sync on macOS after a rename.
 - `force_right_to_left_layout_direction` in an exported game.
 - Controller names per OS, `steam_input_index` on a Steam Deck, SDL3's pad limit on Windows.
+- Why Godot 4.7.2's headless editor (`--headless --editor --quit-after N`) aborts at exit about one run in three, with
+  no plugin and an empty project (`Parameter "singleton" is null` in `EditorNode::is_cmdline_mode`, exit 134): worth a
+  minimal reproduction for an upstream report; `tests/Test-ReportPins.ps1` allows exactly that abort.
 - Why a process that registered a C# `Logger` hangs at exit under coverlet (Godot 4.7.2 mono): no engine symbols; worth a
   minimal reproduction for an upstream report.
 - An 8-hour `soak` on a schedule (GitHub jobs stop at 6 hours); latency in `soak` (`tc ... netem` missing here; a

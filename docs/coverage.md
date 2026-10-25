@@ -117,7 +117,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Assets.ps1` | 12/12 | `Test-AssetManifest.ps1`, `Test-Addons.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1`, `Test-OldState.ps1` and 6 more |
 | `Audio.ps1` | 10/11 | `Test-Localization.ps1`, `Test-Audio.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-Addons.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-Flaky.ps1` and 5 more |
 | `BuildSize.ps1` | 4/4 | `Test-BuildSize.ps1`, `Test-ErrorCodes.ps1` |
-| `Common.ps1` | 46/48 | `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-GpuValidation.ps1`, `Test-Localization.ps1`, `Test-Palette.ps1`, `Test-Playthrough.ps1`, `Test-Soak.ps1`, `Test-StaleTres.ps1` and 48 more |
+| `Common.ps1` | 46/48 | `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-GpuValidation.ps1`, `Test-Localization.ps1`, `Test-Palette.ps1`, `Test-Playthrough.ps1`, `Test-Soak.ps1`, `Test-StaleTres.ps1` and 49 more |
 | `Context.ps1` | 8/8 | `Test-Context.ps1`, `Test-Help.ps1`, `Test-DoctorFixture.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1` and 5 more |
 | `Credits.ps1` | 6/7 | `Test-Credits.ps1`, `Test-ErrorCodes.ps1` |
 | `Data.ps1` | 0/19 | `Test-Data.ps1` |
@@ -138,7 +138,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Playthrough.ps1` | 3/3 | `Test-Playthrough.ps1` |
 | `Report.ps1` | 29/32 | `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Localization.ps1`, `Test-ArchitectureFixtures.ps1`, `Test-Data.ps1`, `Test-FailureDelta.ps1`, `Test-GitLabTemplate.ps1`, `Test-TestDuration.ps1` and 23 more |
 | `Runners.ps1` | 6/6 | `Test-Flaky.ps1`, `Test-StaleTres.ps1`, `Test-ErrorCodes.ps1`, `Test-Flows.ps1`, `Test-Placement.ps1`, `Test-SkillShaders.ps1`, `Test-ErrorKeys.ps1`, `Test-Layout.ps1` and 6 more |
-| `Setup.ps1` | 11/12 | `Test-InstallLock.ps1`, `Test-GameVersion.ps1`, `Test-InstallAddon.ps1`, `Test-UpdatePins.ps1`, `Test-ErrorCodes.ps1`, `Test-BuildSize.ps1`, `Test-Capture.ps1`, `Test-DownloadFailed.ps1` and 31 more |
+| `Setup.ps1` | 11/12 | `Test-InstallLock.ps1`, `Test-GameVersion.ps1`, `Test-InstallAddon.ps1`, `Test-ReportPins.ps1`, `Test-UpdatePins.ps1`, `Test-ErrorCodes.ps1`, `Test-BuildSize.ps1`, `Test-Capture.ps1` and 32 more |
 | `Sfx.ps1` | 5/5 | `Test-Sfx.ps1` |
 | `Soak.ps1` | 6/6 | `Test-Soak.ps1` |
 | `Status.ps1` | 16/16 | `Test-ArchitectureFixtures.ps1`, `Test-Data.ps1`, `Test-Localization.ps1`, `Test-TestDuration.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Handoffs.ps1`, `Test-Plan.ps1` and 9 more |
@@ -257,7 +257,7 @@ A job of `self-test.yml` is a test itself (it lists what it runs); another workf
 | self-test.yml/zero-config | itself (on every push and pull request) |
 | self-test.yml/csharp | itself (on every push and pull request) |
 | self-test.yml/explicit-runners | itself (on every push and pull request) |
-| self-test.yml/init | itself (on every push and pull request); runs `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Localization.ps1`, `Test-Placement.ps1`, `Test-ResultsDir.ps1`, `Test-SkillShaders.ps1`, 5 step(s) of its own |
+| self-test.yml/init | itself (on every push and pull request); runs `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Localization.ps1`, `Test-Placement.ps1`, `Test-ReportPins.ps1`, `Test-ResultsDir.ps1`, `Test-SkillShaders.ps1`, 5 step(s) of its own |
 | self-test.yml/measure | itself (on every push and pull request); runs `Test-Audio.ps1`, `Test-BenchHotspots.ps1`, `Test-BenchSweep.ps1`, `Test-Capture.ps1`, `Test-ColorVision.ps1`, `Test-Credits.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-Flows.ps1`, `Test-Layout.ps1`, `Test-MonoAudio.ps1`, `Test-Palette.ps1`, `Test-Playthrough.ps1`, `Test-ShotChanged.ps1`, `Test-Soak.ps1`, `Test-StaleTres.ps1`, `Test-TextSize.ps1`, 4 step(s) of its own |
 | self-test.yml/game-benchmark | itself (on every push and pull request); runs `Test-BenchmarkIsolation.ps1`, `Test-GameBenchmark.ps1`, `Test-GameProgramme.ps1`, 1 step(s) of its own |
 | self-test.yml/game-programme | itself (on every push and pull request); runs `Test-GameProgramme.ps1`, 1 step(s) of its own |
