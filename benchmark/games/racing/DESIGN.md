@@ -277,4 +277,8 @@ Choices made in the GDScript build where the design was open. The C# port follow
 - **Store art** is captured under Xvfb at 1920x1080 (four races and the menu) and a hero shot without the HUD; the
   capsules are cut from it with ffmpeg and the title drawn in DejaVu Sans Bold. The 600x800 capsule of the fix-store
   defect is a crop of the real one.
+- **Flows wait for a state, not a count of ticks** (`pause.flow.json` waits until the race is on), because the
+  fix-playthrough task runs the game at 120 ticks a second, where the countdown takes twice as many.
+- **A hidden test stops at a missing track** rather than racing on it: an empty track has no road to search, and the
+  untouched games of add-content and the milestones must fail quickly, not run to the kit's time limit.
 - **Decoys:** fix-bug (all three stages), fix-playthrough and fill-translations.
