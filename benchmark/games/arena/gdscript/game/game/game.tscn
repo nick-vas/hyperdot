@@ -1,0 +1,238 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://game/game.gd" id="1_game"]
+[ext_resource type="Script" path="res://game/court_view.gd" id="2_view"]
+[ext_resource type="Script" path="res://game/pause_menu.gd" id="3_pause"]
+[ext_resource type="Script" path="res://game/result_menu.gd" id="4_result"]
+[ext_resource type="AudioStream" path="res://sounds/sfx/laser_shoot-9.wav" id="5_shot"]
+[ext_resource type="AudioStream" path="res://sounds/sfx/hit_hurt-9.wav" id="6_hit"]
+[ext_resource type="AudioStream" path="res://sounds/sfx/explosion-9.wav" id="7_out"]
+[ext_resource type="AudioStream" path="res://sounds/sfx/powerup-9.wav" id="8_round"]
+
+[node name="Game" type="Node2D"]
+script = ExtResource("1_game")
+
+[node name="Camera" type="Camera2D" parent="."]
+position = Vector2(640, 360)
+
+[node name="CourtView" type="Node2D" parent="."]
+script = ExtResource("2_view")
+
+[node name="SfxShot" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("5_shot")
+volume_db = -10.0
+
+[node name="SfxHit" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("6_hit")
+volume_db = -4.0
+
+[node name="SfxOut" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("7_out")
+
+[node name="SfxRound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("8_round")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Flash" type="ColorRect" parent="HUD"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="Scores" type="HBoxContainer" parent="HUD"]
+offset_left = 40.0
+offset_top = 10.0
+offset_right = 760.0
+offset_bottom = 52.0
+theme_override_constants/separation = 24
+
+[node name="Slot0Label" type="Label" parent="HUD/Scores"]
+custom_minimum_size = Vector2(160, 0)
+theme_override_font_sizes/font_size = 22
+text = "P1: 0"
+
+[node name="Slot1Label" type="Label" parent="HUD/Scores"]
+custom_minimum_size = Vector2(160, 0)
+theme_override_font_sizes/font_size = 22
+text = "P2: 0"
+
+[node name="Slot2Label" type="Label" parent="HUD/Scores"]
+custom_minimum_size = Vector2(160, 0)
+theme_override_font_sizes/font_size = 22
+text = "P3: 0"
+
+[node name="Slot3Label" type="Label" parent="HUD/Scores"]
+custom_minimum_size = Vector2(160, 0)
+theme_override_font_sizes/font_size = 22
+text = "P4: 0"
+
+[node name="RoundLabel" type="Label" parent="HUD"]
+offset_left = 780.0
+offset_top = 12.0
+offset_right = 960.0
+offset_bottom = 50.0
+theme_override_font_sizes/font_size = 22
+text = "Round 1"
+
+[node name="HealthLabel" type="Label" parent="HUD"]
+offset_left = 40.0
+offset_top = 668.0
+offset_right = 400.0
+offset_bottom = 708.0
+theme_override_font_sizes/font_size = 22
+text = "Health: 3"
+
+[node name="StatusLabel" type="Label" parent="HUD"]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+grow_horizontal = 2
+offset_left = -300.0
+offset_top = 300.0
+offset_right = 300.0
+offset_bottom = 350.0
+theme_override_font_sizes/font_size = 30
+text = ""
+horizontal_alignment = 1
+
+[node name="PauseButton" type="Button" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -200.0
+offset_top = 6.0
+offset_right = -40.0
+offset_bottom = 58.0
+grow_horizontal = 0
+focus_mode = 0
+theme_override_font_sizes/font_size = 22
+text = "Pause"
+
+[node name="PauseMenu" type="CanvasLayer" parent="."]
+process_mode = 3
+layer = 10
+visible = false
+script = ExtResource("3_pause")
+
+[node name="Dim" type="ColorRect" parent="PauseMenu"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="Title" type="Label" parent="PauseMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -240.0
+offset_top = -190.0
+offset_right = 240.0
+offset_bottom = -130.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 40
+text = "Paused"
+horizontal_alignment = 1
+
+[node name="ResumeButton" type="Button" parent="PauseMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = -100.0
+offset_right = 180.0
+offset_bottom = -4.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 28
+text = "Resume"
+
+[node name="QuitButton" type="Button" parent="PauseMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = 20.0
+offset_right = 180.0
+offset_bottom = 116.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 28
+text = "Quit to menu"
+
+[node name="ResultMenu" type="CanvasLayer" parent="."]
+layer = 5
+visible = false
+script = ExtResource("4_result")
+
+[node name="Dim" type="ColorRect" parent="ResultMenu"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.5)
+
+[node name="Panel" type="ColorRect" parent="ResultMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -310.0
+offset_top = -260.0
+offset_right = 310.0
+offset_bottom = 260.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.09, 0.11, 0.1, 0.96)
+
+[node name="Box" type="VBoxContainer" parent="ResultMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -280.0
+offset_top = -230.0
+offset_right = 280.0
+offset_bottom = 230.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Title" type="Label" parent="ResultMenu/Box"]
+theme_override_font_sizes/font_size = 44
+text = "Victory"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="MessageLabel" type="Label" parent="ResultMenu/Box"]
+theme_override_font_sizes/font_size = 22
+text = "P1 wins 3 rounds to 1"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="RematchButton" type="Button" parent="ResultMenu/Box"]
+custom_minimum_size = Vector2(0, 88)
+theme_override_font_sizes/font_size = 28
+text = "Rematch"
+
+[node name="MenuButton" type="Button" parent="ResultMenu/Box"]
+custom_minimum_size = Vector2(0, 88)
+theme_override_font_sizes/font_size = 28
+text = "Back to menu"
