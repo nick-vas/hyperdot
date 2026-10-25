@@ -1,0 +1,229 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.gd",
+    "ui/credits.tscn",
+    "test/flows/credits.flow.json"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.9.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.de.translation\", \"res://i18n/strings.fr.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.de.translation\")"
+    },
+    {
+      "file": "layout.json",
+      "find": ", \"res://ui/credits.tscn\"]",
+      "replace": "]"
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "const CREDITS_SCENE := preload(\"res://ui/credits.tscn\")\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "\tsettings.credits_requested.connect(show_credits)\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "func show_credits() -> void:\n\tvar credits := CREDITS_SCENE.instantiate()\n\tcredits.name = \"Credits\"\n\tcredits.closed.connect(show_settings)\n\t_show(credits)\n\n\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "## The holder of the hive and of the screen over it (settings, credits), and",
+      "replace": "## The holder of the hive and of the screen over it (settings), and"
+    },
+    {
+      "file": "ui/settings.gd",
+      "find": "## Volume and language, and the way to the credits. Changes",
+      "replace": "## Volume and language. Changes"
+    },
+    {
+      "file": "ui/settings.gd",
+      "find": "signal credits_requested\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/settings.gd",
+      "find": "@onready var _credits: Button = $Safe/Box/CreditsButton\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/settings.gd",
+      "find": "\t_credits.pressed.connect(credits_requested.emit)\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/settings.gd",
+      "find": "\t_credits.text = tr(\"SETTINGS_CREDITS\")\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/settings.tscn",
+      "find": "[node name=\"CreditsButton\" type=\"Button\" parent=\"Safe/Box\"]\ncustom_minimum_size = Vector2(0, 96)\nlayout_mode = 2\ntheme_override_font_sizes/font_size = 28\ntext = \"Credits\"\n\n",
+      "replace": ""
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-performance",
+      "vars": {
+        "situation": "it is left running for a long session on a phone"
+      },
+      "edits": [
+        {
+          "file": "scripts/economy.gd",
+          "find": "\tvar earned := rate() * seconds\n",
+          "replace": "\t_recompute()\n\tvar earned := _rate * seconds\n"
+        }
+      ],
+      "hidden": [
+        "hidden/test_hidden_rate_computations.gd"
+      ],
+      "reference": "solutions/beta/fix-performance",
+      "decoy": "solutions/beta/fix-performance-decoy"
+    },
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "on a phone in German, the bar at the bottom of the hive is wider than the screen: its last button, Einstellungen (the settings), is cut off at the right edge and cannot be pressed. The German words are right"
+      },
+      "edits": [
+        {
+          "file": "game/game.gd",
+          "find": "\t# Long translations wrap inside the bar instead of pushing it off a phone screen.\n\tfor button: Button in _bar.get_children():\n\t\tbutton.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART\n",
+          "replace": ""
+        }
+      ],
+      "unchanged": [
+        "i18n/strings.csv"
+      ],
+      "hidden": [
+        "hidden/test_hidden_bar_fits.gd"
+      ],
+      "reference": "solutions/beta/fix-bug",
+      "decoy": "solutions/beta/fix-bug-decoy"
+    },
+    {
+      "template": "fix-playthrough",
+      "vars": {
+        "report": "the bot that plays it through (playthrough.json) never greets the first dawn: the Dawn button stays dark however much glow the hive makes"
+      },
+      "edits": [
+        {
+          "file": "scripts/economy.gd",
+          "find": "\tvar earned := rate() * seconds\n\tearn(earned)\n",
+          "replace": "\tvar earned := rate() * seconds\n\tglow = minf(glow + earned, Numbers.MAX)\n"
+        }
+      ],
+      "unchanged": [
+        "data/economy.json"
+      ],
+      "hidden": [
+        "hidden/test_hidden_dawn_earnings.gd"
+      ],
+      "reference": "solutions/beta/fix-playthrough",
+      "decoy": "solutions/beta/fix-playthrough-decoy"
+    },
+    {
+      "template": "add-feedback",
+      "vars": {
+        "report": "buying an upgrade feels flat"
+      },
+      "edits": [
+        {
+          "file": "game/game.gd",
+          "find": "\t_event(\"upgraded\")\n\t_play(_sfx_upgrade)\n",
+          "replace": "\t_event(\"upgraded\")\n"
+        }
+      ],
+      "reference": "solutions/beta/add-feedback",
+      "decoy": "solutions/beta/add-feedback-decoy"
+    },
+    {
+      "template": "fill-translations",
+      "vars": {
+        "locale": "German",
+        "report": "the panel that welcomes them back after time away in English"
+      },
+      "edits": [
+        {
+          "file": "i18n/strings.csv",
+          "find": "WELCOME_TITLE,Welcome back,Willkommen zurück\n",
+          "replace": "WELCOME_TITLE,Welcome back,\n"
+        },
+        {
+          "file": "i18n/strings.csv",
+          "find": "WELCOME_MESSAGE,You were away for %s. The hive gathered %s glow.,Du warst %s fort. Der Schwarm hat %s Glimmen gesammelt.\n",
+          "replace": "WELCOME_MESSAGE,You were away for %s. The hive gathered %s glow.,\n"
+        },
+        {
+          "file": "i18n/strings.csv",
+          "find": "WELCOME_COLLECT,Collect,Einsammeln\n",
+          "replace": "WELCOME_COLLECT,Collect,\n"
+        }
+      ],
+      "unchanged": [
+        "game/game.gd",
+        "game/game.tscn"
+      ],
+      "reference": "solutions/beta/fill-translations",
+      "decoy": "solutions/beta/fill-translations-decoy"
+    },
+    {
+      "template": "fix-flow",
+      "vars": {
+        "report": "the Back button of the settings screen does nothing, so players are stuck there"
+      },
+      "edits": [
+        {
+          "file": "ui/settings.gd",
+          "find": "\t_back.pressed.connect(closed.emit)\n",
+          "replace": ""
+        }
+      ],
+      "reference": "solutions/beta/fix-flow",
+      "decoy": "solutions/beta/fix-flow-decoy"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "a fifth producer, the Star Loom (star_loom, after the Moon Lily: costs 300,000, grows by 1.12, makes 1,800 a second, with its upgrade star_thread doubling it once 10 are owned, for 5,000,000); a bot: with --autoplay (after --) the game plays from the main scene by itself (scripts/bot.gd, a class Bot whose act(economy) does one thing each tick: dawn once a dawn would at least double the embers, else buy an upgrade it can pay for, else buy the producer that pays its price back soonest, or gather while nothing is owned), --speed=N runs N seconds of play per second of game time, it prints [Run] dawn N, ... after each dawn and [Run] goal: ... once a billion glow has been earned over all runs, then quits, and --no-save writes nothing (LaunchOptions has autoplay, no_save and speed); juice: print [juice] event gathered|bought|upgraded|dawn <ms> in game time (ms), each answered within 100 ms by [juice] feedback sfx <ms> for a sound, also [juice] feedback pop <ms> for gathered, bought and upgraded (the pressed button grows and settles) and [juice] feedback flash <ms> and [juice] feedback shake <ms> for the dawn; German: every visible text through tr() with a de column in the translation table, and the settings screen offering it (Settings/Safe/Box/Languages/<Locale>Button, DeButton and EnButton), with the bar at the bottom of the hive still on a portrait phone's screen in German; saves of the previous version (version 2, embers and dawns beside the economy) keep their embers and dawns; and the kit's layout checks (layout.json: the main, game and settings scenes on a portrait phone, a portrait and a landscape tablet and an ultrawide screen) and text size checks (textsize.json: main, game and settings scenes at 720x1280 and 1280x800)"
+    },
+    "hidden": [
+      {
+        "from": "game/playthrough.json",
+        "to": "playthrough.json"
+      },
+      {
+        "from": "game/juice.json",
+        "to": "juice.json"
+      },
+      {
+        "from": "game/test/flows/settings.flow.json",
+        "to": "test/flows/settings.flow.json"
+      },
+      {
+        "from": "game/textsize.json",
+        "to": "textsize.json"
+      },
+      "hidden/test_hidden_beta.gd",
+      "hidden/test_hidden_bar_fits.gd",
+      "hidden/test_hidden_save_migration.gd"
+    ],
+    "reference": "solutions/milestone-beta"
+  }
+}

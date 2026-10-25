@@ -16,6 +16,7 @@ var _save: Dictionary
 @onready var _languages: HBoxContainer = $Safe/Box/Languages
 @onready var _credits: Button = $Safe/Box/CreditsButton
 @onready var _back: Button = $Safe/Box/BackButton
+@onready var _version: Label = $Safe/Box/VersionLabel
 
 
 func setup(save: Dictionary) -> void:
@@ -55,6 +56,7 @@ func _refresh_text() -> void:
 	_language_label.text = tr("SETTINGS_LANGUAGE")
 	_credits.text = tr("SETTINGS_CREDITS")
 	_back.text = tr("SETTINGS_BACK")
+	_version.text = tr("SETTINGS_VERSION") % ProjectSettings.get_setting("application/config/version", "")
 	for button: Button in _languages.get_children():
 		var locale := str(button.get_meta("locale"))
 		button.text = tr(LANGUAGE_NAMES.get(locale, locale))

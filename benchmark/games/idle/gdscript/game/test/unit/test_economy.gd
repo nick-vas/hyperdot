@@ -58,10 +58,10 @@ func test_gather_gives_the_tap_value():
 
 
 func test_a_long_tick_and_many_short_ones_agree_within_the_tolerance():
-	economy.owned["star_loom"] = 300
-	economy.embers = 1e6
+	economy.owned["firefly_choir"] = 2000
 	economy._dirty = true
-	var other := Economy.from_dict(economy.catalog, economy.to_dict())
+	var other := Economy.new(economy.catalog)
+	other.owned = economy.owned.duplicate()
 	economy.tick(3600.0)
 	for i in 3600 * 4:
 		other.tick(0.25)

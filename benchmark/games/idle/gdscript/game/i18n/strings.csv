@@ -46,6 +46,7 @@ SETTINGS_VOLUME,Volume,Lautstärke,Volume
 SETTINGS_LANGUAGE,Language,Sprache,Langue
 SETTINGS_CREDITS,Credits,Mitwirkende,Crédits
 SETTINGS_BACK,Back,Zurück,Retour
+SETTINGS_VERSION,Version %s,Version %s,Version %s
 LANG_EN,English,English,English
 LANG_DE,Deutsch,Deutsch,Deutsch
 LANG_FR,Français,Français,Français

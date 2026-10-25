@@ -3,5 +3,5 @@
   { "id": "glow_snail", "name": "PRODUCER_GLOW_SNAIL", "cost": 120, "growth": 1.15, "rate": 4 },
   { "id": "firefly_choir", "name": "PRODUCER_FIREFLY_CHOIR", "cost": 1500, "growth": 1.14, "rate": 30 },
   { "id": "moon_lily", "name": "PRODUCER_MOON_LILY", "cost": 20000, "growth": 1.13, "rate": 220 },
-  { "id": "star_loom", "name": "PRODUCER_STAR_LOOM", "cost": 300000, "growth": 1.12, "rate": 1600 }
+  { "id": "star_loom", "name": "PRODUCER_STAR_LOOM", "cost": 300000, "growth": 1.12, "rate": 1800 }
 ]

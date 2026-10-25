@@ -18,7 +18,7 @@ var _upgrades_by_id := {}
 
 
 static func from_files() -> Catalog:
-	return from_data(_read(PRODUCERS_PATH), _read(UPGRADES_PATH), _read(ECONOMY_PATH))
+	return from_data(_read(PRODUCERS_PATH, true), _read(UPGRADES_PATH, false), _read(ECONOMY_PATH, true))
 
 
 static func from_data(producer_rows: Array, upgrade_rows: Array, setting_rows: Array) -> Catalog:
@@ -37,7 +37,12 @@ static func from_data(producer_rows: Array, upgrade_rows: Array, setting_rows: A
 	return catalog
 
 
-static func _read(path: String) -> Array:
+## A table as an array; an optional one the game has not got yet (an early build) is empty.
+static func _read(path: String, required: bool) -> Array:
+	if not FileAccess.file_exists(path):
+		if required:
+			push_error("Catalog: %s is missing" % path)
+		return []
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
 	if typeof(parsed) != TYPE_ARRAY:
 		push_error("Catalog: %s is not a JSON array" % path)

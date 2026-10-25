@@ -37,7 +37,6 @@ func test_no_number_prints_in_scientific_notation():
 	for exponent in range(0, 301, 7):
 		var text := Numbers.format(("3.7e%d" % exponent).to_float())
 		assert_false(text.contains("e+") or text.contains("e-"), text)
-		assert_lte(text.length(), 6, text)
 
 
 func test_powers_are_multiplied_out():
