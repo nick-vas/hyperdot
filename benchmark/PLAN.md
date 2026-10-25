@@ -51,6 +51,38 @@ stage, one run per task and configuration, 32 sessions for $1.89 (the runner est
 - **Cost model.** Median sessions cost $0.077 (Sonnet), $0.121 (Sonnet + plugin), $0.011 (Haiku) and $0.017 (Haiku +
   plugin); `cost-model.json` now uses these with a quarter added, so estimates stay above spend.
 
+## The second pilot
+
+The other eight arcade GDScript tasks on 2026-10-24 (token-benchmark run 32, commit c7e9aa7), one run per task and
+configuration, the first run with every session isolated as its own user on GitHub's runner: 32 sessions for $1.62
+(the runner estimated $2.28).
+
+| Task | Sonnet | Sonnet + plugin | Haiku | Haiku + plugin |
+|---|---|---|---|---|
+| prototype add-feature | pass | pass | pass | pass |
+| prototype explain-failure | pass | pass | pass | pass |
+| alpha migrate-save | pass | pass | pass | pass |
+| alpha fix-bug (the pause bug) | pass | pass | pass | pass |
+| beta fill-translations | pass | pass | pass | pass |
+| beta fix-performance | fail (hidden many-shots test; 225 words, limit 220) | pass | fail (hidden test; 244 words; 1324 s with a retry) | fail (hidden test; out of turns at 41) |
+| beta fix-flow | pass | pass | pass | pass |
+| release cut-version | pass | pass | pass | pass |
+| **Median tokens per session** | 92k | 237k | 263k | 463k |
+| **Cost** | $0.51 | $0.88 | $0.09 | $0.14 |
+
+- **Difficulty.** Seven of the eight were solved by every configuration; with the first pilot, 12 of the 16 arcade
+  tasks were. Only fix-performance told the configurations apart: the hidden test fires many shots and counts the
+  collision checks, and only Sonnet with the plugin made them scale. The mid tier's three runs decide which of the 12
+  are hardened or dropped by the rule in section 2; until then, the tasks that need a measured or hidden behaviour
+  (performance, the hidden tests behind write-tests and fix-architecture) are the model for hardening the rest.
+- **Length again.** Both failed answers without the plugin were also over their word limit (Sonnet by 5, Haiku by 24),
+  as in the first pilot and the tool programme.
+- **The plugin.** 2.6 times Sonnet's tokens and 1.8 times Haiku's; it won the one task that discriminated, for Sonnet.
+- **Cost model.** Median sessions cost $0.059 (Sonnet), $0.107 (Sonnet + plugin), $0.008 (Haiku) and $0.013 (Haiku +
+  plugin), all under `cost-model.json`'s figures, which stay as they are.
+- **Isolation.** The fix that lets a runner that is not root start sessions through sudo (the session user enters its
+  game folder itself) held for all 32 sessions; the run before it (31) had failed on that before any session started.
+
 ## Decisions
 
 | Question | Decision |
