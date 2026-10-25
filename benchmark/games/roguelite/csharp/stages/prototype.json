@@ -1,0 +1,206 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "main.tscn",
+    "ui",
+    "game/PauseMenu.cs",
+    "game/RunOverMenu.cs",
+    "scripts/Meta.cs",
+    "scripts/SaveStore.cs",
+    "scripts/TextFormat.cs",
+    "data.json",
+    "i18n",
+    "sounds",
+    "plan",
+    "docs",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "architecture.json",
+    "test/flows",
+    "test/WorldRulesTest.cs",
+    "test/MercyTest.cs",
+    "test/BotTest.cs",
+    "test/MetaTest.cs",
+    "test/SaveStoreTest.cs",
+    "test/GameTest.cs"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "run/main_scene=\"res://main.tscn\"",
+      "replace": "run/main_scene=\"res://game/game.tscn\""
+    },
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.1.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "[internationalization]\n\nlocale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")\n\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/World.cs",
+      "find": "    /// <summary>Ticks after a hurt during which the wick cannot be hurt again.</summary>\n    public const int MercyTicks = 30;\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/World.cs",
+      "find": "        Wick.Mercy = Math.Max(Wick.Mercy - 1, 0);\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/World.cs",
+      "find": "    /// <summary>Takes hp from the wick, unless a hurt a moment ago still gives it mercy.</summary>\n    public void HurtWick(int amount)\n    {\n        if (Wick.Mercy > 0 || Wick.Hp <= 0)\n            return;\n        Wick.Hp = Math.Max(Wick.Hp - amount, 0);\n        Wick.Mercy = MercyTicks;\n",
+      "replace": "    /// <summary>Takes hp from the wick.</summary>\n    public void HurtWick(int amount)\n    {\n        if (Wick.Hp <= 0)\n            return;\n        Wick.Hp = Math.Max(Wick.Hp - amount, 0);\n"
+    },
+    {
+      "file": "scripts/Actor.cs",
+      "find": "    /// <summary>Ticks the wick cannot be hurt again after a hurt.</summary>\n    public int Mercy { get; set; }\n",
+      "replace": ""
+    },
+    {
+      "file": "game/Creatures.cs",
+      "find": "        Color wickColor = world.Wick.Mercy > 0 && world.Tick % 8 < 4 ? new Color(1, 1, 1, 0.45f) : Colors.White;\n        DrawTexture(_wickTexture, glow - _wickTexture.GetSize() / 2f, wickColor);\n",
+      "replace": "        DrawTexture(_wickTexture, glow - _wickTexture.GetSize() / 2f);\n"
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "on some floors a room with enemies in it cannot be reached from anywhere, so its enemies cannot be snuffed and the stairs never open"
+      },
+      "edits": [
+        {
+          "file": "scripts/Dungeon.cs",
+          "find": "    /// <summary>\n    /// Each room after the first is dug to the nearest room already joined: a spanning tree grown from room 0, so every\n    /// room can be reached from the start whatever the seed.\n    /// </summary>\n    private void JoinRooms(RandomNumberGenerator rng)\n    {\n        for (int i = 1; i < Rooms.Count; i++)\n        {\n            int nearest = 0;\n            int best = 1 << 30;\n            for (int j = 0; j < i; j++)\n            {\n",
+          "replace": "    /// <summary>Each room after the first is dug to its nearest neighbour, so corridors stay short.</summary>\n    private void JoinRooms(RandomNumberGenerator rng)\n    {\n        for (int i = 1; i < Rooms.Count; i++)\n        {\n            int nearest = 0;\n            int best = 1 << 30;\n            for (int j = 0; j < Rooms.Count; j++)\n            {\n                if (j == i)\n                    continue;\n"
+        }
+      ],
+      "unchanged": [
+        "test/DungeonTest.cs"
+      ],
+      "hidden": [
+        "hidden/HiddenReachableTest.cs"
+      ],
+      "reference": "solutions/prototype/fix-bug",
+      "decoy": "solutions/prototype/fix-bug-decoy"
+    },
+    {
+      "template": "write-tests",
+      "vars": {
+        "subject": "World class (scripts/World.cs: how the wick and the enemies move, what an enemy sees, blows, and the stairs)",
+        "file": "test/WorldRulesTest.cs",
+        "rules": "a creature steps only onto floor, never into a wall or a cell another creature stands on; an enemy sees the wick only within its sight (a circle of that many cells) and only when no wall lies on the line between them; an enemy strikes the wick from beside it, never from a diagonal; the wick's blow takes its damage from the enemy it faces (else from any enemy beside it); an enemy with no hp left is gone from the floor and its embers are counted; and the stairs open only once every enemy is gone",
+        "code": "scripts/World.cs"
+      },
+      "unchanged": [
+        "scripts/World.cs"
+      ],
+      "mutantTests": [
+        "test/WorldRulesTest.cs"
+      ],
+      "mutants": [
+        {
+          "name": "a creature can step into a wall",
+          "file": "scripts/World.cs",
+          "find": "private bool CanEnter(Vector2I cell) => Dungeon.IsFloor(cell) && !_occupied.ContainsKey(cell);",
+          "replace": "private bool CanEnter(Vector2I cell) => Dungeon.InBounds(cell) && !_occupied.ContainsKey(cell);"
+        },
+        {
+          "name": "two creatures can share a cell",
+          "file": "scripts/World.cs",
+          "find": "private bool CanEnter(Vector2I cell) => Dungeon.IsFloor(cell) && !_occupied.ContainsKey(cell);",
+          "replace": "private bool CanEnter(Vector2I cell) => Dungeon.IsFloor(cell);"
+        },
+        {
+          "name": "an enemy sees through walls",
+          "file": "scripts/World.cs",
+          "find": "        return Dungeon.LineClear(enemy.Cell, Wick.Cell);\n",
+          "replace": "        return true;\n"
+        },
+        {
+          "name": "an enemy sees further than its sight",
+          "file": "scripts/World.cs",
+          "find": "if (gap.X * gap.X + gap.Y * gap.Y > enemy.Sight * enemy.Sight)",
+          "replace": "if (gap.X * gap.X + gap.Y * gap.Y > (enemy.Sight + 2) * (enemy.Sight + 2))"
+        },
+        {
+          "name": "an enemy strikes from a diagonal",
+          "file": "scripts/World.cs",
+          "find": "=> Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y) == 1;",
+          "replace": "=> Math.Max(Math.Abs(a.X - b.X), Math.Abs(a.Y - b.Y)) == 1;"
+        },
+        {
+          "name": "the wick's blow does no harm",
+          "file": "scripts/World.cs",
+          "find": "        target.Hp -= Wick.Damage;\n",
+          "replace": "        target.Hp -= 0;\n"
+        },
+        {
+          "name": "a snuffed enemy stays on the floor",
+          "file": "scripts/World.cs",
+          "find": "        Enemies.Remove(enemy);\n        _occupied.Remove(enemy.Cell);\n",
+          "replace": "        _occupied.Remove(enemy.Cell);\n"
+        },
+        {
+          "name": "the stairs open with an enemy left",
+          "file": "scripts/World.cs",
+          "find": "        if (Enemies.Count == 0)\n        {\n            StairsOpen = true;\n",
+          "replace": "        if (Enemies.Count <= 1)\n        {\n            StairsOpen = true;\n"
+        }
+      ],
+      "reference": "solutions/prototype/write-tests"
+    },
+    {
+      "template": "add-feature",
+      "vars": {
+        "feature": "mercy for the wick: after the wick is hurt (World.HurtWick, also how enemies' blows land), it cannot be hurt again for 30 ticks, a new public World constant MercyTicks = 30, counted down once per World.Step in a new public Actor property Mercy of the wick (an int with a getter and a setter, set to MercyTicks by a hurt that lands, 0 when there is no mercy left), so a hurt during mercy takes no hp"
+      },
+      "hidden": [
+        "hidden/HiddenMercyTest.cs"
+      ],
+      "reference": "solutions/prototype/add-feature"
+    },
+    {
+      "template": "explain-failure",
+      "edits": [
+        {
+          "file": "scripts/World.cs",
+          "find": "        if (target.Hp <= 0)\n            Snuff(target);\n",
+          "replace": "        if (target.Hp <= 0)\n        {\n            Embers += target.Embers;\n            Snuff(target);\n        }\n"
+        }
+      ],
+      "unchanged": [
+        "scripts/World.cs",
+        "scripts/Dungeon.cs",
+        "scripts/Actor.cs",
+        "scripts/Bot.cs",
+        "scripts/Floors.cs",
+        "scripts/Run.cs",
+        "game/Game.cs",
+        "test/WorldTest.cs",
+        "test/DungeonTest.cs",
+        "test/LaunchOptionsTest.cs"
+      ],
+      "expected": {
+        "mustInclude": [
+          "Snuffed_enemies_leave_their_embers",
+          "re:WorldTest\\.cs\\D{0,40}\\b49\\b",
+          "re:(?<![\\d.])10(?!\\d)",
+          "re:(?<![\\d.])20(?!\\d)"
+        ]
+      },
+      "reference": "solutions/prototype/explain-failure"
+    }
+  ]
+}
