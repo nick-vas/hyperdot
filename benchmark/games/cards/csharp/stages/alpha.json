@@ -1,0 +1,178 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/Credits.cs",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "test/flows/settings.flow.json"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.5.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\")"
+    },
+    {
+      "file": "main.tscn",
+      "find": "[node name=\"CreditsButton\" type=\"Button\" parent=\"Menu\"]\ncustom_minimum_size = Vector2(0, 88)\ntheme_override_font_sizes/font_size = 28\ntext = \"Credits\"\n\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/SaveStore.cs",
+      "find": "/// Version 2 is current; version 1 kept only a list of the rivals beaten, and players still have such files.\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/SaveStore.cs",
+      "find": "        int version = JsonData.Int(raw[\"version\"], 1);\n        if (version == 1)\n        {\n            // Version 1 kept no losses and no duel: each rival it lists was beaten once.\n            foreach (string id in JsonData.Ids(raw[\"beaten\"]))\n                data.Record[id] = new RivalRecord { Wins = 1 };\n            return data;\n        }\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/SaveStore.cs",
+      "find": "/// <summary>Any version's data as the current version.</summary>",
+      "replace": "/// <summary>The saved data, with defaults for anything missing.</summary>"
+    },
+    {
+      "file": "test/SaveStoreTest.cs",
+      "find": "    [TestCase]\n    public void A_version_1_save_keeps_its_beaten_rivals()\n    {\n        File.WriteAllText(_path, \"\"\"{\"version\": 1, \"beaten\": [1, 2]}\"\"\");\n        SaveData data = new SaveStore(_path).Read();\n        AssertThat(Ladder.IsBeaten(data, 1)).IsTrue();\n        AssertThat(Ladder.IsBeaten(data, 2)).IsTrue();\n        AssertThat(Ladder.IsUnlocked(data, 3)).IsTrue();\n        AssertThat(Ladder.IsUnlocked(data, 4)).IsFalse();\n    }\n\n",
+      "replace": ""
+    },
+    {
+      "file": "test/SaveStoreTest.cs",
+      "find": "/// <summary>SaveStore: reading, writing and the move from version 1.</summary>",
+      "replace": "/// <summary>SaveStore: reading and writing.</summary>"
+    },
+    {
+      "file": "scripts/LaunchOptions.cs",
+      "find": "/// <summary>The game's own flags, after \"--\" on the command line: --autoplay, --seed=N, --no-save, --rival=N.</summary>\npublic sealed class LaunchOptions\n{\n    public bool Autoplay { get; private set; }\n",
+      "replace": "/// <summary>The game's own flags, after \"--\" on the command line: --seed=N, --no-save, --rival=N.</summary>\npublic sealed class LaunchOptions\n{\n"
+    },
+    {
+      "file": "scripts/LaunchOptions.cs",
+      "find": "            if (arg == \"--autoplay\")\n                options.Autoplay = true;\n            else if (arg == \"--no-save\")",
+      "replace": "            if (arg == \"--no-save\")"
+    },
+    {
+      "file": "test/LaunchOptionsTest.cs",
+      "find": "LaunchOptions.Parse(new[] { \"--autoplay\", \"--seed=7\", \"--no-save\", \"--rival=3\" });\n        AssertThat(options.Autoplay).IsTrue();\n",
+      "replace": "LaunchOptions.Parse(new[] { \"--seed=7\", \"--no-save\", \"--rival=3\" });\n"
+    },
+    {
+      "file": "test/LaunchOptionsTest.cs",
+      "find": "        AssertThat(options.Autoplay).IsFalse();\n",
+      "replace": ""
+    },
+    {
+      "file": "test/LaunchOptionsTest.cs",
+      "find": "/// <summary>LaunchOptions: the flags bot runs and tests pass after \"--\".</summary>",
+      "replace": "/// <summary>LaunchOptions: the flags runs and tests pass after \"--\".</summary>"
+    }
+  ],
+  "tasks": [
+    {
+      "template": "add-content",
+      "vars": {
+        "content": "rival 4, The Heron Knight (its name under the key RIVAL_4 in i18n/strings.csv), in data/rivals.json with 21 light and an aggressive AI (aggression above 1), playing its own deck in data/decks.json: legal like every deck (20 cards from data/cards.json, at most two of each), with at least four wisps that cost 4 or more. The duel must be fair: in twenty duels between two AIs (Ai.PlayOut on Rivals.StartDuel, seeds 1 to 20, the player's AI being new Ai()), the player's deck wins at least 5 and loses at least 2"
+      },
+      "hidden": [
+        "hidden/HiddenRival4Test.cs",
+        {
+          "from": "hidden/rival4.flow.json",
+          "to": "test/flows/rival4.flow.json"
+        }
+      ],
+      "reference": "solutions/alpha/add-content"
+    },
+    {
+      "template": "fix-architecture",
+      "vars": {
+        "problem": "the architecture runner fails with an error in game/Table.cs (per-frame-lookup)"
+      },
+      "edits": [
+        {
+          "file": "game/Game.cs",
+          "find": "        _rivalLight.Text = TextFormat.Fill(Tr(\"HUD_LIGHT\"), duel.Keepers[1].Light);\n",
+          "replace": ""
+        },
+        {
+          "file": "game/Table.cs",
+          "find": "    public static Vector2 LaneCenter(int seat, int lane)",
+          "replace": "    public override void _Process(double delta)\n    {\n        if (Duel != null)\n            GetNode<Label>(\"../HUD/RivalLight\").Text = TextFormat.Fill(Tr(\"HUD_LIGHT\"), Duel.Keepers[1].Light);\n    }\n\n    public static Vector2 LaneCenter(int seat, int lane)"
+        }
+      ],
+      "hidden": [
+        "hidden/HiddenRivalLightTest.cs"
+      ],
+      "reference": "solutions/alpha/fix-architecture"
+    },
+    {
+      "template": "migrate-save",
+      "vars": {
+        "report": "the rivals they had beaten are locked again after the update. The previous version saved user://save.json as {\"version\": 1, \"beaten\": [<rival ids>]}, with no losses, no duel and no settings"
+      },
+      "hidden": [
+        "hidden/HiddenSaveMigrationTest.cs"
+      ],
+      "reference": "solutions/alpha/migrate-save"
+    },
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "after Continue, a duel carried on from the save has lost both discard piles: the cards played before it was saved are gone, and Rekindle has nothing to bring back"
+      },
+      "edits": [
+        {
+          "file": "scripts/Keeper.cs",
+          "find": "            [\"discard\"] = Pile(Discard),\n",
+          "replace": ""
+        }
+      ],
+      "unchanged": [
+        "test/DuelSaveTest.cs"
+      ],
+      "hidden": [
+        "hidden/HiddenDiscardTest.cs"
+      ],
+      "reference": "solutions/alpha/fix-bug",
+      "decoy": "solutions/alpha/fix-bug-decoy"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "a title menu as the main scene res://main.tscn (root Main) with Menu/StartButton, Menu/ContinueButton, Menu/SettingsButton and Menu/QuitButton, where Start adds a rival select (a child of Main named RivalSelect, with a button Box/Grid/Rival<N>Button per rival, open once the rival before is beaten, and Box/BackButton back to the menu) and choosing a rival adds the game scene res://game/game.tscn as a child of Main named Game, with its rival in the property rival and the rival's name in its HUD/RivalLabel (rival 1 is Tallow the Novice); pause: Escape or the button HUD/PauseButton of the game shows its PauseMenu node (a CanvasLayer with ResumeButton and QuitButton) and pauses the tree, ResumeButton hides it and resumes; rivals 2 and 3 in data/rivals.json, each with its own legal deck in data/decks.json; a data.json for the kit's data runner; and a save by a SaveStore class (scripts/SaveStore.cs: new SaveStore(path) with Read() and Write(SaveData data), where SaveData has Record, a dictionary from rival ids as text to a RivalRecord with Wins and Losses, and Duel, the duel in progress as the JsonObject Duel.ToDict() gives, or null) in user://save.json, so that ContinueButton carries on that duel, restored by Duel.FromDict with both keepers' hands, decks, discard piles and rows"
+    },
+    "hidden": [
+      {
+        "from": "game/test/flows/start.flow.json",
+        "to": "test/flows/start.flow.json"
+      },
+      {
+        "from": "game/test/flows/select.flow.json",
+        "to": "test/flows/select.flow.json"
+      },
+      {
+        "from": "game/test/flows/pause.flow.json",
+        "to": "test/flows/pause.flow.json"
+      },
+      "hidden/HiddenThreeRivalsTest.cs",
+      {
+        "from": "game/data.json",
+        "to": "data.json"
+      }
+    ],
+    "reference": "solutions/milestone-alpha"
+  }
+}
