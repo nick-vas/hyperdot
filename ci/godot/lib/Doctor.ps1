@@ -282,7 +282,9 @@ function Invoke-Doctor($Info) {
     $steamProblems = Get-SteamPackageProblems $gameCsproj $exportPlatforms
     foreach ($problem in $steamProblems) { Add-Check $problem[0] $problem[1] $problem[2] }
     # Steamworks files in steam/ against the code: rich presence tokens, achievement and stat names, app build scripts.
-    $steamworksProblems = Get-SteamworksProblems $project
+    # The solution's C# outside the Godot folder counts too (the C# example keeps its Steam names in src/).
+    $solutionDir = if ($Info.Solution) { Split-Path -Parent $Info.Solution } else { $null }
+    $steamworksProblems = Get-SteamworksProblems $project @($solutionDir)
     foreach ($problem in $steamworksProblems) { Add-Check $problem[0] $problem[1] $problem[2] }
 
     # Store art for Steam, if the project keeps it in store/steam: sizes, formats, screenshots, the short description.

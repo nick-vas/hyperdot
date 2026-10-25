@@ -55,7 +55,7 @@ function Test-SameNames($Actual, [string[]]$Expected) {
     $set = [System.Collections.Generic.HashSet[string]]::new([string[]]@($Actual), [System.StringComparer]::Ordinal)
     return $set.Count -eq $Expected.Count -and @($Expected | Where-Object { -not $set.Contains($_) }).Count -eq 0
 }
-Assert-True (Test-SameNames $names.achievements.Keys @('ACH_COMBO_10', 'ACH_FIRST_FLOOR', 'ACH_FRIST_FLOOR')) "achievement names from GodotSteam and Steamworks.NET calls: $(@($names.achievements.Keys) -join ',')"
+Assert-True (Test-SameNames $names.achievements.Keys @('ACH_COMBO_10', 'ACH_FIRST_FLOOR', 'ACH_FRIST_FLOOR', 'ACH_LOBY')) "achievement names from GodotSteam and Steamworks.NET calls, literals and constants, not a constant two files give different values: $(@($names.achievements.Keys) -join ',')"
 Assert-True (Test-SameNames $names.stats.Keys @('brick_broken', 'bricks_broken')) "stat names: $(@($names.stats.Keys) -join ',')"
 Assert-True (Test-SameNames $names.display.Keys @('', '#Status_Floor', '#Status_Lobby', '#Status_Menu', 'Quitting')) "steam_display values, not other keys or the FLOOR_TOKEN constant: $(@($names.display.Keys) -join ',')"
 $steamworks = Get-SteamworksProblems $fixture
@@ -77,10 +77,26 @@ foreach ($expected in @(
         @("^WARN steam/achievements\.json: achievement 'ACH FIFTH FLOOR' is not a Steam API name", 'an achievement name with spaces warns'),
         @("^WARN steam/achievements\.json: stat 'bricks_broken' is listed twice", 'a stat listed twice warns'),
         @("^FAIL The code uses the achievement 'ACH_FRIST_FLOOR' \(res://progress\.gd\), which steam/achievements\.json does not list", 'a misspelt achievement fails'),
-        @("^FAIL The code uses the stat 'brick_broken' \(res://progress\.gd\)", 'a misspelt stat fails'))) {
+        @("^FAIL The code uses the stat 'brick_broken' \(res://progress\.gd\)", 'a misspelt stat fails'),
+        @("^FAIL The code uses the achievement 'ACH_LOBY' \(res://progress\.gd\)", 'a misspelt achievement held in a constant fails'))) {
     Assert-True (Test-Line $expected[0]) $expected[1]
 }
-Assert-True ($lines.Count -eq 16) "nothing else from the fixture: $($lines -join ' | ')"
+Assert-True ($lines.Count -eq 17) "nothing else from the fixture: $($lines -join ' | ')"
+
+# A solution's C# outside the Godot folder: its names count, named by path; its test projects, which pass wrong names
+# on purpose, do not.
+$solution = Join-Path ([IO.Path]::GetTempPath()) "steam-sln-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+try {
+    foreach ($dir in 'src/Core', 'tests/Core.Tests', 'src/Core.Tests') { New-Item -ItemType Directory -Force (Join-Path $solution $dir) | Out-Null }
+    Set-Content (Join-Path $solution 'src/Core/Progress.cs') "public sealed class Progress { public const string Floor = `"ACH_FLOOR_SLN`"; public void Up(IPlatform p) => p.UnlockAchievement(Progress.Floor); }"
+    Set-Content (Join-Path $solution 'tests/Core.Tests/ProgressTests.cs') 'public class T { void Bad(IPlatform p) => p.UnlockAchievement("ACH_WRONG_ON_PURPOSE"); }'
+    Set-Content (Join-Path $solution 'src/Core.Tests/MoreTests.cs') 'public class U { void Bad(IPlatform p) => p.UnlockAchievement("ACH_WRONG_TOO"); }'
+    $outside = Get-SteamCodeNames $fixture @($solution)
+    Assert-True ($outside.achievements.Contains('ACH_FLOOR_SLN') -and $outside.achievements['ACH_FLOOR_SLN'] -eq 'src/Core/Progress.cs') "the solution's code counts, named by path: $(@($outside.achievements.Keys) -join ',')"
+    Assert-True (-not $outside.achievements.Contains('ACH_WRONG_ON_PURPOSE') -and -not $outside.achievements.Contains('ACH_WRONG_TOO')) 'its test projects do not'
+} finally {
+    Remove-Item -LiteralPath $solution -Recurse -Force -ErrorAction SilentlyContinue
+}
 Assert-True (-not ($lines -match 'depot 1001 \(depot_build_1001\.vdf\)')) 'a depot build script with a FileMapping and the steam_appid.txt exclusion passes'
 Assert-True ((Get-SteamworksProblems (Join-Path $root 'examples/gdscript')).Count -eq 0) 'a game without Steam gets no Steamworks checks'
 

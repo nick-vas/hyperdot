@@ -1,9 +1,11 @@
 extends Node
 # Steam calls with deliberate mistakes for tests/Test-Steam.ps1, against steam/rich_presence.vdf and
 # steam/achievements.json: a misspelt achievement and stat, a token missing from the file, and a value that is not a
-# token. GodotSteam's GDScript API.
+# token, and a misspelt achievement held in a constant. GodotSteam's GDScript API.
 
 const FLOOR_TOKEN := "#Status_Floor"
+const ACH_LOBBY: String = "ACH_LOBY"
+const Shared = "ACH_SHARED_GD"
 
 
 func on_floor_cleared(floor_number: int) -> void:
@@ -18,6 +20,7 @@ func on_floor_cleared(floor_number: int) -> void:
 
 func on_lobby() -> void:
 	Steam.setRichPresence("steam_display", "#Status_Lobby")
+	Steam.setAchievement(ACH_LOBBY)
 
 
 func on_quit() -> void:
