@@ -11,64 +11,60 @@ grow_vertical = 2
 script = ExtResource("1_main")
 
 [node name="Menu" type="VBoxContainer" parent="."]
-anchors_preset = 8
+anchors_preset = 5
 anchor_left = 0.5
-anchor_top = 0.5
 anchor_right = 0.5
-anchor_bottom = 0.5
 offset_left = -260.0
-offset_top = -355.0
+offset_top = 12.0
 offset_right = 260.0
-offset_bottom = 355.0
+offset_bottom = 664.0
 grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 6
-alignment = 1
+theme_override_constants/separation = 4
 
 [node name="Title" type="Label" parent="Menu"]
-theme_override_font_sizes/font_size = 44
+theme_override_font_sizes/font_size = 40
 text = "Wickerdeep"
 horizontal_alignment = 1
 autowrap_mode = 3
 
 [node name="EmbersLabel" type="Label" parent="Menu"]
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 18
 text = "Embers"
 horizontal_alignment = 1
 autowrap_mode = 3
 
 [node name="StartButton" type="Button" parent="Menu"]
-custom_minimum_size = Vector2(0, 88)
+custom_minimum_size = Vector2(0, 84)
 theme_override_font_sizes/font_size = 28
 text = "Descend"
 
 [node name="ContinueButton" type="Button" parent="Menu"]
-custom_minimum_size = Vector2(0, 88)
+custom_minimum_size = Vector2(0, 84)
 theme_override_font_sizes/font_size = 28
 text = "Continue"
 
 [node name="ShrineButton" type="Button" parent="Menu"]
-custom_minimum_size = Vector2(0, 88)
+custom_minimum_size = Vector2(0, 84)
 theme_override_font_sizes/font_size = 28
 text = "Shrine"
 
 [node name="SettingsButton" type="Button" parent="Menu"]
-custom_minimum_size = Vector2(0, 88)
+custom_minimum_size = Vector2(0, 84)
 theme_override_font_sizes/font_size = 28
 text = "Settings"
 
 [node name="CreditsButton" type="Button" parent="Menu"]
-custom_minimum_size = Vector2(0, 88)
+custom_minimum_size = Vector2(0, 84)
 theme_override_font_sizes/font_size = 28
 text = "Credits"
 
 [node name="QuitButton" type="Button" parent="Menu"]
-custom_minimum_size = Vector2(0, 88)
+custom_minimum_size = Vector2(0, 84)
 theme_override_font_sizes/font_size = 28
 text = "Quit"
 
 [node name="VersionLabel" type="Label" parent="Menu"]
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 16
 text = "Version"
 horizontal_alignment = 1
 autowrap_mode = 3

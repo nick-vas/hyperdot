@@ -27,7 +27,7 @@
     },
     {
       "file": "main.tscn",
-      "find": "[node name=\"CreditsButton\" type=\"Button\" parent=\"Menu\"]\ncustom_minimum_size = Vector2(0, 88)\ntheme_override_font_sizes/font_size = 28\ntext = \"Credits\"\n\n",
+      "find": "[node name=\"CreditsButton\" type=\"Button\" parent=\"Menu\"]\ncustom_minimum_size = Vector2(0, 84)\ntheme_override_font_sizes/font_size = 28\ntext = \"Credits\"\n\n",
       "replace": ""
     },
     {
