@@ -136,5 +136,103 @@
       "replace": "## SaveStore: reading, writing, best laps and their ghosts."
     }
   ],
-  "tasks": []
+  "tasks": [
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "the chase camera jerks: when a frame takes long (a hitch, or a slow machine) the view jumps past the car and swings back, and the view trails the car differently at 30 and at 144 frames a second"
+      },
+      "edits": [
+        {
+          "file": "game/chase_camera.gd",
+          "find": "\t_look = _look.lerp(look, 1.0 - exp(-LOOK_RATE * delta))\n\tfocus = focus.lerp(target + _look, 1.0 - exp(-FOLLOW_RATE * delta))",
+          "replace": "\t_look = _look.lerp(look, LOOK_RATE * delta)\n\tfocus = focus.lerp(target + _look, FOLLOW_RATE * delta)"
+        },
+        {
+          "file": "game/chase_camera.gd",
+          "find": "## eases towards that at rates per second (exponential, so it moves the same at any frame rate and through a hitch);\n## however hard",
+          "replace": "## eases towards that at rates per second; however hard"
+        }
+      ],
+      "unchanged": [
+        "test/unit/test_camera.gd"
+      ],
+      "hidden": [
+        "hidden/test_hidden_camera.gd"
+      ],
+      "reference": "solutions/alpha/fix-bug",
+      "decoy": "solutions/alpha/fix-bug-decoy"
+    },
+    {
+      "template": "add-content",
+      "vars": {
+        "content": "track 3, Caldera Hairpins (its name under the key TRACK_3 in i18n/strings.csv), in data/tracks.json: 2 laps, a road 120 to 200 pixels wide that never comes within its own width plus 60 pixels of itself, at least six checkpoints in order round the loop, and at least two hairpins tight enough that the AI's planned speed there (Track.speed_profile) drops under 250 pixels a second. A full-pace AiDriver racing alone must finish both laps without leaving the road, in 30 to 70 seconds of race time"
+      },
+      "hidden": [
+        "hidden/test_hidden_track3.gd",
+        {
+          "from": "hidden/track3.flow.json",
+          "to": "test/flows/track3.flow.json"
+        }
+      ],
+      "reference": "solutions/alpha/add-content"
+    },
+    {
+      "template": "migrate-save",
+      "vars": {
+        "report": "their best laps are gone and the second track is locked again. The previous version saved user://save.json as {\"version\": 1, \"best\": {\"<track id>\": <best lap in seconds>}} and opened a track once the one before it had a time; it kept nothing else"
+      },
+      "hidden": [
+        "hidden/test_hidden_save_migration.gd"
+      ],
+      "reference": "solutions/alpha/migrate-save"
+    },
+    {
+      "template": "fix-architecture",
+      "vars": {
+        "problem": "the architecture runner fails with errors in game/car_view.gd (per-frame-lookup, parent-path)"
+      },
+      "edits": [
+        {
+          "file": "game/game.gd",
+          "find": "\t_lap_label.text = tr(\"HUD_LAP\") % [lap, race.track.laps]\n",
+          "replace": ""
+        },
+        {
+          "file": "game/car_view.gd",
+          "find": "func _draw() -> void:\n",
+          "replace": "func _process(_delta: float) -> void:\n\t# The player's car keeps the lap counter up to date.\n\tif name == \"Car0\":\n\t\tvar game := get_node(\"../..\")\n\t\tget_node(\"../../HUD/LapLabel\").text = tr(\"HUD_LAP\") % [game.lap, game.race.track.laps]\n\n\nfunc _draw() -> void:\n"
+        }
+      ],
+      "hidden": [
+        "hidden/test_hidden_lap_label.gd"
+      ],
+      "reference": "solutions/alpha/fix-architecture"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "a title menu as the main scene res://main.tscn (root Main, a Control) with Menu/StartButton, Menu/SettingsButton and Menu/QuitButton, where Start adds a track select (a child of Main named TrackSelect, with a button Box/Grid/Track<N>Button per track, open once the track before was finished in the top two, and Box/BackButton back to the menu) and choosing a track adds the race scene res://game/game.tscn as a child of Main named Game, with the track's id in its property track, its state property \"countdown\" until the start (then \"racing\") and the track's name in HUD/TrackLabel (track 1 is Ashfall Oval); pause: Escape or the button HUD/PauseButton shows the race's PauseMenu node (a CanvasLayer with ResumeButton, RestartButton and QuitButton) and pauses the tree, ResumeButton hides it and resumes, RestartButton starts the race again from the countdown; track 2, Ember Esses, in data/tracks.json under the key TRACK_2 of a translation table i18n/strings.csv; a data.json for the kit's data runner; and a save by a SaveStore class (scripts/save_store.gd: SaveStore.new(path), read() and write(data) of a dictionary with unlocked, the furthest track open, and best, each track's best lap in milliseconds by track id as text) in user://save.json"
+    },
+    "hidden": [
+      {
+        "from": "game/test/flows/start.flow.json",
+        "to": "test/flows/start.flow.json"
+      },
+      {
+        "from": "game/test/flows/select.flow.json",
+        "to": "test/flows/select.flow.json"
+      },
+      {
+        "from": "game/test/flows/pause.flow.json",
+        "to": "test/flows/pause.flow.json"
+      },
+      "hidden/test_hidden_two_tracks.gd",
+      {
+        "from": "game/data.json",
+        "to": "data.json"
+      }
+    ],
+    "reference": "solutions/milestone-alpha"
+  }
 }

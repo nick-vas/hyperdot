@@ -3,7 +3,8 @@ extends GutTest
 ## is heading when a frame takes long, still eases (it is not bolted to the car), looks ahead, and keeps the car on the
 ## screen through a hairpin taken flat out with hitches.
 
-const JUMP := Vector2(300, 0)
+## A step inside the camera's limit on how far behind it may fall, so only its easing moves it.
+const JUMP := Vector2(200, 0)
 
 
 func _camera() -> ChaseCamera:
@@ -14,7 +15,7 @@ func _camera() -> ChaseCamera:
 	return camera
 
 
-## How far the view still is from a car that jumped 300 px and then stood still, after the given seconds at an fps.
+## How far the view still is from a car that jumped 200 px and then stood still, after the given seconds at an fps.
 func _left_after(fps: int, seconds: float) -> float:
 	var camera := _camera()
 	for i in roundi(seconds * fps):
@@ -23,11 +24,11 @@ func _left_after(fps: int, seconds: float) -> float:
 
 
 func test_hidden_the_view_eases_the_same_at_any_frame_rate():
-	for seconds in [0.5, 1.0]:
+	for seconds in [1.0 / 3.0, 0.5]:
 		var at_60 := _left_after(60, seconds)
-		assert_gt(at_60, 0.5, "still easing after %.1f s" % seconds)
+		assert_gt(at_60, 1.0, "still easing after %.2f s" % seconds)
 		for fps in [30, 144]:
-			assert_almost_eq(_left_after(fps, seconds), at_60, 0.5, "%d fps against 60 after %.1f s" % [fps, seconds])
+			assert_almost_eq(_left_after(fps, seconds), at_60, 0.5, "%d fps against 60 after %.2f s" % [fps, seconds])
 
 
 func test_hidden_a_long_frame_never_overshoots():
@@ -65,7 +66,7 @@ func test_hidden_a_hairpin_flat_out_keeps_the_car_on_screen():
 		var frame := 0
 		while t < 4.0:
 			# Every twentieth frame is a hitch of a sixth of a second.
-			var dt := 1.0 / fps if frame % 20 != 19 else 1.0 / 6.0
+			var dt: float = 1.0 / fps if frame % 20 != 19 else 1.0 / 6.0
 			frame += 1
 			t += dt
 			var velocity := Vector2(0, -800) if t < 1.0 else Vector2(0, 800)
