@@ -1,6 +1,17 @@
 # Changelog
 
 ## Unreleased
+- **The staged game programme's multiplayer arena**, Glimmerpit, in GDScript (`benchmark/games/arena/`). Up to four
+  glimmers fight last-one-standing rounds in a walled pit, first to three; bots fill every empty slot, so tests and the
+  bot run need no second machine, and players join and leave in the middle of a match. An authoritative server, client
+  prediction and reconciliation in whole pixels (a correct client corrects nothing at any latency), hits decided by the
+  server's own trace, an in-process link that simulates the delay ENet cannot, ENet through `send_bytes`, and a
+  dedicated server that takes part in `soak` (churning clients, a peer-record metric that fails a leak). The release
+  candidate has 51 GUT tests (ENet in one process among them), four flows, a bot run with a guest who walks out and
+  rejoins, juice, three languages, store art rendered from the game and credits. Its four stages carry 17 tasks and three
+  milestones, each with hidden checks and a reference solution, most with a decoy; all pass
+  `tests/Test-GameProgramme.ps1 -Genre arena -Language gdscript`. `DESIGN.md` holds the language-neutral contract for
+  the C# port, which is still to come.
 - **Bug reports pinned on their level.** `ci/godot/templates/addons/hyperdot_report_pins/`, an add-on a game copies:
   `bug_report.gd` saves the feedback key's report (`user://reports/<time>.json`: the line typed, the scene, the
   player's position and the camera's view in 2D or 3D, the seed, the commit, a screenshot), and the editor plugin pins

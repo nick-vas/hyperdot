@@ -101,10 +101,13 @@ func receive(peer: int, message: Variant) -> void:
 			queue.append(input)
 
 
-## One server tick: every slot's input applied, the match moved on, snapshots out.
+## One server tick: every slot's input applied, the match moved on, snapshots out. A player whose input has not
+## arrived is left as it is, not given a made-up one.
 func tick() -> void:
 	for slot in ArenaMatch.SLOTS:
-		arena.apply(slot, _next_input(slot))
+		var input := _next_input(slot)
+		if not input.is_empty():
+			arena.apply(slot, input)
 		var owner := arena.owners[slot]
 		if owner != ArenaMatch.BOT and _queues.has(owner) and _queues[owner].size() > BACKLOG:
 			arena.apply(slot, _next_input(slot))
@@ -122,8 +125,8 @@ func _next_input(slot: int) -> Dictionary:
 		return bots[slot].decide(arena) if bots_enabled else Sim.idle()
 	var queue: Array = _queues.get(owner, [])
 	if queue.is_empty():
-		# Starved: the glimmer stands still this tick, and no input is used up, so the client's prediction still holds.
-		return Sim.idle()
+		# Starved: nothing is applied this tick (not even its timers run), so the client's prediction still holds.
+		return {}
 	var input: Dictionary = queue.pop_front()
 	_last_seq[owner] = input.seq
 	_input_log[owner].append(input)

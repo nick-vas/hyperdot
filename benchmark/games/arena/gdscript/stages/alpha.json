@@ -136,5 +136,95 @@
       "find": "assert_eq(arena.court.id, \"hollow_ring\")",
       "replace": "assert_eq(arena.court.id, \"cinder_pit\")"
     }
-  ]
+  ],
+  "tasks": [
+    {
+      "template": "add-content",
+      "vars": {
+        "content": "a second court, the Hollow Ring: id hollow_ring, its name under the key COURT_HOLLOW_RING in i18n/strings.csv, 1200 by 640 like the first, in data/courts.json after the Cinder Pit (so it is played in the second round and every other one after), with at least three pillars in data/walls.json and four spawns in data/spawns.json. Fair spawns: each clear of the pillars, at least 300 pixels from every other, and none in sight of another (the line between any two blocked by a pillar). Bot matches played on it alone (ArenaServer with only that court, seeds 1 to 4) must each end within 150 seconds of play"
+      },
+      "hidden": [
+        "hidden/test_hidden_hollow_ring.gd"
+      ],
+      "reference": "solutions/alpha/add-content"
+    },
+    {
+      "template": "fix-architecture",
+      "vars": {
+        "problem": "the architecture runner fails with an error in game/court_view.gd (per-frame-lookup)"
+      },
+      "edits": [
+        {
+          "file": "game/game.gd",
+          "find": "\t_round_label.text = tr(\"HUD_ROUND\") % arena.round_number\n",
+          "replace": ""
+        },
+        {
+          "file": "game/court_view.gd",
+          "find": "func _draw() -> void:\n",
+          "replace": "func _process(_delta: float) -> void:\n\tif client != null:\n\t\tget_node(\"../HUD/RoundLabel\").text = tr(\"HUD_ROUND\") % client.view.round_number\n\n\nfunc _draw() -> void:\n"
+        }
+      ],
+      "hidden": [
+        "hidden/test_hidden_round_label.gd"
+      ],
+      "reference": "solutions/alpha/fix-architecture"
+    },
+    {
+      "template": "migrate-save",
+      "vars": {
+        "report": "their volume and language are back to the defaults after the update. The previous version saved user://settings.json as {\"volume_db\": <decibels, 0 for full volume>, \"language\": <locale>}, sometimes with \"version\": 1, and kept no record of matches"
+      },
+      "hidden": [
+        "hidden/test_hidden_settings_migration.gd"
+      ],
+      "reference": "solutions/alpha/migrate-save"
+    },
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "when someone leaves a match, their glimmer stays in the pit, standing still: anyone can shoot it for free, it keeps rounds going, and no bot ever takes the empty place"
+      },
+      "edits": [
+        {
+          "file": "scripts/arena_server.gd",
+          "find": "\tarena.set_owner(slot, ArenaMatch.BOT)\n",
+          "replace": ""
+        }
+      ],
+      "hidden": [
+        "hidden/test_hidden_ghost.gd"
+      ],
+      "reference": "solutions/alpha/fix-bug",
+      "decoy": "solutions/alpha/fix-bug-decoy"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "a title menu as the main scene res://main.tscn (root Main) with Menu/PlayButton, Menu/HostButton, Menu/JoinButton, Menu/SettingsButton and Menu/QuitButton, where Play adds the game scene res://game/game.tscn as a child of Main named Game for a local match against bots, and Join adds a child of Main named Join with Box/AddressEdit (127.0.0.1 to start with), Box/JoinButton and Box/BackButton back to the menu; pause: Escape or the game's HUD/PauseButton shows its PauseMenu node (a CanvasLayer with ResumeButton and QuitButton) and pauses a local match, ResumeButton hides it and resumes; playing over ENet through a NetSession node (game/net_session.gd, class_name NetSession: host(port) -> Error, serve(server: ArenaServer, link: SimLink = null), join(address, port, client: ArenaClient = null) -> Error and close()), so a hosted match takes players who join and gives their slot back to a bot when they leave; a dedicated server: with --server, or --soak-role=server and --soak-port=N as the kit's soak starts it, the main scene runs headless match after match on the port and prints [soak] ready, and --soak-role=client joins it with a bot playing; settings (volume and language) saved by a SettingsStore class (scripts/settings_store.gd) in user://settings.json; and a data.json for the kit's data runner covering data/courts.json, data/walls.json and data/spawns.json"
+    },
+    "hidden": [
+      {
+        "from": "game/test/flows/start.flow.json",
+        "to": "test/flows/start.flow.json"
+      },
+      {
+        "from": "game/test/flows/pause.flow.json",
+        "to": "test/flows/pause.flow.json"
+      },
+      {
+        "from": "game/test/flows/join.flow.json",
+        "to": "test/flows/join.flow.json"
+      },
+      {
+        "from": "game/test/unit/test_enet.gd",
+        "to": "test/test_hidden_enet.gd"
+      },
+      {
+        "from": "game/data.json",
+        "to": "data.json"
+      }
+    ],
+    "reference": "solutions/milestone-alpha"
+  }
 }
