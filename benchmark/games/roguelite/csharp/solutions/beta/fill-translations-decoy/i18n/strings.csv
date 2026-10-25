@@ -1,0 +1,47 @@
+keys,en,fr
+MENU_TITLE,Wickerdeep,Wickerdeep
+MENU_EMBERS,Embers banked: %d   Deepest floor: %d,Braises en réserve : %d   Étage le plus bas : %d
+MENU_START,Descend,Descendre
+MENU_CONTINUE,Continue,Continuer
+MENU_SHRINE,Shrine,Sanctuaire
+MENU_SETTINGS,Settings,Réglages
+MENU_CREDITS,Credits,Crédits
+MENU_QUIT,Quit,Quitter
+MENU_VERSION,Version %s,Version %s
+HUD_FLOOR,Floor %d: %s,Étage %d : %s
+HUD_HP,Wick: %d / %d,Mèche : %d / %d
+HUD_EMBERS,Embers: %d,Braises : %d
+HUD_ENEMIES,Enemies left: %d,Ennemis restants : %d
+HUD_STAIRS_OPEN,The stairs are open,L'escalier est ouvert
+HUD_PAUSE,Pause,Pause
+FLOOR_1,The Wax Cellar,La Cave de cire
+FLOOR_2,The Ossuary,L'Ossuaire
+FLOOR_3,The Drowned Nave,La Nef noyée
+FLOOR_4,The Wick's End,Le Bout de la mèche
+ENEMY_SHADE,Shade,Ombre
+ENEMY_BAT,Cinder bat,Chauve-souris de cendre
+ENEMY_BRUTE,Tallow brute,Brute de suif
+PAUSE_TITLE,Paused,En pause
+PAUSE_RESUME,Resume,Reprendre
+PAUSE_QUIT,Quit to menu,Retour au menu
+RUN_WON,The wick burns on,La mèche brûle encore
+RUN_LOST,The wick is out,La mèche est éteinte
+RUN_MENU,Back to menu,Retour au menu
+SHRINE_TITLE,The shrine,Le sanctuaire
+SHRINE_EMBERS,Embers: %d,Braises : %d
+SHRINE_VIGOR,Vigor %d / %d: the wick has %d hp,Vigueur %d / %d : la mèche a %d PV
+SHRINE_BUY,Buy vigor (%d embers),Acheter de la vigueur (%d braises)
+SHRINE_FULL,Vigor is full,Vigueur au maximum
+SHRINE_BACK,Back,Retour
+SETTINGS_TITLE,Settings,Réglages
+SETTINGS_VOLUME,Volume,Volume
+SETTINGS_LANGUAGE,Language,Langue
+SETTINGS_BACK,Back,Retour
+LANG_EN,English,English
+LANG_FR,Français,Français
+LANG_DE,Deutsch,Deutsch
+CREDITS_TITLE,Credits,Crédits
+CREDITS_BACK,Back,Retour
+CREDITS_ENGINE,Engine,Moteur
+CREDITS_THIRD_PARTY,Third-party assets,Ressources tierces
+CREDITS_THANKS,Thanks,Remerciements
