@@ -1,0 +1,14 @@
+{
+  "name": "The shrine opens from the menu, and Back returns to the menu",
+  "scene": "res://main.tscn",
+  "seed": 1,
+  "steps": [
+    { "press": "Menu/ShrineButton" },
+    { "assert": { "node": "Shrine", "exists": true } },
+    { "assert": { "node": "Menu", "prop": "visible", "equals": false } },
+    { "assert": { "node": "Shrine/Box/VigorButton", "prop": "visible", "equals": true } },
+    { "press": "Shrine/Box/BackButton" },
+    { "assert": { "node": "Shrine", "exists": false } },
+    { "assert": { "node": "Menu", "prop": "visible", "equals": true } }
+  ]
+}
