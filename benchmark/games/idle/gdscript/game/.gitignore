@@ -1,0 +1,7 @@
+.godot/
+addons/gut/
+test-results/
+build/
+*.translation
+*.import
+*.uid

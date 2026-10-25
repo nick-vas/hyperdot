@@ -1,0 +1,295 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.gd",
+    "ui/credits.tscn",
+    "test/flows/credits.flow.json",
+    "scripts/bot.gd",
+    "test/unit/test_bot.gd",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "test/flows/settings.flow.json"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.5.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.de.translation\", \"res://i18n/strings.fr.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\")"
+    },
+    {
+      "file": "scripts/save_store.gd",
+      "find": "## Version 3 is current. Version 2 (the 0.x releases) kept the dawn's embers and count at the top level, beside the\n## economy, and players still have such files.\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/save_store.gd",
+      "find": "## Any version's data as the current version.",
+      "replace": "## The saved data, with defaults for anything missing."
+    },
+    {
+      "file": "scripts/save_store.gd",
+      "find": "\tvar version := int(raw.get(\"version\", 2))\n\tif version < 3:\n\t\t# Version 2 kept the dawn's embers and count beside the economy, not in it.\n\t\tdata.economy[\"prestige\"] = {\"embers\": raw.get(\"embers\", 0.0), \"dawns\": raw.get(\"dawns\", 0)}\n",
+      "replace": ""
+    },
+    {
+      "file": "test/unit/test_save_store.gd",
+      "find": "func test_a_version_2_save_keeps_its_embers():\n\t_write_raw('{\"version\": 2, \"economy\": {\"glow\": 50.0, \"owned\": {\"wick_moth\": 3}}, \"embers\": 4.0, \"dawns\": 2, \"saved_at\": 100.0}')\n\tvar back := Economy.from_dict(Catalog.from_files(), SaveStore.new(PATH).read().economy)\n\tassert_eq(back.embers, 4.0)\n\tassert_eq(back.dawns, 2)\n\tassert_eq(back.count(\"wick_moth\"), 3)\n\n\n",
+      "replace": ""
+    },
+    {
+      "file": "test/unit/test_save_store.gd",
+      "find": "## SaveStore: reading, writing and the move from version 2.",
+      "replace": "## SaveStore: reading and writing."
+    },
+    {
+      "file": "scripts/launch_options.gd",
+      "find": "## The game's own flags, after \"--\" on the command line: --autoplay, --no-save, --speed=N.",
+      "replace": "## The game's own flags, after \"--\" on the command line: --no-save, --speed=N."
+    },
+    {
+      "file": "scripts/launch_options.gd",
+      "find": "\nvar autoplay := false\n",
+      "replace": "\n"
+    },
+    {
+      "file": "scripts/launch_options.gd",
+      "find": "\t\tif arg == \"--autoplay\":\n\t\t\toptions.autoplay = true\n\t\telif arg == \"--no-save\":",
+      "replace": "\t\tif arg == \"--no-save\":"
+    },
+    {
+      "file": "scripts/launch_options.gd",
+      "find": "## Seconds of play per second of game time: a bot run plays hours in minutes (1 to 600).",
+      "replace": "## Seconds of play per second of game time (1 to 600)."
+    },
+    {
+      "file": "test/unit/test_launch_options.gd",
+      "find": "LaunchOptions.parse(PackedStringArray([\"--autoplay\", \"--no-save\", \"--speed=60\"]))\n\tassert_true(options.autoplay)\n",
+      "replace": "LaunchOptions.parse(PackedStringArray([\"--no-save\", \"--speed=60\"]))\n"
+    },
+    {
+      "file": "test/unit/test_launch_options.gd",
+      "find": "\tassert_false(options.autoplay)\n",
+      "replace": ""
+    },
+    {
+      "file": "test/unit/test_launch_options.gd",
+      "find": "## LaunchOptions: the flags bot runs and tests pass after \"--\".",
+      "replace": "## LaunchOptions: the flags runs and tests pass after \"--\"."
+    },
+    {
+      "file": "game/game.gd",
+      "find": "## gives each event its feedback and, with --autoplay, lets the bot play.",
+      "replace": "## and gives each event its feedback."
+    },
+    {
+      "file": "game/game.gd",
+      "find": "## The bot reached its goal (--autoplay).\nsignal finished\n",
+      "replace": ""
+    },
+    {
+      "file": "game/game.gd",
+      "find": "\n## The bot's goal: this much glow earned over all runs.\nconst GOAL_GLOW := 1e9\n",
+      "replace": ""
+    },
+    {
+      "file": "game/game.gd",
+      "find": "var goal_reached := false\n",
+      "replace": ""
+    },
+    {
+      "file": "game/game.gd",
+      "find": "\tif options.autoplay:\n\t\t_play_bot()\n",
+      "replace": ""
+    },
+    {
+      "file": "game/game.gd",
+      "find": "func _play_bot() -> void:\n\tvar action := Bot.act(economy)\n\tif action.kind == \"gather\":\n\t\t_event(\"gathered\")\n\t\t_play(_sfx_gather)\n\t\t_pop(_gather)\n\tif not goal_reached and economy.total_earned >= GOAL_GLOW:\n\t\tgoal_reached = true\n\t\tprint(\"[Run] goal: %s glow after %d dawns\" % [Numbers.format(economy.total_earned), economy.dawns])\n\t\tfinished.emit()\n\n\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "\tgame.finished.connect(_on_finished)\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "\tif options.autoplay:\n\t\treturn\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "\n\nfunc _on_finished() -> void:\n\tif options.autoplay:\n\t\t# A bot run ends here; free the game first so nothing is left in use when the engine exits.\n\t\t_end_run.call_deferred()\n\n\nfunc _end_run() -> void:\n\tclose_screen()\n\t# Stop the game and let its sounds end before freeing it, or their playbacks outlive the engine.\n\tgame.process_mode = Node.PROCESS_MODE_DISABLED\n\tgame.stop_sounds()\n\tfor i in 10:\n\t\tawait get_tree().process_frame\n\tremove_child(game)\n\tgame.queue_free()\n\tfor i in 3:\n\t\tawait get_tree().process_frame\n\tget_tree().quit()\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "const CREDITS_SCENE := preload(\"res://ui/credits.tscn\")\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "\tsettings.credits_requested.connect(show_credits)\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "func show_credits() -> void:\n\tvar credits := CREDITS_SCENE.instantiate()\n\tcredits.name = \"Credits\"\n\tcredits.closed.connect(show_settings)\n\t_show(credits)\n\n\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "## The holder of the hive and of the screen over it (settings, credits), and",
+      "replace": "## The holder of the hive and of the screen over it (settings), and"
+    },
+    {
+      "file": "ui/settings.gd",
+      "find": "## Volume and language, and the way to the credits. Changes",
+      "replace": "## Volume and language. Changes"
+    },
+    {
+      "file": "ui/settings.gd",
+      "find": "signal credits_requested\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/settings.gd",
+      "find": "@onready var _credits: Button = $Safe/Box/CreditsButton\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/settings.gd",
+      "find": "\t_credits.pressed.connect(credits_requested.emit)\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/settings.gd",
+      "find": "\t_credits.text = tr(\"SETTINGS_CREDITS\")\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/settings.tscn",
+      "find": "[node name=\"CreditsButton\" type=\"Button\" parent=\"Safe/Box\"]\ncustom_minimum_size = Vector2(0, 96)\nlayout_mode = 2\ntheme_override_font_sizes/font_size = 28\ntext = \"Credits\"\n\n",
+      "replace": ""
+    }
+  ],
+  "tasks": [
+    {
+      "template": "add-content",
+      "vars": {
+        "content": "a fifth producer, the Star Loom (id star_loom, its name \"Star Loom\" under the key PRODUCER_STAR_LOOM in i18n/strings.csv), in data/producers.json right after the Moon Lily: its first one costs between 200,000 and 500,000 glow, its price grows by a factor between 1.10 and 1.15 for each one owned, and it pays its price back (cost divided by rate) more slowly than the Moon Lily but in less than twice the Moon Lily's time; and its upgrade, Star Thread (id star_thread, \"Star Thread\" under UPGRADE_STAR_THREAD), in data/upgrades.json, which doubles the Star Loom once 10 are owned and costs between 2 and 10 million glow"
+      },
+      "hidden": [
+        "hidden/test_hidden_star_loom.gd",
+        {
+          "from": "hidden/star_loom.flow.json",
+          "to": "test/flows/star_loom.flow.json"
+        }
+      ],
+      "reference": "solutions/alpha/add-content",
+      "decoy": "solutions/alpha/add-content-decoy"
+    },
+    {
+      "template": "fix-architecture",
+      "vars": {
+        "problem": "the architecture runner fails with errors in game/producer_row.gd (parent-path and per-frame-lookup)"
+      },
+      "edits": [
+        {
+          "file": "game/game.gd",
+          "find": "\tfor row: ProducerRow in _rows.values():\n\t\trow.refresh(economy, buy_mode)\n",
+          "replace": ""
+        },
+        {
+          "file": "game/producer_row.gd",
+          "find": "Game refreshes it; it never reads the economy on its own.",
+          "replace": "It keeps itself up to date from the game."
+        },
+        {
+          "file": "game/producer_row.gd",
+          "find": "func buy_button() -> Button:\n",
+          "replace": "func _process(_delta: float) -> void:\n\tvar game := get_node(\"../../../../..\")\n\trefresh(game.economy, game.buy_mode)\n\n\nfunc buy_button() -> Button:\n"
+        }
+      ],
+      "hidden": [
+        "hidden/test_hidden_rows_follow.gd"
+      ],
+      "reference": "solutions/alpha/fix-architecture",
+      "decoy": "solutions/alpha/fix-architecture-decoy"
+    },
+    {
+      "template": "migrate-save",
+      "vars": {
+        "report": "the embers from the dawns they had greeted are gone, and the production they gave with them. The previous version saved user://save.json as {\"version\": 2, \"economy\": {...}, \"embers\": <embers>, \"dawns\": <dawns>, \"saved_at\": <Unix seconds>, \"settings\": {...}}: the embers and the count of dawns beside the economy, where the current version keeps them in the economy's \"prestige\""
+      },
+      "hidden": [
+        "hidden/test_hidden_save_migration.gd"
+      ],
+      "reference": "solutions/alpha/migrate-save",
+      "decoy": "solutions/alpha/migrate-save-decoy"
+    },
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "a player who set their phone's clock back a day and opened the game found eight hours of glow waiting for them, and when they put the clock right the next morning the game paid them for the night again"
+      },
+      "edits": [
+        {
+          "file": "scripts/offline.gd",
+          "find": "return clampf(now - saved_at, 0.0, cap)",
+          "replace": "return minf(absf(now - saved_at), cap)"
+        },
+        {
+          "file": "scripts/offline.gd",
+          "find": "return maxf(saved_at, now)",
+          "replace": "return now"
+        }
+      ],
+      "unchanged": [
+        "test/unit/test_offline.gd"
+      ],
+      "hidden": [
+        "hidden/test_hidden_offline_clock.gd"
+      ],
+      "reference": "solutions/alpha/fix-bug",
+      "decoy": "solutions/alpha/fix-bug-decoy"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "the main scene res://main.tscn (root Main, ui/main.gd) holds the hive (game/game.tscn) as its child Game; a fourth producer, the Moon Lily (moon_lily: costs 20,000, grows by 1.13, makes 220 a second); a third buy mode, Buy max, with Economy.max_affordable(id) and Economy.buy_max(id); upgrades in data/upgrades.json ({ id, name, target: a producer id, \"tap\" or \"all\", multiplier, cost, needs: how many of the target must be owned }), bought with Economy.buy_upgrade(id), shown on a second page that the bar at the bottom of the hive switches to (Safe/Column/Bar/ProducersTab and UpgradesTab, pages Safe/Column/ProducerPage and UpgradePage, one row per upgrade named after its id in PascalCase plus Row, such as WarmHandsRow, shown once its target is owned often enough); the dawn: Economy.dawn_gain() is the square root of the glow earned since the last dawn divided by 1,000,000, rounded down, Economy.dawn() (when the gain is at least 1) adds it to embers, counts dawns and empties glow, producers and upgrades, each ember adds 10% to all production, and Safe/Column/Bar/DawnButton opens a DawnPanel whose Box/ConfirmButton greets the dawn and Box/CancelButton closes it, with the embers shown in Safe/Column/Top/EmbersLabel as \"Embers: N (+P% glow)\"; a save by a SaveStore class in user://save.json, with Main writing the economy (Economy.to_dict() and Economy.from_dict(catalog, data), the embers and dawns kept in its \"prestige\") with the time it was saved; on start Main pays the time since the save at the saved rate, at most 8 hours (28,800 seconds), nothing for a clock set back, and shows it in a WelcomePanel; Main reads the clock through its property clock (a Callable returning Unix seconds) and saves to its property save_path, both set before it enters the tree, and saves with save_now(); a settings screen (Safe/Column/Bar/SettingsButton adds a child of Main named Settings with a volume slider and Safe/Box/BackButton back to the hive); and a data.json for the kit's data runner"
+    },
+    "hidden": [
+      {
+        "from": "game/test/flows/gather.flow.json",
+        "to": "test/flows/gather.flow.json"
+      },
+      {
+        "from": "game/test/flows/pages.flow.json",
+        "to": "test/flows/pages.flow.json"
+      },
+      {
+        "from": "game/test/flows/dawn.flow.json",
+        "to": "test/flows/dawn.flow.json"
+      },
+      "hidden/test_hidden_alpha.gd",
+      {
+        "from": "game/data.json",
+        "to": "data.json"
+      }
+    ],
+    "reference": "solutions/milestone-alpha",
+    "decoy": "solutions/milestone-alpha-decoy"
+  }
+}

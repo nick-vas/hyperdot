@@ -1,0 +1,21 @@
+{
+  "name": "Gather twice, buy the first wick moth, and watch it make glow",
+  "scene": "res://game/game.tscn",
+  "seed": 1,
+  "steps": [
+    { "assert": { "node": "Safe/Column/Top/GlowLabel", "prop": "text", "equals": "0 glow" } },
+    { "press": "Safe/Column/GatherButton" },
+    { "press": "Safe/Column/GatherButton" },
+    { "wait": 1 },
+    { "assert": { "node": "Safe/Column/Top/GlowLabel", "prop": "text", "equals": "2 glow" } },
+    { "assert": { "node": "Safe/Column/ProducerPage/List/WickMothRow/Box/BuyButton", "prop": "disabled", "equals": true } },
+    { "call": ".", "method": "add_glow", "args": [8] },
+    { "assert": { "node": "Safe/Column/ProducerPage/List/WickMothRow/Box/BuyButton", "prop": "disabled", "equals": false } },
+    { "press": "Safe/Column/ProducerPage/List/WickMothRow/Box/BuyButton" },
+    { "wait": 1 },
+    { "assert": { "node": "Safe/Column/ProducerPage/List/WickMothRow/Box/Info/DetailLabel", "prop": "text", "contains": "1 owned" } },
+    { "assert": { "node": "Safe/Column/Top/RateLabel", "prop": "text", "equals": "The hive makes 0.5/s" } },
+    { "wait": 125 },
+    { "assert": { "node": "Safe/Column/Top/GlowLabel", "prop": "text", "equals": "1 glow" } }
+  ]
+}

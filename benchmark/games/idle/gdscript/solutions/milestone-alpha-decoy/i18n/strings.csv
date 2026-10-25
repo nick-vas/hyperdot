@@ -1,0 +1,45 @@
+keys,en
+HUD_GLOW,%s glow
+HUD_RATE,The hive makes %s
+HUD_EMBERS,Embers: %s (+%d%% glow)
+GATHER,Gather +%s
+PAGE_PRODUCERS,Producers
+PAGE_UPGRADES,Upgrades
+MODE_ONE,Buy 1
+MODE_TEN,Buy 10
+MODE_MAX,Buy max
+BAR_PRODUCERS,Producers
+BAR_UPGRADES,Upgrades
+BAR_DAWN,Dawn
+BAR_SETTINGS,Settings
+ROW_DETAIL,%d owned · %s
+ROW_BUY,"Buy %d
+%s"
+UPGRADE_DETAIL,%s ×%s
+TARGET_ALL,Everything
+TARGET_TAP,Gathering
+PRODUCER_WICK_MOTH,Wick Moth
+PRODUCER_GLOW_SNAIL,Glow Snail
+PRODUCER_FIREFLY_CHOIR,Firefly Choir
+PRODUCER_MOON_LILY,Moon Lily
+UPGRADE_TWIN_WICKS,Twin Wicks
+UPGRADE_WARM_HANDS,Warm Hands
+UPGRADE_SILVER_TRAILS,Silver Trails
+UPGRADE_CHOIR_HARMONY,Choir Harmony
+UPGRADE_NIGHT_DEW,Night Dew
+UPGRADE_DUSK_BLOOM,Dusk Bloom
+WELCOME_TITLE,Welcome back
+WELCOME_MESSAGE,You were away for %s. The hive gathered %s glow.
+WELCOME_COLLECT,Collect
+TIME_HOURS,%d h %02d min
+TIME_MINUTES,%d min
+DAWN_TITLE,Dawn
+DAWN_MESSAGE,"The hive sleeps through the day: glow, producers and upgrades are gone, and %s new embers stay, each adding %d%% to all glow."
+DAWN_CONFIRM,Greet the dawn
+DAWN_CANCEL,Not yet
+SETTINGS_TITLE,Settings
+SETTINGS_VOLUME,Volume
+SETTINGS_LANGUAGE,Language
+SETTINGS_BACK,Back
+SETTINGS_VERSION,Version %s
+LANG_EN,English

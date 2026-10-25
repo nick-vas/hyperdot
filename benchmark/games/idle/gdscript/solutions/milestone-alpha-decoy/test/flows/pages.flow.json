@@ -1,0 +1,16 @@
+{
+  "name": "The bar switches between the producers and the upgrades",
+  "scene": "res://game/game.tscn",
+  "seed": 1,
+  "steps": [
+    { "assert": { "node": "Safe/Column/ProducerPage", "prop": "visible", "equals": true } },
+    { "press": "Safe/Column/Bar/UpgradesTab" },
+    { "assert": { "node": "Safe/Column/UpgradePage", "prop": "visible", "equals": true } },
+    { "assert": { "node": "Safe/Column/ProducerPage", "prop": "visible", "equals": false } },
+    { "assert": { "node": "Safe/Column/Header/PageTitle", "prop": "text", "equals": "Upgrades" } },
+    { "assert": { "node": "Safe/Column/Header/BuyModeButton", "prop": "visible", "equals": false } },
+    { "press": "Safe/Column/Bar/ProducersTab" },
+    { "assert": { "node": "Safe/Column/ProducerPage", "prop": "visible", "equals": true } },
+    { "assert": { "node": "Safe/Column/Header/BuyModeButton", "prop": "visible", "equals": true } }
+  ]
+}
