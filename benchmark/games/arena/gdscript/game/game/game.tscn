@@ -44,45 +44,45 @@ mouse_filter = 2
 color = Color(1, 1, 1, 0)
 
 [node name="Scores" type="HBoxContainer" parent="HUD"]
-offset_left = 40.0
+offset_left = 96.0
 offset_top = 10.0
-offset_right = 760.0
+offset_right = 780.0
 offset_bottom = 52.0
-theme_override_constants/separation = 24
+theme_override_constants/separation = 12
 
 [node name="Slot0Label" type="Label" parent="HUD/Scores"]
-custom_minimum_size = Vector2(160, 0)
+custom_minimum_size = Vector2(158, 0)
 theme_override_font_sizes/font_size = 22
 text = "P1: 0"
 
 [node name="Slot1Label" type="Label" parent="HUD/Scores"]
-custom_minimum_size = Vector2(160, 0)
+custom_minimum_size = Vector2(158, 0)
 theme_override_font_sizes/font_size = 22
 text = "P2: 0"
 
 [node name="Slot2Label" type="Label" parent="HUD/Scores"]
-custom_minimum_size = Vector2(160, 0)
+custom_minimum_size = Vector2(158, 0)
 theme_override_font_sizes/font_size = 22
 text = "P3: 0"
 
 [node name="Slot3Label" type="Label" parent="HUD/Scores"]
-custom_minimum_size = Vector2(160, 0)
+custom_minimum_size = Vector2(158, 0)
 theme_override_font_sizes/font_size = 22
 text = "P4: 0"
 
 [node name="RoundLabel" type="Label" parent="HUD"]
-offset_left = 780.0
+offset_left = 790.0
 offset_top = 12.0
-offset_right = 960.0
+offset_right = 900.0
 offset_bottom = 50.0
 theme_override_font_sizes/font_size = 22
 text = "Round 1"
 
 [node name="HealthLabel" type="Label" parent="HUD"]
-offset_left = 40.0
-offset_top = 668.0
-offset_right = 400.0
-offset_bottom = 708.0
+offset_left = 905.0
+offset_top = 12.0
+offset_right = 1035.0
+offset_bottom = 50.0
 theme_override_font_sizes/font_size = 22
 text = "Health: 3"
 
@@ -103,10 +103,10 @@ horizontal_alignment = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -200.0
-offset_top = 6.0
-offset_right = -40.0
-offset_bottom = 58.0
+offset_left = -236.0
+offset_top = 4.0
+offset_right = -96.0
+offset_bottom = 88.0
 grow_horizontal = 0
 focus_mode = 0
 theme_override_font_sizes/font_size = 22

@@ -8,11 +8,14 @@ const JOIN_SCENE := preload("res://ui/join.tscn")
 const SETTINGS_SCENE := preload("res://ui/settings.tscn")
 const CREDITS_SCENE := preload("res://ui/credits.tscn")
 const HEADLESS := preload("res://game/headless.gd")
+## Physics frames a bot run shows the finished match.
+const AUTOPLAY_QUIT_FRAMES := 60
 
 var options: LaunchOptions
 var store: SettingsStore
 var settings: Dictionary
 var session: NetSession
+var courts: Array[Court] = []
 var _screen: Node
 
 @onready var _menu: Control = $Menu
@@ -23,7 +26,7 @@ var _screen: Node
 @onready var _settings: Button = $Menu/SettingsButton
 @onready var _credits: Button = $Menu/CreditsButton
 @onready var _quit: Button = $Menu/QuitButton
-@onready var _status: Label = $Menu/StatusLabel
+@onready var _status: Label = $StatusLabel
 @onready var _version: Label = $Menu/VersionLabel
 
 
@@ -40,6 +43,8 @@ func _ready() -> void:
 	store.enabled = not options.no_save
 	settings = store.read()
 	apply_settings(settings)
+	# The courts are read once, here: every match and every rematch plays them.
+	courts = Court.load_all()
 	_play.pressed.connect(start_game.bind("local"))
 	_host.pressed.connect(start_game.bind("host"))
 	_join.pressed.connect(show_join)
@@ -87,7 +92,7 @@ func start_game(mode: String, address := "") -> void:
 		session.disconnected.connect(_on_disconnected)
 	var game := GAME_SCENE.instantiate()
 	game.name = "Game"
-	game.setup(mode, options, session)
+	game.setup(mode, options, session, courts)
 	game.match_over.connect(_on_match_over)
 	game.menu_requested.connect(show_menu)
 	_show(game)
@@ -166,3 +171,15 @@ func _on_match_over(won: bool) -> void:
 	if won:
 		settings.won = int(settings.won) + 1
 	store.write(settings)
+	if options.autoplay:
+		_end_bot_run()
+
+
+## A bot run shows the result for a moment, then frees the game and lets its sounds stop before the engine exits.
+func _end_bot_run() -> void:
+	for i in AUTOPLAY_QUIT_FRAMES:
+		await get_tree().physics_frame
+	_close_screen()
+	for i in 3:
+		await get_tree().process_frame
+	get_tree().quit()

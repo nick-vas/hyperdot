@@ -62,16 +62,18 @@ var _rng := RandomNumberGenerator.new()
 @onready var _sfx_round: AudioStreamPlayer = $SfxRound
 
 
-func setup(game_mode: String, game_options: LaunchOptions, net_session: NetSession = null) -> void:
+func setup(game_mode: String, game_options: LaunchOptions, net_session: NetSession = null, game_courts: Array[Court] = []) -> void:
 	mode = game_mode
 	options = game_options
 	session = net_session
+	courts = game_courts
 
 
 func _ready() -> void:
 	if options == null:
 		options = LaunchOptions.from_command_line()
-	courts = Court.load_all()
+	if courts.is_empty():
+		courts = Court.load_all()
 	view.origin = COURT_ORIGIN
 	view.colors = SLOT_COLORS
 	_pause_button.pressed.connect(_pause_menu.open)
@@ -221,7 +223,9 @@ func _over(winner: int) -> void:
 	print("[Run] match over, %s" % ("won" if won else "lost"))
 	match_over.emit(won)
 	if options.autoplay:
-		_quit_in = AUTOPLAY_QUIT_TICKS
+		# On its own (a flow, or the game scene run alone) nobody listens; a bot run then ends here. Main ends its own.
+		if match_over.get_connections().is_empty():
+			_quit_in = AUTOPLAY_QUIT_TICKS
 	else:
 		var scores := client.view.scores
 		var second := 0

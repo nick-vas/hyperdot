@@ -17,58 +17,65 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -260.0
-offset_top = -340.0
+offset_top = -350.0
 offset_right = 260.0
-offset_bottom = 340.0
+offset_bottom = 350.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 4
 alignment = 1
 
 [node name="Title" type="Label" parent="Menu"]
-theme_override_font_sizes/font_size = 52
+theme_override_font_sizes/font_size = 36
 text = "Glimmerpit"
 horizontal_alignment = 1
 autowrap_mode = 3
 
 [node name="PlayButton" type="Button" parent="Menu"]
-custom_minimum_size = Vector2(0, 64)
+custom_minimum_size = Vector2(0, 84)
 theme_override_font_sizes/font_size = 26
 text = "Play"
 
 [node name="HostButton" type="Button" parent="Menu"]
-custom_minimum_size = Vector2(0, 64)
+custom_minimum_size = Vector2(0, 84)
 theme_override_font_sizes/font_size = 26
 text = "Host"
 
 [node name="JoinButton" type="Button" parent="Menu"]
-custom_minimum_size = Vector2(0, 64)
+custom_minimum_size = Vector2(0, 84)
 theme_override_font_sizes/font_size = 26
 text = "Join"
 
 [node name="SettingsButton" type="Button" parent="Menu"]
-custom_minimum_size = Vector2(0, 64)
+custom_minimum_size = Vector2(0, 84)
 theme_override_font_sizes/font_size = 26
 text = "Settings"
 
 [node name="CreditsButton" type="Button" parent="Menu"]
-custom_minimum_size = Vector2(0, 64)
+custom_minimum_size = Vector2(0, 84)
 theme_override_font_sizes/font_size = 26
 text = "Credits"
 
 [node name="QuitButton" type="Button" parent="Menu"]
-custom_minimum_size = Vector2(0, 64)
+custom_minimum_size = Vector2(0, 84)
 theme_override_font_sizes/font_size = 26
 text = "Quit"
 
-[node name="StatusLabel" type="Label" parent="Menu"]
-theme_override_font_sizes/font_size = 18
-text = ""
+[node name="VersionLabel" type="Label" parent="Menu"]
+theme_override_font_sizes/font_size = 16
+text = "Version"
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="VersionLabel" type="Label" parent="Menu"]
+[node name="StatusLabel" type="Label" parent="."]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -400.0
+offset_top = 8.0
+offset_right = 400.0
+offset_bottom = 40.0
+grow_horizontal = 2
 theme_override_font_sizes/font_size = 18
-text = "Version"
 horizontal_alignment = 1
 autowrap_mode = 3

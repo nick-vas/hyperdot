@@ -33,7 +33,8 @@ static func ticks_for_ms(ms: int) -> int:
 ## Connects a client as `peer`; the server takes it in at once, its welcome arrives after the delay.
 func join(client: ArenaClient, peer: int) -> int:
 	_clients[peer] = client
-	client.send = func(message: Dictionary) -> void: _queue(_to_server, peer, message, "s%d" % peer)
+	# A bound method, not a lambda: a lambda would hold the link, and the link holds the client, a cycle never freed.
+	client.send = _from_client.bind(peer)
 	return server.peer_joined(peer)
 
 
@@ -53,6 +54,10 @@ func leave(peer: int) -> void:
 
 func has_peer(peer: int) -> bool:
 	return _clients.has(peer)
+
+
+func _from_client(message: Dictionary, peer: int) -> void:
+	_queue(_to_server, peer, message, "s%d" % peer)
 
 
 ## A message from the server to a client of this link.
