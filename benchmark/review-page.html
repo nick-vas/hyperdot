@@ -246,6 +246,7 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--focus); 
       const doc = await res.json();
       state.pairs = doc.pairs || []; state.rubric = doc.rubric || '';
       $('rubric').textContent = state.rubric.trim();
+      $('rubricBox').hidden = !state.rubric.trim();   // a calibration set is judged by the owner's own standard, unshown
     } catch (e) {
       $('main').textContent = ''; $('main').appendChild(el('p', { class: 'empty' }, 'The pairs could not be loaded.')); return;
     }

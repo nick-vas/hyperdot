@@ -43,7 +43,11 @@ try {
     $key = Get-Content -LiteralPath (Join-Path $review 'review-key.json') -Raw | ConvertFrom-Json -AsHashtable
     Assert-True (@($pairs.pairs).Count -eq 4) "one pair per task run both ways, none for a task run once: $(@($pairs.pairs).Count)"
     Assert-True ($pairsText -notmatch '(?i)"(model|plugin|profile|pluginIs)"' -and $pairsText -notmatch 'm-1') 'the page''s pairs name no model, profile or plugin side'
-    Assert-True ($pairs.rubric -match 'Length is not quality') 'the pairs carry the rubric the judge reads'
+    Assert-True ($pairs.rubric -match 'judge reads the task') 'the pairs carry the rubric the judge reads'
+    $second = Join-Path $dir 'review-q'
+    & (Get-Process -Id $PID).Path -NoProfile -File (Join-Path $root 'benchmark/Invoke-SideBySide.ps1') -Results ($runs -join ',') -ReviewOut $second -ReviewIdPrefix q | Out-Null
+    $qIds = @((Get-Content -LiteralPath (Join-Path $second 'review-pairs.json') -Raw | ConvertFrom-Json).pairs | ForEach-Object id)
+    Assert-True (($qIds -join ',') -eq 'q01,q02,q03,q04') "a second set's pairs are numbered apart from the first's: $($qIds -join ',')"
     $sides = @(foreach ($p in $pairs.pairs) {
         $entry = $key.pairs[$p.id]
         $pluginWork = if ($entry.pluginIs -eq 'A') { $p.a } else { $p.b }

@@ -6,6 +6,11 @@
   the answer key's hash), and has the candidate judges, cheapest first, judge them both ways until one agrees with the
   owner on 80% and with itself on 90%. A judgement that fails or names no choice is now an error, not "even": it
   fails the side-by-side run and counts as neither agreeing nor consistent, so a broken judge cannot pass.
+- **The judge's rubric rewritten from the owner's verdicts.** The first calibration (Haiku and Sonnet both agreed with
+  the owner on 53%) showed the rubric discounting what the owner values: an answer that explains the change with the
+  context the next developer needs now counts for the work, "as small as the task allows" is gone, and work that
+  does different parts of a task is even. A second blind set (`Invoke-SideBySide.ps1 -ReviewIdPrefix q`, shown
+  without the rubric) checks it on pairs it was not written from.
 - **The staged game programme's idle genre**, Duskhive, in GDScript (`benchmark/games/idle/`). A moth hive gathers
   glow at dusk: five producers whose prices grow geometrically, Buy 1, 10 or as many as the glow pays for, upgrades,
   and a dawn that trades a run's glow for embers. Every number is in data checked by the `data` runner; glow is a

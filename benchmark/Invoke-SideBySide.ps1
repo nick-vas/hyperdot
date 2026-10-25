@@ -40,6 +40,8 @@ param(
     [int]$Seed = 20261023,
     # Write the pairs for a person's blind review instead of judging them.
     [string]$ReviewOut,
+    # The review pairs' id prefix: a second set on the same page (q01, q02 ...) keeps its verdicts apart from the first's.
+    [ValidatePattern('^[a-z]{1,8}$')][string]$ReviewIdPrefix = 'p',
     [switch]$Json
 )
 Set-StrictMode -Version 3.0
@@ -108,7 +110,7 @@ if ($ReviewOut) {
         $with = @($group.Group | Where-Object plugin) | Select-Object -First 1
         $without = @($group.Group | Where-Object { -not $_.plugin }) | Select-Object -First 1
         if (-not $with -or -not $without) { continue }
-        $id = 'p{0:d2}' -f ($review.Count + 1)
+        $id = '{0}{1:d2}' -f $ReviewIdPrefix, ($review.Count + 1)
         $withFirst = $random.Next(2) -eq 0
         # The page shows the work and the task, never the model, the profile or the run, which could hint at the plugin.
         $review.Add([ordered]@{ id = $id; task = $with.prompt; a = $(if ($withFirst) { $with.work } else { $without.work }); b = $(if ($withFirst) { $without.work } else { $with.work }) })

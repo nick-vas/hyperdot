@@ -221,7 +221,8 @@ jobs:
           if ($cal.Count -eq 0) { throw "No file in benchmark/calibration holds verdicts for run $env:RUN" }
           $cal = $cal[0]
           $results = @(Get-ChildItem judged-run -Directory | ForEach-Object FullName) -join ','
-          ./benchmark/Invoke-SideBySide.ps1 -Results $results -ReviewOut review | Out-Null
+          $prefix = if ($cal.PSObject.Properties['idPrefix']) { $cal.idPrefix } else { 'p' }
+          ./benchmark/Invoke-SideBySide.ps1 -Results $results -ReviewOut review -ReviewIdPrefix $prefix | Out-Null
           $hash = (Get-FileHash review/review-key.json -Algorithm SHA256).Hash.ToLowerInvariant()
           if ($hash -ne $cal.keySha256) { throw "The pairs rebuilt from run $env:RUN are not the ones judged on the review page (key $hash, expected $($cal.keySha256))" }
           ConvertTo-Json -InputObject @($cal.verdicts) | Set-Content verdicts.json
