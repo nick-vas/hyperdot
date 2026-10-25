@@ -1,6 +1,16 @@
 # Changelog
 
 ## Unreleased
+- **The staged game programme's seventh genre: a narrative game**, Saltmere Crossing, in GDScript
+  (`benchmark/games/narrative/`). A ferrywoman takes a stranger across a foggy river at night; the story is data
+  (nodes, choices that need and change flags in the kit's criteria grammar, three endings) checked by the `data`
+  runner, and a search the game ships finds every node and ending reachable, no dead end and no flag set but never
+  read. Every line is a translation key in English, French and German with a length limit per row for the `l10n`
+  runner, and the story is saved at every line with its flags and history, with old saves replayed into the new form.
+  The release candidate has 53 GUT tests, five flows, a bot that plans its way to every ending, juice, store art
+  rendered from the game and credits. Its four stages carry 17 tasks and three milestones, each with hidden checks and
+  a reference solution, most with a decoy; all pass `tests/Test-GameProgramme.ps1 -Genre narrative -Language
+  gdscript`. `DESIGN.md` holds the language-neutral contract for the C# port, which is still to come.
 - **The platformer in C#.** Glowmoss Ridge now has its C# version (`benchmark/games/platformer/csharp/`), written from
   the language-neutral contract in its `DESIGN.md`: the same level scenes, scene tree, node names, data files, flows,
   bot and juice runs and log lines, with 34 gdUnit4 tests in place of the GUT ones and a Linux export only. Its four
