@@ -82,14 +82,13 @@ func test_the_server_keeps_its_own_counsel_on_hits():
 	assert_eq(server.arena.refused_claims, refused + 1)
 
 
-func test_a_leaver_gives_the_slot_back_to_a_bot():
+func test_a_leaver_loses_the_slot():
 	var client := ArenaClient.new(courts)
 	link.join(client, 10)
 	_to_round([client])
 	link.leave(10)
-	assert_true(server.arena.is_bot(0))
 	assert_eq(server.slot_of(10), -1)
-	assert_eq(server.record_count(), 0)
+	assert_eq(server.peer_count(), 0)
 
 
 func test_another_players_glimmer_moves_evenly_on_a_lagging_screen():

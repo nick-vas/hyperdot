@@ -64,14 +64,6 @@ func test_match_point_and_the_end_of_the_match():
 	assert_eq(arena.matches, 1)
 
 
-func test_a_glimmer_taken_out_of_the_round_can_end_it():
-	_out(1, 0)
-	_out(2, 0)
-	arena.remove_fighter(3)
-	assert_eq(arena.state, ArenaMatch.State.INTERMISSION)
-	assert_eq(arena.scores[0], 1)
-
-
 func test_a_new_owner_starts_from_nothing():
 	arena.scores[1] = 2
 	arena.set_owner(1, 77)

@@ -1,0 +1,140 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/credits.gd",
+    "game/autopilot.gd",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "test/flows/settings.flow.json"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.5.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\")"
+    },
+    {
+      "file": "main.tscn",
+      "find": "[node name=\"CreditsButton\" type=\"Button\" parent=\"Menu\"]\ncustom_minimum_size = Vector2(0, 84)\ntheme_override_font_sizes/font_size = 26\ntext = \"Credits\"\n\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "const CREDITS_SCENE := preload(\"res://ui/credits.tscn\")\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "@onready var _credits: Button = $Menu/CreditsButton\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "\t_credits.pressed.connect(show_credits)\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "\t_credits.text = tr(\"MENU_CREDITS\")\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "func show_credits() -> void:\n\tvar credits := CREDITS_SCENE.instantiate()\n\tcredits.name = \"Credits\"\n\tcredits.closed.connect(show_menu)\n\t_show(credits)\n\n\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "the game, the join screen, settings or credits.",
+      "replace": "the game, the join screen or settings."
+    },
+    {
+      "file": "scripts/launch_options.gd",
+      "find": "\t\t\t\"--autoplay\":\n\t\t\t\toptions.autoplay = true\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/launch_options.gd",
+      "find": "after \"--\" on the command line: --autoplay, --seed=N,",
+      "replace": "after \"--\" on the command line: --seed=N,"
+    },
+    {
+      "file": "game/game.gd",
+      "find": "var _autopilot: Autopilot\n",
+      "replace": ""
+    },
+    {
+      "file": "game/game.gd",
+      "find": "\tif options.autoplay:\n\t\t_autopilot = Autopilot.new(self, match_seed)\n",
+      "replace": ""
+    },
+    {
+      "file": "game/game.gd",
+      "find": "var input := _autopilot.player_input() if _autopilot else _read_input()",
+      "replace": "var input := _read_input()"
+    },
+    {
+      "file": "game/game.gd",
+      "find": "\tif _autopilot:\n\t\t_autopilot.tick()\n",
+      "replace": ""
+    },
+    {
+      "file": "game/game.gd",
+      "find": "\tif _autopilot:\n\t\t_autopilot.stop()\n",
+      "replace": ""
+    },
+    {
+      "file": "test/unit/test_launch_options.gd",
+      "find": "[\"--autoplay\", \"--seed=7\", \"--no-save\", \"--lag=120\", \"--port=24660\"]))\n\tassert_true(options.autoplay)\n",
+      "replace": "[\"--seed=7\", \"--no-save\", \"--lag=120\", \"--port=24660\"]))\n"
+    },
+    {
+      "file": "scripts/settings_store.gd",
+      "find": " Version 2 is current; version 1 kept the volume in decibels as volume_db and the language as language, and\n## players still have such files.",
+      "replace": ""
+    },
+    {
+      "file": "scripts/settings_store.gd",
+      "find": "\tvar version := int(raw.get(\"version\", 1))\n\tif version == 1:\n\t\t# Version 1 stored decibels (0 is full volume) and called the locale \"language\"; it kept no record.\n\t\tdata.volume = clampf(db_to_linear(float(raw.get(\"volume_db\", 0.0))), 0.0, 1.0)\n\t\tdata.locale = str(raw.get(\"language\", \"en\"))\n\t\treturn data\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/settings_store.gd",
+      "find": "## Any version's data as the current version.",
+      "replace": "## The saved data, with defaults for anything missing."
+    },
+    {
+      "file": "test/unit/test_settings_store.gd",
+      "find": "func test_a_version_1_file_keeps_its_volume_and_language():\n\t_write_raw('{\"volume_db\": -6.0, \"language\": \"de\"}')\n\tvar data := SettingsStore.new(PATH).read()\n\tassert_almost_eq(float(data.volume), db_to_linear(-6.0), 0.001)\n\tassert_eq(data.locale, \"de\")\n\tassert_eq(data.version, SettingsStore.VERSION)\n\n\n",
+      "replace": ""
+    },
+    {
+      "file": "test/unit/test_settings_store.gd",
+      "find": "## SettingsStore: reading, writing and the move from version 1.",
+      "replace": "## SettingsStore: reading and writing."
+    },
+    {
+      "file": "test/unit/test_court.gd",
+      "find": "[\"cinder_pit\", \"hollow_ring\"]",
+      "replace": "[\"cinder_pit\"]"
+    },
+    {
+      "file": "test/unit/test_match.gd",
+      "find": "assert_eq(arena.court.id, \"hollow_ring\")",
+      "replace": "assert_eq(arena.court.id, \"cinder_pit\")"
+    }
+  ]
+}

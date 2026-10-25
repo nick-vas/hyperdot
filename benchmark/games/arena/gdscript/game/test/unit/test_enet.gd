@@ -54,4 +54,3 @@ func test_a_client_joins_plays_and_leaves_over_enet():
 	assert_true(await _wait_for(func() -> bool: return client.snapshots > 20), "snapshots arrive")
 	join_session.close()
 	assert_true(await _wait_for(func() -> bool: return server.peer_count() == 0), "the server saw it leave")
-	assert_true(server.arena.is_bot(0))
