@@ -1,6 +1,17 @@
 # Changelog
 
 ## Unreleased
+- **The staged game programme's racing genre**, Cinderloop, in GDScript (`benchmark/games/racing/`). Four little cars
+  race from above on three loops of cinder road: a car on a fixed physics step whose rates are all per second (drag
+  taken implicitly, so the top speed and a lap's time are the same at any tick rate and nothing in the simulation
+  calls `exp()`), laps counted by checkpoint gates crossed in order and direction, three AI rivals braking to a speed
+  profile of the racing line, the best lap kept as a ghost of quantised inputs that drives it again exactly, a chase
+  camera that looks ahead and eases by the second, and keys rebound in Settings while the gamepad keeps its bindings.
+  The release candidate has 69 GUT tests, five flows, a bot that wins the championship from the back of the grid,
+  juice, three languages, store art captured from the game and credits. Its four stages carry 17 tasks and three
+  milestones, each with hidden checks and a reference solution, several with a decoy; all pass
+  `tests/Test-GameProgramme.ps1 -Genre racing -Language gdscript`. `DESIGN.md` holds the language-neutral contract
+  for the C# port, which is still to come.
 - **Bug reports pinned on their level.** `ci/godot/templates/addons/hyperdot_report_pins/`, an add-on a game copies:
   `bug_report.gd` saves the feedback key's report (`user://reports/<time>.json`: the line typed, the scene, the
   player's position and the camera's view in 2D or 3D, the seed, the commit, a screenshot), and the editor plugin pins
