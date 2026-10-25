@@ -2,8 +2,8 @@ class_name CarView
 extends Node2D
 ## A car drawn from above: a body, a windscreen and four wheels, pointing along +x. A ghost is drawn as an outline.
 
-const LENGTH := 34.0
-const WIDTH := 18.0
+const LENGTH := 40.0
+const WIDTH := 22.0
 
 var color := Color("#f2c14e"):
 	set(value):
@@ -21,8 +21,9 @@ func _draw() -> void:
 	if ghost:
 		draw_rect(body, color, false, 3.0)
 		return
-	for wheel: Vector2 in [Vector2(-10, -10), Vector2(10, -10), Vector2(-10, 10), Vector2(10, 10)]:
-		draw_rect(Rect2(wheel - Vector2(5, 3), Vector2(10, 6)), Color("#1b1b1b"))
+	for wheel: Vector2 in [Vector2(-12, -12), Vector2(12, -12), Vector2(-12, 12), Vector2(12, 12)]:
+		draw_rect(Rect2(wheel - Vector2(6, 3), Vector2(12, 6)), Color("#1b1b1b"))
 	draw_rect(body, color)
-	draw_rect(Rect2(Vector2(2, -7), Vector2(7, 14)), Color("#2b3a4a"))
+	draw_rect(Rect2(Vector2(3, -8), Vector2(8, 16)), Color("#2b3a4a"))
+	draw_rect(Rect2(Vector2(-18, -3), Vector2(14, 6)), color.lightened(0.35))
 	draw_rect(body, color.darkened(0.4), false, 2.0)
