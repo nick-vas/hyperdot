@@ -15,7 +15,7 @@ gives the percentages and the floors CI holds them to.
 | [Tools](#tools) | 20 | 20 |
 | [Skills](#skills) | 51 | 51 |
 | [Subagents](#subagents) | 2 | 2 |
-| [Workflow jobs, actions, hooks and the GitLab template](#workflow-jobs-actions-hooks-and-the-gitlab-template) | 26 | 25 |
+| [Workflow jobs, actions, hooks and the GitLab template](#workflow-jobs-actions-hooks-and-the-gitlab-template) | 27 | 26 |
 
 ## Commands
 
@@ -140,7 +140,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Runners.ps1` | 6/6 | `Test-Flaky.ps1`, `Test-StaleTres.ps1`, `Test-ErrorCodes.ps1`, `Test-Flows.ps1`, `Test-Placement.ps1`, `Test-SkillShaders.ps1`, `Test-ErrorKeys.ps1`, `Test-Layout.ps1` and 6 more |
 | `Setup.ps1` | 11/12 | `Test-InstallLock.ps1`, `Test-GameVersion.ps1`, `Test-InstallAddon.ps1`, `Test-ReportPins.ps1`, `Test-UpdatePins.ps1`, `Test-ErrorCodes.ps1`, `Test-BuildSize.ps1`, `Test-Capture.ps1` and 32 more |
 | `Sfx.ps1` | 5/5 | `Test-Sfx.ps1` |
-| `Soak.ps1` | 6/6 | `Test-Soak.ps1` |
+| `Soak.ps1` | 6/7 | `Test-Soak.ps1` |
 | `Status.ps1` | 16/16 | `Test-ArchitectureFixtures.ps1`, `Test-Data.ps1`, `Test-Localization.ps1`, `Test-TestDuration.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Handoffs.ps1`, `Test-Plan.ps1` and 9 more |
 | `Steam.ps1` | 9/9 | `Test-Steam.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1` and 4 more |
 | `Store.ps1` | 8/9 | `Test-Store.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1` and 4 more |
@@ -268,6 +268,7 @@ A job of `self-test.yml` is a test itself (it lists what it runs); another workf
 | self-test.yml/coverage | itself (on every push and pull request) |
 | token-benchmark.yml/plan | `Test-BenchmarkIsolation.ps1`, `Test-FieldTest.ps1`, `Test-GameBenchmark.ps1`, `Test-GameProgramme.ps1`, `Test-TokenBenchmark.ps1`; plans the matrix for the benchmark job; started by hand |
 | token-benchmark.yml/benchmark | `Test-BenchmarkIsolation.ps1`, `Test-FieldTest.ps1`, `Test-GameBenchmark.ps1`, `Test-GameProgramme.ps1`, `Test-TokenBenchmark.ps1`; each real run costs money; `-DryRun` is what the self-test runs |
+| token-benchmark.yml/calibrate | `Test-GameBenchmark.ps1`, `Test-ReviewPairs.ps1` |
 | trello-sync.yml/live | `Test-TrelloSync.ps1`; runs `Test-TrelloSync.ps1 -Live` against the real Trello; needs `TRELLO_KEY` and `TRELLO_TOKEN` |
 | actions/apt | self-test.yml init, self-test.yml lint, self-test.yml measure, self-test.yml web |
 | actions/godot | self-test.yml action, self-test.yml csharp (through godot.yml), self-test.yml explicit-runners (through godot.yml), self-test.yml zero-config (through godot.yml) |

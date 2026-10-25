@@ -47,9 +47,10 @@ foreach ($vote in $votes) {
     $person = if ($choice -eq 'even') { 'even' } elseif ($choice -eq $entry.pluginIs.ToLowerInvariant()) { 'plugin' } else { 'other' }
     if (-not $judged.ContainsKey($entry.pair)) { continue }
     $j = $judged[$entry.pair]
-    $judge = switch ([double]$j.pluginOutcome) { 1 { 'plugin' } 0 { 'other' } default { 'even' } }
     $choices = @($j.choices)
-    $consistent = $judge -ne 'even' -or ($choices.Count -eq 2 -and $choices[0] -eq 'even' -and $choices[1] -eq 'even')
+    # A judgement that failed ("error", outcome null) is no verdict: it neither agrees nor counts as consistent.
+    $judge = if ($null -eq $j.pluginOutcome -or 'error' -in $choices) { 'error' } else { switch ([double]$j.pluginOutcome) { 1 { 'plugin' } 0 { 'other' } default { 'even' } } }
+    $consistent = $judge -notin 'even', 'error' -or ($choices.Count -eq 2 -and $choices[0] -eq 'even' -and $choices[1] -eq 'even')
     $rows.Add([ordered]@{ id = $id; pair = $entry.pair; person = $person; judge = $judge; agree = ($person -eq $judge); consistent = $consistent })
 }
 
@@ -57,7 +58,7 @@ $compared = $rows.Count
 $agreement = if ($compared) { [Math]::Round(@($rows | Where-Object { $_.agree }).Count / $compared, 4) } else { $null }
 $pairsJudged = @($prefs.pairs).Count
 $consistency = if ($pairsJudged) {
-    $same = @($prefs.pairs | Where-Object { [double]$_.pluginOutcome -ne 0.5 -or (@($_.choices) -join ',') -eq 'even,even' }).Count
+    $same = @($prefs.pairs | Where-Object { $null -ne $_.pluginOutcome -and 'error' -notin @($_.choices) -and ([double]$_.pluginOutcome -ne 0.5 -or (@($_.choices) -join ',') -eq 'even,even') }).Count
     [Math]::Round($same / $pairsJudged, 4)
 } else { $null }
 $passes = $compared -gt 0 -and $agreement -ge $MinAgreement -and $consistency -ge $MinConsistency

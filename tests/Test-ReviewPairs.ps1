@@ -76,6 +76,22 @@ try {
     Assert-True (-not $d.passes -and $code -eq 1) "below 80% and 90% the judge is not calibrated (exit $code)"
     Assert-True (@($d.disagreements).Count -eq 1 -and $d.disagreements[0].id -eq 'p04' -and $d.disagreements[0].judge -eq 'even') 'the disagreement is named, with both verdicts'
 
+    # A judge that gave no verdict (a failed session, a reply with no choice) is no judgement: not even, not consistent.
+    $broken = [ordered]@{ judgeModel = 'judge-broken'; pairs = @(foreach ($id in 'p01', 'p02', 'p03', 'p04') { [ordered]@{ pair = $byId[$id]; choices = @('error', 'error'); pluginOutcome = $null } }) }
+    $brokenFile = Join-Path $dir 'broken.json'; $broken | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $brokenFile
+    $out = & (Get-Process -Id $PID).Path -NoProfile -File $agreementScript -Key (Join-Path $review 'review-key.json') -Verdicts $votesFile -Preferences $brokenFile -Json
+    $b = ($out -join "`n") | ConvertFrom-Json
+    Assert-True ($LASTEXITCODE -eq 1 -and $b.agreement -eq 0 -and $b.consistency -eq 0) "a judge with no verdicts agrees with no one and not with itself: $($b.agreement), $($b.consistency)"
+
+    # The side-by-side itself: a judge whose replies name no choice fails the run, and its pairs stay out of the win rate.
+    $stand = Join-Path $dir 'stand-in-judge.ps1'
+    Set-Content -LiteralPath $stand -Value "Write-Output (@{ type = 'result'; subtype = 'success'; is_error = `$false; result = 'I cannot decide.'; total_cost_usd = 0 } | ConvertTo-Json -Compress)"
+    $judged = Join-Path $dir 'judged'
+    & (Get-Process -Id $PID).Path -NoProfile -File (Join-Path $root 'benchmark/Invoke-SideBySide.ps1') -Results ($runs -join ',') -Model judge-x -OutDir $judged -Claude $stand | Out-Null
+    $code = $LASTEXITCODE
+    $p = Get-Content -LiteralPath (Join-Path $judged 'preferences.json') -Raw | ConvertFrom-Json
+    Assert-True ($code -eq 1 -and $p.failedPairs -eq 4 -and @($p.pairs | Where-Object { $null -ne $_.pluginOutcome }).Count -eq 0 -and @($p.pluginWinRate.PSObject.Properties).Count -eq 0) "replies with no choice are errors, not even, and fail the run (exit $code, $($p.failedPairs) failed)"
+
     # Lower bars: the same numbers pass.
     & (Get-Process -Id $PID).Path -NoProfile -File $agreementScript -Key (Join-Path $review 'review-key.json') -Verdicts $votesFile -Preferences $prefsFile -MinAgreement 0.7 -MinConsistency 0.7 | Out-Null
     Assert-True ($LASTEXITCODE -eq 0) "at bars of 70% it is calibrated (exit $LASTEXITCODE)"

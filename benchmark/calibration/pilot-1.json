@@ -1,0 +1,72 @@
+{
+  "note": "The owner's blind verdicts on the review page (benchmark/review-page.html) for the first staged pilot's pairs: A, B or even for each pair as the page showed it. The token benchmark workflow's calibrate mode rebuilds the pairs from the run with Invoke-SideBySide.ps1 -ReviewOut, checks they are the ones judged (keySha256, the SHA-256 of review-key.json), and scores each candidate judge, cheapest first, against these with Get-JudgeAgreement.ps1.",
+  "run": 39987737252,
+  "runNumber": 29,
+  "keySha256": "391d1213e1f76c991251914f07e71b568cfc84ff7c8d40b76a70e9f52b1d5005",
+  "candidates": [
+    "haiku",
+    "sonnet"
+  ],
+  "verdicts": [
+    {
+      "id": "p01",
+      "choice": "B"
+    },
+    {
+      "id": "p02",
+      "choice": "A"
+    },
+    {
+      "id": "p03",
+      "choice": "B"
+    },
+    {
+      "id": "p04",
+      "choice": "A"
+    },
+    {
+      "id": "p05",
+      "choice": "A"
+    },
+    {
+      "id": "p06",
+      "choice": "B"
+    },
+    {
+      "id": "p07",
+      "choice": "even"
+    },
+    {
+      "id": "p08",
+      "choice": "even"
+    },
+    {
+      "id": "p09",
+      "choice": "even"
+    },
+    {
+      "id": "p10",
+      "choice": "A"
+    },
+    {
+      "id": "p11",
+      "choice": "B"
+    },
+    {
+      "id": "p12",
+      "choice": "A"
+    },
+    {
+      "id": "p13",
+      "choice": "B"
+    },
+    {
+      "id": "p14",
+      "choice": "A"
+    },
+    {
+      "id": "p15",
+      "choice": "A"
+    }
+  ]
+}

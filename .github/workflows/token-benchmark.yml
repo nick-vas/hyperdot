@@ -14,6 +14,11 @@
 # `configurations: all` runs every configuration of the programme (Sonnet and Haiku, with and without the plugin) as
 # parallel jobs; the plan job checks the whole run's estimate against the tier's ceiling first, so nothing is spent on a
 # run that is over it.
+#
+# `calibrate: <run id>` runs no benchmark: it calibrates the judge (benchmark/PLAN.md, section 3). It takes that staged
+# run's results, rebuilds the blind pairs the owner judged on the review page (benchmark/calibration/*.json holds the
+# verdicts and the answer key's hash), and has each candidate judge, cheapest first (or the `model` input), judge them
+# both ways; the first that agrees with the owner on 80% and with itself on 90% is the judge, and the job stops there.
 name: Token benchmark
 
 on:
@@ -61,12 +66,16 @@ on:
         description: Run each session as a separate user that cannot read the checkout (hidden tests, graders)
         type: boolean
         default: true
+      calibrate:
+        description: Calibrate the judge instead, on this staged run's pairs (a run id with verdicts in benchmark/calibration)
+        default: ''
 
 permissions:
   contents: read
 
 jobs:
   plan:
+    if: inputs.calibrate == ''
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -177,3 +186,64 @@ jobs:
           name: token-benchmark-${{ inputs.programme }}-${{ matrix.model }}${{ matrix.plugin && '-plugin' || '' }}
           path: benchmark/results/
           retention-days: 30
+
+  calibrate:
+    if: inputs.calibrate != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      actions: read   # the judged run's artifacts
+    env:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Claude Code
+        shell: pwsh
+        run: |
+          if (-not $env:CLAUDE_CODE_OAUTH_TOKEN) { throw 'Add the CLAUDE_CODE_OAUTH_TOKEN repository secret (from claude setup-token) to calibrate the judge' }
+          npm install -g @anthropic-ai/claude-code
+          $out = claude -p 'Reply with the single word OK.' --max-turns 1 --output-format json 2>&1
+          if ($LASTEXITCODE) { throw "Claude Code rejected CLAUDE_CODE_OAUTH_TOKEN; run claude setup-token again and replace the secret: $out" }
+      - uses: actions/download-artifact@v7
+        with:
+          run-id: ${{ inputs.calibrate }}
+          github-token: ${{ github.token }}
+          pattern: token-benchmark-staged-*
+          path: judged-run
+      - name: The judge against the owner's verdicts
+        shell: pwsh
+        env:
+          RUN: ${{ inputs.calibrate }}
+          JUDGES: ${{ inputs.model }}
+        run: |
+          $cal = @(Get-ChildItem benchmark/calibration -Filter *.json | ForEach-Object { Get-Content $_.FullName -Raw | ConvertFrom-Json } | Where-Object { "$($_.run)" -eq $env:RUN })
+          if ($cal.Count -eq 0) { throw "No file in benchmark/calibration holds verdicts for run $env:RUN" }
+          $cal = $cal[0]
+          $results = @(Get-ChildItem judged-run -Directory | ForEach-Object FullName) -join ','
+          ./benchmark/Invoke-SideBySide.ps1 -Results $results -ReviewOut review | Out-Null
+          $hash = (Get-FileHash review/review-key.json -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($hash -ne $cal.keySha256) { throw "The pairs rebuilt from run $env:RUN are not the ones judged on the review page (key $hash, expected $($cal.keySha256))" }
+          ConvertTo-Json -InputObject @($cal.verdicts) | Set-Content verdicts.json
+          $candidates = if ($env:JUDGES) { @($env:JUDGES -split ',' | ForEach-Object Trim) } else { @($cal.candidates) }
+          $judge = $null
+          "| Judge | Agrees with the owner | Agrees with itself | Calibrated |`n|---|---|---|---|" | Add-Content $env:GITHUB_STEP_SUMMARY
+          foreach ($model in $candidates) {
+            ./benchmark/Invoke-SideBySide.ps1 -Results $results -Model $model -OutDir "judged/$model" | Out-Null
+            if ($LASTEXITCODE) { throw "The $model judge did not finish its judgements" }
+            $out = ./benchmark/Get-JudgeAgreement.ps1 -Key review/review-key.json -Verdicts verdicts.json -Preferences "judged/$model/preferences.json" -Json
+            $passed = $LASTEXITCODE -eq 0
+            ($out -join "`n") | Set-Content "judged/$model/agreement.json"
+            $d = ($out -join "`n") | ConvertFrom-Json
+            "| $($d.judgeModel) | $([math]::Round(100 * $d.agreement))% of $($d.compared) | $([math]::Round(100 * $d.consistency))% | $(if ($passed) { 'yes' } else { 'no' }) |" | Add-Content $env:GITHUB_STEP_SUMMARY
+            if ($passed) { $judge = $d.judgeModel; break }
+          }
+          if (-not $judge) { throw "No candidate judge ($($candidates -join ', ')) met the bars of 80% agreement and 90% consistency" }
+          "The judge: $judge" | Add-Content $env:GITHUB_STEP_SUMMARY
+          exit 0
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: judge-calibration
+          path: judged/
+          retention-days: 90

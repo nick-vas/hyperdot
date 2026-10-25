@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- **The judge's calibration runs in CI.** `token-benchmark.yml` with `calibrate: <run id>` rebuilds the blind pairs
+  of that run, checks they are the ones the owner judged (`benchmark/calibration/pilot-1.json` holds the verdicts and
+  the answer key's hash), and has the candidate judges, cheapest first, judge them both ways until one agrees with the
+  owner on 80% and with itself on 90%. A judgement that fails or names no choice is now an error, not "even": it
+  fails the side-by-side run and counts as neither agreeing nor consistent, so a broken judge cannot pass.
 - **The staged game programme's idle genre**, Duskhive, in GDScript (`benchmark/games/idle/`). A moth hive gathers
   glow at dusk: five producers whose prices grow geometrically, Buy 1, 10 or as many as the glow pays for, upgrades,
   and a dawn that trades a run's glow for embers. Every number is in data checked by the `data` runner; glow is a
