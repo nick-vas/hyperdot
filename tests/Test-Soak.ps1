@@ -15,9 +15,9 @@ $read = @($parsed.Metrics.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Val
 if ($read -ne 'rtt_ms=1E-07 bytes=3E+21 delta=-2.5') { $failures += "metric values should be read whole: $read" }
 if ((@($parsed.Unparsed) -join ' | ') -ne '[soak] metric version 1.2.3 | [soak] metric ratio inf') { $failures += "values that are not numbers should be listed: $(@($parsed.Unparsed) -join ' | ')" }
 
-function Invoke-Soak([string[]]$Extra, [string]$Project = $fixture) {
+function Invoke-Soak([string[]]$Extra, [string]$Project = $fixture, [double]$Warmup = 2) {
     $results = Join-Path ([System.IO.Path]::GetTempPath()) "soak-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
-    $json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') soak -Project $Project -Seconds 20 -Warmup 2 `
+    $json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') soak -Project $Project -Seconds 20 -Warmup $Warmup `
         -MaxGrowthMbPerHour 200 -Results $results -Json @Extra 2>$null
     return ($json | Out-String | ConvertFrom-Json)
 }
@@ -37,7 +37,9 @@ if ($healthy.ok -and -not $IsWindows) {
 if (-not $IsWindows) {
     $strict = Invoke-Soak @('-Clients', '1', '-RequireCleanStop')
     if ($strict.ok -or $strict.error.code -ne 'soak-unclean-stop') { $failures += "-RequireCleanStop should fail a server SIGTERM kills: $($strict.error.code) $($strict.error.message)" }
-    $cs = Invoke-Soak @('-Clients', '1', '-RequireCleanStop') (Join-Path $PSScriptRoot 'soak-fixture-cs')
+    # A .NET server's memory grows for its first seconds (the JIT tiering code up, the GC sizing its heap): a 2 s warm-up
+    # measured 50 MB/h here and 374 MB/h on a GitHub runner (run 697), a 10 s one 36 MB/h. Measure it warm.
+    $cs = Invoke-Soak @('-Clients', '1', '-RequireCleanStop') (Join-Path $PSScriptRoot 'soak-fixture-cs') 15
     if (-not $cs.ok) { $failures += "the C# server that handles SIGTERM failed: $($cs.error.code) $($cs.error.message)" }
     elseif (-not $cs.soak.stop.clean -or $cs.soak.stop.exitCode -ne 0) { $failures += "the C# server should stop cleanly: $($cs.soak.stop | ConvertTo-Json -Compress)" }
 }
