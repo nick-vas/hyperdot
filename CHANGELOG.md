@@ -1,6 +1,17 @@
 # Changelog
 
 ## Unreleased
+- **The staged game programme's sixth genre: a tower defence**, Bramblegate, in GDScript
+  (`benchmark/games/towerdefence/`), one of the mid tier's three genres. Pests walk the shortest way across a grid
+  (AStarGrid2D) from a gate to a seed store; every tower planted reroutes the pests on the field at once, and a tower
+  that would leave the gate or any pest without a way is refused. Towers and their upgrades, pests, maps, waves and
+  their groups are JSON checked by the `data` runner; a rule-based bot that builds a maze holds every map to a measured
+  balance (cleared over several seeds, lost without towers); a swarm scene loads the field for `bench`; the save keeps
+  each map's best stars. The release candidate has 63 GUT tests, five flows, a bot run through all three maps, juice,
+  three languages, store art rendered from the game and credits. Its four stages carry 17 tasks and three milestones,
+  each with hidden checks and a reference solution, most with a decoy; all pass
+  `tests/Test-GameProgramme.ps1 -Genre towerdefence -Language gdscript`. `DESIGN.md` holds the language-neutral
+  contract for the C# port, which is still to come.
 - **The platformer in C#.** Glowmoss Ridge now has its C# version (`benchmark/games/platformer/csharp/`), written from
   the language-neutral contract in its `DESIGN.md`: the same level scenes, scene tree, node names, data files, flows,
   bot and juice runs and log lines, with 34 gdUnit4 tests in place of the GUT ones and a Linux export only. Its four
