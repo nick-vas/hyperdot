@@ -1,6 +1,16 @@
 # Changelog
 
 ## Unreleased
+- **The staged game programme's idle genre**, Duskhive, in GDScript (`benchmark/games/idle/`). A moth hive gathers
+  glow at dusk: five producers whose prices grow geometrically, Buy 1, 10 or as many as the glow pays for, upgrades,
+  and a dawn that trades a run's glow for embers. Every number is in data checked by the `data` runner; glow is a
+  double printed with suffixes and two-letter groups past 2^53 and 1e36, never in scientific notation, with a tested
+  tolerance and no `pow()` or `log()` in its simulation code; time away is paid from the saved clock, capped at
+  eight hours and immune to a clock set back; saves of the previous version keep their embers. The release candidate is
+  a portrait layout for phones, tablets and the Web (a SafeArea autoload, the `layout` and `textsize` checks; English,
+  German and French), 62 GUT tests, five flows, a bot that greets six dawns with `--speed=60`, juice for every event,
+  Linux, Web and Android presets, store art, credits and a plan; its four stages, tasks and milestones each have hidden
+  checks, a reference and a decoy, and pass `tests/Test-GameProgramme.ps1 -Genre idle`.
 - **Bug reports pinned on their level.** `ci/godot/templates/addons/hyperdot_report_pins/`, an add-on a game copies:
   `bug_report.gd` saves the feedback key's report (`user://reports/<time>.json`: the line typed, the scene, the
   player's position and the camera's view in 2D or 3D, the seed, the commit, a screenshot), and the editor plugin pins

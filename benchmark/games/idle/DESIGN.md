@@ -137,7 +137,7 @@ in all runs reaches 1e9 (`GOAL_GLOW`); for `juice`, in game time (ticks / 60, no
 | Tests | GDScript: `test/unit/test_*.gd` (GUT), 62 tests: numbers and their formatting past 2^53 and 1e36, prices and purchases, Buy max at exact boundaries, upgrades, the dawn, time away, saves and version 2, the bot's choices, the data's balance, the launch options, the game scene and Main with a test clock. C#: `test/*Test.cs` (gdUnit4) |
 | Flows | `test/flows/gather.flow.json` (Gather, the first wick moth, its production), `pages.flow.json` (the bar's pages), `dawn.flow.json` (the Dawn button, its panel, an ember), `settings.flow.json` (German and back, Back), `credits.flow.json` |
 | Data | `data/producers.json`, `data/upgrades.json`, `data/economy.json`; `data.json` (ranges, name key patterns) |
-| Bot runs | `playthrough.json`: `--autoplay --speed=60 --no-save`, `[Run] dawn 1,` to `[Run] dawn 3,` and `[Run] goal` within 10,800 frames (it takes about 7,100: six dawns). `juice.json`: 1,500 frames; gathered and bought and upgraded get sfx and pop, the dawn flash, shake and sfx, each within 100 ms |
+| Bot runs | `playthrough.json`: `--autoplay --speed=60 --no-save`, `[Run] dawn 1,` to `[Run] dawn 3,` and `[Run] goal` within 10,800 frames (it takes about 6,700: six dawns). `juice.json`: 1,500 frames; gathered and bought and upgraded get sfx and pop, the dawn flash, shake and sfx, each within 100 ms |
 | Text | `i18n/strings.csv` (keys, `en`, `de`, `fr`), every visible text through `tr()`; `textsize.json`; `layout.json` |
 | Architecture | `architecture.json`: `parent-path`, `per-frame-lookup` and `nondeterministic-sim` are errors; `simulation` is `scripts` |
 | Assets | `art/icon.png` drawn by a script; sounds in `sounds/sfx/` from `hyperdot.ps1 sfx -Sound coin,powerup,blip,jump -Seed 9`; `assets.json` |
@@ -252,8 +252,8 @@ Choices made in the GDScript build where the design was open. The C# port follow
   are graded through Main with a test clock (`clock`, `save_path`), never the player's save.
 - **Time away is paid by ticking the economy once**, at the rate saved, so it counts toward the dawn like any other
   production; the bot gets none (`--autoplay`).
-- **The bot dawns when the dawn would double its embers.** It reaches the goal (1e9 glow over all runs) in about 7,100
-  seconds of play after six dawns; at `--speed=60` that is about 118 s of game time. The goal is what fails when the
+- **The bot dawns when the dawn would double its embers.** It reaches the goal (1e9 glow over all runs) in about 6,700
+  seconds of play after six dawns; at `--speed=60` that is about 112 s of game time. The goal is what fails when the
   playthrough defect hides the dawn: the bot can still buy, so a playthrough that only waited for purchases would pass.
 - **Portrait, not both orientations.** A landscape phone would scale the portrait UI to 1080 px of height and its
   buttons to 31 dp, which the layout runner fails; the game locks portrait on phones, and tablets and desktop browsers
