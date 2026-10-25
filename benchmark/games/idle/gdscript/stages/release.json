@@ -58,8 +58,8 @@
     {
       "template": "cut-version",
       "vars": {
-        "details": "the version in the project settings, an entry for it at the top of CHANGELOG.md, and the version shown on the settings screen",
-        "version": "1.1.0"
+        "version": "1.1.0",
+        "details": "the version in the project settings, an entry for it at the top of CHANGELOG.md, and the version shown on the settings screen"
       },
       "match": [
         {
@@ -107,6 +107,7 @@
         "to": "test/flows/credits.flow.json"
       }
     ],
-    "reference": "solutions/milestone-release"
+    "reference": "solutions/milestone-release",
+    "decoy": "solutions/milestone-release-decoy"
   }
 }

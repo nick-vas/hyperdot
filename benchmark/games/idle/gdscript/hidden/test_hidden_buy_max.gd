@@ -67,7 +67,7 @@ func test_hidden_the_mode_button_offers_max():
 	mode.pressed.emit()
 	mode.pressed.emit()
 	game.add_glow(1000.0)
-	var expected := game.economy.max_affordable("wick_moth")
+	var expected: int = game.economy.max_affordable("wick_moth")
 	game.get_node("Safe/Column/ProducerPage/List/WickMothRow/Box/BuyButton").pressed.emit()
 	assert_eq(game.economy.count("wick_moth"), expected)
 	assert_gt(expected, 10)

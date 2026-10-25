@@ -156,8 +156,8 @@
     {
       "template": "fill-translations",
       "vars": {
-        "locale": "German",
-        "report": "the panel that welcomes them back after time away in English"
+        "report": "the panel that welcomes them back after time away in English",
+        "locale": "German"
       },
       "edits": [
         {
@@ -224,6 +224,7 @@
       "hidden/test_hidden_bar_fits.gd",
       "hidden/test_hidden_save_migration.gd"
     ],
-    "reference": "solutions/milestone-beta"
+    "reference": "solutions/milestone-beta",
+    "decoy": "solutions/milestone-beta-decoy"
   }
 }

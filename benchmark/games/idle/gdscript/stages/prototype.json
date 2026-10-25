@@ -95,8 +95,8 @@
       "vars": {
         "code": "scripts/economy.gd",
         "rules": "a producer's price is its base cost times its growth for each one owned, a purchase of several costs the sum of their single prices, a purchase spends its price and adds the amount bought, nothing is bought when the glow does not cover the price, production per second is each producer's rate times how many are owned, every 25 of one producer double its rate, production over a tick is the rate times the seconds, and the rate changes as soon as something is bought",
-        "file": "test/unit/test_economy_rules.gd",
-        "subject": "Economy class (scripts/economy.gd: prices, purchases and production)"
+        "subject": "Economy class (scripts/economy.gd: prices, purchases and production)",
+        "file": "test/unit/test_economy_rules.gd"
       },
       "unchanged": [
         "scripts/economy.gd"
