@@ -1,0 +1,71 @@
+keys,en,_max,_lines
+MENU_TITLE,Saltmere Crossing,,
+MENU_NEW,New story,,
+MENU_CONTINUE,Continue,,
+MENU_SETTINGS,Settings,,
+MENU_CREDITS,Credits,,
+MENU_QUIT,Quit,,
+MENU_VERSION,Version %s,,
+MENU_ENDINGS,Endings found: %d of %d,,
+CHAPTER_1,Chapter 1: The Landing,40,1
+CHAPTER_2,Chapter 2: The Crossing,40,1
+CHAPTER_3,Chapter 3: The Far Bank,40,1
+SPEAKER_NARRATOR,The river,24,1
+SPEAKER_STRANGER,The stranger,24,1
+HUD_HISTORY,History,,
+HUD_PAUSE,Pause,,
+HISTORY_TITLE,So far,,
+HISTORY_CLOSE,Close,,
+HISTORY_CHOICE,» %s,,
+PAUSE_TITLE,Paused,,
+PAUSE_RESUME,Resume,,
+PAUSE_QUIT,Quit to menu,,
+ENDING_AGAIN,Cross again,,
+ENDING_MENU,Back to menu,,
+ENDING_SHORE,The Letter,30,1
+ENDING_RETURN,The Empty Seat,30,1
+ENDING_BELL,The Drowned Bell,30,1
+SETTINGS_TITLE,Settings,,
+SETTINGS_VOLUME,Volume,,
+SETTINGS_LANGUAGE,Language,,
+SETTINGS_BACK,Back,,
+LANG_EN,English,,
+LANG_FR,Français,,
+LANG_DE,Deutsch,,
+CREDITS_TITLE,Credits,,
+CREDITS_BACK,Back,,
+CREDITS_ENGINE,Engine,,
+CREDITS_THIRD_PARTY,Third-party assets,,
+CREDITS_THANKS,Thanks,,
+N_DOCK,"Night on the Hensmouth landing. A stranger in a grey coat waits beside your ferry, a lantern held low in one hand.",170,1
+N_TOLL,"“To Greywick, on the far bank,” the stranger says. “What does the crossing cost?”",170,1
+N_LAUNCH,"You push off from the landing. The lantern swings, and the lights of Hensmouth shrink behind you.",170,1
+N_FOG,"Halfway across, the fog comes down. In the lantern light the stranger's face is pale and wet, as if drawn up from the river.",170,1
+N_CROSSING,"The stranger sits very still. “You have rowed the Saltmere a long time,” she says. “Ask me something, if you like.”",170,1
+N_NAME,"“Maudrey,” she says. “Maudrey Quillon. My mother kept this ferry long before you did.”",170,1
+N_CARGO,"She opens the bag: letters tied with river reed, every one of them sealed and never sent.",170,1
+N_BELL_TALE,"“Old Hensmouth drowned when the river moved,” she says. “Its bell still rings under the water, for anyone who listens.”",170,1
+N_CONFESSION,"You admit that the toll is one copper. For the first time, the stranger laughs.",170,1
+N_FAR_BANK,"The Greywick bank comes out of the fog. To your left, the broken tower of Old Hensmouth stands in the shallows.",170,1
+N_BELL_TOWER,Under the tower the water hums. The stranger leans over the side and listens.,170,1
+N_END_SHORE,"The stranger steps onto the jetty and hands you a letter in your mother's hand. When you look up, the jetty is empty.",170,1
+N_END_RETURN,"You row back to Hensmouth. At the landing the stranger's seat is empty and dry, and the lantern is yours.",170,1
+N_END_BELL,"Far below, the drowned bell answers. The fog lifts, and the river is full of lanterns, one for every crossing ever made.",170,1
+C_DOCK_GREET,Good evening. Where are you going?,52,1
+C_DOCK_SILENT,"Nod, and untie the boat.",52,1
+C_TOLL_TRUE,"One copper, as always.",52,1
+C_TOLL_LIE,Three coppers. The river is high tonight.,52,1
+C_LAUNCH_ROW,Row out into the dark.,52,1
+C_FOG_STEADY,"Breathe slowly, and keep the oars steady.",52,1
+C_FOG_HURRY,"Row faster, and do not look at her.",52,1
+C_ASK_NAME,Ask her name.,52,1
+C_ASK_CARGO,Ask what is in her bag.,52,1
+C_ASK_BELL,Ask about the bell you can hear.,52,1
+C_CONFESS,Admit that the toll is one copper.,52,1
+C_CROSS_ON,"Say nothing more, and row for the bank.",52,1
+C_ROW_ON,Go back to rowing.,52,1
+C_LAND,Bring the boat in to the jetty.,52,1
+C_TURN_BACK,Turn the boat around.,52,1
+C_TO_TOWER,Row to the drowned tower.,52,1
+C_RING_BELL,"Strike the hull with your oar, three times.",52,1
+C_LEAVE_TOWER,Leave the tower and row for the bank.,52,1
