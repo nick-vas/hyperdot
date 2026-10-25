@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- **The tower defence in C#.** Bramblegate now has its C# version (`benchmark/games/towerdefence/csharp/`), written
+  from the language-neutral contract in its `DESIGN.md`: the same scenes, scene tree, node names, data files, flows,
+  swarm bench scene, bot and juice runs and log lines, with 63 gdUnit4 tests in place of the GUT ones and a Linux
+  export only. Paths come from `AStarGrid2D` with the same settings, pest speeds from the engine's seeded generator, and
+  movement keeps GDScript's mix of doubles and 32-bit vectors, so a seed plays the same battle in both: the bot run
+  prints the same lines at the same game times, and the bot's results on every map match for seeds 1 to 10, path
+  searches included. Its four stages carry the same 17 tasks and three milestones as the GDScript version, each with
+  hidden checks in C# and a reference solution, most with a decoy; all pass `tests/Test-GameProgramme.ps1 -Genre
+  towerdefence -Language csharp`. `DESIGN.md`'s "As built" records the port's choices.
 - **Bug reports pinned on their level.** `ci/godot/templates/addons/hyperdot_report_pins/`, an add-on a game copies:
   `bug_report.gd` saves the feedback key's report (`user://reports/<time>.json`: the line typed, the scene, the
   player's position and the camera's view in 2D or 3D, the seed, the commit, a screenshot), and the editor plugin pins
@@ -47,7 +56,7 @@
   three languages, store art rendered from the game and credits. Its four stages carry 17 tasks and three milestones,
   each with hidden checks and a reference solution, most with a decoy; all pass
   `tests/Test-GameProgramme.ps1 -Genre towerdefence -Language gdscript`. `DESIGN.md` holds the language-neutral
-  contract for the C# port, which is still to come.
+  contract for the C# port.
 - **The card game in C#.** Lanternfen now has its C# version (`benchmark/games/cards/csharp/`), written from the
   language-neutral contract in its `DESIGN.md`: the same scenes, node names, data files, flows, named phases, bot and
   juice runs, with 55 gdUnit4 tests in place of the GUT ones and a Linux export only. Both versions shuffle with the

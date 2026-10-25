@@ -5,7 +5,7 @@ pathfinding, economy data, balance and `bench`. Pests walk the shortest way acro
 `godot-algorithms`), every tower planted reroutes them and may never shut the way, towers, upgrades, pests, maps and
 waves are JSON checked by the `data` runner (`godot-data`), a rule-based bot holds every map to a measured balance
 (`godot-progression`), a swarm scene loads the field for `bench` (`godot-performance`), and the save keeps each map's
-best result (`godot-saves`). One game, written twice: `gdscript/` (built) and `csharp/` (to come, from this design).
+best result (`godot-saves`). One game, written twice: `gdscript/` and `csharp/` (ported from this design), both built.
 Both behave the same, use the same data files, scene tree, node names and log lines, and pass the same flows. Only the
 code and the test framework differ: GUT for GDScript, gdUnit4 (run by the kit's `gdunit4` runner) for C#.
 
@@ -247,7 +247,7 @@ Its reference is every file of the next stage that the earlier one lacks or has 
 
 ## As built
 
-Choices made in the GDScript build where the design was open. The C# port follows them.
+Choices made in the GDScript build where the design was open. The C# port follows them; its own choices come after.
 
 - **The battle lives in Battle, not in nodes.** The game node feeds it ticks and input and draws it from its state and
   signals; it never decides. So the rules, the bot and the balance tests play whole maps in about a tenth of a second
@@ -277,3 +277,45 @@ Choices made in the GDScript build where the design was open. The C# port follow
 - **Decoys:** fix-bug (prototype, alpha, beta), fix-playthrough and fill-translations. The alpha fix-bug decoy, a pest
   that re-paths when it reaches the tower, does get every pest to the store; it fails because the pests walk up to the
   tower first, which the hidden test sees in their paths right after the placement.
+
+### C#
+
+- **Same behaviour, checked number for number.** Battle keeps GDScript's numbers: doubles for speeds, ranges and
+  distances, Godot's 32-bit `Vector2` for positions, and a step towards a cell centre divided and scaled in 32-bit
+  floats, as the engine's `Vector2` operators do it for GDScript. The speed jitter comes from the engine's
+  `RandomNumberGenerator` and the paths from `AStarGrid2D` with the same settings. So the bot run (`--autoplay
+  --seed=1 --no-save`, also seeds 2 and 7) prints the same `[Wave]`, `[Run]` and `[juice]` lines at the same game times
+  in both languages, and `Bot.Play` on every map gives the same seeds kept, ticks, kills, sap, path searches and range
+  checks for seeds 1 to 10 (`Bot.Idle` for 1 to 3).
+- **Names:** `Game` keeps the snake_case names the flows and the contract use: `battle`, `level`, `state`, `building`,
+  `selected`, `speed`, `gold`, `lives`, `wave`, `phase`, `start_map`, `place_at`, `select_tower`, `upgrade_selected`,
+  `sell_selected`, `next_wave`, `toggle_speed`, `next_map` and `retry`. `start_map` is two overloads, `(index)` and
+  `(index, seed)`, not a default argument, because the engine calls a C# method only with all its arguments. The rest
+  is C#'s own case: `Battle.Create`, `Custom`, `CanPlace`, `Place`, `Upgrade`, `Refund`, `Sell`, `StartWave`, `SpawnAt`,
+  `Step` and `PhaseName`; `PathMap.FromRows`, `Route`, `Gate`, `Store`, `PathQueries`, `PathFrom`, `SetTower`, `Blocks`
+  and `PreviewRoute` (the tile characters are `RockTile`, `GateTile` and `StoreTile`); `Enemy.Centre`, `Cell`,
+  `Target`, `Remaining`, `Pace` and `SlowTicks` (the 60-tick constant is `SlowTime`); `Bot.Act`, `Play` and `Idle`.
+- **Plain classes, typed rows and C# events.** `PathMap`, `Enemy`, `Battle`, `Catalog` and `Bot` are plain C#
+  classes, and Battle's signals are C# events. The data's rows are records (`TowerRow`, `UpgradeRow`, `EnemyRow`,
+  `MapRow`, `GroupRow`, and `TowerStats` for `Catalog.Stats`); `WaveRow` is a class whose `Of` builds the one-group
+  waves the tests use. The towers are a `TowerSet`, a list in build order (the order they fire in) with a lookup by
+  cell, so no simulation code iterates a `Dictionary`, which the architecture runner would flag; a tower is a `Tower`
+  and a shot a `Shot`.
+- **Saves:** `SaveStore` takes a file path (Main passes `user://save.json`, globalised) and uses `System.Text.Json`, so
+  its tests use temporary files. `SaveData` holds `Progress` (a `SortedDictionary` of `MapResult`, with `Stars` and
+  `Lives`), `Volume` and `Locale`; the beta's fix-bug defect clears that dictionary before it records.
+- **Tests:** 63 gdUnit4 tests in `test/*Test.cs`, run by the kit's `dotnet` runner, and `gdunit4` for the mutants.
+  Every suite that touches `AStarGrid2D`, the engine's generator or `res://` is `[RequireGodotRuntime]`; `SaveStore`
+  and `LaunchOptions` are tested without the engine. `Battle.Wound` is internal so that `EconomyTest` can call it, as
+  `test_economy.gd` calls `_wound`. The game scene's tests and hidden tests load it with `ISceneRunner` and wait whole
+  physics ticks.
+- **The explain-failure test** is `Clearing_a_wave_pays_its_bonus`, `test/EconomyTest.cs` line 26.
+- **The fix-performance defect** searches a path with `Map.PathFrom(enemy.Cell())` for every pest at every look, as
+  the GDScript one does, so its hidden test reads the same `PathQueries`.
+- **Stages** lay overlays of `game/Game.cs` and `game/game.tscn` (prototype), `ui/Main.cs` (alpha, beta) and
+  `scripts/LaunchOptions.cs` with its test (alpha), as the GDScript stages do with their scripts; the data, translations
+  and plans are the GDScript version's files, and the rest is edits. The milestone references follow the rule above,
+  generated from the built stages.
+- **Export:** Linux only (Godot 4.7 cannot export C# to the Web), so the planted export defect adds `data/*` to that
+  preset's `exclude_filter="test/*"`. `THIRD-PARTY-NOTICES.txt` comes from `credits` on the C# game, with the .NET
+  runtime's notices; the store art, docs, data, translations, sounds and flows are the GDScript version's files.
