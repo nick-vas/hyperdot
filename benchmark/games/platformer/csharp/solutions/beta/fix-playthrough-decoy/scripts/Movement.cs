@@ -26,7 +26,7 @@ public sealed class Movement
     public const float BodyHeight = 1f;
     /// <summary>
     /// How high above the ground the climber's body reaches at the top of a full jump: what a level may ask of it.
-    /// placement.json holds the same number (2.8375), as the placement check reads limits from GDScript constants only.
+    /// placement.json names this field, which the placement check works out from the source (2.8375).
     /// </summary>
     public const float Reach = JumpVelocity * JumpVelocity / (2f * Gravity) + BodyHeight;
 

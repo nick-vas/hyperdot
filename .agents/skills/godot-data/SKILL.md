@@ -133,7 +133,7 @@ a tester's full day; `${CLAUDE_PLUGIN_ROOT}/docs/gdc/assassins-creed-origins-wor
 
 Write a `placement.json` and the `placement` runner checks every level in each `test` run, no test to write:
 `{ "levels": ["res://levels"], "limits": { "reach": "res://player.gd:REACH" } }`, each limit read from the GDScript
-constant it names (a C# game writes the number, or keeps a test). Or copy
+constant it names, in GDScript or C# (`"res://Tuning.cs:Reach"`: a `const` or `static readonly` set to a literal or arithmetic on other such fields). Or copy
 `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/placement_check.gd` into the game's test folder and call it from a GUT test
 (its header has the code). It loads each level, waits for navigation, checks nodes by group and reports one line per
 finding: scene, node path, position, rule, measured value and limit.

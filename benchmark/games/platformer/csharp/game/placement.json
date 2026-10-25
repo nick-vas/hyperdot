@@ -1,6 +1,6 @@
 {
   "levels": ["res://levels"],
   "limits": {
-    "reach": 2.8375
+    "reach": "res://scripts/Movement.cs:Reach"
   }
 }

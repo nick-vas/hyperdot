@@ -5,8 +5,8 @@
 #   { "levels": ["res://levels"], "limits": { "reach": "res://player.gd:REACH", "zipline_max_angle": "res://zipline.gd:MAX_ANGLE_DEGREES" } }
 # One JUnit case per scene, failed with its findings, one per line; a case `run` when Godot or the configuration fails.
 # The summary (counts per group with the change since the last run, exemptions, wayfinding) goes to placement.txt and
-# the log. Limits are GDScript constants: get_script_constant_map() was empty for a C# script (4.7.2 mono), so a C#
-# game writes the number in placement.json or keeps its own GUT test (godot-data, "Placed objects").
+# the log. Limits are GDScript constants, or C# ones read from the source (get_script_constant_map() is empty for a C#
+# script, 4.7.2 mono): a `const` or `static readonly` field set to a literal or to arithmetic on other such fields.
 
 # The tool's output as JUnit cases, and the summary lines.
 function ConvertFrom-PlacementLog([string[]]$Lines) {

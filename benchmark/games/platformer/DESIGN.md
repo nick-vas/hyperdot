@@ -85,7 +85,7 @@ beacon is victory. The world is 3D (in metres, y up, the level in the plane z = 
 |---|---|
 | Tests | GDScript: `test/unit/test_*.gd` (GUT), 34 tests on Movement, the jump's forgiveness, Rules, checkpoints, Levels, SaveStore, LaunchOptions and the game scene. C#: `test/*Test.cs` (gdUnit4) |
 | Flows | `test/flows/start.flow.json` (menu to game), `pause.flow.json` (pause and resume), `quit.flow.json` (pause, quit to the menu), `settings.flow.json` (the locale to fr and back) |
-| Levels | five scenes in `levels/`; `placement.json` checks every tuft of glowmoss against `res://scripts/movement.gd:REACH` (C#: the number, 2.8375, since the runner reads only GDScript constants) |
+| Levels | five scenes in `levels/`; `placement.json` checks every tuft of glowmoss against `res://scripts/movement.gd:REACH` (C#: `res://scripts/Movement.cs:Reach`, which the runner works out from the source, 2.8375) |
 | Data | `data/levels.json`, `data/beetles.json`, `data.json` (types, ranges, patterns) |
 | Bot runs | `playthrough.json`: `--autoplay --seed=1 --no-save`, `[Run] level 1 done` to `[Run] level 5 done` and `[Run] victory` within 7200 frames. `juice.json`: `--level=5`, 900 frames; moss_collected gets pop and sfx, beetle_stomped shake and sfx, player_hurt flash, shake and sfx, each within 100 ms |
 | Text | `i18n/strings.csv` (keys, `en`, `fr`, `de`), every visible text through `tr()`; `textsize.json` (menu, HUD, game over at 1280x800); `layout.json` (menu and HUD on `phone_landscape` and `ultrawide`) |
@@ -208,10 +208,10 @@ Choices made where the design was open; the C# port follows them, and its own ch
   `patrol` on `Beetle`, `size` on `Thorns`), so the five level scenes are the GDScript ones but for their script paths.
   The rest is C#'s own case: `Movement.Step`, `Movement.Reach`, `Rules.ReachCheckpoint`, `Levels.Level(number)` (a
   `LevelRow`, or null), `Game.SpawnDust`, `CameraRig.HalfExtents`, `Player.Place`.
-- **Placement:** `placement.json` holds the reach as the number 2.8375, since the `placement` runner reads limits from
-  GDScript constants only (`docs/roadmap.md`, "Placement checks in C#"). `Movement.Reach` works out the same number,
-  and grading stays equivalent: the Beacon Crest task keeps both `scripts/Movement.cs` and `placement.json` unchanged,
-  and its hidden test reads `Movement.Reach`.
+- **Placement:** `placement.json` names `res://scripts/Movement.cs:Reach`. Godot gives no constants for a C# script, so
+  the `placement` runner reads the field from the source and works out its arithmetic on the other constants (2.8375).
+  It held the number until the runner could; grading is the same either way: the Beacon Crest task keeps both
+  `scripts/Movement.cs` and `placement.json` unchanged, and its hidden test reads `Movement.Reach`.
 - **Engine-light parts:** `Rules.Stomp(points)` takes the beetle's points, so Rules needs no node. `BeetleRow` has its
   own file, because the prototype has beetles but no `Levels`. `SaveStore` takes a file path (Main passes
   `user://save.json`, globalised) and uses `System.Text.Json`, as the arcade's does, so its tests use temporary files.

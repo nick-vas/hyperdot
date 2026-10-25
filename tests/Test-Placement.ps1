@@ -132,6 +132,37 @@ $n = Invoke-PlacementKitRunner '{ "levels": ["res://levels"], "limits": { "reach
 $run = @($n.Failures | Where-Object { $_.name -eq 'placement.run' })
 Assert-True ($run.Count -eq 1 -and "$($run[0].message)" -eq "placement.json: limit 'hang' is String, not a float") "a limit of the wrong type fails the run: $($n.Failures | ForEach-Object message)"
 
+# A C# game names its own source: Godot gives no constants for a C# script, so the runner reads the field there, past
+# comments, a literal or arithmetic on the file's other fields (2.5 from a jump of 6 against a fall of 12, as C# divides
+# by 2f, not as integers), and the same levels give the same findings. A field it cannot read is refused, by name.
+Set-Content -LiteralPath (Join-Path $game 'Tuning.cs') -Value @"
+namespace Fixture;
+public static class Tuning
+{
+    public const float Jump = 6f;
+    public const float Fall = 12f;
+    public const float Body = 1f;
+    // public const float Reach = 9f;
+    public const float Reach = Jump * Jump / (2f * Fall) + Body;
+    /* public static readonly double ZipMaxAngle = 80d; */
+    public static readonly double ZipMaxAngle = 25d;
+    public const int Hops = 1_000;
+    public const float Low = 1 / 4f;
+    public static readonly float Tau = Mathf.Pi * 2;
+}
+"@
+$c = Invoke-PlacementKitRunner '{ "levels": ["res://levels", "res://rule_cases"], "limits": { "reach": "res://Tuning.cs:Reach", "zipline_max_angle": "res://Tuning.cs:ZipMaxAngle" } }'
+$cFailed = @($c.Failures | ForEach-Object { "$($_.name -replace '^placement\.', '')|$($_.message)" })
+Assert-True (-not $c.Ok -and $c.Total -eq 3 -and ($cFailed -join "`n") -eq ($failed -join "`n")) "limits read from a C# file give the GDScript constants' findings: $($cFailed -join ' | ')"
+$l = Invoke-PlacementKitRunner '{ "levels": ["res://levels"], "limits": { "reach": "res://Tuning.cs:Low" } }'
+Assert-True (@($l.Failures | ForEach-Object message) -contains "$level Torches/TorchLow (-8.00, 2.00, 0.00) ground_in_reach: ground 2.00 m below (limit 0.25 m)") "a computed C# limit is the value C# gives (1 / 4f is 0.25): $(@($l.Failures | ForEach-Object message) -join ' | ')"
+$e = Invoke-PlacementKitRunner '{ "levels": ["res://levels"], "limits": { "reach": "res://Tuning.cs:Tau" } }'
+$run = @($e.Failures | Where-Object { $_.name -eq 'placement.run' })
+Assert-True ($run.Count -eq 1 -and "$($run[0].message)" -eq "placement.json: limit 'reach' names res://Tuning.cs, whose Tau is Mathf.Pi * 2: the runner reads numbers, true, false, plain strings and arithmetic on the file's other constants") "a C# field it cannot read fails the run: $($e.Failures | ForEach-Object message)"
+$g = Invoke-PlacementKitRunner '{ "levels": ["res://levels"], "limits": { "reach": "res://Tuning.cs:Range" } }'
+$run = @($g.Failures | Where-Object { $_.name -eq 'placement.run' })
+Assert-True ($run.Count -eq 1 -and "$($run[0].message)" -eq "placement.json: limit 'reach' names res://Tuning.cs, which has no constant Range (it has: Jump, Fall, Body, Reach, ZipMaxAngle, Hops, Low, Tau)") "a C# constant that does not exist fails the run: $($g.Failures | ForEach-Object message)"
+
 Remove-Item -Recurse -Force $game
 if ($failures.Count) { throw "$($failures.Count) placement check(s) failed" }
 Write-Host 'placement self-test passed'
