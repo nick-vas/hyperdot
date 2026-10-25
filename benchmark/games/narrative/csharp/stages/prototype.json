@@ -1,0 +1,198 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "main.tscn",
+    "ui",
+    "story/History.cs",
+    "story/PauseMenu.cs",
+    "story/EndingMenu.cs",
+    "scripts/SaveStore.cs",
+    "scripts/LaunchOptions.cs",
+    "scripts/StoryCheck.cs",
+    "scripts/TextFormat.cs",
+    "data.json",
+    "data/names.json",
+    "sounds",
+    "plan",
+    "docs",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "architecture.json",
+    "test/flows",
+    "test/StoryRulesTest.cs",
+    "test/OnceTest.cs",
+    "test/StoryCheckTest.cs",
+    "test/StorySaveTest.cs",
+    "test/SaveStoreTest.cs",
+    "test/LaunchOptionsTest.cs",
+    "test/StorySceneTest.cs"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "run/main_scene=\"res://main.tscn\"",
+      "replace": "run/main_scene=\"res://story/story.tscn\""
+    },
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.1.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\")"
+    },
+    {
+      "file": "scripts/StoryGraph.cs",
+      "find": "    /// <summary>Offered only until it has been taken in a story.</summary>\n    public bool Once { get; init; }\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/StoryGraph.cs",
+      "find": "                Once = JsonData.Bool(row[\"once\"], false),\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/Story.cs",
+      "find": "    /// <summary>\n    /// The choices the player is offered now: those out of this node whose needs hold, a once-only choice only until it is\n    /// taken. None at an ending.\n    /// </summary>",
+      "replace": "    /// <summary>The choices the player is offered now: those out of this node whose needs hold. None at an ending.</summary>"
+    },
+    {
+      "file": "scripts/Story.cs",
+      "find": "        if (choice.Once && History.Contains(choice.Id))\n            return false;\n",
+      "replace": ""
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "after they ask what is in the stranger's bag, the story stops: the text box is empty, no choice is offered, and they have to start the crossing again"
+      },
+      "edits": [
+        {
+          "file": "data/choices.json",
+          "find": "{ \"id\": \"ask_cargo\", \"from\": \"crossing\", \"to\": \"cargo\",",
+          "replace": "{ \"id\": \"ask_cargo\", \"from\": \"crossing\", \"to\": \"cargo_bag\","
+        }
+      ],
+      "unchanged": [
+        "test/StoryTest.cs"
+      ],
+      "hidden": [
+        "hidden/HiddenCargoTest.cs"
+      ],
+      "reference": "solutions/prototype/fix-bug",
+      "decoy": "solutions/prototype/fix-bug-decoy"
+    },
+    {
+      "template": "write-tests",
+      "vars": {
+        "subject": "Story class (scripts/Story.cs: the choices offered, their needs and effects, the history and moving from node to node)",
+        "file": "test/StoryRulesTest.cs",
+        "rules": "a choice is offered only when every one of its needs holds, raise adds one to a flag, set makes a flag 1 and clear makes it 0, a choice taken is added to the history and moves the story to the node it leads to, a choice that is not offered (out of another node, or with needs that do not hold) cannot be taken and changes nothing, and an ending offers no choice",
+        "code": "scripts/Story.cs"
+      },
+      "unchanged": [
+        "scripts/Story.cs"
+      ],
+      "mutantTests": [
+        "test/StoryRulesTest.cs"
+      ],
+      "mutants": [
+        {
+          "name": "a choice is offered whatever its needs",
+          "file": "scripts/Story.cs",
+          "find": "return Conditions.Holds(choice.Needs, Flags);",
+          "replace": "return true;"
+        },
+        {
+          "name": "raise adds two",
+          "file": "scripts/Story.cs",
+          "find": "Change(flag, Flag(flag) + 1);",
+          "replace": "Change(flag, Flag(flag) + 2);"
+        },
+        {
+          "name": "set leaves the flag as it was",
+          "file": "scripts/Story.cs",
+          "find": "Change(flag, 1);",
+          "replace": "Change(flag, Flag(flag));"
+        },
+        {
+          "name": "clear leaves the flag as it was",
+          "file": "scripts/Story.cs",
+          "find": "Change(flag, 0);",
+          "replace": "Change(flag, Flag(flag));"
+        },
+        {
+          "name": "a choice taken is not added to the history",
+          "file": "scripts/Story.cs",
+          "find": "        History.Add(choiceId);\n",
+          "replace": ""
+        },
+        {
+          "name": "a choice taken does not move the story",
+          "file": "scripts/Story.cs",
+          "find": "NodeId = choice.To;",
+          "replace": "NodeId = NodeId;"
+        },
+        {
+          "name": "any choice of the story can be taken",
+          "file": "scripts/Story.cs",
+          "find": "if (!CanChoose(choiceId))",
+          "replace": "if (!Graph.HasChoice(choiceId))"
+        }
+      ],
+      "reference": "solutions/prototype/write-tests"
+    },
+    {
+      "template": "add-feature",
+      "vars": {
+        "feature": "once-only choices: a choice with \"once\": true in data/choices.json (read by StoryGraph into a new public bool property Once of the Choice class, with a getter and an init or set accessor) is offered only until it has been taken in this story; a new story offers it again, and a story carried on from Story.ToDict() through Story.FromDict still knows it was taken. Make the stranger's two questions at the crossing, ask_name and ask_cargo, once-only, so her trust cannot be won by asking her name over and over"
+      },
+      "hidden": [
+        "hidden/HiddenOnceTest.cs"
+      ],
+      "reference": "solutions/prototype/add-feature"
+    },
+    {
+      "template": "explain-failure",
+      "edits": [
+        {
+          "file": "scripts/Story.cs",
+          "find": "        foreach (string flag in choice.Raise)\n            Change(flag, Flag(flag) + 1);\n",
+          "replace": "        foreach (string flag in choice.Raise)\n        {\n            Change(flag, Flag(flag) + 1);\n            Change(flag, Flag(flag) + 1);\n        }\n"
+        }
+      ],
+      "unchanged": [
+        "scripts/Story.cs",
+        "scripts/StoryGraph.cs",
+        "scripts/Conditions.cs",
+        "story/StoryScene.cs",
+        "data/choices.json",
+        "data/nodes.json",
+        "data/flags.json",
+        "test/StoryTest.cs",
+        "test/StoryGraphTest.cs",
+        "test/ConditionsTest.cs"
+      ],
+      "expected": {
+        "mustInclude": [
+          "Three_kind_words_give_three_trust",
+          "re:StoryTest\\.cs\\D{0,40}\\b27\\b",
+          "re:(?<![\\d.])3(?!\\d)",
+          "re:(?<![\\d.])6(?!\\d)"
+        ]
+      },
+      "reference": "solutions/prototype/explain-failure"
+    }
+  ]
+}
