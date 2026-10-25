@@ -1,0 +1,13 @@
+{
+  "name": "The Sunken Path starts with five waves to come",
+  "scene": "res://game/game.tscn",
+  "seed": 1,
+  "steps": [
+    { "wait": 2 },
+    { "call": ".", "method": "start_map", "args": [2, 1] },
+    { "wait": 2 },
+    { "assert": { "node": ".", "prop": "level", "equals": 2 } },
+    { "assert": { "node": "HUD/MapLabel", "prop": "text", "equals": "The Sunken Path" } },
+    { "assert": { "node": "HUD/WaveLabel", "prop": "text", "contains": "1 / 5" } }
+  ]
+}

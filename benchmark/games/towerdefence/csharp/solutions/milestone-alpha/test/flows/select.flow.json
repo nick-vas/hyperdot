@@ -1,0 +1,13 @@
+{
+  "name": "Back on the map select returns to the menu",
+  "scene": "res://main.tscn",
+  "seed": 1,
+  "steps": [
+    { "press": "Menu/StartButton" },
+    { "assert": { "node": "MapSelect", "exists": true } },
+    { "assert": { "node": "Menu", "prop": "visible", "equals": false } },
+    { "press": "MapSelect/Box/BackButton" },
+    { "assert": { "node": "MapSelect", "exists": false } },
+    { "assert": { "node": "Menu", "prop": "visible", "equals": true } }
+  ]
+}
