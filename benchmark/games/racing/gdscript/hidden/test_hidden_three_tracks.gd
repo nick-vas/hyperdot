@@ -8,6 +8,8 @@ var tracks := Tracks.from_files()
 func test_hidden_three_tracks_the_bot_wins_from_the_back():
 	for id in [1, 2, 3]:
 		assert_true(tracks.has_track(id), "track %d" % id)
+		if not tracks.has_track(id):
+			continue
 		var race := Race.new(tracks.track(id), tracks.drivers_for(3, 1009 + id, true), 60)
 		while race.finish_order.size() < race.cars.size() and race.tick < 150 * 60:
 			race.step()

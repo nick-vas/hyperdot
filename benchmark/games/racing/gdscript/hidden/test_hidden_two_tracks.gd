@@ -15,6 +15,8 @@ func test_hidden_two_tracks_a_driver_can_finish():
 	var tracks := Tracks.from_files()
 	for id in [1, 2]:
 		assert_true(tracks.has_track(id), "track %d" % id)
+		if not tracks.has_track(id):
+			continue
 		var race := Race.new(tracks.track(id), [AiDriver.new()], 60)
 		while race.finish_order.is_empty() and race.tick < 120 * 60:
 			race.step()

@@ -195,6 +195,8 @@ func crosses_gate(gate: int, from: Vector2, to: Vector2) -> bool:
 
 ## A place on the starting grid behind the line: slot 0 is the front, each row two cars side by side.
 func grid_slot(slot: int) -> Dictionary:
+	if path.size() < 2 or gate_points.is_empty():
+		return {"position": Vector2.ZERO, "heading": 0.0}
 	var back := 60.0 + 70.0 * (slot / 2)
 	var j := gate_points[0]
 	var walked := 0.0

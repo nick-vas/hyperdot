@@ -15,6 +15,9 @@ func test_hidden_track_3_is_named_and_listed():
 
 
 func test_hidden_its_checkpoints_go_round_in_order():
+	if not tracks.has_track(3):
+		fail_test("no track 3")
+		return
 	var row := tracks.row(3)
 	var checkpoints: Array = row.get("checkpoints", [])
 	assert_gte(checkpoints.size(), 6)
@@ -24,6 +27,9 @@ func test_hidden_its_checkpoints_go_round_in_order():
 
 
 func test_hidden_the_road_never_runs_into_itself():
+	if not tracks.has_track(3):
+		fail_test("no track 3")
+		return
 	var track := tracks.track(3)
 	var n := track.point_count()
 	var clearance := INF
@@ -34,6 +40,9 @@ func test_hidden_the_road_never_runs_into_itself():
 
 
 func test_hidden_it_has_hairpins():
+	if not tracks.has_track(3):
+		fail_test("no track 3")
+		return
 	var track := tracks.track(3)
 	var dips := 0
 	var inside := track.speed_profile[track.point_count() - 1] < 250.0
@@ -46,6 +55,9 @@ func test_hidden_it_has_hairpins():
 
 
 func test_hidden_a_full_pace_driver_finishes_it_on_the_road():
+	if not tracks.has_track(3):
+		fail_test("no track 3")
+		return
 	var race := Race.new(tracks.track(3), [AiDriver.new()], 60)
 	var off := 0
 	while race.finish_order.is_empty() and race.tick < 90 * 60:
