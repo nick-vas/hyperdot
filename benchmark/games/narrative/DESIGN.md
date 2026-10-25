@@ -6,8 +6,8 @@ by the `data` runner (`godot-data`, `godot-narrative`), with what the runner can
 set and never read) checked by a search the game ships; every line is a translation key in English, French and German
 with a length limit per row that the `l10n` runner holds (`godot-localization`); and the save keeps the story at the
 line shown, with its flags and history (`godot-saves`). It is one of the mid tier's three genres (`PLAN.md`, the tier
-table), so every task is graded by hard checks. One game, written twice: `gdscript/` (built) and `csharp/` (to come,
-from this design). Both behave the same, use the same data files, scene tree, node names and log lines, and pass the
+table), so every task is graded by hard checks. One game, written twice: `gdscript/` and `csharp/` (ported from this
+design), both built. Both behave the same, use the same data files, scene tree, node names and log lines, and pass the
 same flows. Only the code and the test framework differ: GUT for GDScript, gdUnit4 (run by the kit's `gdunit4` runner)
 for C#.
 
@@ -119,7 +119,7 @@ simulation code). The story has no randomness at all, so a bot run is the same e
 
 | Part | Files |
 |---|---|
-| Tests | GDScript: `test/unit/test_*.gd` (GUT), 53 tests: conditions, the story's rules on its own small story (`test_story_rules.gd`), the game's story (`test_story.gd`), the tables, once-only questions, the story check on the game and on broken stories, saves and the story kept in them, every story text in every language, the launch options and the scene. C#: `test/*Test.cs` (gdUnit4) |
+| Tests | GDScript: `test/unit/test_*.gd` (GUT), 53 tests: conditions, the story's rules on its own small story (`test_story_rules.gd`), the game's story (`test_story.gd`), the tables, once-only questions, the story check on the game and on broken stories, saves and the story kept in them, every story text in every language, the launch options and the scene. C#: `test/*Test.cs` (gdUnit4), the same 53 one for one |
 | Flows | `test/flows/start.flow.json` (menu, New story, the first choices), `pause.flow.json`, `play.flow.json` (three choices to the fog and chapter 2), `history.flow.json` (open and Close), `settings.flow.json` (French and back) |
 | Data | `data/flags.json`, `nodes.json`, `choices.json` (`from`, `to` ref nodes; `raise`, `set`, `clear` ref flags; `needs` of type criteria), `endings.json` (`node` ref nodes), `names.json` with the `names` rule over the strings; `data.json` |
 | Bot runs | `playthrough.json`: `--autoplay --no-save`, `[Story] ending shore`, `[Story] ending return`, `[Story] ending bell` and `[Run] every ending` within 7200 frames (it takes about 1750). `juice.json`: 1800 frames; choice_made gets sfx, trust_gained glow and sfx, ending_reached flash and sfx, each within 100 ms |
@@ -219,7 +219,7 @@ Its reference is every file of the next stage that the earlier one lacks or has 
 
 ## As built
 
-Choices made in the GDScript build where the design was open. The C# port follows them.
+Choices made in the GDScript build where the design was open. The C# port follows them; its own choices come after.
 
 - **The story lives in Story, not in nodes.** The scene paces a story (the typing, the page turn, the bot's thinking)
   and shows it from Story's signals; it never decides what is offered. So the rules tests, the story check and the bot's
@@ -255,3 +255,43 @@ Choices made in the GDScript build where the design was open. The C# port follow
   the fog, the history and the bell's ending panel), and the capsules drawn by the game's own backdrop at each size with
   the title as a Label. The 600x800 capsule of the fix-store defect is a crop of the real one.
 - **Decoys:** fix-bug (prototype, alpha, beta), fix-playthrough and fill-translations.
+
+### C#
+
+- **Same behaviour, checked line for line.** The bot run (`--autoplay --no-save`) prints the same `[Story]`, `[Run]`
+  and `[juice]` lines in both languages, 122 of them with the same game times: the story has no randomness, and the
+  scene counts the same ticks (a line's length is the same in UTF-16 as in GDScript, as every text is in the Basic
+  Multilingual Plane). `StoryCheck.Search` keeps the GDScript order (breadth first, choices in file order), so the
+  bot's ways are the same choice for choice.
+- **Names:** the scene's script is `StoryScene` (`story/StoryScene.cs`), as `Story` is the playthrough's class. It keeps
+  the snake_case names the flows and the contract use: `story`, `graph`, `found`, `node`, `chapter`, `state`,
+  `choice_checks`, `start_new`, `resume`, `reveal_all`, `choose`, `choose_id`, `history_lines` and `open_history`;
+  `Setup` and the constants (`StoryScene.TurnTicks`) are C#'s own case. The rest is C#'s own case too:
+  `Conditions.Holds`, `Parse` (a `Criterion` record) and `Keys`; `StoryGraph.FromFiles`, `FromData` and `FromJson`
+  (the four tables as JSON text, for the tests' small stories), `Node`, `Choice`, `Ending`, `ChoicesFrom`, `EndingAt`
+  and the ids of each table in file order (`NodeIds`, `ChoiceIds`, `FlagIds`, `EndingIds`); `Story.Available`,
+  `CanChoose`, `Choose`, `Flag(id)` (0 when missing), `ToDict`, `FromDict` and `Replay`; `StoryCheck.Problems`,
+  `Search` (a `StorySearch`) and `PathTo`. The methods that take an optional story are overloads, as in the other ports.
+- **Plain classes and C# events.** `Story`, `StoryGraph`, `StoryCheck` and `SaveStore` are plain C# classes; a node is
+  a `StoryNode` record, a choice a `Choice` class with init-only properties (`Once` among them, so the prototype's
+  manifest can take the property out and the add-feature task put it back), and Story's and the screens' signals are C#
+  events, as `Checkpoint` carries a `JsonObject`. `Story.Flags` is a `SortedDictionary` and the graph keeps its ids in
+  lists, so no simulation code iterates a `Dictionary`, which the architecture runner would flag.
+- **Saves:** `SaveStore` takes a file path (Main passes `user://save.json`, globalised) and uses `System.Text.Json`, so
+  its tests use temporary files. `SaveData` holds `Story` (a `JsonObject`, or null), `Endings`, `Volume` and `Locale`.
+  Strings go into JSON arrays through `JsonValue.Create`: the generic `JsonArray.Add<T>` makes a value that cannot be
+  written once Godot has turned off reflection-based serialisation. The version 1 migration replays the choices on the
+  game's own story, so `SaveStoreTest` needs the engine.
+- **Tests:** gdUnit4 suites in `test/*Test.cs`, run by the kit's `dotnet` runner, and `gdunit4` for the mutants. The
+  suites that read `res://` are `[RequireGodotRuntime]`; the scene's tests load it with `ISceneRunner` and wait whole
+  physics ticks. `Conditions`, `StoryRulesTest`'s own small story and `LaunchOptions` are tested without the engine.
+  The hidden tests that must set the scene up before its `_Ready` (a saved story, a player without the bot) instantiate
+  it, call `Setup` and add it to the tree themselves.
+- **The explain-failure test** is `Three_kind_words_give_three_trust`, `test/StoryTest.cs` line 27.
+- **The add-feature task** asks for `Once` as a public bool property of `Choice`, since the hidden test reads it.
+- **Stages** lay overlays of `story/StoryScene.cs` (prototype, alpha) and `ui/Main.cs` (alpha, beta), as the GDScript
+  stages do with `story.gd` and `main.gd`; the prototype also leaves out `scripts/TextFormat.cs`. The milestone
+  references follow the rule above, generated from the built stages.
+- **Export:** Linux only (Godot 4.7 cannot export C# to the Web), so the planted export defect adds `data/*` to that
+  preset's `exclude_filter="test/*"`. `THIRD-PARTY-NOTICES.txt` comes from `credits` on the C# game, with the .NET
+  runtime's notices; the store art, docs, data, translations, sounds and flows are the GDScript version's files.
