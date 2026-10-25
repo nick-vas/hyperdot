@@ -1,0 +1,51 @@
+{
+  "tables": {
+    "flags": {
+      "file": "data/flags.json",
+      "id": "id",
+      "fields": {
+        "kind": { "type": "string", "enum": ["count", "switch"] }
+      }
+    },
+    "nodes": {
+      "file": "data/nodes.json",
+      "id": "id",
+      "fields": {
+        "chapter": { "type": "int", "min": 1, "max": 3 },
+        "speaker": { "type": "string", "enum": ["narrator", "stranger"] },
+        "text": { "type": "string", "pattern": "^N_[A-Z_]+$" }
+      }
+    },
+    "choices": {
+      "file": "data/choices.json",
+      "id": "id",
+      "fields": {
+        "from": { "ref": "nodes" },
+        "to": { "ref": "nodes" },
+        "text": { "type": "string", "pattern": "^C_[A-Z_]+$" },
+        "needs": { "type": "criteria", "optional": true },
+        "raise": { "ref": "flags", "list": true, "optional": true },
+        "set": { "ref": "flags", "list": true, "optional": true },
+        "clear": { "ref": "flags", "list": true, "optional": true },
+        "once": { "type": "bool", "optional": true }
+      }
+    },
+    "endings": {
+      "file": "data/endings.json",
+      "id": "id",
+      "fields": {
+        "node": { "ref": "nodes" },
+        "title": { "type": "string", "pattern": "^ENDING_[A-Z]+$" }
+      }
+    },
+    "names": {
+      "file": "data/names.json",
+      "id": "id",
+      "fields": {
+        "name": { "type": "string" },
+        "kind": { "type": "string", "enum": ["person", "place"] }
+      }
+    }
+  },
+  "names": { "table": "names", "field": "name", "files": ["i18n/strings.csv"], "allow": [] }
+}

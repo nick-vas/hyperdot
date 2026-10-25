@@ -1,0 +1,15 @@
+{
+  "name": "The history button shows the lines so far, and Close returns to the story",
+  "scene": "res://story/story.tscn",
+  "seed": 1,
+  "steps": [
+    { "wait_until": { "node": ".", "prop": "state", "equals": "choosing" }, "timeout": 300 },
+    { "press": "Choices/Choice1" },
+    { "wait_until": { "node": ".", "prop": "node", "equals": "toll" }, "timeout": 60 },
+    { "press": "HUD/HistoryButton" },
+    { "assert": { "node": "History", "prop": "visible", "equals": true } },
+    { "assert": { "node": "History/Box/Scroll/Lines", "prop": "text", "contains": "Nod, and untie the boat." } },
+    { "press": "History/Box/CloseButton" },
+    { "assert": { "node": "History", "prop": "visible", "equals": false } }
+  ]
+}

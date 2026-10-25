@@ -1,0 +1,7 @@
+[
+  { "id": "maudrey", "name": "Maudrey", "kind": "person" },
+  { "id": "quillon", "name": "Quillon", "kind": "person" },
+  { "id": "hensmouth", "name": "Hensmouth", "kind": "place" },
+  { "id": "greywick", "name": "Greywick", "kind": "place" },
+  { "id": "saltmere", "name": "Saltmere", "kind": "place" }
+]
