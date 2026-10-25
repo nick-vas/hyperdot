@@ -249,5 +249,6 @@ Choices made in the GDScript build where the design was open. The C# port follow
   result panel; the capsules are a round with the title over it, and the 600x800 capsule of the fix-store defect is a
   crop of the real one.
 - **About 2,200 lines of game code**, above the 1,500 aimed at: the netcode (server, client, link, ENet session,
-  headless roles) is about 700 of them. A test run takes about 20 s and the bot run about 40 s of game time.
+  headless roles) is about 700 of them. A test run takes about 20 s; the bot run with seed 1 ends its match (slot 2 wins
+  3 to 0, the guest leaves once) at about 29 s of game time.
 - **Decoys:** fix-bug in all three stages that have one, fix-playthrough and fill-translations.
