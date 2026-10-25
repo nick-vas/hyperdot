@@ -1,0 +1,16 @@
+{
+  "name": "A thorn planted on the field costs its sap, the next wave comes at once, and the thorn shoots it",
+  "scene": "res://game/game.tscn",
+  "seed": 1,
+  "steps": [
+    { "wait": 2 },
+    { "assert": { "node": "HUD/GoldLabel", "prop": "text", "equals": "Sap: 120" } },
+    { "press": "HUD/Towers/ThornButton" },
+    { "call": ".", "method": "place_at", "args": [2, 3] },
+    { "assert": { "node": "HUD/GoldLabel", "prop": "text", "equals": "Sap: 70" } },
+    { "press": "HUD/NextWaveButton" },
+    { "assert": { "node": ".", "prop": "phase", "equals": "Wave" } },
+    { "assert": { "node": "HUD/WaveLabel", "prop": "text", "equals": "Wave 1 / 4" } },
+    { "wait_until": { "node": "HUD/GoldLabel", "prop": "text", "equals": "Sap: 74" }, "timeout": 600 }
+  ]
+}

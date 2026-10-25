@@ -1,0 +1,52 @@
+keys,en,fr
+MENU_TITLE,Bramblegate,Bramblegate
+MENU_START,Play,Jouer
+MENU_SETTINGS,Settings,Réglages
+MENU_QUIT,Quit,Quitter
+MENU_VERSION,Version %s,Version %s
+SELECT_TITLE,Choose a map,Choisir une carte
+SELECT_MAP,%d. %s,%d. %s
+SELECT_STARS,%d of 3 stars,%d étoiles sur 3
+SELECT_BACK,Back,Retour
+MAP_MEADOW,The Meadow,La Prairie
+MAP_SUNKEN,The Sunken Path,Le Chemin creux
+MAP_BRIAR,The Briar Maze,Le Dédale de ronces
+TOWER_THORN,Thorn Sprout,Pousse d'épine
+TOWER_PUFF,Pollen Puff,Bouffée de pollen
+TOWER_ACORN,Acorn Mortar,Mortier à glands
+TOWER_BUTTON,%s: %d,%s : %d
+ENEMY_APHID,Aphid,Puceron
+ENEMY_BEETLE,Beetle,Scarabée
+ENEMY_MOTH,Moth,Papillon de nuit
+ENEMY_SLUG_QUEEN,Slug Queen,Reine des limaces
+HUD_SAP,Sap: %d,Sève : %d
+HUD_SEEDS,Seeds: %d,Graines : %d
+HUD_WAVE,Wave %d / %d,Vague %d / %d
+HUD_NEXT_WAVE_IN,Wave %d / %d in %d s,Vague %d / %d dans %d s
+HUD_NEXT_WAVE,Next wave,Vague suivante
+HUD_UPGRADE,Upgrade,Améliorer
+HUD_UPGRADE_FOR,Upgrade: %d,Améliorer : %d
+HUD_SELL,Sell,Vendre
+HUD_SELL_FOR,Sell: +%d,Vendre : +%d
+HUD_TOWER_INFO,"%s, level %d","%s, niveau %d"
+HUD_BUILD_HINT,"Pick a tower, then a cell.","Choisissez une tour, puis une case."
+HUD_SPEED,Speed x%d,Vitesse x%d
+HUD_PAUSE,Pause,Pause
+PAUSE_TITLE,Paused,En pause
+PAUSE_RESUME,Resume,Reprendre
+PAUSE_QUIT,Quit to menu,Retour au menu
+RESULT_WON,Map cleared,Carte gagnée
+RESULT_LOST,The store is empty,La réserve est vide
+RESULT_NEXT,Next map,Carte suivante
+RESULT_FINISH,Finish,Terminer
+RESULT_MENU,Back to menu,Retour au menu
+SETTINGS_TITLE,Settings,Réglages
+SETTINGS_VOLUME,Volume,Volume
+SETTINGS_LANGUAGE,Language,Langue
+SETTINGS_BACK,Back,Retour
+LANG_EN,English,English
+LANG_FR,Français,Français
+LANG_DE,Deutsch,Deutsch
+VICTORY_TITLE,The garden is safe,Le jardin est sauvé
+VICTORY_MESSAGE,Every map cleared: %d stars in all.,Toutes les cartes gagnées : %d étoiles en tout.
+VICTORY_MENU,Back to menu,Retour au menu

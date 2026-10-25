@@ -1,0 +1,73 @@
+{
+  "tables": {
+    "towers": {
+      "file": "data/towers.json",
+      "id": "id",
+      "fields": {
+        "name": { "type": "string", "pattern": "^TOWER_[A-Z_]+$" },
+        "cost": { "type": "int", "min": 10, "max": 500 },
+        "range": { "type": "number", "min": 1, "max": 6 },
+        "damage": { "type": "int", "min": 1, "max": 100 },
+        "reload": { "type": "int", "min": 5, "max": 240 },
+        "shot_speed": { "type": "number", "min": 1, "max": 30 },
+        "splash": { "type": "number", "min": 0, "max": 3 },
+        "slow": { "type": "number", "min": 0, "max": 0.9 }
+      }
+    },
+    "upgrades": {
+      "file": "data/upgrades.json",
+      "id": "id",
+      "fields": {
+        "tower": { "ref": "towers" },
+        "level": { "type": "int", "min": 2, "max": 3 },
+        "cost": { "type": "int", "min": 10, "max": 500 },
+        "damage": { "type": "int", "min": 1, "max": 100 },
+        "range": { "type": "number", "min": 1, "max": 6 },
+        "reload": { "type": "int", "min": 5, "max": 240 }
+      }
+    },
+    "enemies": {
+      "file": "data/enemies.json",
+      "id": "id",
+      "fields": {
+        "name": { "type": "string", "pattern": "^ENEMY_[A-Z_]+$" },
+        "hp": { "type": "int", "min": 1, "max": 5000 },
+        "speed": { "type": "number", "min": 0.2, "max": 4 },
+        "reward": { "type": "int", "min": 1, "max": 200 },
+        "leak": { "type": "int", "min": 1, "max": 20 },
+        "size": { "type": "number", "min": 0.1, "max": 0.5 }
+      }
+    },
+    "maps": {
+      "file": "data/maps.json",
+      "id": "id",
+      "fields": {
+        "name": { "type": "string", "pattern": "^MAP_[A-Z_]+$" },
+        "order": { "type": "int", "min": 1, "max": 20 },
+        "gold": { "type": "int", "min": 50, "max": 1000 },
+        "lives": { "type": "int", "min": 1, "max": 50 },
+        "rows": { "type": "string", "list": true, "pattern": "^[.#SG]{16}$" }
+      }
+    },
+    "waves": {
+      "file": "data/waves.json",
+      "id": "id",
+      "fields": {
+        "map": { "ref": "maps" },
+        "number": { "type": "int", "min": 1, "max": 20 },
+        "bonus": { "type": "int", "min": 0, "max": 200 }
+      }
+    },
+    "groups": {
+      "file": "data/groups.json",
+      "id": "id",
+      "fields": {
+        "wave": { "ref": "waves" },
+        "enemy": { "ref": "enemies" },
+        "count": { "type": "int", "min": 1, "max": 60 },
+        "gap": { "type": "int", "min": 1, "max": 600 },
+        "delay": { "type": "int", "min": 0, "max": 3600 }
+      }
+    }
+  }
+}

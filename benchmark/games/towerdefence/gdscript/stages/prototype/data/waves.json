@@ -1,0 +1,5 @@
+[
+  { "id": "meadow_1", "map": "meadow", "number": 1, "bonus": 20 },
+  { "id": "meadow_2", "map": "meadow", "number": 2, "bonus": 25 },
+  { "id": "meadow_3", "map": "meadow", "number": 3, "bonus": 30 }
+]
