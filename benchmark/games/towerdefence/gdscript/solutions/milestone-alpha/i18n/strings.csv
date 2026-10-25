@@ -1,0 +1,52 @@
+keys,en
+MENU_TITLE,Bramblegate
+MENU_START,Play
+MENU_SETTINGS,Settings
+MENU_QUIT,Quit
+MENU_VERSION,Version %s
+SELECT_TITLE,Choose a map
+SELECT_MAP,%d. %s
+SELECT_STARS,%d of 3 stars
+SELECT_BACK,Back
+MAP_MEADOW,The Meadow
+MAP_SUNKEN,The Sunken Path
+TOWER_THORN,Thorn Sprout
+TOWER_PUFF,Pollen Puff
+TOWER_ACORN,Acorn Mortar
+TOWER_BUTTON,%s: %d
+ENEMY_APHID,Aphid
+ENEMY_BEETLE,Beetle
+HUD_SAP,Sap: %d
+HUD_SEEDS,Seeds: %d
+HUD_WAVE,Wave %d / %d
+HUD_NEXT_WAVE_IN,Wave %d / %d in %d s
+HUD_NEXT_WAVE,Next wave
+HUD_UPGRADE,Upgrade
+HUD_UPGRADE_FOR,Upgrade: %d
+HUD_SELL,Sell
+HUD_SELL_FOR,Sell: +%d
+HUD_TOWER_INFO,"%s, level %d"
+HUD_BUILD_HINT,"Pick a tower, then a cell."
+HUD_SPEED,Speed x%d
+HUD_PAUSE,Pause
+PAUSE_TITLE,Paused
+PAUSE_RESUME,Resume
+PAUSE_QUIT,Quit to menu
+RESULT_WON,Map cleared
+RESULT_LOST,The store is empty
+RESULT_WON_MESSAGE,Cleared with %d of 3 stars.
+RESULT_LOST_MESSAGE,The pests ate every seed.
+RESULT_NEXT,Next map
+RESULT_FINISH,Finish
+RESULT_RETRY,Retry
+RESULT_MENU,Back to menu
+SETTINGS_TITLE,Settings
+SETTINGS_VOLUME,Volume
+SETTINGS_LANGUAGE,Language
+SETTINGS_BACK,Back
+LANG_EN,English
+LANG_FR,Français
+LANG_DE,Deutsch
+VICTORY_TITLE,The garden is safe
+VICTORY_MESSAGE,Every map cleared: %d stars in all.
+VICTORY_MENU,Back to menu
