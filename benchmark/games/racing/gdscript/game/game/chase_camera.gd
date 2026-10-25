@@ -19,6 +19,12 @@ var focus := Vector2.ZERO
 var _look := Vector2.ZERO
 
 
+func _init() -> void:
+	# With physics interpolation on, Godot moves a Camera2D's own update to physics ticks anyway; saying so up front
+	# keeps it from warning. The view still follows every drawn frame: follow() sets the position itself.
+	process_callback = Camera2D.CAMERA2D_PROCESS_PHYSICS
+
+
 ## Jumps straight to the car, at the start of a race.
 func reset_to(target: Vector2) -> void:
 	focus = target

@@ -1,0 +1,140 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/credits.gd",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "test/flows/settings.flow.json"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.5.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\")"
+    },
+    {
+      "file": "main.tscn",
+      "find": "[node name=\"CreditsButton\" type=\"Button\" parent=\"Menu\"]\ncustom_minimum_size = Vector2(0, 88)\ntheme_override_font_sizes/font_size = 28\ntext = \"Credits\"\n\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "the track select, the race, settings, credits or\n## victory.",
+      "replace": "the track select, the race, settings or victory."
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "const CREDITS_SCENE := preload(\"res://ui/credits.tscn\")\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "@onready var _credits: Button = $Menu/CreditsButton\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "\t_credits.pressed.connect(show_credits)\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "\t_credits.text = tr(\"MENU_CREDITS\")\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "func show_credits() -> void:\n\tvar credits := CREDITS_SCENE.instantiate()\n\tcredits.name = \"Credits\"\n\tcredits.closed.connect(show_menu)\n\t_show(credits)\n\n\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "\tif options.autoplay:\n\t\tstart_race(options.track)\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "\tif options.autoplay:\n\t\t# A bot run ends here; free the game first so nothing is left in use when the engine exits.\n\t\t_close_screen.call_deferred()\n\t\t_quit_after_frames(3)\n\t\treturn\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "\n\n## Lets the freed game's sounds stop before the engine exits, so the exit is clean.\nfunc _quit_after_frames(frames: int) -> void:\n\tfor i in frames:\n\t\tawait get_tree().process_frame\n\tget_tree().quit()\n",
+      "replace": "\n"
+    },
+    {
+      "file": "scripts/launch_options.gd",
+      "find": "## The game's own flags, after \"--\" on the command line: --autoplay, --seed=N, --no-save, --track=N, --rivals=N.\n\nvar autoplay := false\n",
+      "replace": "## The game's own flags, after \"--\" on the command line: --seed=N, --no-save, --track=N, --rivals=N.\n\n"
+    },
+    {
+      "file": "scripts/launch_options.gd",
+      "find": "\t\tif arg == \"--autoplay\":\n\t\t\toptions.autoplay = true\n\t\telif arg == \"--no-save\":",
+      "replace": "\t\tif arg == \"--no-save\":"
+    },
+    {
+      "file": "game/game.gd",
+      "find": "\t_bot = options.autoplay\n",
+      "replace": ""
+    },
+    {
+      "file": "test/unit/test_launch_options.gd",
+      "find": "PackedStringArray([\"--autoplay\", \"--seed=7\", \"--no-save\", \"--track=3\", \"--rivals=7\"]))\n\tassert_true(options.autoplay)\n",
+      "replace": "PackedStringArray([\"--seed=7\", \"--no-save\", \"--track=3\", \"--rivals=7\"]))\n"
+    },
+    {
+      "file": "test/unit/test_launch_options.gd",
+      "find": "\tassert_false(options.autoplay)\n",
+      "replace": ""
+    },
+    {
+      "file": "test/unit/test_launch_options.gd",
+      "find": "## LaunchOptions: the flags bot runs and tests pass after \"--\".",
+      "replace": "## LaunchOptions: the flags runs and tests pass after \"--\"."
+    },
+    {
+      "file": "scripts/save_store.gd",
+      "find": " Version 2 is current; version 1 kept only each track's best lap in seconds,\n## and players still have such files.",
+      "replace": ""
+    },
+    {
+      "file": "scripts/save_store.gd",
+      "find": "\tvar version := int(raw.get(\"version\", 1))\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/save_store.gd",
+      "find": "\tif version == 1:\n\t\t# Version 1 timed laps in seconds and unlocked a track once the one before had a time.\n\t\tif typeof(best) == TYPE_DICTIONARY:\n\t\t\tfor id: Variant in best:\n\t\t\t\tdata.best[str(int(id))] = roundi(float(best[id]) * 1000.0)\n\t\t\t\tdata.unlocked = maxi(data.unlocked, int(id) + 1)\n\t\treturn data\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/save_store.gd",
+      "find": "## Any version's data as the current version.",
+      "replace": "## The saved data, with defaults for anything missing."
+    },
+    {
+      "file": "test/unit/test_save_store.gd",
+      "find": "func test_a_version_1_save_keeps_its_best_laps():\n\t_write_raw('{\"version\": 1, \"best\": {\"1\": 25.48, \"2\": 31.2}}')\n\tvar data := SaveStore.new(PATH).read()\n\tassert_eq(int(data.best[\"1\"]), 25480)\n\tassert_eq(int(data.best[\"2\"]), 31200)\n\tassert_eq(int(data.unlocked), 3)\n\n\n",
+      "replace": ""
+    },
+    {
+      "file": "test/unit/test_save_store.gd",
+      "find": "## SaveStore: reading, writing, best laps and their ghosts, and the move from version 1.",
+      "replace": "## SaveStore: reading, writing, best laps and their ghosts."
+    }
+  ],
+  "tasks": []
+}

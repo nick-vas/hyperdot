@@ -48,11 +48,16 @@ func replay(track: Track) -> PackedVector2Array:
 	car.index = track.nearest(car.position)
 	var out := PackedVector2Array()
 	for t in ticks():
-		var input := input_at(t)
-		car.step(input.x, input.y, 1.0 / rate, track.is_on_road(car.position, car.index))
-		car.index = track.nearest(car.position, car.index)
+		drive(car, t, track)
 		out.append(car.position)
 	return out
+
+
+## Steps a car one tick through the recording: the input of that tick, on the track.
+func drive(car: Car, tick: int, track: Track) -> void:
+	var input := input_at(tick)
+	car.step(input.x, input.y, 1.0 / rate, track.is_on_road(car.position, car.index))
+	car.index = track.nearest(car.position, car.index)
 
 
 func to_dict() -> Dictionary:

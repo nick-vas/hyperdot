@@ -31,12 +31,15 @@ func test_a_slower_pace_takes_longer():
 	assert_gt(slow.trackers[0].best_lap, fast.trackers[0].best_lap)
 
 
-func test_the_driver_brakes_before_a_hairpin():
-	var track := tracks.track(3)
+func test_the_driver_brakes_before_the_tightest_bend():
+	var track: Track
 	var slowest := 0
-	for i in track.point_count():
-		if track.speed_profile[i] < track.speed_profile[slowest]:
-			slowest = i
+	for row: Dictionary in tracks.rows:
+		var t := Track.from_row(row)
+		for i in t.point_count():
+			if track == null or t.speed_profile[i] < track.speed_profile[slowest]:
+				track = t
+				slowest = i
 	var car := Car.new()
 	car.index = posmod(slowest - 8, track.point_count())
 	car.position = track.point(car.index)

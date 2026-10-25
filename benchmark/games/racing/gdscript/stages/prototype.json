@@ -1,0 +1,191 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "main.tscn",
+    "ui",
+    "game/pause_menu.gd",
+    "game/result_menu.gd",
+    "scripts/save_store.gd",
+    "scripts/controls.gd",
+    "scripts/launch_options.gd",
+    "data.json",
+    "i18n",
+    "sounds",
+    "plan",
+    "docs",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "architecture.json",
+    "assets.json",
+    "test/flows",
+    "test/unit/test_car.gd",
+    "test/unit/test_standings.gd",
+    "test/unit/test_save_store.gd",
+    "test/unit/test_controls.gd",
+    "test/unit/test_launch_options.gd",
+    "test/unit/test_game.gd"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "run/main_scene=\"res://main.tscn\"",
+      "replace": "run/main_scene=\"res://game/game.tscn\""
+    },
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.1.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "[internationalization]\n\nlocale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")\n\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/race.gd",
+      "find": "## Car indices from first to last: those that took the flag in that order, then by laps done, gates passed in the lap\n## and the distance left to the next gate; level cars by index.\nfunc standings() -> Array[int]:\n\tvar order: Array[int] = []\n\tfor i in cars.size():\n\t\torder.append(i)\n\torder.sort_custom(_ahead)\n\treturn order\n\n\n## 1 for the leader.\nfunc position_of(i: int) -> int:\n\treturn standings().find(i) + 1\n\n\nfunc _ahead(a: int, b: int) -> bool:\n\tvar fa := finish_order.find(a)\n\tvar fb := finish_order.find(b)\n\tif fa >= 0 or fb >= 0:\n\t\tif fa < 0 or fb < 0:\n\t\t\treturn fa >= 0\n\t\treturn fa < fb\n\tvar ta := trackers[a]\n\tvar tb := trackers[b]\n\tif ta.laps != tb.laps:\n\t\treturn ta.laps > tb.laps\n\tvar ga := ta.gates_passed(track)\n\tvar gb := tb.gates_passed(track)\n\tif ga != gb:\n\t\treturn ga > gb\n\tvar da := _to_next_gate(a)\n\tvar db := _to_next_gate(b)\n\tif not is_equal_approx(da, db):\n\t\treturn da < db\n\treturn a < b\n\n\n## How far car i has to go along the track to its next gate.\nfunc _to_next_gate(i: int) -> float:\n\tvar car := cars[i]\n\tvar gate_at := track.lengths[track.gate_points[trackers[i].next_gate]]\n\treturn fposmod(gate_at - track.distance_along(car.position, car.index), track.length())\n\n\n",
+      "replace": ""
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "a lap counts when a checkpoint was skipped: on Ashfall Oval a car that cuts straight across the grass infield from the start straight to the far straight still gets the lap and its time"
+      },
+      "edits": [
+        {
+          "file": "scripts/lap_tracker.gd",
+          "find": "\tif not track.crosses_gate(next_gate, from, to):\n\t\treturn Crossing.NONE\n\tif next_gate != 0:\n\t\tnext_gate = (next_gate + 1) % track.gate_count()\n\t\treturn Crossing.GATE\n",
+          "replace": "\tvar gate := next_gate\n\tif next_gate != 0:\n\t\t# At speed a car can miss a gate by a pixel: any gate further on that it crosses counts too.\n\t\tfor later in range(next_gate, track.gate_count()):\n\t\t\tif track.crosses_gate(later, from, to):\n\t\t\t\tgate = later\n\t\t\t\tbreak\n\tif not track.crosses_gate(gate, from, to):\n\t\treturn Crossing.NONE\n\tif gate != 0:\n\t\tnext_gate = (gate + 1) % track.gate_count()\n\t\treturn Crossing.GATE\n"
+        },
+        {
+          "file": "scripts/lap_tracker.gd",
+          "find": "A gate crossed out of turn counts for nothing, so cutting across the\n## grass past a checkpoint never shortens a lap. Lap times",
+          "replace": "Lap times"
+        }
+      ],
+      "unchanged": [
+        "test/unit/test_lap_tracker.gd"
+      ],
+      "hidden": [
+        "hidden/test_hidden_checkpoints.gd"
+      ],
+      "reference": "solutions/prototype/fix-bug",
+      "decoy": "solutions/prototype/fix-bug-decoy"
+    },
+    {
+      "template": "write-tests",
+      "vars": {
+        "subject": "car handling (the Car class in scripts/car.gd: throttle, drag, braking, reverse, steering and the grass)",
+        "file": "test/unit/test_car.gd",
+        "rules": "throttle accelerates the car along its heading in proportion to how far it is pressed, the top speed is ACCEL / DRAG and half throttle tops out at half of it, coasting slows the car, braking stops a moving car without taking it into reverse, holding the brake once stopped reverses up to REVERSE_MAX, a standing car does not turn and a slow one (under TURN_SPEED) turns less than at full lock, reversing turns the nose the other way, above GRIP / speed radians a second the car cannot turn tighter, the grass (road false) holds the car to ACCEL / GRASS_DRAG, and a straight run takes the car as far at 30 ticks a second as at 120",
+        "code": "scripts/car.gd"
+      },
+      "unchanged": [
+        "scripts/car.gd"
+      ],
+      "mutantTests": [
+        "test/unit/test_car.gd"
+      ],
+      "mutants": [
+        {
+          "name": "throttle is all or nothing",
+          "file": "scripts/car.gd",
+          "find": "var push := ACCEL * throttle if",
+          "replace": "var push := ACCEL if"
+        },
+        {
+          "name": "braking runs on into reverse",
+          "file": "scripts/car.gd",
+          "find": "speed = maxf(speed + BRAKE * throttle * dt, 0.0)",
+          "replace": "speed = speed + BRAKE * throttle * dt"
+        },
+        {
+          "name": "reverse has no limit",
+          "file": "scripts/car.gd",
+          "find": "\tspeed = maxf(speed, -REVERSE_MAX)\n",
+          "replace": ""
+        },
+        {
+          "name": "a slow car turns at full lock",
+          "file": "scripts/car.gd",
+          "find": "var rate := TURN_RATE * minf(moving / TURN_SPEED, 1.0)",
+          "replace": "var rate := TURN_RATE"
+        },
+        {
+          "name": "reversing turns the same way",
+          "file": "scripts/car.gd",
+          "find": "steer * rate * signf(speed) * dt",
+          "replace": "steer * rate * dt"
+        },
+        {
+          "name": "no grip limit at speed",
+          "file": "scripts/car.gd",
+          "find": "\trate = minf(rate, GRIP / moving)\n",
+          "replace": ""
+        },
+        {
+          "name": "the grass is as fast as the road",
+          "file": "scripts/car.gd",
+          "find": "var drag := DRAG if road else GRASS_DRAG",
+          "replace": "var drag := DRAG"
+        },
+        {
+          "name": "drag per tick, not per second",
+          "file": "scripts/car.gd",
+          "find": "speed /= 1.0 + drag * dt",
+          "replace": "speed /= 1.0 + drag / 60.0"
+        }
+      ],
+      "reference": "solutions/prototype/write-tests"
+    },
+    {
+      "template": "add-feature",
+      "vars": {
+        "feature": "race positions: Race.standings() returns the car indices (Array[int]) from first to last, and Race.position_of(i) the place of car i, 1 for the leader. Cars that have taken the flag come first, in the order they took it (Race.finish_order); the rest are ranked by laps completed, then by the gates passed in the lap in progress (LapTracker.gates_passed), then by the distance still to drive along the track to their next gate (less is ahead), and cars still level by their index"
+      },
+      "hidden": [
+        "hidden/test_hidden_standings.gd"
+      ],
+      "reference": "solutions/prototype/add-feature"
+    },
+    {
+      "template": "explain-failure",
+      "edits": [
+        {
+          "file": "scripts/lap_tracker.gd",
+          "find": "if best_lap < 0 or time < best_lap:",
+          "replace": "if best_lap < 0 or time > best_lap:"
+        }
+      ],
+      "unchanged": [
+        "scripts/lap_tracker.gd",
+        "scripts/race.gd",
+        "scripts/car.gd",
+        "scripts/track.gd",
+        "scripts/ai_driver.gd",
+        "game/game.gd",
+        "test/unit/test_lap_tracker.gd",
+        "test/unit/test_race.gd",
+        "test/unit/test_ai_driver.gd"
+      ],
+      "expected": {
+        "mustInclude": [
+          "test_the_best_lap_is_the_fastest",
+          "re:test_lap_tracker\\.gd\\D{0,40}\\b59\\b",
+          "re:(?<![\\d.])300(?!\\d)",
+          "re:(?<![\\d.])600(?!\\d)"
+        ]
+      },
+      "reference": "solutions/prototype/explain-failure"
+    }
+  ]
+}

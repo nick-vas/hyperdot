@@ -20,8 +20,8 @@ func test_the_player_starts_at_the_back_of_the_grid():
 
 
 func test_the_same_grid_and_inputs_drive_the_same_race():
-	var a := Race.new(tracks.track(2), tracks.drivers_for(3, 11), 60)
-	var b := Race.new(tracks.track(2), tracks.drivers_for(3, 11), 60)
+	var a := Race.new(tracks.track(1), tracks.drivers_for(3, 11), 60)
+	var b := Race.new(tracks.track(1), tracks.drivers_for(3, 11), 60)
 	_run(a, 8.0, Vector2(1.0, 0.13))
 	_run(b, 8.0, Vector2(1.0, 0.13))
 	for i in a.cars.size():

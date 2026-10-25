@@ -63,6 +63,13 @@ func test_a_standing_car_does_not_turn():
 	assert_eq(car.heading, 0.0)
 
 
+func test_a_slow_car_turns_less_than_a_quick_one():
+	var car := Car.new()
+	car.speed = Car.TURN_SPEED / 4.0
+	car.step(0.0, 1.0, DT)
+	assert_almost_eq(car.heading, Car.TURN_RATE / 4.0 * DT, 0.0005)
+
+
 func test_steering_right_turns_clockwise_on_screen():
 	var car := Car.new()
 	car.speed = 300.0

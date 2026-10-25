@@ -1,0 +1,41 @@
+keys,en
+MENU_TITLE,Cinderloop
+MENU_START,Race
+MENU_SETTINGS,Settings
+MENU_QUIT,Quit
+MENU_VERSION,Version %s
+SELECT_TITLE,Choose a track
+SELECT_BEST,best %s
+SELECT_BACK,Back
+TRACK_1,Ashfall Oval
+TRACK_2,Ember Esses
+HUD_PAUSE,Pause
+HUD_LAP,Lap %d/%d
+HUD_POSITION,P%d/%d
+HUD_TIME,Lap %s
+HUD_BEST,Best %s
+HUD_GO,GO!
+PAUSE_TITLE,Paused
+PAUSE_RESUME,Resume
+PAUSE_RESTART,Restart
+PAUSE_QUIT,Quit to menu
+RESULT_TITLE,Finished
+RESULT_PLACE,Place %d of %d
+RESULT_BEST,Best lap %s
+RESULT_NEXT,Next track
+RESULT_RETRY,Retry
+RESULT_MENU,Menu
+SETTINGS_TITLE,Settings
+SETTINGS_VOLUME,Volume
+SETTINGS_LANGUAGE,Language
+SETTINGS_CONTROLS,Keys
+SETTINGS_PRESS_KEY,Press a key
+SETTINGS_BACK,Back
+CONTROL_ACCELERATE,Accelerate
+CONTROL_BRAKE,Brake
+CONTROL_LEFT,Steer left
+CONTROL_RIGHT,Steer right
+LANG_EN,English
+VICTORY_TITLE,Champion
+VICTORY_MESSAGE,Every track of the cinder loop is yours.
+VICTORY_MENU,Back to menu

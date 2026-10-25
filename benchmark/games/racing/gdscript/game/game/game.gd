@@ -236,10 +236,8 @@ func _step_ghost() -> void:
 	if _ghost_tick >= _ghost.ticks():
 		_ghost_view.visible = false
 		return
-	var input := _ghost.input_at(_ghost_tick)
+	_ghost.drive(_ghost_car, _ghost_tick, race.track)
 	_ghost_tick += 1
-	_ghost_car.step(input.x, input.y, 1.0 / race.rate, race.track.is_on_road(_ghost_car.position, _ghost_car.index))
-	_ghost_car.index = race.track.nearest(_ghost_car.position, _ghost_car.index)
 	_place_ghost()
 
 
@@ -291,7 +289,7 @@ func _show_result() -> void:
 			start_track(track)
 		return
 	var best_ms := roundi(race.trackers[0].best_lap * 1000.0 / race.rate)
-	_result_menu.open(place, race.cars.size(), best_ms, opens_next and tracks.has_track(track + 1))
+	_result_menu.open(place, race.cars.size(), best_ms, opens_next)
 
 
 func _gained_place() -> void:
