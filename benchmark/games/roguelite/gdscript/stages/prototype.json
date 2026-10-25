@@ -1,0 +1,205 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "main.tscn",
+    "ui",
+    "game/pause_menu.gd",
+    "game/run_over_menu.gd",
+    "scripts/meta.gd",
+    "scripts/save_store.gd",
+    "data.json",
+    "i18n",
+    "sounds",
+    "plan",
+    "docs",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "architecture.json",
+    "test/flows",
+    "test/unit/test_world_rules.gd",
+    "test/unit/test_mercy.gd",
+    "test/unit/test_bot.gd",
+    "test/unit/test_meta.gd",
+    "test/unit/test_save_store.gd",
+    "test/unit/test_game.gd"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "run/main_scene=\"res://main.tscn\"",
+      "replace": "run/main_scene=\"res://game/game.tscn\""
+    },
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.1.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "[internationalization]\n\nlocale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")\n\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/world.gd",
+      "find": "## Ticks after a hurt during which the wick cannot be hurt again.\nconst MERCY_TICKS := 30\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/world.gd",
+      "find": "\twick.mercy = maxi(wick.mercy - 1, 0)\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/world.gd",
+      "find": "## Takes hp from the wick, unless a hurt a moment ago still gives it mercy.\nfunc hurt_wick(amount: int) -> void:\n\tif wick.mercy > 0 or wick.hp <= 0:\n\t\treturn\n\twick.hp = maxi(wick.hp - amount, 0)\n\twick.mercy = MERCY_TICKS\n",
+      "replace": "## Takes hp from the wick.\nfunc hurt_wick(amount: int) -> void:\n\tif wick.hp <= 0:\n\t\treturn\n\twick.hp = maxi(wick.hp - amount, 0)\n"
+    },
+    {
+      "file": "scripts/actor.gd",
+      "find": "## Ticks the wick cannot be hurt again after a hurt.\nvar mercy := 0\n",
+      "replace": ""
+    },
+    {
+      "file": "game/creatures.gd",
+      "find": "\tvar wick_color := Color(1, 1, 1, 0.45) if world.wick.mercy > 0 and world.tick % 8 < 4 else Color.WHITE\n\tdraw_texture(WICK_TEXTURE, glow - Vector2(WICK_TEXTURE.get_size()) / 2.0, wick_color)\n",
+      "replace": "\tdraw_texture(WICK_TEXTURE, glow - Vector2(WICK_TEXTURE.get_size()) / 2.0)\n"
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "on some floors a room with enemies in it cannot be reached from anywhere, so its enemies cannot be snuffed and the stairs never open"
+      },
+      "edits": [
+        {
+          "file": "scripts/dungeon.gd",
+          "find": "## Each room after the first is dug to the nearest room already joined: a spanning tree grown from room 0, so every room\n## can be reached from the start whatever the seed.\nfunc _join_rooms(rng: RandomNumberGenerator) -> void:\n\tfor i in range(1, rooms.size()):\n\t\tvar nearest := 0\n\t\tvar best := 1 << 30\n\t\tfor j in i:\n",
+          "replace": "## Each room after the first is dug to its nearest neighbour, so corridors stay short.\nfunc _join_rooms(rng: RandomNumberGenerator) -> void:\n\tfor i in range(1, rooms.size()):\n\t\tvar nearest := 0\n\t\tvar best := 1 << 30\n\t\tfor j in rooms.size():\n\t\t\tif j == i:\n\t\t\t\tcontinue\n"
+        }
+      ],
+      "unchanged": [
+        "test/unit/test_dungeon.gd"
+      ],
+      "hidden": [
+        "hidden/test_hidden_reachable.gd"
+      ],
+      "reference": "solutions/prototype/fix-bug",
+      "decoy": "solutions/prototype/fix-bug-decoy"
+    },
+    {
+      "template": "write-tests",
+      "vars": {
+        "subject": "World class (scripts/world.gd: how the wick and the enemies move, what an enemy sees, blows, and the stairs)",
+        "file": "test/unit/test_world_rules.gd",
+        "rules": "a creature steps only onto floor, never into a wall or a cell another creature stands on; an enemy sees the wick only within its sight (a circle of that many cells) and only when no wall lies on the line between them; an enemy strikes the wick from beside it, never from a diagonal; the wick's blow takes its damage from the enemy it faces (else from any enemy beside it); an enemy with no hp left is gone from the floor and its embers are counted; and the stairs open only once every enemy is gone",
+        "code": "scripts/world.gd"
+      },
+      "unchanged": [
+        "scripts/world.gd"
+      ],
+      "mutantTests": [
+        "test/unit/test_world_rules.gd"
+      ],
+      "mutants": [
+        {
+          "name": "a creature can step into a wall",
+          "file": "scripts/world.gd",
+          "find": "return dungeon.is_floor(cell) and not _occupied.has(cell)",
+          "replace": "return dungeon.in_bounds(cell) and not _occupied.has(cell)"
+        },
+        {
+          "name": "two creatures can share a cell",
+          "file": "scripts/world.gd",
+          "find": "return dungeon.is_floor(cell) and not _occupied.has(cell)",
+          "replace": "return dungeon.is_floor(cell)"
+        },
+        {
+          "name": "an enemy sees through walls",
+          "file": "scripts/world.gd",
+          "find": "\treturn dungeon.line_clear(enemy.cell, wick.cell)\n",
+          "replace": "\treturn true\n"
+        },
+        {
+          "name": "an enemy sees further than its sight",
+          "file": "scripts/world.gd",
+          "find": "if gap.x * gap.x + gap.y * gap.y > enemy.sight * enemy.sight:",
+          "replace": "if gap.x * gap.x + gap.y * gap.y > (enemy.sight + 2) * (enemy.sight + 2):"
+        },
+        {
+          "name": "an enemy strikes from a diagonal",
+          "file": "scripts/world.gd",
+          "find": "return absi(a.x - b.x) + absi(a.y - b.y) == 1",
+          "replace": "return maxi(absi(a.x - b.x), absi(a.y - b.y)) == 1"
+        },
+        {
+          "name": "the wick's blow does no harm",
+          "file": "scripts/world.gd",
+          "find": "\ttarget.hp -= wick.damage\n",
+          "replace": "\ttarget.hp -= 0\n"
+        },
+        {
+          "name": "a snuffed enemy stays on the floor",
+          "file": "scripts/world.gd",
+          "find": "\tenemies.erase(enemy)\n\t_occupied.erase(enemy.cell)\n",
+          "replace": "\t_occupied.erase(enemy.cell)\n"
+        },
+        {
+          "name": "the stairs open with an enemy left",
+          "file": "scripts/world.gd",
+          "find": "\tif enemies.is_empty():\n\t\tstairs_open = true\n",
+          "replace": "\tif enemies.size() <= 1:\n\t\tstairs_open = true\n"
+        }
+      ],
+      "reference": "solutions/prototype/write-tests"
+    },
+    {
+      "template": "add-feature",
+      "vars": {
+        "feature": "mercy for the wick: after the wick is hurt (World.hurt_wick, also how enemies' blows land), it cannot be hurt again for 30 ticks, a new World constant MERCY_TICKS = 30, counted down once per World.step in a new Actor property mercy of the wick (set to MERCY_TICKS by a hurt that lands, 0 when there is no mercy left), so a hurt during mercy takes no hp"
+      },
+      "hidden": [
+        "hidden/test_hidden_mercy.gd"
+      ],
+      "reference": "solutions/prototype/add-feature"
+    },
+    {
+      "template": "explain-failure",
+      "edits": [
+        {
+          "file": "scripts/world.gd",
+          "find": "\tif target.hp <= 0:\n\t\t_snuff(target)\n",
+          "replace": "\tif target.hp <= 0:\n\t\tembers += target.embers\n\t\t_snuff(target)\n"
+        }
+      ],
+      "unchanged": [
+        "scripts/world.gd",
+        "scripts/dungeon.gd",
+        "scripts/actor.gd",
+        "scripts/bot.gd",
+        "scripts/floors.gd",
+        "scripts/run.gd",
+        "game/game.gd",
+        "test/unit/test_world.gd",
+        "test/unit/test_dungeon.gd",
+        "test/unit/test_launch_options.gd"
+      ],
+      "expected": {
+        "mustInclude": [
+          "test_snuffed_enemies_leave_their_embers",
+          "re:test_world\\.gd\\D{0,40}\\b50\\b",
+          "re:(?<![\\d.])10(?!\\d)",
+          "re:(?<![\\d.])20(?!\\d)"
+        ]
+      },
+      "reference": "solutions/prototype/explain-failure"
+    }
+  ]
+}

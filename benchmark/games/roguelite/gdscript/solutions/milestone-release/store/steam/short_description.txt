@@ -1,0 +1,1 @@
+Wickerdeep is a small top-down roguelite: carry a candle down four generated floors of a crypt, snuff the shades, bats and brutes that hunt you by its light, and bank their embers at the shrine for the next descent.

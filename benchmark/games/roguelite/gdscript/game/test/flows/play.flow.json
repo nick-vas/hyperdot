@@ -1,0 +1,14 @@
+{
+  "name": "The wick walks where the player holds, one cell at a time",
+  "scene": "res://game/game.tscn",
+  "seed": 1,
+  "steps": [
+    { "call": ".", "method": "start_run", "args": [7] },
+    { "assert": { "node": ".", "prop": "wick_cell", "equals": "(28, 9)" } },
+    { "action": "move_left", "hold": 3 },
+    { "assert": { "node": ".", "prop": "wick_cell", "equals": "(27, 9)" } },
+    { "action": "move_down", "hold": 12 },
+    { "assert": { "node": ".", "prop": "wick_cell", "equals": "(27, 11)" } },
+    { "assert": { "node": "HUD/HpLabel", "prop": "text", "equals": "Wick: 5 / 5" } }
+  ]
+}
