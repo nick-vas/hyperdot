@@ -1,6 +1,17 @@
 # Changelog
 
 ## Unreleased
+- **The staged game programme's fifth genre: a top-down roguelite**, Wickerdeep, in GDScript
+  (`benchmark/games/roguelite/`). A candle-bearer goes down four floors of a crypt, each generated from the run's seed
+  (rooms joined by a spanning tree of corridors, every cell reachable, checked over sweeps of seeds), while shades, cinder
+  bats and tallow brutes wander until they see it and then hunt it down one shared distance field. The rules live in a
+  plain grid simulation stepped in ticks, so a floor replays exactly from its seed; `--swarm=N` adds hundreds of
+  hunters for `bench`. Embers banked across runs buy vigor at a shrine, and the save keeps that meta progress and the run
+  in progress for Continue, with version 1 saves migrated. The release candidate has 44 GUT tests, five flows, a bot
+  that reaches the bottom, juice, three languages, store art rendered from the game and credits. Its four stages carry
+  17 tasks and three milestones, each with hidden checks and a reference solution, most with a decoy; all pass
+  `tests/Test-GameProgramme.ps1 -Genre roguelite -Language gdscript`. `DESIGN.md` holds the language-neutral contract
+  for the C# port, which is still to come.
 - **The platformer in C#.** Glowmoss Ridge now has its C# version (`benchmark/games/platformer/csharp/`), written from
   the language-neutral contract in its `DESIGN.md`: the same level scenes, scene tree, node names, data files, flows,
   bot and juice runs and log lines, with 34 gdUnit4 tests in place of the GUT ones and a Linux export only. Its four
