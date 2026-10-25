@@ -366,7 +366,7 @@ by row and column: `col`, `row`, `count`, `from` and `to`, the cell's corners in
 counts fail the run.
 
 **soak**: `soak` with `clients`, `seconds` (actual), `port`, `server` and `processes[]` (each: `name`, `ready`, `exitCode`,
-`memoryMb` (`start`, `end`, `growthPerHour`), `cpuPercent`, `metrics` (the `[soak] metric` values the game printed),
+`memoryMb` (`start`, `end`, `growthPerHour`: on Linux anonymous resident memory, the heaps and stacks a leak grows, not the binary and libraries mapped from files; elsewhere the working set; `residentGrowthPerHour`: all resident memory), `cpuPercent`, `metrics` (the `[soak] metric` values the game printed),
 `unparsedMetrics[]` (the `[soak] metric` lines whose value is not a finite number, such as `1.2.3` or `inf`), `fails[]`, `log`), `clientMemoryMb` (`average`), and, with `-JunkPps`, `junk` (`pps`, `packetsSent`: the loopback junk
 flood's requested rate and how many packets it sent), and `stop`: how the server took SIGTERM at the end, after the
 clients were stopped (`signal`, `graceSeconds`, `exitCode` (143 when the signal killed it: no handler), `seconds` to quit,
