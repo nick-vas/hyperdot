@@ -1,22 +1,30 @@
-# Exercises the kit on every change: the reusable workflow on Linux runners, and the script on Windows
-# exactly as it runs on a developer machine.
+# Exercises the kit on every pull request (what the change needs), on every merge to main and every night (everything):
+# the reusable workflow on Linux runners, and the script on Windows exactly as it runs on a developer machine.
+# docs/ci.md says what runs when.
 name: Self-test
 
 on:
+  # A pull request runs what its changes need (the `changes` job). Main runs everything after each merge, and so does the
+  # nightly schedule, which also catches what a pull request's filter let past (it runs on the default branch).
+  # Branches without a pull request are not tested: the pull request does that, so a push to its branch starts one run,
+  # not two.
   push:
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: '23 2 * * *'
 
 permissions:
   contents: read
 
-# A push to a branch with an open pull request starts this twice (push and pull_request); both share the branch's group,
-# so the later one cancels the earlier, as a new push cancels a run of an older commit. Not on main, where every merge
-# keeps its own run.
+# A new push to a pull request's branch cancels the run of the older commit. Everything else keeps its own run: every
+# merge to main, each nightly run and each run started by hand has a group of its own (the run id), since a group lets only
+# one run wait and would drop the one in between.
 concurrency:
-  group: self-test-${{ github.head_ref || github.ref_name }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  group: self-test-${{ github.event_name == 'pull_request' && github.head_ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   lint:
