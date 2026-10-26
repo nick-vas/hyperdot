@@ -1,4 +1,4 @@
-#Requires -Version 7.2
+#Requires -Version 7.6
 <#
 .SYNOPSIS
     Checks the agent skills in .agents/skills the way a reviewer would: structure, size, discoverability and,

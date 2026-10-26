@@ -30,7 +30,7 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 
 ## Working here
 
-- PowerShell 7.2+, strict mode 3.0, `$ErrorActionPreference = 'Stop'`. Wrap results that may be empty or single in `@(...)`
+- PowerShell 7.6+, strict mode 3.0, `$ErrorActionPreference = 'Stop'`. Wrap results that may be empty or single in `@(...)`
   and iterate with `foreach`; never index a pipeline result (PowerShell unrolls one-item arrays).
 - Short helper names collide with built-in aliases (`r` is Invoke-History, `rp` is Remove-ItemProperty, `h` is Get-History): use
   Verb-Noun names. In array literals `,` binds tighter than `+`: `@(1, 2 + 3)` is `(1, 2) + 3`, three items `1, 2, 3`; write `@(1, (2 + 3))` for `1, 5`. Overwrite a zip with
@@ -148,5 +148,5 @@ a kit run names the `Test-*.ps1` that started it). Run it after adding any of th
 
 ## Targets
 
-Godot 4.7.2 mono, .NET 8, PowerShell 7.2+. gdUnit4.api 5.0.0, gdUnit4.test.adapter 3.0.0, Chickensoft.GoDotTest 2.0.49,
+Godot 4.7.2 mono, .NET 8, PowerShell 7.6+. gdUnit4.api 5.0.0, gdUnit4.test.adapter 3.0.0, Chickensoft.GoDotTest 2.0.49,
 GUT v9.7.1, coverlet.collector 10.1.0.

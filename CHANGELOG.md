@@ -1,6 +1,17 @@
 # Changelog
 
 ## Unreleased
+- **PowerShell 7.6 or newer is required (breaking for PowerShell 7.2 to 7.5).** Every script now starts with
+  `#Requires -Version 7.6`, the current LTS release: 7.2 left support on 8 November 2024, and 7.4 and 7.5 leave it on
+  10 November 2026, while 7.6 is supported until 14 November 2028. GitHub's runner images already ship 7.6 (Ubuntu
+  22.04 and 24.04, Windows Server 2022 and 2025, macOS 15), so the action and the workflow need nothing; on an older
+  PowerShell the kit stops at once with PowerShell's own "#requires" message. To upgrade: `winget install
+  Microsoft.PowerShell` (or `winget upgrade`) on Windows, `brew upgrade --cask powershell` on macOS, and Microsoft's package
+  repository (`apt install powershell`) or the release tarball on Linux; self-hosted runners need the same. The GitLab
+  template's .NET 8 SDK image carries PowerShell 7.4 (the global tool follows .NET 8, and 7.6 is built on .NET 10), so
+  its `before_script` now unpacks PowerShell 7.6.9's self-contained Linux build into `.hyperdot-cache/pwsh/` (cached),
+  puts it first on PATH and stops the job if `pwsh` is still older; games still build with the image's .NET 8 SDK.
+  `tests/Test-GitLabTemplate.ps1` holds the template to the floor of `hyperdot.ps1`.
 - **The staged programme's CI check runs one job per genre and language**, and only for the pairs whose game
   changed (every pair when the harness or the programme changed, or when started by hand). One job per language ran
   every genre in turn and no longer fitted its 150 minutes with ten genres; a pull request that adds one genre now

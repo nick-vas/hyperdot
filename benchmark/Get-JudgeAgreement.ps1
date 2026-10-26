@@ -1,4 +1,4 @@
-#Requires -Version 7.2
+#Requires -Version 7.6
 <#
 .SYNOPSIS
 Calibrates the judge (benchmark/PLAN.md, grading layer 4): how often it agrees with a person's blind verdicts on the same

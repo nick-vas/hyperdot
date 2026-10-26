@@ -168,7 +168,7 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 - **CI:** the GitLab template (`ci/gitlab/hyperdot.gitlab-ci.yml`) has never run on GitLab: no GitLab project or runner
   was reachable from the sandbox that wrote it. Run it once on a GitLab project (a copy of `examples/gdscript` and of
   `examples/csharp`) and fix what breaks. A container image with Godot and its templates already in it was not built: the
-  .NET 8 SDK image GitLab jobs use already has PowerShell 7, git and .NET, Godot is a cached download, and an image with
+  .NET 8 SDK image GitLab jobs use already has git and .NET, PowerShell 7.6 and Godot are cached downloads, and an image with
   the .NET build's templates would weigh about 2.1 GB more (1.9 GB of templates and 222 MB of Godot unpacked, 4.7.2) and need a
   registry and a canary job to keep it current.
   `init` writes `@v1`; the tag itself is created at the 0.1.0 release (step 7 above).

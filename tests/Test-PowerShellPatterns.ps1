@@ -1,4 +1,4 @@
-#Requires -Version 7.2
+#Requires -Version 7.6
 # Holds every tracked .ps1 to the PowerShell anti-patterns of docs/powershell.md that have no use in the repository today,
 # so none comes back. Each check reads PowerShell's own syntax tree, not the text, so a comment or a string that names a
 # pattern does not trip it. The fixture (tests/powershell-patterns-fixture) proves every check fires: one file per rule,

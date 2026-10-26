@@ -1,4 +1,4 @@
-#Requires -Version 7.2
+#Requires -Version 7.6
 <#
 .SYNOPSIS
     Posts (or updates) one comment per game on a pull request with the test summary, and coverage

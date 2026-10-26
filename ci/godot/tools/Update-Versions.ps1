@@ -1,4 +1,4 @@
-#Requires -Version 7.2
+#Requires -Version 7.6
 <#
 .SYNOPSIS
     Compares the versions the kit pins (Godot, the test-framework packages, GUT, and the aseprite-mcp commit and MCP SDK

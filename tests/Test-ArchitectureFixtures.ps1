@@ -1,4 +1,4 @@
-#Requires -Version 7.2
+#Requires -Version 7.6
 # Self-test for the architecture runner's rules: each fixture project must trigger its rule, the clean project must trigger
 # none, and a rule set to "error" must fail its JUnit case. Runs without Godot.
 $ErrorActionPreference = 'Stop'

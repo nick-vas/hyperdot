@@ -1,4 +1,4 @@
-#Requires -Version 7.2
+#Requires -Version 7.6
 # Every lib/*.ps1 is dot-sourced into one scope, so two files defining the same function leave only the one loaded last, with
 # no error: status once called Audio.ps1's Get-Median instead of its own. Fails on a function defined twice, and on one named
 # like a built-in alias or command (AGENTS.md: r is Invoke-History, rp is Remove-ItemProperty). Runs without Godot.

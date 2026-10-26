@@ -13,7 +13,7 @@
         'PSReviewUnusedParameter',
         # House style (`Join-Path $a $b`, the kit's own helpers): 491 findings, none a bug.
         'PSAvoidUsingPositionalParameters',
-        # The kit needs PowerShell 7.2+, which reads UTF-8 without a BOM; the rule is for Windows PowerShell 5.1.
+        # The kit needs PowerShell 7.6+, which reads UTF-8 without a BOM; the rule is for Windows PowerShell 5.1.
         'PSUseBOMForUnicodeEncodedFile',
         # 1.25.0 flags the param() variables of a Start-ThreadJob -ArgumentList block, the right way in (5 of 5 false).
         'PSUseUsingScopeModifierInNewRunspaces'

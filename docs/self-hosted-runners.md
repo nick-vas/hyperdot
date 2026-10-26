@@ -1,7 +1,7 @@
 # Self-hosted runners
 
 The workflow and the action run on your own machines as they do on GitHub's: Linux, Windows or macOS with PowerShell
-7.2+ and Git (Git LFS for `lfs: true`). `setup` installs Godot, its templates and, on Linux and macOS, the .NET SDK when
+7.6+ and Git (Git LFS for `lfs: true`). `setup` installs Godot, its templates and, on Linux and macOS, the .NET SDK when
 it is missing. What differs is that the machine keeps its files between jobs.
 
 **Labels.** A runner registers with `self-hosted` and its OS and architecture (`Linux`, `X64`, ...); add your own when

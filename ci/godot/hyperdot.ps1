@@ -1,4 +1,4 @@
-#Requires -Version 7.2
+#Requires -Version 7.6
 <#
 .SYNOPSIS
     Build, test and export a Godot 4 project (GDScript or C#). Everything is detected from the project;

@@ -1,4 +1,4 @@
-#Requires -Version 7.2
+#Requires -Version 7.6
 <#
 .SYNOPSIS
     Zips each exported build and publishes them as a GitHub Release with generated notes. On a tag it
