@@ -1,0 +1,14 @@
+{
+  "name": "Join on the menu opens the join screen with an address, and Back returns to the menu",
+  "scene": "res://main.tscn",
+  "seed": 1,
+  "steps": [
+    { "press": "Menu/JoinButton" },
+    { "assert": { "node": "Join", "exists": true } },
+    { "assert": { "node": "Menu", "prop": "visible", "equals": false } },
+    { "assert": { "node": "Join/Box/AddressEdit", "prop": "text", "equals": "127.0.0.1" } },
+    { "press": "Join/Box/BackButton" },
+    { "assert": { "node": "Join", "exists": false } },
+    { "assert": { "node": "Menu", "prop": "visible", "equals": true } }
+  ]
+}

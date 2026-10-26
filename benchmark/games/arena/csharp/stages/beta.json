@@ -1,0 +1,217 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/Credits.cs"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.9.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\")"
+    },
+    {
+      "file": "main.tscn",
+      "find": "[node name=\"CreditsButton\" type=\"Button\" parent=\"Menu\"]\ncustom_minimum_size = Vector2(0, 84)\ntheme_override_font_sizes/font_size = 26\ntext = \"Credits\"\n\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "    private PackedScene _creditsScene = null!;\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "    private Button _credits = null!;\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "        _credits = GetNode<Button>(\"Menu/CreditsButton\");\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "        _creditsScene = GD.Load<PackedScene>(\"res://ui/credits.tscn\");\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "        _credits.Pressed += ShowCredits;\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "        _credits.Text = Tr(\"MENU_CREDITS\");\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "    public void ShowCredits()\n    {\n        var credits = _creditsScene.Instantiate<Credits>();\n        credits.Name = \"Credits\";\n        credits.Closed += ShowMenu;\n        ShowScreen(credits);\n    }\n\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "the game, the join screen, settings or credits.",
+      "replace": "the game, the join screen or settings."
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-playthrough",
+      "vars": {
+        "report": "the bot that plays it through (playthrough.json) is left alone in a round after the guest player walks out, and the match never ends; players say the same happens online when someone leaves at match point"
+      },
+      "edits": [
+        {
+          "file": "scripts/ArenaMatch.cs",
+          "find": "        Events.Add(new MatchEvent { Type = \"gone\", Slot = slot });\n        CheckRoundEnd();\n",
+          "replace": "        Events.Add(new MatchEvent { Type = \"gone\", Slot = slot });\n"
+        }
+      ],
+      "hidden": [
+        "hidden/HiddenLeaveEndsRoundTest.cs"
+      ],
+      "reference": "solutions/beta/fix-playthrough",
+      "decoy": "solutions/beta/fix-playthrough-decoy"
+    },
+    {
+      "template": "add-feedback",
+      "vars": {
+        "report": "a glimmer being knocked out is easy to miss: nothing on screen marks where it went down"
+      },
+      "edits": [
+        {
+          "file": "game/Game.cs",
+          "find": "                    _view.Pop(new Vector2(e.X, e.Y));\n                    LogFeedback(\"pop\");\n",
+          "replace": ""
+        }
+      ],
+      "reference": "solutions/beta/add-feedback"
+    },
+    {
+      "template": "fill-translations",
+      "vars": {
+        "locale": "French",
+        "report": "the panel shown at the end of a match partly in English"
+      },
+      "edits": [
+        {
+          "file": "i18n/strings.csv",
+          "find": "RESULT_WON,Victory,Victoire\n",
+          "replace": "RESULT_WON,Victory,\n"
+        },
+        {
+          "file": "i18n/strings.csv",
+          "find": "RESULT_MESSAGE,P%d wins %d rounds to %d.,J%d gagne %d manches à %d.\n",
+          "replace": "RESULT_MESSAGE,P%d wins %d rounds to %d.,\n"
+        },
+        {
+          "file": "i18n/strings.csv",
+          "find": "RESULT_REMATCH,Rematch,Revanche\n",
+          "replace": "RESULT_REMATCH,Rematch,\n"
+        }
+      ],
+      "unchanged": [
+        "game/ResultMenu.cs",
+        "game/game.tscn"
+      ],
+      "reference": "solutions/beta/fill-translations",
+      "decoy": "solutions/beta/fill-translations-decoy"
+    },
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "online, their own glimmer stutters and is pulled back while they move: the further the server, the worse, and on a local match it is fine (try --lag=150)"
+      },
+      "edits": [
+        {
+          "file": "scripts/ArenaClient.cs",
+          "find": "        if (View.State == MatchState.Round)\n        {\n            foreach (SimInput input in Pending)\n                Sim.Step(Predicted, input, View.Court);\n        }\n",
+          "replace": ""
+        }
+      ],
+      "hidden": [
+        "hidden/HiddenReconciliationTest.cs"
+      ],
+      "reference": "solutions/beta/fix-bug",
+      "decoy": "solutions/beta/fix-bug-decoy"
+    },
+    {
+      "template": "fix-performance",
+      "vars": {
+        "situation": "a dedicated server has run for a long time with players joining and leaving"
+      },
+      "edits": [
+        {
+          "file": "scripts/ArenaServer.cs",
+          "find": "        _inputLog.Remove(peer);\n",
+          "replace": ""
+        }
+      ],
+      "kit": [
+        {
+          "command": "soak",
+          "args": [
+            "-Clients",
+            "3",
+            "-Seconds",
+            "20",
+            "-Warmup",
+            "3"
+          ]
+        }
+      ],
+      "hidden": [
+        "hidden/HiddenPeerRecordsTest.cs"
+      ],
+      "reference": "solutions/beta/fix-performance"
+    },
+    {
+      "template": "fix-flow",
+      "vars": {
+        "report": "the Back button of the Join screen does nothing, so players who open it are stuck there"
+      },
+      "edits": [
+        {
+          "file": "ui/Join.cs",
+          "find": "        _back.Pressed += () => Closed?.Invoke();\n",
+          "replace": ""
+        }
+      ],
+      "reference": "solutions/beta/fix-flow"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "a second court, the Hollow Ring (id hollow_ring, name key COURT_HOLLOW_RING), after the Cinder Pit in data/courts.json with at least three pillars and four spawns that are clear, at least 300 pixels apart and out of each other's sight, so rounds alternate between the two; a bot run: with --autoplay (after --) the main scene starts a local match whose player's glimmer a bot plays through the player's own client, while a guest joins the same match as a second client over the in-process link (peer 2), played by another bot, and leaves whenever it is one of the last two standing with one health left (the server prints [Net] peer 2 left slot N), then joins again; every random choice from generators seeded by --seed=N, nothing saved with --no-save, [Match] over: ... printed when a slot wins the match, then [Run] match over, won or [Run] match over, lost, and the game quits; juice: print [juice] event shot_fired <ms>, [juice] event player_hit <ms> and [juice] event player_out <ms> in game time (ms), each answered within 100 ms by [juice] feedback sfx <ms> for a sound, and also [juice] feedback flash <ms> for player_hit (the hit glimmer flashes) and [juice] feedback pop <ms> and [juice] feedback shake <ms> for player_out (a ring where it went down, a camera shake); and French: every visible text through tr() with an fr column in the translation table, and a settings screen (Menu/SettingsButton opens a child of Main named Settings with a button Box/Languages/<Locale>Button per language, FrButton and EnButton, and Box/BackButton back to the menu)"
+    },
+    "hidden": [
+      {
+        "from": "game/playthrough.json",
+        "to": "playthrough.json"
+      },
+      {
+        "from": "game/juice.json",
+        "to": "juice.json"
+      },
+      {
+        "from": "game/test/flows/settings.flow.json",
+        "to": "test/flows/settings.flow.json"
+      },
+      "hidden/HiddenFrenchTest.cs",
+      "hidden/HiddenHollowRingTest.cs"
+    ],
+    "reference": "solutions/milestone-beta"
+  }
+}

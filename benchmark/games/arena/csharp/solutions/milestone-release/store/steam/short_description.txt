@@ -1,0 +1,1 @@
+Glimmerpit is a top-down arena for up to four: dodge round the pillars of a walled pit, fire sparks, and be the last glimmer standing. Host a match for friends, join one, or fill the empty slots with bots.
