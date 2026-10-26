@@ -18,7 +18,8 @@
 # `calibrate: <run id>` runs no benchmark: it calibrates the judge (benchmark/PLAN.md, section 3). It takes that staged
 # run's results, rebuilds the blind pairs the owner judged on the review page (benchmark/calibration/*.json holds the
 # verdicts and the answer key's hash), and has each candidate judge, cheapest first (or the `model` input), judge them
-# both ways; the first that agrees with the owner on 80% and with itself on 90% is the judge, and the job stops there.
+# both ways (`votes` times in each order, the majority deciding); the first that agrees with the owner on 80% and with
+# itself on 90% is the judge, and the job stops there.
 name: Token benchmark
 
 on:
@@ -69,6 +70,9 @@ on:
       calibrate:
         description: Calibrate the judge instead, on this staged run's pairs (a run id with verdicts in benchmark/calibration)
         default: ''
+      votes:
+        description: With calibrate, how many times the judge judges each order of a pair (the majority decides)
+        default: '1'
 
 permissions:
   contents: read
@@ -216,6 +220,7 @@ jobs:
         env:
           RUN: ${{ inputs.calibrate }}
           JUDGES: ${{ inputs.model }}
+          VOTES: ${{ inputs.votes }}
         run: |
           $cal = @(Get-ChildItem benchmark/calibration -Filter *.json | ForEach-Object { Get-Content $_.FullName -Raw | ConvertFrom-Json } | Where-Object { "$($_.run)" -eq $env:RUN })
           if ($cal.Count -eq 0) { throw "No file in benchmark/calibration holds verdicts for run $env:RUN" }
@@ -230,7 +235,7 @@ jobs:
           $judge = $null
           "| Judge | Agrees with the owner | Agrees with itself | Calibrated |`n|---|---|---|---|" | Add-Content $env:GITHUB_STEP_SUMMARY
           foreach ($model in $candidates) {
-            ./benchmark/Invoke-SideBySide.ps1 -Results $results -Model $model -OutDir "judged/$model" | Out-Null
+            ./benchmark/Invoke-SideBySide.ps1 -Results $results -Model $model -OutDir "judged/$model" -Votes ([Math]::Max(1, [int]"0$env:VOTES")) | Out-Null
             if ($LASTEXITCODE) { throw "The $model judge did not finish its judgements" }
             $out = ./benchmark/Get-JudgeAgreement.ps1 -Key review/review-key.json -Verdicts verdicts.json -Preferences "judged/$model/preferences.json" -Json
             $passed = $LASTEXITCODE -eq 0

@@ -8,7 +8,8 @@ factor.
 .DESCRIPTION
 For each model, task and repetition run both with and without the plugin (in any of the -Results folders), the judge
 gets the task and the two pieces of work (the answer and the diff each session left) as A and B, and says which does the
-task better under the rubric, or that they are even. It judges each pair twice, with A and B swapped. The plugin's
+task better under the rubric, or that they are even. It judges each pair twice, with A and B swapped (-Votes times in
+each order, the majority deciding). The plugin's
 session wins the pair if it is chosen both times and loses it if the other is chosen both times; anything else is half.
 A model's win rate is the mean over its pairs. The judge never learns which work had the plugin.
 
@@ -42,6 +43,8 @@ param(
     [string]$ReviewOut,
     # The review pairs' id prefix: a second set on the same page (q01, q02 ...) keeps its verdicts apart from the first's.
     [ValidatePattern('^[a-z]{1,8}$')][string]$ReviewIdPrefix = 'p',
+    # How many times the judge judges each order: the order's choice is the majority of its votes (Get-Majority).
+    [ValidateRange(1, 25)][int]$Votes = 1,
     [switch]$Json
 )
 Set-StrictMode -Version 3.0
@@ -100,6 +103,23 @@ function Get-Preference([string]$Task, [string]$WorkA, [string]$WorkB, [string]$
     return [pscustomobject]@{ choice = $(if ($parsed.ok -and $match.Success) { $match.Groups[1].Value } else { 'error' }); costUsd = $parsed.costUsd }
 }
 
+# An order's choice from its votes: the choice with the most votes, "even" when the top two tie, and "error" when fewer
+# than half the votes named a choice (a judge that mostly fails is no judge).
+function Get-Majority([string[]]$Choices) {
+    $valid = @($Choices | Where-Object { $_ -ne 'error' })
+    if ($valid.Count -eq 0 -or $valid.Count * 2 -lt $Choices.Count) { return 'error' }
+    $counts = @($valid | Group-Object -CaseSensitive | Sort-Object Count -Descending)
+    if ($counts.Count -gt 1 -and $counts[0].Count -eq $counts[1].Count) { return 'even' }
+    return $counts[0].Name
+}
+
+# One order of a pair judged -Votes times, each in a fresh session.
+function Get-OrderVerdict([string]$Task, [string]$WorkA, [string]$WorkB, [string]$Folder) {
+    $all = @(for ($v = 0; $v -lt $Votes; $v++) { Get-Preference $Task $WorkA $WorkB $Folder })
+    $cost = 0.0; foreach ($one in $all) { if ($one.costUsd) { $cost += $one.costUsd } }
+    return [pscustomobject]@{ choice = (Get-Majority @($all | ForEach-Object choice)); votes = @($all | ForEach-Object choice); costUsd = $cost }
+}
+
 # A pair's name across the judge's preferences, the review page and its key.
 function Get-PairKey($Session) { "$($Session.model)|$($Session.task)|r$($Session.repetition)|$($Session.profile)" }
 
@@ -137,16 +157,18 @@ try {
         if (-not $with -or -not $without) { continue }
         # Twice, in both orders; which order comes first is random, so a position bias cannot line up with the plugin.
         $firstWith = $random.Next(2) -eq 0
-        $one = if ($firstWith) { Get-Preference $with.prompt $with.work $without.work $folder } else { Get-Preference $with.prompt $without.work $with.work $folder }
-        $two = if ($firstWith) { Get-Preference $with.prompt $without.work $with.work $folder } else { Get-Preference $with.prompt $with.work $without.work $folder }
+        $one = if ($firstWith) { Get-OrderVerdict $with.prompt $with.work $without.work $folder } else { Get-OrderVerdict $with.prompt $without.work $with.work $folder }
+        $two = if ($firstWith) { Get-OrderVerdict $with.prompt $without.work $with.work $folder } else { Get-OrderVerdict $with.prompt $with.work $without.work $folder }
         $cost += $one.costUsd + $two.costUsd
         $pluginFirst = if ($firstWith) { $one.choice -eq 'A' } else { $one.choice -eq 'B' }
         $pluginSecond = if ($firstWith) { $two.choice -eq 'B' } else { $two.choice -eq 'A' }
         $otherFirst = if ($firstWith) { $one.choice -eq 'B' } else { $one.choice -eq 'A' }
         $otherSecond = if ($firstWith) { $two.choice -eq 'A' } else { $two.choice -eq 'B' }
         $outcome = if ('error' -in @($one.choice, $two.choice)) { $null } elseif ($pluginFirst -and $pluginSecond) { 1.0 } elseif ($otherFirst -and $otherSecond) { 0.0 } else { 0.5 }
-        $pairs.Add([ordered]@{ pair = (Get-PairKey $with); model = $with.model; task = $with.task; repetition = $with.repetition; profile = $with.profile
-                choices = @($one.choice, $two.choice); pluginShownFirstAs = $(if ($firstWith) { 'A' } else { 'B' }); pluginOutcome = $outcome })
+        $entry = [ordered]@{ pair = (Get-PairKey $with); model = $with.model; task = $with.task; repetition = $with.repetition; profile = $with.profile
+            choices = @($one.choice, $two.choice); pluginShownFirstAs = $(if ($firstWith) { 'A' } else { 'B' }); pluginOutcome = $outcome }
+        if ($Votes -gt 1) { $entry.votes = @(, $one.votes) + @(, $two.votes) }
+        $pairs.Add($entry)
     }
 } finally { Remove-Item -LiteralPath $folder -Recurse -Force -ErrorAction SilentlyContinue }
 
@@ -154,7 +176,7 @@ $winRate = [ordered]@{}
 # A pair the judge failed on (outcome null) is left out of the win rate and fails the run below.
 foreach ($g in @($pairs | Where-Object { $null -ne $_.pluginOutcome } | Group-Object { $_.model } | Sort-Object Name)) { $winRate[$g.Name] = [Math]::Round((@($g.Group | ForEach-Object { $_.pluginOutcome }) | Measure-Object -Average).Average, 4) }
 $failed = @($pairs | Where-Object { $null -eq $_.pluginOutcome })
-$document = [ordered]@{ schema = 'hyperdot-preferences/1'; judgeModel = $Model; rubric = (Split-Path $Rubric -Leaf); pairs = $pairs.ToArray()
+$document = [ordered]@{ schema = 'hyperdot-preferences/1'; judgeModel = $Model; rubric = (Split-Path $Rubric -Leaf); votes = $Votes; pairs = $pairs.ToArray()
     pluginWinRate = $winRate; failedPairs = $failed.Count; costUsd = [Math]::Round($cost, 6) }
 New-Item -ItemType Directory -Force $OutDir | Out-Null
 $document | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $OutDir 'preferences.json') -Encoding utf8NoBOM

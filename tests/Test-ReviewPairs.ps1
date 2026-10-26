@@ -96,6 +96,30 @@ try {
     $p = Get-Content -LiteralPath (Join-Path $judged 'preferences.json') -Raw | ConvertFrom-Json
     Assert-True ($code -eq 1 -and $p.failedPairs -eq 4 -and @($p.pairs | Where-Object { $null -ne $_.pluginOutcome }).Count -eq 0 -and @($p.pluginWinRate.PSObject.Properties).Count -eq 0) "replies with no choice are errors, not even, and fail the run (exit $code, $($p.failedPairs) failed)"
 
+    # -Votes: each order judged several times, the majority deciding. A stand-in judge that answers A, A, B in turn gives
+    # every order (3 votes) a majority of A; one that alternates A and B gives every order (2 votes) a tie, which is even.
+    foreach ($case in @(@{ votes = 3; cycle = "@('A', 'A', 'B')"; expect = 'A' }, @{ votes = 2; cycle = "@('A', 'B')"; expect = 'even' })) {
+        $counter = Join-Path $dir "votes-$($case.votes).txt"
+        $voter = Join-Path $dir "stand-in-voter-$($case.votes).ps1"
+        Set-Content -LiteralPath $voter -Value @"
+`$cycle = $($case.cycle)
+`$n = if (Test-Path -LiteralPath '$counter') { [int](Get-Content -LiteralPath '$counter') } else { 0 }
+Set-Content -LiteralPath '$counter' -Value (`$n + 1)
+`$reply = '{"better": "' + `$cycle[`$n % `$cycle.Count] + '", "why": "stand-in"}'
+Write-Output (@{ type = 'result'; subtype = 'success'; is_error = `$false; result = `$reply; total_cost_usd = 0.001 } | ConvertTo-Json -Compress)
+"@
+        $out = Join-Path $dir "voted-$($case.votes)"
+        & (Get-Process -Id $PID).Path -NoProfile -File (Join-Path $root 'benchmark/Invoke-SideBySide.ps1') -Results ($runs -join ',') -Model judge-v -OutDir $out -Claude $voter -Votes $case.votes | Out-Null
+        $code = $LASTEXITCODE
+        $p = Get-Content -LiteralPath (Join-Path $out 'preferences.json') -Raw | ConvertFrom-Json
+        $calls = [int](Get-Content -LiteralPath $counter)
+        $choices = @($p.pairs | ForEach-Object { $_.choices } | Sort-Object -Unique)
+        $voteCounts = @($p.pairs | ForEach-Object { $_.votes } | ForEach-Object { @($_).Count } | Sort-Object -Unique)
+        Assert-True ($code -eq 0 -and $p.votes -eq $case.votes -and $calls -eq 8 * $case.votes) "$($case.votes) votes per order: $calls judge calls for 4 pairs (exit $code)"
+        Assert-True ($choices.Count -eq 1 -and $choices[0] -eq $case.expect) "$($case.votes) votes per order decide $($case.expect): $($choices -join ', ')"
+        Assert-True ($voteCounts.Count -eq 1 -and $voteCounts[0] -eq $case.votes -and [Math]::Abs($p.costUsd - 0.008 * $case.votes) -lt 1e-9) "each order keeps its $($case.votes) votes and every vote's cost: $($p.costUsd)"
+    }
+
     # Lower bars: the same numbers pass.
     & (Get-Process -Id $PID).Path -NoProfile -File $agreementScript -Key (Join-Path $review 'review-key.json') -Verdicts $votesFile -Preferences $prefsFile -MinAgreement 0.7 -MinConsistency 0.7 | Out-Null
     Assert-True ($LASTEXITCODE -eq 0) "at bars of 70% it is calibrated (exit $LASTEXITCODE)"

@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- **The side-by-side judge can vote.** `Invoke-SideBySide.ps1 -Votes <n>` (and the token benchmark's `votes` input with
+  `calibrate`) judges each order of a pair n times in fresh sessions; the order's choice is the majority, a tie is even,
+  and an order where fewer than half the votes named a choice is an error. Each pair keeps its votes in
+  `preferences.json`. A cheap judge that changes its mind between runs can then be calibrated by its majority.
 - **The staged programme's CI check runs one job per genre and language**, and only for the pairs whose game
   changed (every pair when the harness or the programme changed, or when started by hand). One job per language ran
   every genre in turn and no longer fitted its 150 minutes with ten genres; a pull request that adds one genre now
