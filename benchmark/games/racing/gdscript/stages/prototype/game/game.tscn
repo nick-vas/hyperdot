@@ -1,0 +1,79 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://game/game.gd" id="1_game"]
+[ext_resource type="Script" path="res://game/track_view.gd" id="2_track"]
+[ext_resource type="Script" path="res://game/chase_camera.gd" id="4_camera"]
+
+[node name="Game" type="Node2D"]
+script = ExtResource("1_game")
+
+[node name="Track" type="Node2D" parent="."]
+script = ExtResource("2_track")
+
+[node name="Cars" type="Node2D" parent="."]
+
+[node name="Camera" type="Camera2D" parent="."]
+physics_interpolation_mode = 2
+zoom = Vector2(0.8, 0.8)
+script = ExtResource("4_camera")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="TrackLabel" type="Label" parent="HUD"]
+offset_left = 140.0
+offset_top = 20.0
+offset_right = 520.0
+offset_bottom = 56.0
+theme_override_font_sizes/font_size = 22
+text = "Track"
+
+[node name="LapLabel" type="Label" parent="HUD"]
+offset_left = 140.0
+offset_top = 56.0
+offset_right = 420.0
+offset_bottom = 96.0
+pivot_offset = Vector2(0, 20)
+theme_override_font_sizes/font_size = 28
+text = "Lap 1/3"
+
+[node name="TimeLabel" type="Label" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -480.0
+offset_top = 20.0
+offset_right = -140.0
+offset_bottom = 60.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 26
+text = "Lap 0:00.000"
+horizontal_alignment = 2
+
+[node name="BestLabel" type="Label" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -480.0
+offset_top = 60.0
+offset_right = -140.0
+offset_bottom = 100.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 22
+text = "Best -"
+horizontal_alignment = 2
+
+[node name="CountdownLabel" type="Label" parent="HUD"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -160.0
+offset_right = 200.0
+offset_bottom = -60.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 72
+text = "3"
+horizontal_alignment = 1

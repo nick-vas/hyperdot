@@ -1,0 +1,4 @@
+{
+  "scenes": ["res://main.tscn", "res://game/game.tscn", "res://ui/join.tscn", "res://ui/settings.tscn"],
+  "resolutions": ["1280x800"]
+}

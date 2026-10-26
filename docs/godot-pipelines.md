@@ -50,6 +50,9 @@ their own.
 `[RequireGodotRuntime]`. The kit writes the `.runsettings` (`GODOT_BIN`, `--headless`, a 3-minute limit on the adapter's in-Godot rebuild
 instead of its 20 s default) for you. If that rebuild fails, the adapter runs none of its tests and still exits 0; the
 `dotnet` runner fails instead and names the cause (`gdUnit4 (tests not run)`).
+The adapter reaches the Godot it starts over a pipe with a fixed name, which .NET on Linux and macOS keeps as a socket in
+`TMPDIR`; the kit gives each `dotnet test` its own `TMPDIR` (in the `.runsettings`, removed after the run, in `/tmp` when `TMPDIR` is too long
+for a socket), so two C# runs at once on one machine no longer take each other's results.
 The adapter's first run also installs a runner scene and builds the project with `dotnet build`, under a fixed 30 s
 limit that no setting changes (`gdUnit4.api` 5.0.0). On a machine busy with other builds that limit can pass too: the
 same failure appears with "due to compilation failure" as its cause, and a second run, with the build already done,

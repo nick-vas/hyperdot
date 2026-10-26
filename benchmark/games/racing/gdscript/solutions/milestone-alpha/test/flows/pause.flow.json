@@ -1,0 +1,18 @@
+{
+  "name": "The pause button opens the pause menu, Resume closes it and Restart starts the race again",
+  "scene": "res://game/game.tscn",
+  "seed": 1,
+  "steps": [
+    { "wait": 5 },
+    { "assert": { "node": "PauseMenu", "prop": "visible", "equals": false } },
+    { "press": "HUD/PauseButton" },
+    { "assert": { "node": "PauseMenu", "prop": "visible", "equals": true } },
+    { "press": "PauseMenu/ResumeButton" },
+    { "assert": { "node": "PauseMenu", "prop": "visible", "equals": false } },
+    { "wait_until": { "node": ".", "prop": "state", "equals": "racing" }, "timeout": 900 },
+    { "press": "HUD/PauseButton" },
+    { "press": "PauseMenu/RestartButton" },
+    { "assert": { "node": "PauseMenu", "prop": "visible", "equals": false } },
+    { "assert": { "node": ".", "prop": "state", "equals": "countdown" } }
+  ]
+}

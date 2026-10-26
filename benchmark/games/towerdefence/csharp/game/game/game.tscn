@@ -1,0 +1,320 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://game/Game.cs" id="1_game"]
+[ext_resource type="Script" path="res://game/Field.cs" id="2_field"]
+[ext_resource type="Script" path="res://game/PauseMenu.cs" id="3_pause"]
+[ext_resource type="Script" path="res://game/ResultMenu.cs" id="4_result"]
+[ext_resource type="AudioStream" path="res://sounds/sfx/blip_select-6.wav" id="5_place"]
+[ext_resource type="AudioStream" path="res://sounds/sfx/explosion-6.wav" id="6_kill"]
+[ext_resource type="AudioStream" path="res://sounds/sfx/hit_hurt-6.wav" id="7_leak"]
+[ext_resource type="AudioStream" path="res://sounds/sfx/powerup-6.wav" id="8_win"]
+[ext_resource type="Texture2D" path="res://art/seed.png" id="9_seed"]
+
+[node name="Game" type="Node2D"]
+script = ExtResource("1_game")
+
+[node name="Camera" type="Camera2D" parent="."]
+position = Vector2(640, 360)
+
+[node name="Field" type="Node2D" parent="."]
+script = ExtResource("2_field")
+
+[node name="Store" type="Sprite2D" parent="."]
+scale = Vector2(0.6, 0.6)
+texture = ExtResource("9_seed")
+
+[node name="SfxPlace" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("5_place")
+volume_db = -6.0
+
+[node name="SfxKill" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("6_kill")
+volume_db = -10.0
+max_polyphony = 4
+
+[node name="SfxLeak" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("7_leak")
+
+[node name="SfxWin" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("8_win")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Flash" type="ColorRect" parent="HUD"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="MapLabel" type="Label" parent="HUD"]
+offset_left = 140.0
+offset_top = 12.0
+offset_right = 560.0
+offset_bottom = 48.0
+theme_override_font_sizes/font_size = 26
+text = "The Meadow"
+
+[node name="GoldLabel" type="Label" parent="HUD"]
+offset_left = 140.0
+offset_top = 60.0
+offset_right = 300.0
+offset_bottom = 94.0
+theme_override_font_sizes/font_size = 20
+text = "Sap: 120"
+
+[node name="LivesLabel" type="Label" parent="HUD"]
+offset_left = 310.0
+offset_top = 60.0
+offset_right = 470.0
+offset_bottom = 94.0
+theme_override_font_sizes/font_size = 20
+text = "Seeds: 20"
+
+[node name="WaveLabel" type="Label" parent="HUD"]
+offset_left = 480.0
+offset_top = 60.0
+offset_right = 720.0
+offset_bottom = 94.0
+theme_override_font_sizes/font_size = 20
+text = "Wave 1 / 4"
+
+[node name="InfoLabel" type="Label" parent="HUD"]
+offset_left = 140.0
+offset_top = 616.0
+offset_right = 900.0
+offset_bottom = 660.0
+theme_override_font_sizes/font_size = 18
+text = "Pick a tower, then a cell."
+autowrap_mode = 3
+
+[node name="SpeedButton" type="Button" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -550.0
+offset_top = 12.0
+offset_right = -350.0
+offset_bottom = 96.0
+grow_horizontal = 0
+focus_mode = 0
+theme_override_font_sizes/font_size = 20
+text = "Speed x1"
+autowrap_mode = 3
+
+[node name="PauseButton" type="Button" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -340.0
+offset_top = 12.0
+offset_right = -140.0
+offset_bottom = 96.0
+grow_horizontal = 0
+focus_mode = 0
+theme_override_font_sizes/font_size = 20
+text = "Pause"
+autowrap_mode = 3
+
+[node name="Towers" type="VBoxContainer" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -340.0
+offset_top = 120.0
+offset_right = -140.0
+offset_bottom = 388.0
+grow_horizontal = 0
+theme_override_constants/separation = 8
+
+[node name="ThornButton" type="Button" parent="HUD/Towers"]
+custom_minimum_size = Vector2(0, 84)
+theme_override_font_sizes/font_size = 18
+toggle_mode = true
+text = "Thorn Sprout: 50"
+autowrap_mode = 3
+
+[node name="PuffButton" type="Button" parent="HUD/Towers"]
+custom_minimum_size = Vector2(0, 84)
+theme_override_font_sizes/font_size = 18
+toggle_mode = true
+text = "Pollen Puff: 70"
+autowrap_mode = 3
+
+[node name="AcornButton" type="Button" parent="HUD/Towers"]
+custom_minimum_size = Vector2(0, 84)
+theme_override_font_sizes/font_size = 18
+toggle_mode = true
+text = "Acorn Mortar: 100"
+autowrap_mode = 3
+
+[node name="UpgradeButton" type="Button" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -340.0
+offset_top = 396.0
+offset_right = -140.0
+offset_bottom = 480.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 18
+text = "Upgrade"
+autowrap_mode = 3
+
+[node name="SellButton" type="Button" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -340.0
+offset_top = 488.0
+offset_right = -140.0
+offset_bottom = 572.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 18
+text = "Sell"
+autowrap_mode = 3
+
+[node name="NextWaveButton" type="Button" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -340.0
+offset_top = 580.0
+offset_right = -140.0
+offset_bottom = 664.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 20
+text = "Next wave"
+autowrap_mode = 3
+
+[node name="PauseMenu" type="CanvasLayer" parent="."]
+process_mode = 3
+layer = 10
+visible = false
+script = ExtResource("3_pause")
+
+[node name="Dim" type="ColorRect" parent="PauseMenu"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="Title" type="Label" parent="PauseMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -240.0
+offset_top = -190.0
+offset_right = 240.0
+offset_bottom = -130.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 40
+text = "Paused"
+horizontal_alignment = 1
+
+[node name="ResumeButton" type="Button" parent="PauseMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = -100.0
+offset_right = 180.0
+offset_bottom = -4.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 28
+text = "Resume"
+
+[node name="QuitButton" type="Button" parent="PauseMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = 20.0
+offset_right = 180.0
+offset_bottom = 116.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 28
+text = "Quit to menu"
+
+[node name="ResultMenu" type="CanvasLayer" parent="."]
+layer = 5
+visible = false
+script = ExtResource("4_result")
+
+[node name="Dim" type="ColorRect" parent="ResultMenu"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.5)
+
+[node name="Panel" type="ColorRect" parent="ResultMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -310.0
+offset_top = -260.0
+offset_right = 310.0
+offset_bottom = 260.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.09, 0.11, 0.1, 0.96)
+
+[node name="Box" type="VBoxContainer" parent="ResultMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -280.0
+offset_top = -230.0
+offset_right = 280.0
+offset_bottom = 230.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Title" type="Label" parent="ResultMenu/Box"]
+theme_override_font_sizes/font_size = 44
+text = "Victory"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="MessageLabel" type="Label" parent="ResultMenu/Box"]
+theme_override_font_sizes/font_size = 22
+text = "Cleared with 3 stars."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="NextButton" type="Button" parent="ResultMenu/Box"]
+custom_minimum_size = Vector2(0, 88)
+theme_override_font_sizes/font_size = 28
+text = "Next map"
+
+[node name="RetryButton" type="Button" parent="ResultMenu/Box"]
+custom_minimum_size = Vector2(0, 88)
+theme_override_font_sizes/font_size = 28
+text = "Retry"
+
+[node name="MenuButton" type="Button" parent="ResultMenu/Box"]
+custom_minimum_size = Vector2(0, 88)
+theme_override_font_sizes/font_size = 28
+text = "Back to menu"

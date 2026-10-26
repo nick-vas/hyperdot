@@ -1,0 +1,5 @@
+{
+  "frames": 7800,
+  "args": ["--autoplay", "--seed=1", "--no-save"],
+  "expect": ["[Run] track 1 finished P1", "[Run] track 2 finished", "[Run] track 3 finished", "[Run] victory"]
+}

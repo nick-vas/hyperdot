@@ -1,0 +1,6 @@
+[
+  { "id": "aphid", "name": "ENEMY_APHID", "hp": 29, "speed": 1.5, "reward": 4, "leak": 1, "size": 0.2 },
+  { "id": "beetle", "name": "ENEMY_BEETLE", "hp": 98, "speed": 0.9, "reward": 10, "leak": 2, "size": 0.3 },
+  { "id": "moth", "name": "ENEMY_MOTH", "hp": 34, "speed": 2.4, "reward": 6, "leak": 1, "size": 0.22 },
+  { "id": "slug_queen", "name": "ENEMY_SLUG_QUEEN", "hp": 50, "speed": 0.45, "reward": 80, "leak": 20, "size": 0.42 }
+]

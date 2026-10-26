@@ -1,0 +1,256 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/credits.gd"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.9.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\")"
+    },
+    {
+      "file": "main.tscn",
+      "find": "[node name=\"CreditsButton\" type=\"Button\" parent=\"Menu\"]\ncustom_minimum_size = Vector2(0, 88)\ntheme_override_font_sizes/font_size = 28\ntext = \"Credits\"\n\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "the track select, the race, settings, credits or\n## victory.",
+      "replace": "the track select, the race, settings or victory."
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "const CREDITS_SCENE := preload(\"res://ui/credits.tscn\")\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "@onready var _credits: Button = $Menu/CreditsButton\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "\t_credits.pressed.connect(show_credits)\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "\t_credits.text = tr(\"MENU_CREDITS\")\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/main.gd",
+      "find": "func show_credits() -> void:\n\tvar credits := CREDITS_SCENE.instantiate()\n\tcredits.name = \"Credits\"\n\tcredits.closed.connect(show_menu)\n\t_show(credits)\n\n\n",
+      "replace": ""
+    },
+    {
+      "file": "test/unit/test_car.gd",
+      "find": "\n\nfunc test_a_straight_run_is_the_same_at_30_and_120_ticks():\n\tvar slow := Car.new()\n\tvar fast := Car.new()\n\t_drive(slow, 1.0, 0.0, 4.0, 30)\n\t_drive(fast, 1.0, 0.0, 4.0, 120)\n\tassert_almost_eq(slow.speed, fast.speed, fast.speed * 0.02)\n\tassert_almost_eq(slow.position.x, fast.position.x, fast.position.x * 0.02)\n",
+      "replace": ""
+    },
+    {
+      "file": "test/unit/test_car.gd",
+      "find": "steering that needs speed, the grass, and the same handling at any\n## tick rate.",
+      "replace": "steering that needs speed and the grass."
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-playthrough",
+      "vars": {
+        "report": "since the physics rate went up to 120 ticks a second for smoother steering, the cars crawl round the tracks, and the bot that plays it through (playthrough.json) runs out of time before the last race is over"
+      },
+      "edits": [
+        {
+          "file": "project.godot",
+          "find": "common/physics_ticks_per_second=60",
+          "replace": "common/physics_ticks_per_second=120"
+        },
+        {
+          "file": "scripts/car.gd",
+          "find": "\tspeed /= 1.0 + drag * dt\n",
+          "replace": "\tspeed /= 1.0 + drag * TICK\n"
+        },
+        {
+          "file": "scripts/car.gd",
+          "find": "const RADIUS := 14.0\n",
+          "replace": "const RADIUS := 14.0\n## The physics tick the handling was tuned at.\nconst TICK := 1.0 / 60.0\n"
+        }
+      ],
+      "match": [
+        {
+          "file": "project.godot",
+          "pattern": "(?m)^common/physics_ticks_per_second=120\\s*$"
+        }
+      ],
+      "hidden": [
+        "hidden/test_hidden_tick_rate.gd"
+      ],
+      "reference": "solutions/beta/fix-playthrough",
+      "decoy": "solutions/beta/fix-playthrough-decoy"
+    },
+    {
+      "template": "fix-performance",
+      "vars": {
+        "situation": "many rivals race (the --rivals=N option, as in a stress run with --rivals=11), and the more there are the worse it gets"
+      },
+      "edits": [
+        {
+          "file": "scripts/track.gd",
+          "find": "## How many segments either side of a car's last segment its next nearest one is looked for.\nconst SEARCH_BACK := 3\nconst SEARCH_AHEAD := 8\n",
+          "replace": ""
+        },
+        {
+          "file": "scripts/track.gd",
+          "find": "## The nearest segment to a position: the index of its first point. With a hint (the segment the car was on last tick)\n## only the segments around it are looked at, and the whole loop only when that finds nothing on or near the road\n## (a car placed somewhere new, or cutting across the grass).\nfunc nearest(position: Vector2, hint := -1) -> int:\n\tif hint >= 0:\n\t\tvar best := -1\n\t\tvar best_distance := INF\n\t\tfor k in range(-SEARCH_BACK, SEARCH_AHEAD + 1):\n\t\t\tvar i := posmod(hint + k, path.size())\n\t\t\tvar d := _segment_distance_squared(position, i)\n\t\t\tif d < best_distance:\n\t\t\t\tbest_distance = d\n\t\t\t\tbest = i\n\t\tif best_distance <= width * width:\n\t\t\treturn best\n\treturn _nearest_anywhere(position)\n\n\nfunc _nearest_anywhere(position: Vector2) -> int:\n\tvar best := 0\n\tvar best_distance := INF\n\tfor i in path.size():\n\t\tvar d := _segment_distance_squared(position, i)\n\t\tif d < best_distance:\n\t\t\tbest_distance = d\n\t\t\tbest = i\n\treturn best\n\n\n",
+          "replace": "## The nearest segment to a position: the index of its first point.\nfunc nearest(position: Vector2) -> int:\n\tvar best := 0\n\tvar best_distance := INF\n\tfor i in path.size():\n\t\tvar d := _segment_distance_squared(position, i)\n\t\tif d < best_distance:\n\t\t\tbest_distance = d\n\t\t\tbest = i\n\treturn best\n\n\n"
+        },
+        {
+          "file": "scripts/race.gd",
+          "find": "\t\tcar.index = track.nearest(car.position, car.index)\n",
+          "replace": "\t\tcar.index = track.nearest(car.position)\n"
+        },
+        {
+          "file": "scripts/ghost.gd",
+          "find": "\tcar.index = track.nearest(car.position, car.index)\n",
+          "replace": "\tcar.index = track.nearest(car.position)\n"
+        },
+        {
+          "file": "scripts/car.gd",
+          "find": "## The track segment the car is on, kept by Race so the next lookup starts there.",
+          "replace": "## The track segment the car is on, kept by Race."
+        }
+      ],
+      "hidden": [
+        "hidden/test_hidden_lookups.gd"
+      ],
+      "reference": "solutions/beta/fix-performance"
+    },
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "the ghost of the best lap drifts away from the line the car drove, most for players on a gamepad, and does not cross the finish line at the lap time it shows"
+      },
+      "edits": [
+        {
+          "file": "scripts/race.gd",
+          "find": "\t\tvar throttle := Ghost.quantize(input.x)\n\t\tvar steer := Ghost.quantize(input.y)\n",
+          "replace": "\t\tvar throttle := input.x\n\t\tvar steer := input.y\n"
+        },
+        {
+          "file": "scripts/race.gd",
+          "find": "Every tick steps the cars in order with quantised inputs, so a race replays exactly from its grid and inputs.",
+          "replace": "Every tick steps the cars in order, so a race replays exactly from its grid and inputs."
+        },
+        {
+          "file": "scripts/ghost.gd",
+          "find": " Played back through Car on the same track, it drives the lap again exactly, because Race quantises every\n## input before a car uses it: what the ghost keeps is what the car was given.",
+          "replace": " Played back through Car on the same track, it drives the lap again."
+        }
+      ],
+      "unchanged": [
+        "test/unit/test_ghost.gd"
+      ],
+      "hidden": [
+        "hidden/test_hidden_ghost.gd"
+      ],
+      "reference": "solutions/beta/fix-bug",
+      "decoy": "solutions/beta/fix-bug-decoy"
+    },
+    {
+      "template": "fix-flow",
+      "vars": {
+        "report": "keys rebound in Settings work until the game is restarted, and then they are back to the defaults"
+      },
+      "edits": [
+        {
+          "file": "scripts/save_store.gd",
+          "find": "\tout.controls = data.get(\"controls\", {})\n",
+          "replace": ""
+        }
+      ],
+      "hidden": [
+        "hidden/test_hidden_controls_saved.gd"
+      ],
+      "reference": "solutions/beta/fix-flow"
+    },
+    {
+      "template": "add-feedback",
+      "vars": {
+        "report": "overtaking a rival feels flat"
+      },
+      "edits": [
+        {
+          "file": "game/game.gd",
+          "find": "\t_pop_place = 0.4\n\t_feedback(\"pop\")\n\t_play(_sfx_pass)\n",
+          "replace": "\t_pop_place = 0.4\n\t_feedback(\"pop\")\n"
+        }
+      ],
+      "reference": "solutions/beta/add-feedback"
+    },
+    {
+      "template": "fill-translations",
+      "vars": {
+        "locale": "French",
+        "report": "the panel shown at the end of a race partly in English"
+      },
+      "edits": [
+        {
+          "file": "i18n/strings.csv",
+          "find": "RESULT_TITLE,Finished,Arrivée\n",
+          "replace": "RESULT_TITLE,Finished,\n"
+        },
+        {
+          "file": "i18n/strings.csv",
+          "find": "RESULT_PLACE,Place %d of %d,Place %d sur %d\n",
+          "replace": "RESULT_PLACE,Place %d of %d,\n"
+        },
+        {
+          "file": "i18n/strings.csv",
+          "find": "RESULT_NEXT,Next track,Circuit suivant\n",
+          "replace": "RESULT_NEXT,Next track,\n"
+        }
+      ],
+      "unchanged": [
+        "game/result_menu.gd",
+        "game/game.tscn"
+      ],
+      "reference": "solutions/beta/fill-translations",
+      "decoy": "solutions/beta/fill-translations-decoy"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "track 3, Caldera Hairpins (TRACK_3), in data/tracks.json, with hairpins; a bot: with --autoplay (after --) the game plays from the main scene with a full-pace AI driving the player's car, track after track from --track=N (1 by default), prints [Run] track N finished P<place> when it takes the flag, retries a track it did not finish in the top two with the next seed, and after the third track prints [Run] victory and quits, every random choice (the grid) from generators seeded by --seed=N and nothing saved with --no-save; the bot must beat the rivals from the back of the grid; juice: print [juice] event race_start <ms>, [juice] event position_gained <ms> and [juice] event lap_completed <ms> in game time (ms), each answered within 100 ms by [juice] feedback sfx <ms> for a sound, and [juice] feedback flash <ms> for a visible flash at the start and [juice] feedback pop <ms> for a pop of the HUD's place or lap counter; and French: every visible text through tr() with an fr column in the translation table, menus and tracks included, and the settings screen (Menu/SettingsButton opens a child of Main named Settings) with a button Box/Languages/<Locale>Button per language, FrButton and EnButton, and Box/BackButton back to the menu"
+    },
+    "hidden": [
+      {
+        "from": "game/playthrough.json",
+        "to": "playthrough.json"
+      },
+      {
+        "from": "game/juice.json",
+        "to": "juice.json"
+      },
+      {
+        "from": "game/test/flows/settings.flow.json",
+        "to": "test/flows/settings.flow.json"
+      },
+      "hidden/test_hidden_french.gd",
+      "hidden/test_hidden_three_tracks.gd"
+    ],
+    "reference": "solutions/milestone-beta"
+  }
+}

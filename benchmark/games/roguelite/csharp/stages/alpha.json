@@ -1,0 +1,193 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/Credits.cs",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "test/flows/settings.flow.json"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.5.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\")"
+    },
+    {
+      "file": "main.tscn",
+      "find": "[node name=\"CreditsButton\" type=\"Button\" parent=\"Menu\"]\ncustom_minimum_size = Vector2(0, 84)\ntheme_override_font_sizes/font_size = 28\ntext = \"Credits\"\n\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/SaveStore.cs",
+      "find": "/// Version 2 is current; version 1 kept only the embers and the deepest floor, and players still have such files.\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/SaveStore.cs",
+      "find": "        int version = JsonData.Int(raw[\"version\"], 1);\n        if (version == 1)\n        {\n            // Version 1 had no shrine, no runs counted and no run kept: only the bank and the deepest floor.\n            data.Meta.Embers = Math.Max(0, JsonData.Int(raw[\"embers\"], 0));\n            data.Meta.BestFloor = Math.Max(0, JsonData.Int(raw[\"best\"], 0));\n            return data;\n        }\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/SaveStore.cs",
+      "find": "/// <summary>Any version's data as the current version.</summary>",
+      "replace": "/// <summary>The saved data, with defaults for anything missing.</summary>"
+    },
+    {
+      "file": "test/SaveStoreTest.cs",
+      "find": "    [TestCase]\n    public void A_version_1_save_keeps_its_embers_and_deepest_floor()\n    {\n        File.WriteAllText(_path, \"\"\"{\"version\": 1, \"embers\": 23, \"best\": 3}\"\"\");\n        SaveData data = new SaveStore(_path).Read();\n        AssertThat(data.Meta.Embers).IsEqual(23);\n        AssertThat(data.Meta.BestFloor).IsEqual(3);\n        AssertThat(data.Meta.Vigor).IsEqual(0);\n        AssertThat(data.Run).IsNull();\n    }\n\n",
+      "replace": ""
+    },
+    {
+      "file": "test/SaveStoreTest.cs",
+      "find": "/// <summary>SaveStore: reading, writing, the run kept for Continue, and the move from version 1.</summary>",
+      "replace": "/// <summary>SaveStore: reading, writing and the run kept for Continue.</summary>"
+    },
+    {
+      "file": "test/MetaTest.cs",
+      "find": "    [TestCase]\n    public void Runs_add_to_the_bank_and_keep_the_deepest_floor()\n    {\n        var save = new SaveData();\n        Meta.Bank(save, 6, 3, false);\n        Meta.Bank(save, 4, 1, false);\n        Meta.Bank(save, 5, 4, true);\n        AssertThat(save.Meta.Embers).IsEqual(10);\n        AssertThat(save.Meta.BestFloor).IsEqual(4);\n        AssertThat(save.Meta.Runs).IsEqual(3);\n    }\n\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/LaunchOptions.cs",
+      "find": "/// <summary>The game's own flags, after \"--\" on the command line: --autoplay, --seed=N, --no-save, --floor=N, --swarm=N.</summary>\npublic sealed class LaunchOptions\n{\n    public bool Autoplay { get; private set; }\n",
+      "replace": "/// <summary>The game's own flags, after \"--\" on the command line: --seed=N, --no-save, --floor=N, --swarm=N.</summary>\npublic sealed class LaunchOptions\n{\n"
+    },
+    {
+      "file": "scripts/LaunchOptions.cs",
+      "find": "            if (arg == \"--autoplay\")\n                options.Autoplay = true;\n            else if (arg == \"--no-save\")",
+      "replace": "            if (arg == \"--no-save\")"
+    },
+    {
+      "file": "test/LaunchOptionsTest.cs",
+      "find": "LaunchOptions.Parse(new[] { \"--autoplay\", \"--seed=7\", \"--no-save\", \"--floor=3\", \"--swarm=200\" });\n        AssertThat(options.Autoplay).IsTrue();\n",
+      "replace": "LaunchOptions.Parse(new[] { \"--seed=7\", \"--no-save\", \"--floor=3\", \"--swarm=200\" });\n"
+    },
+    {
+      "file": "test/LaunchOptionsTest.cs",
+      "find": "        AssertThat(options.Autoplay).IsFalse();\n",
+      "replace": ""
+    },
+    {
+      "file": "test/LaunchOptionsTest.cs",
+      "find": "/// <summary>LaunchOptions: the flags bot runs and tests pass after \"--\".</summary>",
+      "replace": "/// <summary>LaunchOptions: the flags runs and tests pass after \"--\".</summary>"
+    },
+    {
+      "file": "game/Game.cs",
+      "find": "        if (Options.Autoplay)\n            _bot = new Bot();\n",
+      "replace": ""
+    },
+    {
+      "file": "game/Game.cs",
+      "find": "        // On its own (a flow, or the game scene run alone) nobody listens; a bot run then ends here.\n        if (Options.Autoplay && Finished == null)\n            GetTree().Quit();\n",
+      "replace": ""
+    }
+  ],
+  "tasks": [
+    {
+      "template": "add-content",
+      "vars": {
+        "content": "floor 3, The Drowned Nave (its name under the key FLOOR_3 in i18n/strings.csv), in data/floors.json: 44 by 26 cells with 6 to 8 rooms, holding shades, bats and a new kind of enemy in data/enemies.json, the tallow brute (id brute, its name under the key ENEMY_BRUTE): 3 hp, blows of 2 damage, slower to step than a shade, and 3 embers. The floor must be fair: with the game's Bot in the wick's place at 5 hp (World.PlayOut with a new Bot() on Dungeon.Generate(seed * 1009 + 3, its spec), seeds 1 to 20, 7200 ticks each), it is cleared at least 15 times and costs the wick at least 10 hp over the twenty"
+      },
+      "hidden": [
+        "hidden/HiddenFloor3Test.cs",
+        {
+          "from": "hidden/floor3.flow.json",
+          "to": "test/flows/floor3.flow.json"
+        }
+      ],
+      "reference": "solutions/alpha/add-content"
+    },
+    {
+      "template": "fix-architecture",
+      "vars": {
+        "problem": "the architecture runner fails with an error in game/Creatures.cs (per-frame-lookup)"
+      },
+      "edits": [
+        {
+          "file": "game/Game.cs",
+          "find": "        _hpLabel.Text = TextFormat.Fill(Tr(\"HUD_HP\"), world.Wick.Hp, world.Wick.MaxHp);\n",
+          "replace": ""
+        },
+        {
+          "file": "game/Creatures.cs",
+          "find": "    public override void _Draw()\n",
+          "replace": "    public override void _Process(double delta)\n    {\n        if (_world != null)\n            GetNode<Label>(\"../HUD/HpLabel\").Text = TextFormat.Fill(Tr(\"HUD_HP\"), _world.Wick.Hp, _world.Wick.MaxHp);\n    }\n\n    public override void _Draw()\n"
+        }
+      ],
+      "hidden": [
+        "hidden/HiddenHpLabelTest.cs"
+      ],
+      "reference": "solutions/alpha/fix-architecture"
+    },
+    {
+      "template": "migrate-save",
+      "vars": {
+        "report": "their banked embers and their deepest floor are gone after the update. The previous version saved user://save.json as {\"version\": 1, \"embers\": <embers banked>, \"best\": <deepest floor reached>}, with no shrine, no runs counted, no run kept and no settings"
+      },
+      "hidden": [
+        "hidden/HiddenSaveMigrationTest.cs"
+      ],
+      "reference": "solutions/alpha/migrate-save"
+    },
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "when a run ends, the embers they had banked over earlier runs are gone: the bank holds only what the last run brought home"
+      },
+      "edits": [
+        {
+          "file": "scripts/Meta.cs",
+          "find": "        if (won)\n            meta.Embers = meta.Embers + runEmbers;\n        else\n            meta.Embers = meta.Embers + runEmbers / 2;\n",
+          "replace": "        if (won)\n            meta.Embers = runEmbers;\n        else\n            meta.Embers = runEmbers / 2;\n"
+        }
+      ],
+      "unchanged": [
+        "test/MetaTest.cs"
+      ],
+      "hidden": [
+        "hidden/HiddenBankTest.cs"
+      ],
+      "reference": "solutions/alpha/fix-bug",
+      "decoy": "solutions/alpha/fix-bug-decoy"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "a title menu as the main scene res://main.tscn (root Main) with Menu/StartButton, Menu/ContinueButton, Menu/ShrineButton, Menu/SettingsButton and Menu/QuitButton, where Start adds the game scene res://game/game.tscn as a child of Main named Game (hiding the menu), whose property floor_number is 1 and whose HUD/FloorLabel reads Floor 1: The Wax Cellar and HUD/HpLabel Wick: 5 / 5; pause: the button HUD/PauseButton of the game (or Escape) shows its PauseMenu node (a CanvasLayer with ResumeButton and QuitButton) and pauses the tree, ResumeButton hides it and resumes; floor 2, The Ossuary, in data/floors.json, with shades and a new kind of enemy in data/enemies.json, the cinder bat (id bat: 1 hp, quicker than a shade); a data.json for the kit's data runner; meta progress in a static Meta class (scripts/Meta.cs: Meta.Bank(SaveData save, int runEmbers, int floorReached, bool won) adds the run's embers to save.Meta.Embers, half of them rounded down after a death, keeps the deepest floor in save.Meta.BestFloor and counts save.Meta.Runs; Meta.BuyVigor(save) spends 5, then 10, then 15 embers for up to 3 levels of save.Meta.Vigor and returns whether it bought one; Meta.MaxHp(save) is 5 plus the vigor) spent at a shrine (Menu/ShrineButton opens a child of Main named Shrine with Box/VigorButton and Box/BackButton back to the menu); and a save by a SaveStore class (scripts/SaveStore.cs: new SaveStore(path) with Read() and Write(SaveData data), where SaveData has Meta, a MetaProgress with the int properties Embers, Vigor, BestFloor and Runs, and Run, the run in progress as the JsonObject Run.ToDict() gives, or null, kept at the start of each floor) in user://save.json, so that ContinueButton carries on that run on its floor (the game's Setup(Floors floors, LaunchOptions options, int maxHp, JsonObject? saved), called before it enters the tree, takes the saved run, and its properties floor_number and hp show the floor and hp it carries on with)"
+    },
+    "hidden": [
+      {
+        "from": "game/test/flows/start.flow.json",
+        "to": "test/flows/start.flow.json"
+      },
+      {
+        "from": "game/test/flows/pause.flow.json",
+        "to": "test/flows/pause.flow.json"
+      },
+      {
+        "from": "game/test/flows/shrine.flow.json",
+        "to": "test/flows/shrine.flow.json"
+      },
+      "hidden/HiddenAlphaTest.cs",
+      {
+        "from": "game/data.json",
+        "to": "data.json"
+      }
+    ],
+    "reference": "solutions/milestone-alpha"
+  }
+}

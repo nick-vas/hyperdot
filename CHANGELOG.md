@@ -1,6 +1,28 @@
 # Changelog
 
 ## Unreleased
+- **The staged programme's CI check runs one job per genre and language**, and only for the pairs whose game
+  changed (every pair when the harness or the programme changed, or when started by hand). One job per language ran
+  every genre in turn and no longer fitted its 150 minutes with ten genres; a pull request that adds one genre now
+  checks that genre alone.
+- **Two C# test runs at once no longer take each other's results.** gdUnit4Net's adapter reaches the Godot it starts
+  over a pipe with a fixed name, `gdunit4-message-pipe`, which .NET on Linux and macOS keeps as a socket in the temp
+  folder. Two `dotnet test` runs that shared `TMPDIR` (two `test` runs on C# projects, two staged-programme checks)
+  shared that socket: the second run's Godot replaced the first's, both adapters reached the second Godot, and the first
+  run failed with `gdUnit4 (tests not run)` ("found 32 tests but ran 0") although its tests were fine. The `dotnet`
+  and `gdunit4` runners now give each `dotnet test` a temp folder of its own through the `.runsettings`, in `/tmp`
+  when `TMPDIR` is too long for a socket path (which made every gdUnit4 run fail before), and remove it after the run.
+  `tests/Test-DotnetTempDir.ps1` runs two at once against a stand-in `dotnet` and Godot. Windows names its pipes
+  globally and is unchanged.
+- **The roguelite in C#.** Wickerdeep now has its C# version (`benchmark/games/roguelite/csharp/`), written from the
+  language-neutral contract in its `DESIGN.md`: the same scenes, scene tree, node names, data files, flows, bot and
+  juice runs and log lines, the same `--swarm=N` load, with 44 gdUnit4 tests in place of the GUT ones and a Linux
+  export only. Both versions generate with the engine's seeded generator, its draws in the same order, so a seed gives
+  the same floor and the enemies the same paths: the floors of seeds 1-20 and the bot's play of each match, and the bot
+  run prints the same log lines, line for line. Its four stages carry the same 17 tasks and three milestones as the
+  GDScript version, each with hidden checks in C# and a reference solution, most with a decoy; all pass
+  `tests/Test-GameProgramme.ps1 -Genre roguelite -Language csharp`. `DESIGN.md`'s "As built" records the port's
+  choices.
 - **The judge's calibration runs in CI.** `token-benchmark.yml` with `calibrate: <run id>` rebuilds the blind pairs
   of that run, checks they are the ones the owner judged (`benchmark/calibration/pilot-1.json` holds the verdicts and
   the answer key's hash), and has the candidate judges, cheapest first, judge them both ways until one agrees with the
@@ -11,6 +33,8 @@
   context the next developer needs now counts for the work, "as small as the task allows" is gone, and work that
   does different parts of a task is even. A second blind set (`Invoke-SideBySide.ps1 -ReviewIdPrefix q`, shown
   without the rubric) checks it on pairs it was not written from.
+  On it (run 34) neither judge passes either: Haiku agreed with the owner on 56% and with itself on 81%, Sonnet on
+  50% and 63%, mostly by picking the same position in both orders; `benchmark/PLAN.md` records it.
 - **The staged game programme's idle genre**, Duskhive, in GDScript (`benchmark/games/idle/`). A moth hive gathers
   glow at dusk: five producers whose prices grow geometrically, Buy 1, 10 or as many as the glow pays for, upgrades,
   and a dawn that trades a run's glow for embers. Every number is in data checked by the `data` runner; glow is a
@@ -21,6 +45,43 @@
   German and French), 62 GUT tests, five flows, a bot that greets six dawns with `--speed=60`, juice for every event,
   Linux, Web and Android presets, store art, credits and a plan; its four stages, tasks and milestones each have hidden
   checks, a reference and a decoy, and pass `tests/Test-GameProgramme.ps1 -Genre idle`.
+- **The staged game programme's racing genre**, Cinderloop, in GDScript (`benchmark/games/racing/`). Four little cars
+  race from above on three loops of cinder road: a car on a fixed physics step whose rates are all per second (drag
+  taken implicitly, so the top speed and a lap's time are the same at any tick rate and nothing in the simulation
+  calls `exp()`), laps counted by checkpoint gates crossed in order and direction, three AI rivals braking to a speed
+  profile of the racing line, the best lap kept as a ghost of quantised inputs that drives it again exactly, a chase
+  camera that looks ahead and eases by the second, and keys rebound in Settings while the gamepad keeps its bindings.
+  The release candidate has 69 GUT tests, five flows, a bot that wins the championship from the back of the grid,
+  juice, three languages, store art captured from the game and credits. Its four stages carry 17 tasks and three
+  milestones, each with hidden checks and a reference solution, several with a decoy; all pass
+  `tests/Test-GameProgramme.ps1 -Genre racing -Language gdscript`. `DESIGN.md` holds the language-neutral contract
+  for the C# port, which is still to come.
+- **The staged game programme's multiplayer arena**, Glimmerpit, in GDScript (`benchmark/games/arena/`). Up to four
+  glimmers fight last-one-standing rounds in a walled pit, first to three; bots fill every empty slot, so tests and
+  the bot run need no second machine, and players join and leave in the middle of a match. An authoritative server,
+  client prediction and reconciliation in whole pixels, hits decided by the server's own trace, an in-process link
+  that simulates the delay ENet cannot, ENet through `send_bytes`, and a dedicated server that takes part in `soak`
+  with clients that leave and rejoin. The release candidate has 51 GUT tests (ENet in one process among them), four
+  flows, a bot run with a guest who walks out and rejoins, juice, three languages, store art rendered from the game
+  and credits. Its four stages carry 17 tasks and three milestones, each with hidden checks and a reference solution,
+  most with a decoy; all pass `tests/Test-GameProgramme.ps1 -Genre arena -Language gdscript`. `DESIGN.md` holds the
+  language-neutral contract for the C# port, which is still to come.
+- **The narrative game in C#.** Saltmere Crossing now has its C# version (`benchmark/games/narrative/csharp/`), written
+  from the language-neutral contract in its `DESIGN.md`: the same scenes, scene tree, node names, story data,
+  translations, flows, bot and juice runs, with 53 gdUnit4 tests in place of the GUT ones and a Linux export only. The
+  story check searches in the same order, so the bot takes the same ways and its run prints the same log lines, line for
+  line. Its four stages carry the same 17 tasks and three milestones as the GDScript version, each with hidden checks in
+  C# and a reference solution, most with a decoy; all pass `tests/Test-GameProgramme.ps1 -Genre narrative -Language
+  csharp`. `DESIGN.md`'s "As built" records the port's choices.
+- **The tower defence in C#.** Bramblegate now has its C# version (`benchmark/games/towerdefence/csharp/`), written
+  from the language-neutral contract in its `DESIGN.md`: the same scenes, scene tree, node names, data files, flows,
+  swarm bench scene, bot and juice runs and log lines, with 63 gdUnit4 tests in place of the GUT ones and a Linux
+  export only. Paths come from `AStarGrid2D` with the same settings, pest speeds from the engine's seeded generator, and
+  movement keeps GDScript's mix of doubles and 32-bit vectors, so a seed plays the same battle in both: the bot run
+  prints the same lines at the same game times, and the bot's results on every map match for seeds 1 to 10, path
+  searches included. Its four stages carry the same 17 tasks and three milestones as the GDScript version, each with
+  hidden checks in C# and a reference solution, most with a decoy; all pass `tests/Test-GameProgramme.ps1 -Genre
+  towerdefence -Language csharp`. `DESIGN.md`'s "As built" records the port's choices.
 - **Bug reports pinned on their level.** `ci/godot/templates/addons/hyperdot_report_pins/`, an add-on a game copies:
   `bug_report.gd` saves the feedback key's report (`user://reports/<time>.json`: the line typed, the scene, the
   player's position and the camera's view in 2D or 3D, the seed, the commit, a screenshot), and the editor plugin pins
@@ -45,7 +106,7 @@
   The release candidate has 53 GUT tests, five flows, a bot that plans its way to every ending, juice, store art
   rendered from the game and credits. Its four stages carry 17 tasks and three milestones, each with hidden checks and
   a reference solution, most with a decoy; all pass `tests/Test-GameProgramme.ps1 -Genre narrative -Language
-  gdscript`. `DESIGN.md` holds the language-neutral contract for the C# port, which is still to come.
+  gdscript`. `DESIGN.md` holds the language-neutral contract for the C# port.
 - **The staged game programme's fifth genre: a top-down roguelite**, Wickerdeep, in GDScript
   (`benchmark/games/roguelite/`). A candle-bearer goes down four floors of a crypt, each generated from the run's seed
   (rooms joined by a spanning tree of corridors, every cell reachable, checked over sweeps of seeds), while shades, cinder
@@ -67,7 +128,7 @@
   three languages, store art rendered from the game and credits. Its four stages carry 17 tasks and three milestones,
   each with hidden checks and a reference solution, most with a decoy; all pass
   `tests/Test-GameProgramme.ps1 -Genre towerdefence -Language gdscript`. `DESIGN.md` holds the language-neutral
-  contract for the C# port, which is still to come.
+  contract for the C# port.
 - **The card game in C#.** Lanternfen now has its C# version (`benchmark/games/cards/csharp/`), written from the
   language-neutral contract in its `DESIGN.md`: the same scenes, node names, data files, flows, named phases, bot and
   juice runs, with 55 gdUnit4 tests in place of the GUT ones and a Linux export only. Both versions shuffle with the

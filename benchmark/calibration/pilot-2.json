@@ -1,0 +1,77 @@
+{
+  "note": "The owner's blind verdicts on the review page for the second staged pilot's pairs (q01-q16), judged without the rubric shown: A, B or even for each pair as the page showed it. The pairs the rubric was not written from, so a judge that agrees here has learnt the owner's standard rather than fitted it. The calibrate mode rebuilds the pairs with Invoke-SideBySide.ps1 -ReviewOut -ReviewIdPrefix q and checks keySha256 before scoring the candidate judges.",
+  "run": 40050460786,
+  "runNumber": 32,
+  "idPrefix": "q",
+  "keySha256": "55de2073603eea9903e379fba44b5af8c20bfbbe7c452db6a7aeb7e99b541284",
+  "candidates": [
+    "haiku",
+    "sonnet"
+  ],
+  "verdicts": [
+    {
+      "id": "q01",
+      "choice": "A"
+    },
+    {
+      "id": "q02",
+      "choice": "A"
+    },
+    {
+      "id": "q03",
+      "choice": "A"
+    },
+    {
+      "id": "q04",
+      "choice": "B"
+    },
+    {
+      "id": "q05",
+      "choice": "B"
+    },
+    {
+      "id": "q06",
+      "choice": "B"
+    },
+    {
+      "id": "q07",
+      "choice": "B"
+    },
+    {
+      "id": "q08",
+      "choice": "B"
+    },
+    {
+      "id": "q09",
+      "choice": "B"
+    },
+    {
+      "id": "q10",
+      "choice": "B"
+    },
+    {
+      "id": "q11",
+      "choice": "A"
+    },
+    {
+      "id": "q12",
+      "choice": "B"
+    },
+    {
+      "id": "q13",
+      "choice": "A"
+    },
+    {
+      "id": "q14",
+      "choice": "B"
+    },
+    {
+      "id": "q15",
+      "choice": "A"
+    },
+    {
+      "id": "q16",
+      "choice": "B"
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://ui/join.gd" id="1_join"]
+
+[node name="Join" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_join")
+
+[node name="Box" type="VBoxContainer" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -220.0
+offset_right = 260.0
+offset_bottom = 220.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Title" type="Label" parent="Box"]
+theme_override_font_sizes/font_size = 44
+text = "Join a match"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="AddressLabel" type="Label" parent="Box"]
+theme_override_font_sizes/font_size = 24
+text = "Host address"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="AddressEdit" type="LineEdit" parent="Box"]
+custom_minimum_size = Vector2(0, 84)
+theme_override_font_sizes/font_size = 26
+text = "127.0.0.1"
+alignment = 1
+
+[node name="JoinButton" type="Button" parent="Box"]
+custom_minimum_size = Vector2(0, 84)
+theme_override_font_sizes/font_size = 26
+text = "Join"
+
+[node name="BackButton" type="Button" parent="Box"]
+custom_minimum_size = Vector2(0, 84)
+theme_override_font_sizes/font_size = 26
+text = "Back"

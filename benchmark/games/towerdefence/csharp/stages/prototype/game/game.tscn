@@ -1,0 +1,142 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://game/Game.cs" id="1_game"]
+[ext_resource type="Script" path="res://game/Field.cs" id="2_field"]
+[ext_resource type="Texture2D" path="res://art/seed.png" id="9_seed"]
+
+[node name="Game" type="Node2D"]
+script = ExtResource("1_game")
+
+[node name="Camera" type="Camera2D" parent="."]
+position = Vector2(640, 360)
+
+[node name="Field" type="Node2D" parent="."]
+script = ExtResource("2_field")
+
+[node name="Store" type="Sprite2D" parent="."]
+scale = Vector2(0.6, 0.6)
+texture = ExtResource("9_seed")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Flash" type="ColorRect" parent="HUD"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="MapLabel" type="Label" parent="HUD"]
+offset_left = 140.0
+offset_top = 12.0
+offset_right = 560.0
+offset_bottom = 48.0
+theme_override_font_sizes/font_size = 26
+text = "The Meadow"
+
+[node name="GoldLabel" type="Label" parent="HUD"]
+offset_left = 140.0
+offset_top = 60.0
+offset_right = 300.0
+offset_bottom = 94.0
+theme_override_font_sizes/font_size = 20
+text = "Sap: 120"
+
+[node name="LivesLabel" type="Label" parent="HUD"]
+offset_left = 310.0
+offset_top = 60.0
+offset_right = 470.0
+offset_bottom = 94.0
+theme_override_font_sizes/font_size = 20
+text = "Seeds: 20"
+
+[node name="WaveLabel" type="Label" parent="HUD"]
+offset_left = 480.0
+offset_top = 60.0
+offset_right = 720.0
+offset_bottom = 94.0
+theme_override_font_sizes/font_size = 20
+text = "Wave 1 / 4"
+
+[node name="InfoLabel" type="Label" parent="HUD"]
+offset_left = 140.0
+offset_top = 616.0
+offset_right = 900.0
+offset_bottom = 660.0
+theme_override_font_sizes/font_size = 18
+text = "Pick a tower, then a cell."
+autowrap_mode = 3
+
+[node name="SpeedButton" type="Button" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -550.0
+offset_top = 12.0
+offset_right = -350.0
+offset_bottom = 96.0
+grow_horizontal = 0
+focus_mode = 0
+theme_override_font_sizes/font_size = 20
+text = "Speed x1"
+autowrap_mode = 3
+
+[node name="Towers" type="VBoxContainer" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -340.0
+offset_top = 120.0
+offset_right = -140.0
+offset_bottom = 388.0
+grow_horizontal = 0
+theme_override_constants/separation = 8
+
+[node name="ThornButton" type="Button" parent="HUD/Towers"]
+custom_minimum_size = Vector2(0, 84)
+theme_override_font_sizes/font_size = 18
+toggle_mode = true
+text = "Thorn Sprout: 50"
+autowrap_mode = 3
+
+[node name="PuffButton" type="Button" parent="HUD/Towers"]
+custom_minimum_size = Vector2(0, 84)
+theme_override_font_sizes/font_size = 18
+toggle_mode = true
+text = "Pollen Puff: 70"
+autowrap_mode = 3
+
+[node name="AcornButton" type="Button" parent="HUD/Towers"]
+custom_minimum_size = Vector2(0, 84)
+theme_override_font_sizes/font_size = 18
+toggle_mode = true
+text = "Acorn Mortar: 100"
+autowrap_mode = 3
+
+[node name="UpgradeButton" type="Button" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -340.0
+offset_top = 396.0
+offset_right = -140.0
+offset_bottom = 480.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 18
+text = "Upgrade"
+autowrap_mode = 3
+
+[node name="NextWaveButton" type="Button" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -340.0
+offset_top = 580.0
+offset_right = -140.0
+offset_bottom = 664.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 20
+text = "Next wave"
+autowrap_mode = 3

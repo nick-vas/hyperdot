@@ -1,0 +1,8 @@
+[
+  { "id": "thorn_2", "tower": "thorn", "level": 2, "cost": 40, "damage": 6, "range": 2.75, "reload": 18 },
+  { "id": "thorn_3", "tower": "thorn", "level": 3, "cost": 70, "damage": 9, "range": 3.0, "reload": 15 },
+  { "id": "puff_2", "tower": "puff", "level": 2, "cost": 50, "damage": 3, "range": 2.25, "reload": 26 },
+  { "id": "puff_3", "tower": "puff", "level": 3, "cost": 80, "damage": 5, "range": 2.5, "reload": 22 },
+  { "id": "acorn_2", "tower": "acorn", "level": 2, "cost": 70, "damage": 20, "range": 3.75, "reload": 64 },
+  { "id": "acorn_3", "tower": "acorn", "level": 3, "cost": 110, "damage": 30, "range": 4.0, "reload": 58 }
+]

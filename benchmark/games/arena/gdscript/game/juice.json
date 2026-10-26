@@ -1,0 +1,34 @@
+{
+  "frames": 2400,
+  "args": [
+    "--autoplay",
+    "--seed=1",
+    "--no-save"
+  ],
+  "rules": [
+    {
+      "event": "shot_fired",
+      "feedback": [
+        "sfx"
+      ],
+      "withinMs": 100
+    },
+    {
+      "event": "player_hit",
+      "feedback": [
+        "flash",
+        "sfx"
+      ],
+      "withinMs": 100
+    },
+    {
+      "event": "player_out",
+      "feedback": [
+        "pop",
+        "shake",
+        "sfx"
+      ],
+      "withinMs": 100
+    }
+  ]
+}

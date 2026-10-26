@@ -1,0 +1,13 @@
+{
+  "name": "Floor 3 starts with its name and its enemies",
+  "scene": "res://game/game.tscn",
+  "seed": 1,
+  "steps": [
+    { "wait": 2 },
+    { "call": ".", "method": "start_floor", "args": [3] },
+    { "wait": 2 },
+    { "assert": { "node": ".", "prop": "floor_number", "equals": 3 } },
+    { "assert": { "node": "HUD/FloorLabel", "prop": "text", "equals": "Floor 3: The Drowned Nave" } },
+    { "assert": { "node": ".", "prop": "enemies_left", "gt": 0 } }
+  ]
+}

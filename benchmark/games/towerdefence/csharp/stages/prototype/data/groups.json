@@ -1,0 +1,6 @@
+[
+  { "id": "meadow_1a", "wave": "meadow_1", "enemy": "aphid", "count": 8, "gap": 50, "delay": 0 },
+  { "id": "meadow_2a", "wave": "meadow_2", "enemy": "aphid", "count": 12, "gap": 35, "delay": 0 },
+  { "id": "meadow_3a", "wave": "meadow_3", "enemy": "beetle", "count": 4, "gap": 70, "delay": 0 },
+  { "id": "meadow_3b", "wave": "meadow_3", "enemy": "aphid", "count": 8, "gap": 40, "delay": 100 }
+]

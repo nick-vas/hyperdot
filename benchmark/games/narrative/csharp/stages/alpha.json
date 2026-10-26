@@ -1,0 +1,174 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/Credits.cs",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "test/flows/settings.flow.json"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.5.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\")"
+    },
+    {
+      "file": "main.tscn",
+      "find": "[node name=\"CreditsButton\" type=\"Button\" parent=\"Menu\"]\ncustom_minimum_size = Vector2(0, 88)\ntheme_override_font_sizes/font_size = 28\ntext = \"Credits\"\n\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/SaveStore.cs",
+      "find": "/// Version 2 is current; version 1 kept only the choices taken and the endings found, and players still have such files.\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/SaveStore.cs",
+      "find": "        int version = JsonData.Int(raw[\"version\"], 1);\n        if (version == 1)\n        {\n            // Version 1 kept the choices taken and the endings found: replaying the choices gives the node and the flags.\n            data.Endings.AddRange(JsonData.UniqueIds(raw[\"found\"]));\n            List<string> taken = JsonData.UniqueIds(raw[\"choices\"]);\n            if (taken.Count > 0)\n                data.Story = Story.Replay(StoryGraph.FromFiles(), taken).ToDict();\n            return data;\n        }\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/SaveStore.cs",
+      "find": "/// <summary>Any version's data as the current version.</summary>",
+      "replace": "/// <summary>The saved data, with defaults for anything missing.</summary>"
+    },
+    {
+      "file": "test/SaveStoreTest.cs",
+      "find": "    [TestCase]\n    public void A_version_1_save_keeps_its_story_and_endings()\n    {\n        File.WriteAllText(_path, \"\"\"{\"version\": 1, \"choices\": [\"dock_greet\", \"toll_lie\", \"launch_row\"], \"found\": [\"return\"]}\"\"\");\n        SaveData data = new SaveStore(_path).Read();\n        AssertThat(data.Endings).ContainsExactly(\"return\");\n        Story story = Story.FromDict(StoryGraph.FromFiles(), data.Story!);\n        AssertThat(story.NodeId).IsEqual(\"fog\");\n        AssertThat(story.Flags[\"trust\"]).IsEqual(1);\n        AssertThat(story.Flags[\"lied\"]).IsEqual(1);\n    }\n\n",
+      "replace": ""
+    },
+    {
+      "file": "test/SaveStoreTest.cs",
+      "find": "/// <summary>SaveStore: reading, writing and the move from version 1.</summary>",
+      "replace": "/// <summary>SaveStore: reading and writing.</summary>"
+    },
+    {
+      "file": "scripts/LaunchOptions.cs",
+      "find": "/// <summary>The game's own flags, after \"--\" on the command line: --autoplay, --no-save.</summary>\npublic sealed class LaunchOptions\n{\n    /// <summary>The bot plays the story through to every ending, one after another, then quits.</summary>\n    public bool Autoplay { get; private set; }\n",
+      "replace": "/// <summary>The game's own flags, after \"--\" on the command line: --no-save.</summary>\npublic sealed class LaunchOptions\n{\n"
+    },
+    {
+      "file": "scripts/LaunchOptions.cs",
+      "find": "            if (arg == \"--autoplay\")\n                options.Autoplay = true;\n            else if (arg == \"--no-save\")",
+      "replace": "            if (arg == \"--no-save\")"
+    },
+    {
+      "file": "test/LaunchOptionsTest.cs",
+      "find": "LaunchOptions.Parse(new[] { \"--autoplay\", \"--no-save\" });\n        AssertThat(options.Autoplay).IsTrue();\n",
+      "replace": "LaunchOptions.Parse(new[] { \"--no-save\" });\n"
+    },
+    {
+      "file": "test/LaunchOptionsTest.cs",
+      "find": "        AssertThat(options.Autoplay).IsFalse();\n",
+      "replace": ""
+    },
+    {
+      "file": "test/LaunchOptionsTest.cs",
+      "find": "/// <summary>LaunchOptions: the flags bot runs and tests pass after \"--\".</summary>",
+      "replace": "/// <summary>LaunchOptions: the flags runs and tests pass after \"--\".</summary>"
+    }
+  ],
+  "tasks": [
+    {
+      "template": "add-content",
+      "vars": {
+        "content": "a third ending, the drowned bell. At the crossing, a new once-only question, ask_bell, leads to a new node, bell_tale, where the stranger tells of the bell of Old Hensmouth still ringing under the water; asking sets a new flag, knows_bell, and from bell_tale the player rows on back to the crossing. At the far bank, a new choice, to_tower, offered only to a player who knows of the bell, leads to a new node, bell_tower, whose choice ring_bell ends the story at a new node, end_bell, the ending bell in data/endings.json with its title under the key ENDING_BELL; from bell_tower the player can also row back to the far bank. Every new line, choice and title needs its English text in i18n/strings.csv within the length limits of its kind, and the other two endings must stay as they are"
+      },
+      "hidden": [
+        "hidden/HiddenBellTest.cs"
+      ],
+      "reference": "solutions/alpha/add-content"
+    },
+    {
+      "template": "fix-architecture",
+      "vars": {
+        "problem": "the architecture runner fails with an error in story/Backdrop.cs (per-frame-lookup)"
+      },
+      "edits": [
+        {
+          "file": "story/StoryScene.cs",
+          "find": "        _chapterLabel.Text = Tr(ChapterKeys[Math.Clamp(chapter, 0, ChapterKeys.Length - 1)]);\n",
+          "replace": ""
+        },
+        {
+          "file": "story/Backdrop.cs",
+          "find": "    public override void _Draw()\n",
+          "replace": "    public override void _Process(double delta)\n    {\n        GetNode<Label>(\"../HUD/ChapterLabel\").Text = Tr($\"CHAPTER_{Chapter}\");\n    }\n\n    public override void _Draw()\n"
+        }
+      ],
+      "hidden": [
+        "hidden/HiddenChapterLabelTest.cs"
+      ],
+      "reference": "solutions/alpha/fix-architecture"
+    },
+    {
+      "template": "migrate-save",
+      "vars": {
+        "report": "Continue is gone and the endings they had found are forgotten after the update. The previous version saved user://save.json as {\"version\": 1, \"choices\": [<the ids of the choices taken in the story in progress, in order>], \"found\": [<the ids of the endings found>]}, with no node, flags or settings"
+      },
+      "hidden": [
+        "hidden/HiddenSaveMigrationTest.cs"
+      ],
+      "reference": "solutions/alpha/migrate-save"
+    },
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "after Continue, the story has forgotten what they said before they quit: the stranger acts as if they had never won her trust, they cannot bring the boat in at the far bank, and a lie they told about the toll can no longer be confessed"
+      },
+      "edits": [
+        {
+          "file": "scripts/Story.cs",
+          "find": "            [\"flags\"] = FlagValues(),\n",
+          "replace": ""
+        }
+      ],
+      "unchanged": [
+        "test/StorySaveTest.cs"
+      ],
+      "hidden": [
+        "hidden/HiddenFlagsSavedTest.cs"
+      ],
+      "reference": "solutions/alpha/fix-bug",
+      "decoy": "solutions/alpha/fix-bug-decoy"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "a title menu as the main scene res://main.tscn (root Main) with Menu/NewButton, Menu/ContinueButton, Menu/SettingsButton and Menu/QuitButton, where New story adds the story scene res://story/story.tscn as a child of Main named Story; in the story scene, a history (HUD/HistoryButton shows a CanvasLayer named History whose Box/Scroll/Lines label lists the lines so far and the choices taken, and whose Box/CloseButton hides it) and pause (Escape or HUD/PauseButton shows the scene's PauseMenu, a CanvasLayer with ResumeButton and QuitButton, and pauses the tree; ResumeButton hides it and resumes); once-only choices (\"once\": true in data/choices.json, read into a public bool property Once of each Choice, offered only until taken in this story) for the stranger's questions ask_name and ask_cargo; a data.json for the kit's data runner covering the story's tables; a story check, StoryCheck.Problems(graph) in scripts/StoryCheck.cs (a list of sentences), listing what is wrong with a story (a choice into a missing node, a node or an ending no order of choices reaches, a flag never set or never read) and empty for the game's; and a save by a SaveStore class (scripts/SaveStore.cs: new SaveStore(path) with Read() and Write(SaveData data), where SaveData has Story, the story in progress as the JsonObject Story.ToDict() gives (its node, flags and history) or null, and Endings, the list of the endings found, read back by Story.FromDict(graph, data)) in user://save.json, written at every line shown, so that ContinueButton carries on from that line"
+    },
+    "hidden": [
+      {
+        "from": "game/test/flows/start.flow.json",
+        "to": "test/flows/start.flow.json"
+      },
+      {
+        "from": "game/test/flows/pause.flow.json",
+        "to": "test/flows/pause.flow.json"
+      },
+      {
+        "from": "game/test/flows/history.flow.json",
+        "to": "test/flows/history.flow.json"
+      },
+      "hidden/HiddenAlphaTest.cs",
+      {
+        "from": "game/data.json",
+        "to": "data.json"
+      }
+    ],
+    "reference": "solutions/milestone-alpha"
+  }
+}

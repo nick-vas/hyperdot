@@ -85,6 +85,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-Flaky.ps1` | `test -Retry` and `quarantine.json` (`flaky-fixture`, GUT) | Godot; `-NoGodot` for the synthetic part |
 | `Test-ErrorKeys.ps1` | error keys and `status`'s `recurringErrors` (`errorkeys-fixture`) | Godot, git; `-NoGodot` for the synthetic part |
 | `Test-TestsNotRun.ps1` | the `dotnet` runner's guard against gdUnit4 tests found but not run (synthetic TRX) | - |
+| `Test-DotnetTempDir.ps1` | the `dotnet` and `gdunit4` runners giving each `dotnet test` its own temp folder: two runs at once under one TMPDIR reach their own Godot over gdUnit4Net's pipe, also under a TMPDIR too long for a socket, and leave no folder behind (pwsh stands in for dotnet and Godot; passes with a note on Windows) | - |
 | `Test-FailureDelta.ps1` | `test`'s failure delta against the previous run (synthetic history) | - |
 | `Test-TestDuration.ps1` | `status`'s test duration (synthetic history) | - |
 | `Test-Handoffs.ps1` | the handoff log: `status -Handoff` writes one line with the commit, keeps the newest 200, refuses bad arguments; `status` reads it back | git |

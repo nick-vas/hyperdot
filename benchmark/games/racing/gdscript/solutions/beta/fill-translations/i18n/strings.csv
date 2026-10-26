@@ -1,0 +1,43 @@
+keys,en,fr
+MENU_TITLE,Cinderloop,Cinderloop
+MENU_START,Race,Courir
+MENU_SETTINGS,Settings,Réglages
+MENU_QUIT,Quit,Quitter
+MENU_VERSION,Version %s,Version %s
+SELECT_TITLE,Choose a track,Choisissez un circuit
+SELECT_BEST,best %s,record %s
+SELECT_BACK,Back,Retour
+TRACK_1,Ashfall Oval,Ovale des Cendres
+TRACK_2,Ember Esses,S de la Braise
+TRACK_3,Caldera Hairpins,Épingles de la Caldeira
+HUD_PAUSE,Pause,Pause
+HUD_LAP,Lap %d/%d,Tour %d/%d
+HUD_POSITION,P%d/%d,P%d/%d
+HUD_TIME,Lap %s,Tour %s
+HUD_BEST,Best %s,Record %s
+HUD_GO,GO!,PARTEZ !
+PAUSE_TITLE,Paused,Pause
+PAUSE_RESUME,Resume,Reprendre
+PAUSE_RESTART,Restart,Recommencer
+PAUSE_QUIT,Quit to menu,Quitter vers le menu
+RESULT_TITLE,Finished,Arrivée
+RESULT_PLACE,Place %d of %d,Place %d sur %d
+RESULT_BEST,Best lap %s,Meilleur tour %s
+RESULT_NEXT,Next track,Circuit suivant
+RESULT_RETRY,Retry,Rejouer
+RESULT_MENU,Menu,Menu
+SETTINGS_TITLE,Settings,Réglages
+SETTINGS_VOLUME,Volume,Volume
+SETTINGS_LANGUAGE,Language,Langue
+SETTINGS_CONTROLS,Keys,Touches
+SETTINGS_PRESS_KEY,Press a key,Appuyez sur une touche
+SETTINGS_BACK,Back,Retour
+CONTROL_ACCELERATE,Accelerate,Accélérer
+CONTROL_BRAKE,Brake,Freiner
+CONTROL_LEFT,Steer left,Tourner à gauche
+CONTROL_RIGHT,Steer right,Tourner à droite
+LANG_EN,English,English
+LANG_FR,Français,Français
+VICTORY_TITLE,Champion,Champion
+VICTORY_MESSAGE,Every track of the cinder loop is yours.,Tous les circuits de cendre sont à vous.
+VICTORY_MENU,Back to menu,Retour au menu
