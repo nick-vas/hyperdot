@@ -1,0 +1,8 @@
+[
+  { "id": "twin_wicks", "name": "UPGRADE_TWIN_WICKS", "target": "wick_moth", "multiplier": 2, "cost": 150, "needs": 10 },
+  { "id": "warm_hands", "name": "UPGRADE_WARM_HANDS", "target": "tap", "multiplier": 5, "cost": 300, "needs": 0 },
+  { "id": "silver_trails", "name": "UPGRADE_SILVER_TRAILS", "target": "glow_snail", "multiplier": 2, "cost": 2000, "needs": 10 },
+  { "id": "choir_harmony", "name": "UPGRADE_CHOIR_HARMONY", "target": "firefly_choir", "multiplier": 2, "cost": 25000, "needs": 10 },
+  { "id": "night_dew", "name": "UPGRADE_NIGHT_DEW", "target": "moon_lily", "multiplier": 2, "cost": 300000, "needs": 10 },
+  { "id": "dusk_bloom", "name": "UPGRADE_DUSK_BLOOM", "target": "all", "multiplier": 1.5, "cost": 1000000, "needs": 50 }
+]

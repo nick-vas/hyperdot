@@ -1,0 +1,57 @@
+keys,en,de,fr
+HUD_GLOW,%s glow,%s Glimmen,%s lueur
+HUD_RATE,The hive makes %s,Der Schwarm macht %s,La ruche produit %s
+HUD_EMBERS,Embers: %s (+%d%% glow),Glutfunken: %s (+%d%% Glimmen),Braises : %s (+%d%% de lueur)
+GATHER,Gather +%s,Sammeln +%s,Récolter +%s
+PAGE_PRODUCERS,Producers,Erzeuger,Producteurs
+PAGE_UPGRADES,Upgrades,Verbesserungen,Améliorations
+MODE_ONE,Buy 1,Kaufe 1,Acheter 1
+MODE_TEN,Buy 10,Kaufe 10,Acheter 10
+MODE_MAX,Buy max,Kaufe max,Acheter max
+BAR_PRODUCERS,Producers,Erzeuger,Producteurs
+BAR_UPGRADES,Upgrades,Verbesserungen,Améliorations
+BAR_DAWN,Dawn,Morgengrauen,Aube
+BAR_SETTINGS,Settings,Einstellungen,Réglages
+ROW_DETAIL,%d owned · %s,%d im Besitz · %s,%d possédés · %s
+ROW_BUY,"Buy %d
+%s","Kaufe %d
+%s","Acheter %d
+%s"
+UPGRADE_DETAIL,%s ×%s,%s ×%s,%s ×%s
+TARGET_ALL,Everything,Alles,Tout
+TARGET_TAP,Gathering,Sammeln,Récolte
+PRODUCER_WICK_MOTH,Wick Moth,Dochtmotte,Phalène à mèche
+PRODUCER_GLOW_SNAIL,Glow Snail,Glühschnecke,Escargot luisant
+PRODUCER_FIREFLY_CHOIR,Firefly Choir,Glühwürmchenchor,Chœur de lucioles
+PRODUCER_MOON_LILY,Moon Lily,Mondlilie,Lys de lune
+PRODUCER_STAR_LOOM,Star Loom,Sternenwebstuhl,Métier d'étoiles
+UPGRADE_TWIN_WICKS,Twin Wicks,Doppeldochte,Mèches jumelles
+UPGRADE_WARM_HANDS,Warm Hands,Warme Hände,Mains chaudes
+UPGRADE_SILVER_TRAILS,Silver Trails,Silberspuren,Traînées d'argent
+UPGRADE_CHOIR_HARMONY,Choir Harmony,Chorharmonie,Harmonie du chœur
+UPGRADE_NIGHT_DEW,Night Dew,Nachttau,Rosée nocturne
+UPGRADE_DUSK_BLOOM,Dusk Bloom,Dämmerblüte,Floraison du crépuscule
+UPGRADE_STAR_THREAD,Star Thread,Sternenfaden,Fil d'étoile
+WELCOME_TITLE,Welcome back,Willkommen zurück,Bon retour
+WELCOME_MESSAGE,You were away for %s. The hive gathered %s glow.,Du warst %s fort. Der Schwarm hat %s Glimmen gesammelt.,Vous étiez absent %s. La ruche a récolté %s de lueur.
+WELCOME_COLLECT,Collect,Einsammeln,Récupérer
+TIME_HOURS,%d h %02d min,%d Std. %02d Min.,%d h %02d min
+TIME_MINUTES,%d min,%d Min.,%d min
+DAWN_TITLE,Dawn,Morgengrauen,Aube
+DAWN_MESSAGE,"The hive sleeps through the day: glow, producers and upgrades are gone, and %s new embers stay, each adding %d%% to all glow.","Der Schwarm schläft den Tag hindurch: Glimmen, Erzeuger und Verbesserungen verschwinden, und %s neue Glutfunken bleiben, jeder mit %d%% mehr Glimmen.","La ruche dort tout le jour : lueur, producteurs et améliorations disparaissent, et %s nouvelles braises restent, chacune ajoutant %d%% à toute la lueur."
+DAWN_CONFIRM,Greet the dawn,Den Morgen begrüßen,Saluer l'aube
+DAWN_CANCEL,Not yet,Noch nicht,Pas encore
+SETTINGS_TITLE,Settings,Einstellungen,Réglages
+SETTINGS_VOLUME,Volume,Lautstärke,Volume
+SETTINGS_LANGUAGE,Language,Sprache,Langue
+SETTINGS_CREDITS,Credits,Mitwirkende,Crédits
+SETTINGS_BACK,Back,Zurück,Retour
+SETTINGS_VERSION,Version %s,Version %s,Version %s
+LANG_EN,English,English,English
+LANG_DE,Deutsch,Deutsch,Deutsch
+LANG_FR,Français,Français,Français
+CREDITS_TITLE,Credits,Mitwirkende,Crédits
+CREDITS_BACK,Back,Zurück,Retour
+CREDITS_THIRD_PARTY,Third-party,Fremdinhalte,Contenus tiers
+CREDITS_THANKS,Thanks,Dank,Remerciements
+CREDITS_ENGINE,Engine,Engine,Moteur

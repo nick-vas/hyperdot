@@ -1,0 +1,20 @@
+{
+  "name": "A million glow lights the Dawn button; its panel can be closed, and confirming it trades the run for an ember",
+  "scene": "res://game/game.tscn",
+  "seed": 1,
+  "steps": [
+    { "wait": 1 },
+    { "assert": { "node": "Safe/Column/Bar/DawnButton", "prop": "disabled", "equals": true } },
+    { "call": ".", "method": "add_glow", "args": [1000000] },
+    { "assert": { "node": "Safe/Column/Bar/DawnButton", "prop": "disabled", "equals": false } },
+    { "press": "Safe/Column/Bar/DawnButton" },
+    { "assert": { "node": "DawnPanel", "prop": "visible", "equals": true } },
+    { "press": "DawnPanel/Box/CancelButton" },
+    { "assert": { "node": "DawnPanel", "prop": "visible", "equals": false } },
+    { "press": "Safe/Column/Bar/DawnButton" },
+    { "press": "DawnPanel/Box/ConfirmButton" },
+    { "wait": 1 },
+    { "assert": { "node": "Safe/Column/Top/EmbersLabel", "prop": "text", "equals": "Embers: 1 (+10% glow)" } },
+    { "assert": { "node": "Safe/Column/Top/GlowLabel", "prop": "text", "equals": "0 glow" } }
+  ]
+}
