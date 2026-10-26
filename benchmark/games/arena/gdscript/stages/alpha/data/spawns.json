@@ -1,0 +1,6 @@
+[
+  { "id": "cinder_1", "court": "cinder_pit", "x": 80, "y": 80 },
+  { "id": "cinder_2", "court": "cinder_pit", "x": 1120, "y": 560 },
+  { "id": "cinder_3", "court": "cinder_pit", "x": 1120, "y": 80 },
+  { "id": "cinder_4", "court": "cinder_pit", "x": 80, "y": 560 }
+]
