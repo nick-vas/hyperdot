@@ -1,0 +1,16 @@
+{
+  "schema": "hyperdot-eval-grader-fixture/1",
+  "case": "lost-in-level",
+  "arm": "without",
+  "run": 1,
+  "source": "Evals run 6 (Actions run 39853578546, 2026-10-22)",
+  "note": "Without the plugin there is no skill to load.",
+  "rename": {},
+  "expect": {
+    "lost-in-level/skill-fired": false
+  },
+  "recorded": [],
+  "lastMessage": "**Diagnosis:** Testers find the tower because they're heading toward something. On the way back, they have no landmark ahead of them, and the junctions look the same from the reverse direction. A bigger minimap arrow treats the symptom. The stag is also a weak landmark because it moves, and a big animal in the middle of the forest is hard to read as \"north\" or \"camp is this way.\"\n\n**Changes, in priority order:**\n1. **Give the return trip a visible goal.** Put something tall and distinctive at camp, like a smoke column, a lantern glow, or a banner, and make it readable above the canopy or through gaps along the tower trail. Do the same for the tower, so it's visible from the trail back.\n2. **Design junctions for the reverse direction.** Give each trail its own look, such as a color, a stone cairn style, or a ground-cover change, and put a marker at every fork facing both ways. Test the junctions from the return direction specifically.\n3. **Make the stag a fixed reference.** Have it graze in one clearing, or patrol a small loop at the hub where the trails meet, with a distinct silhouette and sound. Don't let it roam.\n4. **Add a gentle fallback.** Use a compass or a \"camp direction\" prompt after N seconds off-trail, or a trail edge that funnels wanderers back. Leave the minimap arrow as it is.\n\n**How to check it worked:**\n- **Instrument it.** Log player position every 1 to 2 seconds. Record tower-to-camp time, number of wrong turns at each junction, and time spent off-trail. Draw heatmaps before and after.\n- **Run the same test on new players.** Use 5 to 8 people who haven't seen the level, and don't coach them. Compare against your current baseline.\n- **Set a target before you test.** For example, the median return takes no more than 1.5 times the outbound time, and fewer than 20% of testers wander for more than a minute.\n- **Check wayfinding directly.** At the tower, ask testers to point toward camp. Afterward, have them sketch the three trails. If the sketches are wrong, the landmarks aren't working, even if times improve.\n- **Watch for removed cues.** If you add the minimap arrow back as a crutch and times improve, the level still isn't readable.",
+  "tools": [],
+  "files": {}
+}

@@ -62,11 +62,9 @@ instead of 1.0: see [Versions](#versions).
   Trello run passes; the evals pass three runs in a row.
 - **1.0.0**: from then on a breaking change needs 2.0.
 
-Notes from the question round still open, each to be fixed, built or written down before 0.1.0 (numbers as first agreed):
-
-| # | Note | What to do |
-|---|---|---|
-| 6 | An eval grader was wrong for three runs before anyone looked | Test graders against real transcripts when they are written |
+Notes from the question round: none left for 0.1.0. Note 6 (an eval grader was wrong for three runs before anyone
+looked) is `tests/Test-EvalGraders.ps1` for the graders that need no model; note 11 waits until after 0.1.0 (To do).
+Checking the model graders the same way needs a model call per check, and is not built.
 
 ### Trello
 

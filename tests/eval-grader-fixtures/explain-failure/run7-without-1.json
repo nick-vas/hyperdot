@@ -1,0 +1,67 @@
+{
+  "schema": "hyperdot-eval-grader-fixture/1",
+  "case": "explain-failure",
+  "arm": "without",
+  "run": 1,
+  "source": "Evals run 7 (Actions run 39856750568, 2026-10-22)",
+  "note": "The right file and line, nothing edited.",
+  "rename": {},
+  "expect": {
+    "explain-failure/location": true,
+    "explain-failure/unchanged": true
+  },
+  "recorded": [
+    {
+      "grader": "location",
+      "type": "regex",
+      "config": {
+        "target": "last_message",
+        "pattern": "test_score\\.gd\\D{0,40}7\\b",
+        "flags": "",
+        "match": "contains"
+      },
+      "passed": true,
+      "explanation": "matched test_score\\.gd\\D{0,40}7\\b"
+    },
+    {
+      "grader": "unchanged",
+      "type": "tool_used",
+      "config": {
+        "tool": "Edit",
+        "min": 0,
+        "max": 0,
+        "arm": "both"
+      },
+      "passed": true,
+      "explanation": "Edit called 0x (expected 0..0)"
+    }
+  ],
+  "lastMessage": "**Failing test:** `test_every_fifth_hit_raises_the_multiplier` in `test/test_score.gd`, line 7: `assert_eq(score.hit(10), 25)`. The other two tests pass.\n\n**Expected vs. got:** the test expected `25` and got `20`.\n\n**Which side is wrong:** the test is wrong. The game is behaving as designed.\n\n- `Score.hit` in `score.gd` computes `value * (1 + combo / 5)`. It increments `combo` first, so the fifth hit has `combo == 5`. That gives `10 * (1 + 1) = 20`.\n- The test's name says every fifth hit raises the multiplier, and the game does that. The multiplier goes from 1× to 2×, which is 20 for a value of 10.\n- The test's expected `25` would need a 2.5× multiplier. Nothing in the game's code or the test's name suggests that. It looks like a miscalculated expectation.\n\nThe correct assertion would be `assert_eq(score.hit(10), 20)`. I didn't change anything, as you asked.\n\nTo run the tests I first had to run `godot --headless --import`. GUT refused to start until the project was imported. That created `.uid` files for the scripts and a `.godot` cache. I didn't edit any game or test code.",
+  "tools": [
+    {
+      "name": "Bash",
+      "input": {
+        "command": "ls; ls test* 2>/dev/null | head -30"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "ls addons addons/* test/flows; cat project.godot | head -30; cat test/test_score.gd score.gd"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "\"$EVAL_GODOT_BIN\" --headless -s addons/gut/gut_cmdln.gd -gdir=res://test -gexit 2>&1 | tail -40"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "\"$EVAL_GODOT_BIN\" --headless --import 2>&1 | tail -5; \"$EVAL_GODOT_BIN\" --headless -s addons/gut/gut_cmdln.gd -gdir=res://test -gexit 2>&1 | tail -40; git status --short"
+      }
+    }
+  ],
+  "files": {}
+}

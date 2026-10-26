@@ -1,0 +1,73 @@
+{
+  "schema": "hyperdot-eval-grader-fixture/1",
+  "case": "explain-failure",
+  "arm": "with",
+  "run": 1,
+  "source": "Evals run 7 (Actions run 39856750568, 2026-10-22)",
+  "note": "The first run that could run the tests: the right file and line, nothing edited.",
+  "rename": {},
+  "expect": {
+    "explain-failure/location": true,
+    "explain-failure/unchanged": true
+  },
+  "recorded": [
+    {
+      "grader": "location",
+      "type": "regex",
+      "config": {
+        "target": "last_message",
+        "pattern": "test_score\\.gd\\D{0,40}7\\b",
+        "flags": "",
+        "match": "contains"
+      },
+      "passed": true,
+      "explanation": "matched test_score\\.gd\\D{0,40}7\\b"
+    },
+    {
+      "grader": "unchanged",
+      "type": "tool_used",
+      "config": {
+        "tool": "Edit",
+        "min": 0,
+        "max": 0,
+        "arm": "both"
+      },
+      "passed": true,
+      "explanation": "Edit called 0x (expected 0..0)"
+    }
+  ],
+  "lastMessage": "**Failing test:** `test_every_fifth_hit_raises_the_multiplier` in `test/test_score.gd`, line 7: `assert_eq(score.hit(10), 25)`.\n\n- **Expected:** 25.\n- **Got:** 20.\n\n**Why:** In `score.gd:10`, `hit()` computes `value * (1 + combo / 5)`. On the fifth hit, `combo` is 5, so the multiplier is `1 + 5/5 = 2`. That gives `10 * 2 = 20`.\n\n**Which side is wrong:** The test is wrong. The code gives a whole-number multiplier that goes up by 1 every 5 hits, which matches the test's name, \"every fifth hit raises the multiplier\". The test's 25 would need a ×2.5 multiplier, and nothing in the code or the project suggests that. The test should expect 20.\n\nThe other two tests pass. I didn't edit any game code or tests. The import step I ran to get GUT working created some `.uid` files, which show up as untracked in git.",
+  "tools": [
+    {
+      "name": "Bash",
+      "input": {
+        "command": "ls -a && cat project.godot | head -30; ls test* addons 2>/dev/null"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "\"$EVAL_GODOT_BIN\" --headless -s addons/gut/gut_cmdln.gd -gdir=res://test -ginclude_subdirs -gexit 2>&1 | tail -40"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "\"$EVAL_GODOT_BIN\" --headless --import >/dev/null 2>&1; \"$EVAL_GODOT_BIN\" --headless -s addons/gut/gut_cmdln.gd -gdir=res://test -ginclude_subdirs -gexit 2>&1 | tail -40; git status --short"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "cat -n test/test_score.gd | head -20; cat -n score.gd"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "cat main.gd; grep -ri -n \"multipl\\|combo\" --include=*.md . 2>/dev/null | head"
+      }
+    }
+  ],
+  "files": {}
+}

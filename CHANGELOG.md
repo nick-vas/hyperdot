@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- **The eval graders are tested against real sessions.** `tests/Test-EvalGraders.ps1` checks every regex and tool_used
+  grader in `evals/` against 14 sessions from Evals runs 4 to 7 (`tests/eval-grader-fixtures/`, made from the
+  workflow's artifact by `tests/New-EvalGraderFixture.ps1`). A stand-in for `claude plugin eval` first gives all 21
+  verdicts the runs recorded; then each grader as it is now must agree with a person's reading of each session, and
+  each needs a real session to pass and one to fail, or a reason in `gaps.json`. It found `explain-failure`'s `location`
+  grader failing three right answers that put a number between the file and "line 7" (runs 5 and 6); its pattern now
+  allows that. Model graders are not checked: they need a model.
 - **The side-by-side judge can vote.** `Invoke-SideBySide.ps1 -Votes <n>` (and the token benchmark's `votes` input with
   `calibrate`) judges each order of a pair n times in fresh sessions; the order's choice is the majority, a tie is even,
   and an order where fewer than half the votes named a choice is an error. Each pair keeps its votes in

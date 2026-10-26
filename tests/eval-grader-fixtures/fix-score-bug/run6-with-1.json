@@ -1,0 +1,125 @@
+{
+  "schema": "hyperdot-eval-grader-fixture/1",
+  "case": "fix-score-bug",
+  "arm": "with",
+  "run": 1,
+  "source": "Evals run 6 (Actions run 39853578546, 2026-10-22)",
+  "note": "Fixes combo / 6 back to combo / 5 with Edit and calls the kit (pwsh \"<path>/godot-ci.ps1\" test -Json -Quiet, now hyperdot.ps1), which used-kit's pattern then missed; the read-only sandbox kept it from writing result.txt, so verified rightly fails. It edited, so a grader that forbids edits must fail it.",
+  "rename": {
+    "godot-ci.ps1": "hyperdot.ps1"
+  },
+  "expect": {
+    "explain-failure/unchanged": false,
+    "fix-score-bug/fixed": true,
+    "fix-score-bug/used-kit": true,
+    "fix-score-bug/verified": false
+  },
+  "recorded": [
+    {
+      "grader": "fixed",
+      "type": "regex",
+      "config": {
+        "target": {
+          "source": "file",
+          "path": "score.gd"
+        },
+        "pattern": "combo\\s*/\\s*5\\b",
+        "flags": "",
+        "match": "contains"
+      },
+      "passed": true,
+      "explanation": "matched combo\\s*/\\s*5\\b"
+    },
+    {
+      "grader": "used-kit",
+      "type": "tool_used",
+      "config": {
+        "tool": "Bash",
+        "input_match": "godot-ci\\.ps1[^\"]*\\btest\\b[^\"]*-Quiet",
+        "arm": "with-only"
+      },
+      "passed": false,
+      "explanation": "Bash called 0x (expected 1..∞)"
+    },
+    {
+      "grader": "verified",
+      "type": "regex",
+      "config": {
+        "target": {
+          "source": "file",
+          "path": "result.txt"
+        },
+        "pattern": "^\\s*PASS\\s*$",
+        "flags": "",
+        "match": "contains"
+      },
+      "passed": false,
+      "explanation": "grader threw: case \"fix-score-bug\" grader focus file \"result.txt\": path \"result.txt\" does not exist"
+    }
+  ],
+  "lastMessage": "The tests didn't run, so this isn't verified.\n\nI changed `score.gd` from `combo / 6` back to `combo / 5`. That restores the multiplier increase on the fifth hit, and it matches `test_every_fifth_hit_raises_the_multiplier`.\n\nI ran the command from the hook, `pwsh .../godot-ci.ps1 test -Json -Quiet`. It failed before running any tests because `pwsh` couldn't start: `Read-only file system : '/tmp/claude-eval-FvBncj/home/.local/share'`. Every Bash command in this session is blocked from writing to the project directory, `$HOME` and `$TMPDIR`. Godot needs to write its `.godot` import cache and user data, and the GUT runner needs that cache, so my earlier direct Godot run failed too.\n\nI didn't write `result.txt`, because I have no real `PASS` or `FAIL` to put in it. To finish, run the CI command (or the Godot `--import` then GUT commands from my last message) somewhere with write access, then put the result in `result.txt`. If you give this session write access, I'll do that myself.",
+  "tools": [
+    {
+      "name": "Grep",
+      "input": {
+        "pattern": "multiplier|streak|combo",
+        "-i": true,
+        "output_mode": "content"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "ls -a; git log --stat | head -30"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "git show HEAD | tail -15; cat test/test_score.gd"
+      }
+    },
+    {
+      "name": "Edit",
+      "input": {
+        "replace_all": false,
+        "file_path": "/tmp/claude-eval-FvBncj/home/cwd/score.gd",
+        "old_string": "combo / 6",
+        "new_string": "combo / 5"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "\"$EVAL_GODOT_BIN\" --headless -s addons/gut/gut_cmdln.gd -gdir=res://test -gexit 2>&1 | tail -25"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "\"$EVAL_GODOT_BIN\" --headless --import >/dev/null 2>&1; \"$EVAL_GODOT_BIN\" --headless -s addons/gut/gut_cmdln.gd -gdir=res://test -gexit 2>&1 | tail -20; echo rc=${PIPESTATUS[0]}"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "\"$EVAL_GODOT_BIN\" --headless --import 2>&1 | tail; ls -a .godot 2>&1 | head; echo $HOME; touch $HOME/x 2>&1"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "echo $TMPDIR; touch $TMPDIR/x && echo ok; touch result.txt 2>&1"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "pwsh \"/home/runner/work/Godot_TestSuite/Godot_TestSuite/ci/godot/godot-ci.ps1\" test -Json -Quiet 2>&1 | tail -30"
+      }
+    }
+  ],
+  "files": {
+    "score.gd": "class_name Score\nextends RefCounted\n## Combo scoring, kept engine-light so it is easy to unit test with GUT.\n\nvar points := 0\nvar combo := 0\n\nfunc hit(value: int) -> int:\n\tcombo += 1\n\tvar gained := value * (1 + combo / 5)\n\tpoints += gained\n\treturn gained\n\nfunc miss() -> void:\n\tcombo = 0\n"
+  }
+}

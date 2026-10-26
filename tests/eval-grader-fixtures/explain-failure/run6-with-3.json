@@ -1,0 +1,85 @@
+{
+  "schema": "hyperdot-eval-grader-fixture/1",
+  "case": "explain-failure",
+  "arm": "with",
+  "run": 3,
+  "source": "Evals run 6 (Actions run 39853578546, 2026-10-22)",
+  "note": "Names test_score.gd and \"line 7\", with the failing assert_eq(score.hit(10), 25) between them: right, and failed in the run by the location pattern, which allowed no digit in between.",
+  "rename": {},
+  "expect": {
+    "explain-failure/location": true,
+    "explain-failure/unchanged": true
+  },
+  "recorded": [
+    {
+      "grader": "location",
+      "type": "regex",
+      "config": {
+        "target": "last_message",
+        "pattern": "test_score\\.gd\\D{0,40}7\\b",
+        "flags": "",
+        "match": "contains"
+      },
+      "passed": false,
+      "explanation": "pattern not found in last_message"
+    },
+    {
+      "grader": "unchanged",
+      "type": "tool_used",
+      "config": {
+        "tool": "Edit",
+        "min": 0,
+        "max": 0,
+        "arm": "both"
+      },
+      "passed": true,
+      "explanation": "Edit called 0x (expected 0..0)"
+    }
+  ],
+  "lastMessage": "I couldn't run the tests. The sandbox is read-only for the project directory, `$HOME`, `$TMPDIR` and the Godot user-data directory. GUT needs a `godot --headless --import` first, which writes `.godot/` and the user-data dir, and that failed. `dangerouslyDisableSandbox` is disabled, so I couldn't work around it. The result below comes from reading the code, not from a test run.\n\n**Failing test:** `test_every_fifth_hit_raises_the_multiplier` in `test/test_score.gd`, at the `assert_eq(score.hit(10), 25)` line (line 7 by my count).\n\n- **Expected:** 25.\n- **Got:** 20. On the fifth hit `combo` is 5, so `gained = 10 * (1 + 5/5) = 10 * 2 = 20` in `score.gd`'s `hit()`.\n\n**The test is wrong, not the game.** The test name and the `score.gd` header describe a multiplier that goes up by one whole step (×1 to ×2) every fifth hit. That gives 20. A result of 25 would need a ×2.5 multiplier, and nothing in the code or the test's own name suggests that. The test should expect 20.\n\nThe other two tests (`test_miss_resets_combo` and `test_main_scene_scores_on_ready`) look like they pass. I didn't run them either.\n\nTo confirm, run `godot --headless --import` and then `godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://test -ginclude_subdirs -gexit` from a session where the project directory is writable.",
+  "tools": [
+    {
+      "name": "Bash",
+      "input": {
+        "command": "ls; cat project.godot | head -30; ls test* addons 2>/dev/null"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "\"$EVAL_GODOT_BIN\" --headless -s addons/gut/gut_cmdln.gd -gdir=res://test -ginclude_subdirs -gexit 2>&1 | tail -40"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "export XDG_DATA_HOME=$TMPDIR/xdg; mkdir -p $XDG_DATA_HOME; \"$EVAL_GODOT_BIN\" --headless --import 2>&1 | tail -5; \"$EVAL_GODOT_BIN\" --headless -s addons/gut/gut_cmdln.gd -gdir=res://test -ginclude_subdirs -gexit 2>&1 | tail -40; git status --short"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "export XDG_DATA_HOME=/tmp/claude-eval-31bBdt/home/xdg XDG_CONFIG_HOME=/tmp/claude-eval-31bBdt/home/xdgc; mkdir -p $XDG_DATA_HOME $XDG_CONFIG_HOME; \"$EVAL_GODOT_BIN\" --headless --import 2>&1 | tail -5; \"$EVAL_GODOT_BIN\" --headless -s addons/gut/gut_cmdln.gd -gdir=res://test -ginclude_subdirs -gexit 2>&1 | tail -40; git status --short"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "pwd; echo $HOME $TMPDIR; touch ./x && echo cwd ok && rm x; ls -ld $HOME $TMPDIR; ls -a"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "cat score.gd test/test_score.gd; ls test/flows"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "cat main.gd; cat test/flows/startup.flow.json"
+      }
+    }
+  ],
+  "files": {}
+}

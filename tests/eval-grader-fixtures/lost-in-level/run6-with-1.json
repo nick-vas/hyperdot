@@ -1,0 +1,40 @@
+{
+  "schema": "hyperdot-eval-grader-fixture/1",
+  "case": "lost-in-level",
+  "arm": "with",
+  "run": 1,
+  "source": "Evals run 6 (Actions run 39853578546, 2026-10-22)",
+  "note": "Loads the godot-game-design skill.",
+  "rename": {},
+  "expect": {
+    "lost-in-level/skill-fired": true
+  },
+  "recorded": [
+    {
+      "grader": "skill-fired",
+      "type": "tool_used",
+      "config": {
+        "tool": "Skill",
+        "input_match": "\"skill\"\\s*:\\s*\"(?:[\\w-]+:)?godot-game-design\""
+      },
+      "passed": true,
+      "explanation": "Skill called 1x (expected 1..∞)"
+    }
+  ],
+  "lastMessage": "**Diagnosis:** the stag can't work as a landmark. It moves, so it can't anchor a mental map. Getting lost is the player's mental map disagreeing with the world, and testers find the tower but lose the way back, which suggests the route looks different when walked in reverse. The bigger-arrow requests are a symptom. A bigger arrow would also hide the layout problem from your next playtests.\n\n**What to change**\n1. **Add fixed landmarks.** Put a tall, distinctive thing at each end of every trail, visible above the canopy. For example, a smoke column or lantern glow at camp, a broken tower silhouette, and a glowing shrine. Each should look different from every side and be seen from more than one stretch of trail. Check the camp one first, since the way back is the failing leg.\n2. **Make the return trip readable.** Walk each trail backwards and make sure a landmark is in view ahead on a good part of it. The camp landmark matters most here. Add one or two distinct features that are only visible going back, such as a fallen tree or a clearing.\n3. **Make the trails catch people.** If someone strays, they should meet a trail again. Use denser undergrowth or cliffs as edges, and fewer ambiguous side paths.\n4. **Give the three trails distinct looks.** Vary tree type, light and sound so each reads as its own district. Make the middle of the forest a real junction, not a pass-through.\n5. **Keep the stag as ambience.** It's fine as wildlife, but don't rely on it for orientation. You could make it graze beside one fixed landmark so it reinforces it.\n6. **Leave the minimap arrow alone for now.** Revisit it only after the layout tests below.\n\n**How to check it worked**\n- **Automated:** put the landmarks in group `landmark` and the trails (`Path3D`) in group `route`, then run `placement_check.gd`. It fails a landmark that moves or is seen from fewer than two stretches of route. It also fails a route with a landmark ahead on less than a quarter of it, walked either direction.\n- **Playtest:**\n  - Use about 10 testers who haven't played before, and say nothing during the session.\n  - Run it with the HUD and minimap off (`--no-hud`). Turn-by-turn guidance hides weak layouts.\n  - Your hypothesis: \"testers return from the tower to camp without the minimap.\"\n  - Compare a before-and-after build, using the same survey each time.\n- **Telemetry:** log the `stuck` and `revisit` events and the time on the tower-to-camp leg. Look at the distribution, since one tester stuck for 10 minutes matters more than the average. A heat map of stalls should lose its hot spot on the return route.\n- **Success criteria:** write them down before the session. For example, 8 of 10 testers return to camp under N minutes with no stall over 60 seconds. Retest after any art pass, because art changes can hide landmarks.\n\nI haven't looked at your project files. If you want, I can check the scene setup and wire up the `landmark` and `route` groups.",
+  "tools": [
+    {
+      "name": "Skill",
+      "input": {
+        "skill": "godot-agent-kit:godot-playtest"
+      }
+    },
+    {
+      "name": "Skill",
+      "input": {
+        "skill": "godot-agent-kit:godot-game-design"
+      }
+    }
+  ],
+  "files": {}
+}

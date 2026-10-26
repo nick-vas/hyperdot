@@ -1,0 +1,34 @@
+{
+  "schema": "hyperdot-eval-grader-fixture/1",
+  "case": "review-publishing-deal",
+  "arm": "with",
+  "run": 1,
+  "source": "Evals run 6 (Actions run 39853578546, 2026-10-22)",
+  "note": "Loads the godot-legal skill.",
+  "rename": {},
+  "expect": {
+    "review-publishing-deal/skill-fired": true
+  },
+  "recorded": [
+    {
+      "grader": "skill-fired",
+      "type": "tool_used",
+      "config": {
+        "tool": "Skill",
+        "input_match": "\"skill\"\\s*:\\s*\"(?:[\\w-]+:)?godot-legal\""
+      },
+      "passed": true,
+      "explanation": "Skill called 1x (expected 1..∞)"
+    }
+  ],
+  "lastMessage": "Yes, there are several things to push back on. The most important one comes first. This isn't legal advice, so have a games lawyer read the final draft.\n\n**Push back hard**\n1. **Recoupment (cl. 7).** Recouping only from your share is the clause to refuse. Ask for the advance and costs to be recouped from gross Net Receipts, then split. With C = advance plus costs, the difference works out like this:\n   - If recouped from your share, you only start earning when sales reach 2C, not C.\n   - You are also permanently worse off by (1 − s)C. At 50% on a $120k advance, that is about $60k.\n2. **\"Time is of the essence\" (cl. 10).** Strike it. It lets them terminate over any lateness, even though cl. 11 offers a cure period. Also ask for two things:\n   - Publisher delays, or delays from third parties they make you use, push your dates back day for day.\n   - Changes to the agreed spec need your approval and more money.\n3. **Term (cl. 2).** \"Five years from the last version\" restarts with every DLC, port or expansion, so it can run indefinitely. Make the term five years from first release, or cap the total length. Add automatic reversion of rights when the term ends, when they stop selling the game, or when they breach.\n\n**Negotiate**\n4. **Net Receipts (cl. 6).** Make sure the definition counts all the money the game earns: in-game purchases, ads, subscription or exclusivity deals, merchandise. Make the deductions a closed list, with evidence. Also ask for no return reserves held back from your share.\n5. **Split and advance.** 50/50 is weak for a $120k advance. A rough benchmark from one developer's 2020 comments is 70/30 to you after recoup for advances up to about $100k. Ask for no markup on the advance. Check that the advance covers your months after launch, before store money arrives.\n6. **Console option (cl. 3).** Add a time limit on negotiating the \"terms to be agreed\", and make the option end with the term. Ask how and through whom they plan to sell worldwide, and only grant territories they have a plan for.\n\n**Fine as drafted**\n- Exclusive licence, with you keeping ownership and your own tools (cl. 1).\n- 10-working-day review with written reasons and deemed approval (cl. 5).\n- Third-party-only recoupable costs with invoices (cl. 8).\n- Quarterly statements by platform and territory, plus an annual audit (cl. 9).\n- 30-day cure period (cl. 11).\n\n**Missing from the term sheet**\n- Marketing commitments in writing.\n- A non-compete limited in time and scope, if there is one.\n- Any right to end the deal for convenience, and what it costs them.\n- Credit.\n\n**Before signing**\nPublishers will ask you to warrant that the game infringes no one's rights. That is only true if everyone who made anything, including both of you as owners, has signed a written assignment or licence. Check that `assets.json` covers every file and licence. Also make sure the two of you have a written agreement with each other.\n\nA publisher that won't move on anything is a warning sign, so expect to negotiate.",
+  "tools": [
+    {
+      "name": "Skill",
+      "input": {
+        "skill": "godot-agent-kit:godot-legal"
+      }
+    }
+  ],
+  "files": {}
+}

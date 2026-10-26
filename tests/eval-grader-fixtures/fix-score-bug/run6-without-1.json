@@ -1,0 +1,105 @@
+{
+  "schema": "hyperdot-eval-grader-fixture/1",
+  "case": "fix-score-bug",
+  "arm": "without",
+  "run": 1,
+  "source": "Evals run 6 (Actions run 39853578546, 2026-10-22)",
+  "note": "Without the plugin: fixes the line but never calls the kit, and could not write result.txt.",
+  "rename": {
+    "godot-ci.ps1": "hyperdot.ps1"
+  },
+  "expect": {
+    "fix-score-bug/fixed": true,
+    "fix-score-bug/used-kit": false,
+    "fix-score-bug/verified": false
+  },
+  "recorded": [
+    {
+      "grader": "fixed",
+      "type": "regex",
+      "config": {
+        "target": {
+          "source": "file",
+          "path": "score.gd"
+        },
+        "pattern": "combo\\s*/\\s*5\\b",
+        "flags": "",
+        "match": "contains"
+      },
+      "passed": true,
+      "explanation": "matched combo\\s*/\\s*5\\b"
+    },
+    {
+      "grader": "verified",
+      "type": "regex",
+      "config": {
+        "target": {
+          "source": "file",
+          "path": "result.txt"
+        },
+        "pattern": "^\\s*PASS\\s*$",
+        "flags": "",
+        "match": "contains"
+      },
+      "passed": false,
+      "explanation": "grader threw: case \"fix-score-bug\" grader focus file \"result.txt\": path \"result.txt\" does not exist"
+    }
+  ],
+  "lastMessage": "I changed the multiplier back to every fifth hit, but I couldn't run the tests, so I haven't written `result.txt`.\n\n**Fix:** the \"Tweak scoring\" commit (a15c733) changed `combo / 5` to `combo / 6` in `Score.hit()` in `score.gd`. I changed it back to `combo / 5`. The existing test `test_every_fifth_hit_raises_the_multiplier` checks exactly this case.\n\n**Tests:** every Bash command in this session fails with \"Read-only file system\", including a plain `touch` in the project directory and in `$TMPDIR`. Godot needs to write a `.godot` import cache and its user-data directory before GUT will load. Without that, GUT stops with \"Some GUT class_names have not been imported.\" Only the Edit tool can write here, and the sandbox settings aren't mine to change.\n\nI didn't write PASS or FAIL to `result.txt`, because that file is meant to hold the result of a real run. Once Bash can write to the project directory and the Godot user-data directory, this should work:\n\n```\n$EVAL_GODOT_BIN --headless --path . --import\n$EVAL_GODOT_BIN --headless --path . -s addons/gut/gut_cmdln.gd -gdir=res://test -gexit\n```\n\nThen write PASS or FAIL to `result.txt` based on the exit status.",
+  "tools": [
+    {
+      "name": "Bash",
+      "input": {
+        "command": "git ls-files; grep -rn -i \"multiplier\\|streak\" --include=*.gd . | head -30"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "cat score.gd test/test_score.gd; git show HEAD --stat | head; git show HEAD | head -50"
+      }
+    },
+    {
+      "name": "Edit",
+      "input": {
+        "replace_all": false,
+        "file_path": "/tmp/claude-eval-AZjwMR/home/cwd/score.gd",
+        "old_string": "combo / 6",
+        "new_string": "combo / 5"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "ls -a; ls addons 2>&1; cat test/flows/startup.flow.json | head -30"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "\"$EVAL_GODOT_BIN\" --headless --path . -s addons/gut/gut_cmdln.gd -gdir=res://test -gexit 2>&1 | tail -25"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "export XDG_DATA_HOME=$TMPDIR/data; \"$EVAL_GODOT_BIN\" --headless --path . --import >/dev/null 2>&1; \"$EVAL_GODOT_BIN\" --headless --path . -s addons/gut/gut_cmdln.gd -gdir=res://test -gexit 2>&1 | tail -25; git status --short"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "export XDG_DATA_HOME=/tmp/claude-eval-AZjwMR/home/xdg; mkdir -p $XDG_DATA_HOME && echo ok; ls -a; \"$EVAL_GODOT_BIN\" --headless --path . --import 2>&1 | tail -5; \"$EVAL_GODOT_BIN\" --headless --path . -s addons/gut/gut_cmdln.gd -gdir=res://test -gexit 2>&1 | tail -25"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "touch x.tmp && echo cwd-ok && rm x.tmp; touch $TMPDIR/y && echo tmp-ok; echo $TMPDIR; ls -ld .godot 2>&1"
+      }
+    }
+  ],
+  "files": {
+    "score.gd": "class_name Score\nextends RefCounted\n## Combo scoring, kept engine-light so it is easy to unit test with GUT.\n\nvar points := 0\nvar combo := 0\n\nfunc hit(value: int) -> int:\n\tcombo += 1\n\tvar gained := value * (1 + combo / 5)\n\tpoints += gained\n\treturn gained\n\nfunc miss() -> void:\n\tcombo = 0\n"
+  }
+}

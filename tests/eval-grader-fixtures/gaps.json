@@ -1,0 +1,4 @@
+{
+  "fix-score-bug/fixed:fail": "every recorded session fixed the line; the next run where a session leaves combo / 6 in place gives one",
+  "fix-score-bug/verified:pass": "no recorded session could write result.txt: the sandbox refused writes until run 7, which ran explain-failure only"
+}
