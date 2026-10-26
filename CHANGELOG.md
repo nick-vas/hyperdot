@@ -1,6 +1,29 @@
 # Changelog
 
 ## Unreleased
+- **A PowerShell guide, PSScriptAnalyzer on every script, and a check for the anti-patterns the code has dropped.**
+  `docs/powershell.md` holds 78 lessons for anyone writing PowerShell here, merged from the official PowerShell
+  documentation and the PowerShell Community blog, by theme (errors and exit codes, strict mode and the pipeline,
+  culture and encoding, native commands, paths, parameters, JSON, concurrency, performance, secrets, tooling), each with
+  why, a quoted source and whether it was run; the ten that cost most come first, then the sources' advice that does not
+  hold on 7.6 under strict mode on Linux, and what checks each lesson. AGENTS.md's "Working here" gains the most
+  consequential ones. The lint job's PSScriptAnalyzer step pins 1.25.0, scans every tracked `.ps1` (tests and the GitLab
+  run step too) with Information severity, annotates each finding and fails on any; the wider scope found two dead
+  variables in tests, now gone. `tests/Test-PowerShellPatterns.ps1` reads every script's syntax tree for ten patterns
+  with no use left (`continue` in a pipeline block, `$null` on the right, `Invoke-Expression`, `[IO.Path]::Combine`,
+  `$PSBoundParameters.Name`, a lowered `$ErrorActionPreference`, relative literal paths to .NET, `-Version Latest`,
+  Windows-only aliases, one file read and written in one pipeline), each proven on a fixture file of its own.
+- **PowerShell 7.6 or newer is required (breaking for PowerShell 7.2 to 7.5).** Every script now starts with
+  `#Requires -Version 7.6`, the current LTS release: 7.2 left support on 8 November 2024, and 7.4 and 7.5 leave it on
+  10 November 2026, while 7.6 is supported until 14 November 2028. GitHub's runner images already ship 7.6 (Ubuntu
+  22.04 and 24.04, Windows Server 2022 and 2025, macOS 15), so the action and the workflow need nothing; on an older
+  PowerShell the kit stops at once with PowerShell's own "#requires" message. To upgrade: `winget install
+  Microsoft.PowerShell` (or `winget upgrade`) on Windows, `brew upgrade --cask powershell` on macOS, and Microsoft's package
+  repository (`apt install powershell`) or the release tarball on Linux; self-hosted runners need the same. The GitLab
+  template's .NET 8 SDK image carries PowerShell 7.4 (the global tool follows .NET 8, and 7.6 is built on .NET 10), so
+  its `before_script` now unpacks PowerShell 7.6.9's self-contained Linux build into `.hyperdot-cache/pwsh/` (cached),
+  puts it first on PATH and stops the job if `pwsh` is still older; games still build with the image's .NET 8 SDK.
+  `tests/Test-GitLabTemplate.ps1` holds the template to the floor of `hyperdot.ps1`.
 - **A staged-programme task's `unchanged` files may now gain lines.** The rule failed a session with `changed <file>` for
   any difference, so every session that added regression tests to the existing test file failed (run 44's
   `racing.alpha.csharp.fix-bug` passed 0 of 10 although they had removed nothing). A kept file now passes when every

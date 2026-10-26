@@ -52,13 +52,26 @@ jobs:
       - name: PSScriptAnalyzer
         shell: pwsh
         run: |
-          $issues = @(Invoke-ScriptAnalyzer -Path ci/godot -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1) +
-            @(Invoke-ScriptAnalyzer -Path hooks -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1) +
-            @(Invoke-ScriptAnalyzer -Path benchmark -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1) +
-            @(Invoke-ScriptAnalyzer -Path site -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1) +
-            @(Invoke-ScriptAnalyzer -Path .github/scripts -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1)
-          $issues | Format-Table -AutoSize RuleName, ScriptName, Line, Message | Out-String -Width 200
-          if ($issues) { exit 1 }
+          # Pinned, like actionlint: the runner image carries whatever release was newest when it was built, and a new
+          # release can add or change a default rule and turn a green branch red overnight.
+          $version = '1.25.0'
+          if (-not (Get-Module -ListAvailable PSScriptAnalyzer | Where-Object Version -eq $version)) {
+            Install-PSResource PSScriptAnalyzer -Version $version -TrustRepository -Scope CurrentUser
+          }
+          Import-Module PSScriptAnalyzer -RequiredVersion $version
+          # Every tracked script, but the patterns fixture, which is bad on purpose (tests/Test-PowerShellPatterns.ps1).
+          $files = @(git ls-files -- '*.ps1' | Where-Object { $_ -notlike 'tests/powershell-patterns-fixture/*' })
+          if ($LASTEXITCODE -ne 0 -or $files.Count -eq 0) { throw 'git ls-files found no scripts' }
+          $issues = @(foreach ($file in $files) { Invoke-ScriptAnalyzer -Path $file -Settings ci/godot/PSScriptAnalyzerSettings.psd1 })
+          foreach ($i in $issues) {
+            $message = $i.Message -replace '%', '%25' -replace '\r?\n', '%0A'
+            Write-Host "::error file=$([IO.Path]::GetRelativePath($PWD, $i.ScriptPath)),line=$($i.Line),col=$($i.Column),title=$($i.RuleName)::$message"
+          }
+          Write-Host "PSScriptAnalyzer $version`: $($issues.Count) finding(s) in $($files.Count) scripts"
+          if ($issues.Count) { exit 1 }
+      - name: No tracked script uses a PowerShell anti-pattern the repository has dropped, and each check catches its fixture
+        shell: pwsh
+        run: ./tests/Test-PowerShellPatterns.ps1
       - name: Skills pass their own validator, and the validator catches broken fixtures
         shell: pwsh
         run: |

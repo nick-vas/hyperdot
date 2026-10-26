@@ -1,4 +1,4 @@
-#Requires -Version 7.2
+#Requires -Version 7.6
 <#
 .SYNOPSIS
 Rates a Hyperdot version the way the EU energy label rates an appliance: an A to G class from a declared, reproducible

@@ -1,4 +1,4 @@
-#Requires -Version 7.2
+#Requires -Version 7.6
 # Stop hook: Claude may not end its turn while the game's code or scenes changed after the last passing full test run.
 # It reads the project's run history (.godot/hyperdot-history.jsonl, written by hyperdot.ps1) and the changed files git
 # reports. Each set of changes is blocked once: if Claude stops again without a new test run, it is let through, because

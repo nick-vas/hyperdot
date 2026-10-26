@@ -239,8 +239,18 @@ $inputs = @([regex]::Match($action, '(?ms)^inputs:\s*$(?<body>.*?)^outputs:').Gr
 $missing = @($inputs | Where-Object { $_ -notin 'command', 'lfs', 'retention-days' } | ForEach-Object { 'HYPERDOT_' + ($_.ToUpperInvariant() -replace '-', '_') } | Where-Object { -not $variables.Contains($_) })
 Assert-True ($inputs.Count -ge 10 -and $missing.Count -eq 0) "every action input has a HYPERDOT_ variable ($($inputs.Count) inputs): missing $($missing -join ', ')"
 $runnerText = Get-Content -LiteralPath $runner -Raw
-$unread = @($variables.Keys | Where-Object { $_ -like 'HYPERDOT_*' -and $_ -notin 'HYPERDOT_REPO', 'HYPERDOT_REF', 'HYPERDOT_KIT' -and $runnerText -notmatch "env:$_\b" })
+$unread = @($variables.Keys | Where-Object { $_ -like 'HYPERDOT_*' -and $_ -notin 'HYPERDOT_REPO', 'HYPERDOT_REF', 'HYPERDOT_KIT', 'HYPERDOT_PWSH_VERSION' -and $runnerText -notmatch "env:$_\b" })
 Assert-True ($unread.Count -eq 0) "Invoke-Hyperdot.ps1 reads every HYPERDOT_ variable: unread $($unread -join ', ')"
+
+# The image's PowerShell is older than the kit's floor: before_script unpacks one at least that new, checks it, and caches it.
+$floor = [regex]::Match((Get-Content -LiteralPath (Join-Path $root 'ci/godot/hyperdot.ps1') -TotalCount 1), '^#Requires -Version (\S+)').Groups[1].Value
+$before = @((Get-JobKeys 'hyperdot-test').before_script)
+$pwshLines = @($before | Where-Object { $_ -like 'pwsh *' -and $_ -like "*-lt ``[version`]`"$floor`"*" })
+Assert-True ($floor -and $pwshLines.Count -eq 2 -and $pwshLines[0] -like '*releases/download/v$HYPERDOT_PWSH_VERSION/*export PATH=*' -and $pwshLines[1] -like '*throw*') "before_script installs and checks PowerShell $floor, the floor of hyperdot.ps1"
+Assert-True ([version]$variables.HYPERDOT_PWSH_VERSION -ge [version]$floor) "the PowerShell it unpacks ($($variables.HYPERDOT_PWSH_VERSION)) meets the floor ($floor)"
+foreach ($name in 'hyperdot-test', 'hyperdot-export') {
+    Assert-True (@((Get-JobKeys $name).cache | Where-Object { @($_.paths) -contains '.hyperdot-cache/pwsh/' }).Count -eq 1) "$name caches the PowerShell it unpacks"
+}
 
 # Invoke-Hyperdot.ps1's parameters bind to hyperdot.ps1, and the jobs call commands it takes.
 $kitParams = @([System.Management.Automation.Language.Parser]::ParseFile((Join-Path $root 'ci/godot/hyperdot.ps1'), [ref]$null, [ref]$null).ParamBlock.Parameters | ForEach-Object { $_.Name.VariablePath.UserPath })

@@ -1,4 +1,4 @@
-#Requires -Version 7.2
+#Requires -Version 7.6
 # Self-test for the juice runner's log check, without Godot: feedback in time passes, late or missing feedback fails, an
 # event that never happens fails, an event at the very end of the run is not held against the game, and "frames": 0 is
 # refused.

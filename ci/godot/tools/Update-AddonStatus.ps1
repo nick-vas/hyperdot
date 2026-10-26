@@ -1,4 +1,4 @@
-#Requires -Version 7.2
+#Requires -Version 7.6
 <#
 .SYNOPSIS
     Re-reads each add-on in ci/godot/addons-status.json from its repository, and with -Apply writes what moved: its newest
