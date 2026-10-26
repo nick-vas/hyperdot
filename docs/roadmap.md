@@ -124,6 +124,10 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 
 ### After 0.1.0
 
+- **Opus as a model the staged programme measures.** The programme's configurations are Sonnet and Haiku, with and
+  without the plugin; Opus only judges. The owner chose on 2026-10-26 to keep the first mid run to those four and measure
+  Opus in a run of its own later: two more configurations in `benchmark/game-programme.json`, priced by a dry run
+  (about $190 more on the mid tier at 2.2 times Sonnet's cost, from the judge's calibration, until a session is measured).
 - **Why CI and the owner's PC disagree** (question round note 11). No quick way to see why a run passes on one and
   fails on the other; the idea is to compare the two runs' `-Json` results side by side. Postponed by the owner on
   2026-10-26 until after the 0.1.0 release.
