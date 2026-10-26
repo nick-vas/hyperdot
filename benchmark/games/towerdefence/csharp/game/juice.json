@@ -1,0 +1,35 @@
+{
+  "frames": 1800,
+  "args": [
+    "--autoplay",
+    "--seed=1",
+    "--no-save"
+  ],
+  "rules": [
+    {
+      "event": "tower_placed",
+      "feedback": [
+        "pop",
+        "sfx"
+      ],
+      "withinMs": 100
+    },
+    {
+      "event": "enemy_killed",
+      "feedback": [
+        "pop",
+        "sfx"
+      ],
+      "withinMs": 100
+    },
+    {
+      "event": "enemy_leaked",
+      "feedback": [
+        "flash",
+        "shake",
+        "sfx"
+      ],
+      "withinMs": 100
+    }
+  ]
+}

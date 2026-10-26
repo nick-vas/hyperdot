@@ -1,0 +1,195 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "main.tscn",
+    "ui",
+    "game/PauseMenu.cs",
+    "game/ResultMenu.cs",
+    "scripts/Progress.cs",
+    "scripts/SaveStore.cs",
+    "scripts/LaunchOptions.cs",
+    "scripts/Bot.cs",
+    "scripts/TextFormat.cs",
+    "data.json",
+    "i18n",
+    "sounds",
+    "plan",
+    "docs",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "architecture.json",
+    "bench",
+    "test/flows",
+    "test/BattleRulesTest.cs",
+    "test/SellingTest.cs",
+    "test/BlockingTest.cs",
+    "test/RepathTest.cs",
+    "test/BalanceTest.cs",
+    "test/ProgressTest.cs",
+    "test/SaveStoreTest.cs",
+    "test/LaunchOptionsTest.cs",
+    "test/GameTest.cs"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "run/main_scene=\"res://main.tscn\"",
+      "replace": "run/main_scene=\"res://game/game.tscn\""
+    },
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.1.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "[internationalization]\n\nlocale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")\n\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/Battle.cs",
+      "find": "    /// <summary>What selling the tower on this cell gives back: SellShare of its cost and of every upgrade bought for it.</summary>\n    public int Refund(Vector2I cell)\n    {\n        if (!Towers.Has(cell))\n            return 0;\n        Tower tower = Towers[cell];\n        int value = Catalog.Cost(tower.Id);\n        for (int level = 2; level <= tower.Level; level++)\n            value += Catalog.UpgradeCost(tower.Id, level);\n        return (int)Math.Floor(value * SellShare);\n    }\n\n    /// <summary>Sells the tower on this cell; the pests take the shorter ways it opens. Returns the sap given back.</summary>\n    public int Sell(Vector2I cell)\n    {\n        if (IsOver() || !Towers.Has(cell))\n            return 0;\n        int back = Refund(cell);\n        Gold += back;\n        Towers.Remove(cell);\n        Map.SetTower(cell, false);\n        Repath();\n        TowerSold?.Invoke(cell, back);\n        return back;\n    }\n\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/Battle.cs",
+      "find": "    public event Action<Vector2I, int>? TowerSold;\n",
+      "replace": ""
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "a tower can be planted so that no way is left to the seed store, neither for the pests still to come nor for those already on the field: the pests then stand still and the wave never ends"
+      },
+      "edits": [
+        {
+          "file": "scripts/Battle.cs",
+          "find": "    /// <summary>\n    /// Whether a tower of this kind may go on this cell now: enough sap, an open cell no pest stands on or is heading to,\n    /// and the gate and every pest still with a way to the store.\n    /// </summary>\n",
+          "replace": "    /// <summary>Whether a tower of this kind may go on this cell now: enough sap, and an open cell no pest stands on or is heading to.</summary>\n"
+        },
+        {
+          "file": "scripts/Battle.cs",
+          "find": "        if (!Map.IsBuildable(cell) || Towers.Has(cell) || Occupied(cell))\n            return false;\n        return !Map.Blocks(cell, EnemyTargets());\n",
+          "replace": "        return Map.IsBuildable(cell) && !Towers.Has(cell) && !Occupied(cell);\n"
+        }
+      ],
+      "unchanged": [
+        "test/BattleTest.cs",
+        "test/PathMapTest.cs"
+      ],
+      "hidden": [
+        "hidden/HiddenBlockingTest.cs"
+      ],
+      "reference": "solutions/prototype/fix-bug",
+      "decoy": "solutions/prototype/fix-bug-decoy"
+    },
+    {
+      "template": "write-tests",
+      "vars": {
+        "subject": "Battle class (scripts/Battle.cs: building, sap, seeds, and which pest a tower shoots)",
+        "file": "test/BattleRulesTest.cs",
+        "rules": "a tower costs its price in sap and one that costs more than the sap left cannot be placed, a pest that falls pays its reward, a pest that reaches the store takes its own number of seeds (a beetle takes 2), the map is lost when the last seed goes, a tower shoots only pests within its range, and of those it shoots the one closest to the store along its way",
+        "code": "scripts/Battle.cs"
+      },
+      "unchanged": [
+        "scripts/Battle.cs"
+      ],
+      "mutantTests": [
+        "test/BattleRulesTest.cs"
+      ],
+      "mutants": [
+        {
+          "name": "a tower costs nothing",
+          "file": "scripts/Battle.cs",
+          "find": "        Gold -= Catalog.Cost(id);\n",
+          "replace": "        Gold -= 0;\n"
+        },
+        {
+          "name": "a tower dearer than the sap left can be placed",
+          "file": "scripts/Battle.cs",
+          "find": "Gold < Catalog.Cost(id)",
+          "replace": "Gold < 0"
+        },
+        {
+          "name": "a fallen pest pays nothing",
+          "file": "scripts/Battle.cs",
+          "find": "Gold += enemy.Reward;",
+          "replace": "Gold += 0;"
+        },
+        {
+          "name": "every pest takes one seed",
+          "file": "scripts/Battle.cs",
+          "find": "Lives = Math.Max(Lives - enemy.Leak, 0);",
+          "replace": "Lives = Math.Max(Lives - 1, 0);"
+        },
+        {
+          "name": "the map goes on with no seed left",
+          "file": "scripts/Battle.cs",
+          "find": "        if (Lives == 0)\n",
+          "replace": "        if (Lives < 0)\n"
+        },
+        {
+          "name": "towers shoot past their range",
+          "file": "scripts/Battle.cs",
+          "find": "> reach * reach)",
+          "replace": "> reach * reach * 2.0)"
+        },
+        {
+          "name": "towers shoot the newest pest in range",
+          "file": "scripts/Battle.cs",
+          "find": "if (left < bestLeft)",
+          "replace": "if (left >= 0.0)"
+        }
+      ],
+      "reference": "solutions/prototype/write-tests"
+    },
+    {
+      "template": "add-feature",
+      "vars": {
+        "feature": "selling a tower: a new Battle.Sell(cell) that removes the tower on that cell and returns the sap it gives back, which is added to the sap: 70% of everything paid for the tower (its cost and every upgrade bought for it), rounded down. The cell is open again, the route and every pest on the field take the way it opens, and on a cell without a tower, or once the map is over, it does nothing and returns 0"
+      },
+      "hidden": [
+        "hidden/HiddenSellTest.cs"
+      ],
+      "reference": "solutions/prototype/add-feature"
+    },
+    {
+      "template": "explain-failure",
+      "edits": [
+        {
+          "file": "scripts/Battle.cs",
+          "find": "        Gold += bonus;\n",
+          "replace": "        Gold += bonus;\n        Gold += bonus;\n"
+        }
+      ],
+      "unchanged": [
+        "scripts/Battle.cs",
+        "scripts/PathMap.cs",
+        "scripts/Enemy.cs",
+        "scripts/Catalog.cs",
+        "game/Game.cs",
+        "test/EconomyTest.cs",
+        "test/BattleTest.cs",
+        "test/PathMapTest.cs"
+      ],
+      "expected": {
+        "mustInclude": [
+          "Clearing_a_wave_pays_its_bonus",
+          "re:EconomyTest\\.cs\\D{0,40}\\b26\\b",
+          "re:(?<![\\d.])115(?!\\d)",
+          "re:(?<![\\d.])130(?!\\d)"
+        ]
+      },
+      "reference": "solutions/prototype/explain-failure"
+    }
+  ]
+}

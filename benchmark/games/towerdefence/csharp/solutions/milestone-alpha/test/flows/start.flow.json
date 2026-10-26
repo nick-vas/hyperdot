@@ -1,0 +1,17 @@
+{
+  "name": "Play on the menu opens the map select, and the first map starts a battle there",
+  "scene": "res://main.tscn",
+  "seed": 1,
+  "steps": [
+    { "assert": { "node": "Menu", "prop": "visible", "equals": true } },
+    { "press": "Menu/StartButton" },
+    { "assert": { "node": "MapSelect", "exists": true } },
+    { "assert": { "node": "MapSelect/Box/Grid/Map1Button", "prop": "disabled", "equals": false } },
+    { "press": "MapSelect/Box/Grid/Map1Button" },
+    { "wait": 2 },
+    { "assert": { "node": "Game", "exists": true } },
+    { "assert": { "node": "MapSelect", "exists": false } },
+    { "assert": { "node": "Game", "prop": "level", "equals": 1 } },
+    { "assert": { "node": "Game/HUD/MapLabel", "prop": "text", "equals": "The Meadow" } }
+  ]
+}

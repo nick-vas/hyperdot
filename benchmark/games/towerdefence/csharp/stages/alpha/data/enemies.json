@@ -1,0 +1,4 @@
+[
+  { "id": "aphid", "name": "ENEMY_APHID", "hp": 29, "speed": 1.5, "reward": 4, "leak": 1, "size": 0.2 },
+  { "id": "beetle", "name": "ENEMY_BEETLE", "hp": 98, "speed": 0.9, "reward": 10, "leak": 2, "size": 0.3 }
+]
