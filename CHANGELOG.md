@@ -24,6 +24,12 @@
   its `before_script` now unpacks PowerShell 7.6.9's self-contained Linux build into `.hyperdot-cache/pwsh/` (cached),
   puts it first on PATH and stops the job if `pwsh` is still older; games still build with the image's .NET 8 SDK.
   `tests/Test-GitLabTemplate.ps1` holds the template to the floor of `hyperdot.ps1`.
+- **A staged-programme task's `unchanged` files may now gain lines.** The rule failed a session with `changed <file>` for
+  any difference, so every session that added regression tests to the existing test file failed (run 44's
+  `racing.alpha.csharp.fix-bug` passed 0 of 10 although they had removed nothing). A kept file now passes when every
+  original line is still there in its order, line endings aside; a missing file and a changed, removed or reordered line
+  still fail. Before the hidden tests, mutants and the suite run, the kept files are put back as they were, so added code
+  cannot weaken the original tests (`newTests` counts the additions first). Self-tested in `tests/Test-GameBenchmark.ps1`.
 - **The GDScript arena game turns the server relay off, as the C# port already did.** `NetSession.host` left
   `SceneMultiplayer.server_relay` on, so when a player connected the engine sent news of it to every other peer, also
   to one whose disconnect it had received but not yet reported (its channels are closed by then): an engine error,
