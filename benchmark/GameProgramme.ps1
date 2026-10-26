@@ -214,13 +214,26 @@ function Invoke-KitCommand([string]$Dir, [string]$Command, [string[]]$Arguments,
     return [pscustomobject]@{ Ok = [bool]$doc.ok; Why = $why }
 }
 
+# Whether a kept file still holds every original line, in the original order, with lines added between them at most
+# (line endings do not count). A missing file, a changed, removed or reordered line fails.
+function Test-KeptFile([string]$Path, [string]$Original) {
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $false }
+    $now = @(([System.IO.File]::ReadAllText($Path) -replace "`r`n?", "`n") -split "`n")
+    $was = @(($Original -replace "`r`n?", "`n") -split "`n")
+    $at = 0
+    foreach ($line in $now) {
+        if ($at -lt $was.Count -and $line -ceq $was[$at]) { $at++ }
+    }
+    return $at -eq $was.Count
+}
+
 # Why a game session's work does not count; empty when it does.
 function Test-GameResult($TaskSpec, $Game) {
     $rules = $TaskSpec.game
     $reasons = [System.Collections.Generic.List[string]]::new()
+    # Kept files may gain lines (new tests) but lose or change none.
     foreach ($file in $Game.Kept.Keys) {
-        $path = Join-Path $Game.Dir $file
-        if (-not (Test-Path -LiteralPath $path) -or [System.IO.File]::ReadAllText($path) -ne $Game.Kept[$file]) { $reasons.Add("changed $file") }
+        if (-not (Test-KeptFile (Join-Path $Game.Dir $file) $Game.Kept[$file])) { $reasons.Add("changed $file") }
     }
     foreach ($match in @(if ($rules.Contains('match')) { $rules.match })) {
         $path = Join-Path $Game.Dir $match.file
@@ -229,6 +242,12 @@ function Test-GameResult($TaskSpec, $Game) {
     if ($rules.Contains('newTests')) {
         $added = (Get-GameTestCount $Game.Dir) - $Game.Tests
         if ($added -lt [int]$rules.newTests) { $reasons.Add("$added new test(s), at least $($rules.newTests) asked for") }
+    }
+    # What the session added to a kept file is discarded before anything runs: the suite that decides is the original
+    # tests plus the hidden ones, so added code cannot weaken them (an early return, say). newTests was counted above.
+    foreach ($file in $Game.Kept.Keys) {
+        $path = Join-Path $Game.Dir $file
+        if (Test-Path -LiteralPath $path -PathType Leaf) { [System.IO.File]::WriteAllText($path, $Game.Kept[$file]) }
     }
     # Mutants first, before the hidden tests are in the game: they are judged by the session's own tests alone.
     $mutants = @(if ($rules.Contains('mutants')) { $rules.mutants })

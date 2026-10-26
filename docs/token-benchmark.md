@@ -106,7 +106,7 @@ In the workflow, choose the `game` programme. What differs from the tool program
 - **Bash, Edit and Write are allowed** (the spec's `tools`), so the session can run Godot and change the game. Sessions
   get 40 turns and 15 minutes.
 - **The work is graded after the session**, with the kit's own `test` on what it left (`Test-GameResult`):
-  `unchanged` files must be byte for byte as they were; `match` patterns must be in a file; `newTests` counts new
+  `unchanged` files must keep every original line, in order (a session may add lines, such as new tests, but not change, remove or reorder any; line endings do not count), and what it added to them is discarded before the hidden tests, mutants and the suite run, so the suite that decides is the original tests plus the hidden ones; `match` patterns must be in a file; `newTests` counts new
   `func test_`; each of the `mutants` is applied to a copy holding only the `mutantTests`, which must then fail; the
   `hidden` tests are copied into `test/` and, with `suite`, the whole default test run must pass. The reasons go in the
   row's `gameReasons` (and `reasons`); the session's diff is saved next to its answer as `<profile>-<task>-r<n>-a<n>.diff`.
