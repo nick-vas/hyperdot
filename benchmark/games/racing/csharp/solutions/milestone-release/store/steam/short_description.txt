@@ -1,0 +1,1 @@
+Cinderloop is a small top-down racer: three tracks of cinder road, three rivals who brake for every bend at their own pace, and the ghost of your best lap to beat.

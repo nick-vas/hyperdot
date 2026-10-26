@@ -1,0 +1,226 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/Credits.cs"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.9.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\")"
+    },
+    {
+      "file": "main.tscn",
+      "find": "[node name=\"CreditsButton\" type=\"Button\" parent=\"Menu\"]\ncustom_minimum_size = Vector2(0, 88)\ntheme_override_font_sizes/font_size = 28\ntext = \"Credits\"\n\n",
+      "replace": ""
+    },
+    {
+      "file": "test/CarTest.cs",
+      "find": "\n    [TestCase]\n    public void A_straight_run_is_the_same_at_30_and_120_ticks()\n    {\n        var slow = new Car();\n        var fast = new Car();\n        Drive(slow, 1.0, 0.0, 4.0, 30);\n        Drive(fast, 1.0, 0.0, 4.0, 120);\n        AssertThat(slow.Speed).IsEqualApprox(fast.Speed, fast.Speed * 0.02);\n        AssertThat(slow.Position.X).IsEqualApprox(fast.Position.X, fast.Position.X * 0.02f);\n    }\n",
+      "replace": ""
+    },
+    {
+      "file": "test/CarTest.cs",
+      "find": "steering that needs speed, the grass, and the same handling at any tick rate.</summary>",
+      "replace": "steering that needs speed and the grass.</summary>"
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-playthrough",
+      "vars": {
+        "report": "since the physics rate went up to 120 ticks a second for smoother steering, the cars crawl round the tracks, and the bot that plays it through (playthrough.json) runs out of time before the last race is over"
+      },
+      "edits": [
+        {
+          "file": "project.godot",
+          "find": "common/physics_ticks_per_second=60",
+          "replace": "common/physics_ticks_per_second=120"
+        },
+        {
+          "file": "scripts/Car.cs",
+          "find": "        Speed /= 1.0 + drag * dt;\n",
+          "replace": "        Speed /= 1.0 + drag * Tick;\n"
+        },
+        {
+          "file": "scripts/Car.cs",
+          "find": "    public const double Radius = 14.0;\n",
+          "replace": "    public const double Radius = 14.0;\n    /// <summary>The physics tick the handling was tuned at.</summary>\n    public const double Tick = 1.0 / 60.0;\n"
+        }
+      ],
+      "match": [
+        {
+          "file": "project.godot",
+          "pattern": "(?m)^common/physics_ticks_per_second=120\\s*$"
+        }
+      ],
+      "hidden": [
+        "hidden/HiddenTickRateTest.cs"
+      ],
+      "reference": "solutions/beta/fix-playthrough",
+      "decoy": "solutions/beta/fix-playthrough-decoy"
+    },
+    {
+      "template": "fix-performance",
+      "vars": {
+        "situation": "many rivals race (the --rivals=N option, as in a stress run with --rivals=11), and the more there are the worse it gets"
+      },
+      "edits": [
+        {
+          "file": "scripts/Track.cs",
+          "find": "    /// <summary>How many segments either side of a car's last segment its next nearest one is looked for.</summary>\n    public const int SearchBack = 3;\n    public const int SearchAhead = 8;\n",
+          "replace": ""
+        },
+        {
+          "file": "scripts/Track.cs",
+          "find": "    /// <summary>\n    /// The nearest segment to a position: the index of its first point. With a hint (the segment the car was on last tick)\n    /// only the segments around it are looked at, and the whole loop only when that finds nothing on or near the road\n    /// (a car placed somewhere new, or cutting across the grass).\n    /// </summary>\n    public int Nearest(Vector2 position, int hint = -1)\n    {\n        if (hint >= 0)\n        {\n            int best = -1;\n            double bestDistance = double.PositiveInfinity;\n            for (int k = -SearchBack; k <= SearchAhead; k++)\n            {\n                int i = PosMod(hint + k, Path.Count);\n                double d = SegmentDistanceSquared(position, i);\n                if (d < bestDistance)\n                {\n                    bestDistance = d;\n                    best = i;\n                }\n            }\n            if (bestDistance <= Width * Width)\n                return best;\n        }\n        return NearestAnywhere(position);\n    }\n\n    private int NearestAnywhere(Vector2 position)\n    {\n        int best = 0;\n        double bestDistance = double.PositiveInfinity;\n        for (int i = 0; i < Path.Count; i++)\n        {\n            double d = SegmentDistanceSquared(position, i);\n            if (d < bestDistance)\n            {\n                bestDistance = d;\n                best = i;\n            }\n        }\n        return best;\n    }\n\n",
+          "replace": "    /// <summary>The nearest segment to a position: the index of its first point.</summary>\n    public int Nearest(Vector2 position)\n    {\n        int best = 0;\n        double bestDistance = double.PositiveInfinity;\n        for (int i = 0; i < Path.Count; i++)\n        {\n            double d = SegmentDistanceSquared(position, i);\n            if (d < bestDistance)\n            {\n                bestDistance = d;\n                best = i;\n            }\n        }\n        return best;\n    }\n\n"
+        },
+        {
+          "file": "scripts/Race.cs",
+          "find": "            car.Index = Track.Nearest(car.Position, car.Index);\n",
+          "replace": "            car.Index = Track.Nearest(car.Position);\n"
+        },
+        {
+          "file": "scripts/Ghost.cs",
+          "find": "        car.Index = track.Nearest(car.Position, car.Index);\n",
+          "replace": "        car.Index = track.Nearest(car.Position);\n"
+        },
+        {
+          "file": "scripts/Car.cs",
+          "find": "/// <summary>The track segment the car is on, kept by Race so the next lookup starts there.</summary>",
+          "replace": "/// <summary>The track segment the car is on, kept by Race.</summary>"
+        }
+      ],
+      "hidden": [
+        "hidden/HiddenLookupsTest.cs"
+      ],
+      "reference": "solutions/beta/fix-performance"
+    },
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "the ghost of the best lap drifts away from the line the car drove, most for players on a gamepad, and does not cross the finish line at the lap time it shows"
+      },
+      "edits": [
+        {
+          "file": "scripts/Race.cs",
+          "find": "            double throttle = Ghost.Quantize(input.X);\n            double steer = Ghost.Quantize(input.Y);\n",
+          "replace": "            double throttle = input.X;\n            double steer = input.Y;\n"
+        },
+        {
+          "file": "scripts/Race.cs",
+          "find": "Every tick steps the cars in order with quantised inputs, so a race replays exactly from its grid and inputs.",
+          "replace": "Every tick steps the cars in order, so a race replays exactly from its grid and inputs."
+        },
+        {
+          "file": "scripts/Ghost.cs",
+          "find": " Played back through Car on the same track, it drives the lap again exactly, because Race quantises every\n/// input before a car uses it: what the ghost keeps is what the car was given.",
+          "replace": " Played back through Car on the same track, it drives the lap again."
+        }
+      ],
+      "unchanged": [
+        "test/GhostTest.cs"
+      ],
+      "hidden": [
+        "hidden/HiddenGhostTest.cs"
+      ],
+      "reference": "solutions/beta/fix-bug",
+      "decoy": "solutions/beta/fix-bug-decoy"
+    },
+    {
+      "template": "fix-flow",
+      "vars": {
+        "report": "keys rebound in Settings work until the game is restarted, and then they are back to the defaults"
+      },
+      "edits": [
+        {
+          "file": "scripts/SaveStore.cs",
+          "find": "            [\"controls\"] = controls,\n",
+          "replace": ""
+        }
+      ],
+      "hidden": [
+        "hidden/HiddenControlsSavedTest.cs"
+      ],
+      "reference": "solutions/beta/fix-flow"
+    },
+    {
+      "template": "add-feedback",
+      "vars": {
+        "report": "overtaking a rival feels flat"
+      },
+      "edits": [
+        {
+          "file": "game/Game.cs",
+          "find": "        _popPlace = 0.4f;\n        Feedback(\"pop\");\n        Play(_sfxPass);\n",
+          "replace": "        _popPlace = 0.4f;\n        Feedback(\"pop\");\n"
+        }
+      ],
+      "reference": "solutions/beta/add-feedback"
+    },
+    {
+      "template": "fill-translations",
+      "vars": {
+        "locale": "French",
+        "report": "the panel shown at the end of a race partly in English"
+      },
+      "edits": [
+        {
+          "file": "i18n/strings.csv",
+          "find": "RESULT_TITLE,Finished,Arrivée\n",
+          "replace": "RESULT_TITLE,Finished,\n"
+        },
+        {
+          "file": "i18n/strings.csv",
+          "find": "RESULT_PLACE,Place %d of %d,Place %d sur %d\n",
+          "replace": "RESULT_PLACE,Place %d of %d,\n"
+        },
+        {
+          "file": "i18n/strings.csv",
+          "find": "RESULT_NEXT,Next track,Circuit suivant\n",
+          "replace": "RESULT_NEXT,Next track,\n"
+        }
+      ],
+      "unchanged": [
+        "game/ResultMenu.cs",
+        "game/game.tscn"
+      ],
+      "reference": "solutions/beta/fill-translations",
+      "decoy": "solutions/beta/fill-translations-decoy"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "track 3, Caldera Hairpins (TRACK_3), in data/tracks.json, with hairpins; a bot: with --autoplay (after --, read into LaunchOptions.Autoplay) the game plays from the main scene with a full-pace AI driving the player's car, track after track from --track=N (1 by default), prints [Run] track N finished P<place> when it takes the flag, retries a track it did not finish in the top two with the next seed, and after the third track prints [Run] victory and quits, every random choice (the grid) from generators seeded by --seed=N and nothing saved with --no-save; the bot must beat the rivals from the back of the grid; juice: print [juice] event race_start <ms>, [juice] event position_gained <ms> and [juice] event lap_completed <ms> in game time (ms), each answered within 100 ms by [juice] feedback sfx <ms> for a sound, and [juice] feedback flash <ms> for a visible flash at the start and [juice] feedback pop <ms> for a pop of the HUD's place or lap counter; and French: every visible text through tr() with an fr column in the translation table, menus and tracks included, and the settings screen (Menu/SettingsButton opens a child of Main named Settings) with a button Box/Languages/<Locale>Button per language, FrButton and EnButton, and Box/BackButton back to the menu"
+    },
+    "hidden": [
+      {
+        "from": "game/playthrough.json",
+        "to": "playthrough.json"
+      },
+      {
+        "from": "game/juice.json",
+        "to": "juice.json"
+      },
+      {
+        "from": "game/test/flows/settings.flow.json",
+        "to": "test/flows/settings.flow.json"
+      },
+      "hidden/HiddenFrenchTest.cs",
+      "hidden/HiddenThreeTracksTest.cs"
+    ],
+    "reference": "solutions/milestone-beta"
+  }
+}

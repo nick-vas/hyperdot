@@ -14,6 +14,15 @@
   when `TMPDIR` is too long for a socket path (which made every gdUnit4 run fail before), and remove it after the run.
   `tests/Test-DotnetTempDir.ps1` runs two at once against a stand-in `dotnet` and Godot. Windows names its pipes
   globally and is unchanged.
+- **The racing game in C#.** Cinderloop now has its C# version (`benchmark/games/racing/csharp/`), written from the
+  language-neutral contract in its `DESIGN.md`: the same scenes, scene tree, node names, data files, flows, bot and
+  juice runs and log lines, with 69 gdUnit4 tests in place of the GUT ones and a Linux export only. Its race keeps
+  GDScript's arithmetic, doubles for numbers and float vectors with the number cast where they meet, the engine's
+  `Geometry2D` and its `wrapf`, `posmod` and `roundi` as the engine defines them, so a race runs the same to the last
+  bit: the bot run prints the same log lines as the GDScript one, line for line, for seed 1 and for other seeds, rival
+  counts and starting tracks. Its four stages carry the same 17 tasks and three milestones as the GDScript version,
+  each with hidden checks in C# and a reference solution, five with a decoy; all pass
+  `tests/Test-GameProgramme.ps1 -Genre racing -Language csharp`. `DESIGN.md`'s "As built" records the port's choices.
 - **The roguelite in C#.** Wickerdeep now has its C# version (`benchmark/games/roguelite/csharp/`), written from the
   language-neutral contract in its `DESIGN.md`: the same scenes, scene tree, node names, data files, flows, bot and
   juice runs and log lines, the same `--swarm=N` load, with 44 gdUnit4 tests in place of the GUT ones and a Linux

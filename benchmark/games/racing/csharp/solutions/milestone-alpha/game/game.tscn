@@ -1,0 +1,267 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://game/Game.cs" id="1_game"]
+[ext_resource type="Script" path="res://game/TrackView.cs" id="2_track"]
+[ext_resource type="Script" path="res://game/CarView.cs" id="3_car"]
+[ext_resource type="Script" path="res://game/ChaseCamera.cs" id="4_camera"]
+[ext_resource type="Script" path="res://game/PauseMenu.cs" id="5_pause"]
+[ext_resource type="Script" path="res://game/ResultMenu.cs" id="6_result"]
+[ext_resource type="AudioStream" path="res://sounds/sfx/blip_select-9.wav" id="7_go"]
+[ext_resource type="AudioStream" path="res://sounds/sfx/powerup-9.wav" id="8_lap"]
+[ext_resource type="AudioStream" path="res://sounds/sfx/pickup_coin-9.wav" id="9_pass"]
+
+[node name="Game" type="Node2D"]
+script = ExtResource("1_game")
+
+[node name="Track" type="Node2D" parent="."]
+script = ExtResource("2_track")
+
+[node name="Ghost" type="Node2D" parent="."]
+script = ExtResource("3_car")
+
+[node name="Cars" type="Node2D" parent="."]
+
+[node name="Camera" type="Camera2D" parent="."]
+physics_interpolation_mode = 2
+zoom = Vector2(0.8, 0.8)
+script = ExtResource("4_camera")
+
+[node name="SfxGo" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("7_go")
+volume_db = -6.0
+
+[node name="SfxLap" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("8_lap")
+volume_db = -4.0
+
+[node name="SfxPass" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("9_pass")
+volume_db = -6.0
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Flash" type="ColorRect" parent="HUD"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="TrackLabel" type="Label" parent="HUD"]
+offset_left = 140.0
+offset_top = 20.0
+offset_right = 520.0
+offset_bottom = 56.0
+theme_override_font_sizes/font_size = 22
+text = "Track"
+
+[node name="LapLabel" type="Label" parent="HUD"]
+offset_left = 140.0
+offset_top = 56.0
+offset_right = 420.0
+offset_bottom = 96.0
+pivot_offset = Vector2(0, 20)
+theme_override_font_sizes/font_size = 28
+text = "Lap 1/3"
+
+[node name="PositionLabel" type="Label" parent="HUD"]
+offset_left = 140.0
+offset_top = 96.0
+offset_right = 420.0
+offset_bottom = 140.0
+pivot_offset = Vector2(0, 22)
+theme_override_font_sizes/font_size = 32
+text = "P4/4"
+
+[node name="TimeLabel" type="Label" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -480.0
+offset_top = 20.0
+offset_right = -140.0
+offset_bottom = 60.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 26
+text = "Lap 0:00.000"
+horizontal_alignment = 2
+
+[node name="BestLabel" type="Label" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -480.0
+offset_top = 60.0
+offset_right = -140.0
+offset_bottom = 100.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 22
+text = "Best -"
+horizontal_alignment = 2
+
+[node name="CountdownLabel" type="Label" parent="HUD"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -160.0
+offset_right = 200.0
+offset_bottom = -60.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 72
+text = "3"
+horizontal_alignment = 1
+
+[node name="PauseButton" type="Button" parent="HUD"]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -70.0
+offset_top = 12.0
+offset_right = 70.0
+offset_bottom = 104.0
+grow_horizontal = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 22
+text = "Pause"
+
+[node name="PauseMenu" type="CanvasLayer" parent="."]
+process_mode = 3
+layer = 10
+visible = false
+script = ExtResource("5_pause")
+
+[node name="Dim" type="ColorRect" parent="PauseMenu"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="Title" type="Label" parent="PauseMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -240.0
+offset_top = -250.0
+offset_right = 240.0
+offset_bottom = -190.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 40
+text = "Paused"
+horizontal_alignment = 1
+
+[node name="ResumeButton" type="Button" parent="PauseMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = -160.0
+offset_right = 180.0
+offset_bottom = -72.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 28
+text = "Resume"
+
+[node name="RestartButton" type="Button" parent="PauseMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = -52.0
+offset_right = 180.0
+offset_bottom = 36.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 28
+text = "Restart"
+
+[node name="QuitButton" type="Button" parent="PauseMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = 56.0
+offset_right = 180.0
+offset_bottom = 144.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 28
+text = "Quit to menu"
+
+[node name="ResultMenu" type="CanvasLayer" parent="."]
+layer = 9
+visible = false
+script = ExtResource("6_result")
+
+[node name="Dim" type="ColorRect" parent="ResultMenu"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.55)
+
+[node name="Box" type="VBoxContainer" parent="ResultMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -280.0
+offset_right = 260.0
+offset_bottom = 280.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Title" type="Label" parent="ResultMenu/Box"]
+theme_override_font_sizes/font_size = 44
+text = "Finished"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="PlaceLabel" type="Label" parent="ResultMenu/Box"]
+theme_override_font_sizes/font_size = 32
+text = "P1"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="TimeLabel" type="Label" parent="ResultMenu/Box"]
+theme_override_font_sizes/font_size = 24
+text = "Best lap"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="NextButton" type="Button" parent="ResultMenu/Box"]
+custom_minimum_size = Vector2(0, 88)
+theme_override_font_sizes/font_size = 28
+text = "Next track"
+
+[node name="RetryButton" type="Button" parent="ResultMenu/Box"]
+custom_minimum_size = Vector2(0, 88)
+theme_override_font_sizes/font_size = 28
+text = "Retry"
+
+[node name="MenuButton" type="Button" parent="ResultMenu/Box"]
+custom_minimum_size = Vector2(0, 88)
+theme_override_font_sizes/font_size = 28
+text = "Menu"

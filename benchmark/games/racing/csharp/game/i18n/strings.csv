@@ -1,0 +1,50 @@
+keys,en,fr,de
+MENU_TITLE,Cinderloop,Cinderloop,Cinderloop
+MENU_START,Race,Courir,Rennen
+MENU_SETTINGS,Settings,Réglages,Einstellungen
+MENU_CREDITS,Credits,Crédits,Mitwirkende
+MENU_QUIT,Quit,Quitter,Beenden
+MENU_VERSION,Version %s,Version %s,Version %s
+SELECT_TITLE,Choose a track,Choisissez un circuit,Strecke wählen
+SELECT_BEST,best %s,record %s,Bestzeit %s
+SELECT_BACK,Back,Retour,Zurück
+TRACK_1,Ashfall Oval,Ovale des Cendres,Aschenoval
+TRACK_2,Ember Esses,S de la Braise,Glut-Schikanen
+TRACK_3,Caldera Hairpins,Épingles de la Caldeira,Kalderakehren
+HUD_PAUSE,Pause,Pause,Pause
+HUD_LAP,Lap %d/%d,Tour %d/%d,Runde %d/%d
+HUD_POSITION,P%d/%d,P%d/%d,P%d/%d
+HUD_TIME,Lap %s,Tour %s,Runde %s
+HUD_BEST,Best %s,Record %s,Bestzeit %s
+HUD_GO,GO!,PARTEZ !,LOS!
+PAUSE_TITLE,Paused,Pause,Pausiert
+PAUSE_RESUME,Resume,Reprendre,Weiter
+PAUSE_RESTART,Restart,Recommencer,Neu starten
+PAUSE_QUIT,Quit to menu,Quitter vers le menu,Zum Menü
+RESULT_TITLE,Finished,Arrivée,Im Ziel
+RESULT_PLACE,Place %d of %d,Place %d sur %d,Platz %d von %d
+RESULT_BEST,Best lap %s,Meilleur tour %s,Beste Runde %s
+RESULT_NEXT,Next track,Circuit suivant,Nächste Strecke
+RESULT_RETRY,Retry,Rejouer,Nochmal
+RESULT_MENU,Menu,Menu,Menü
+SETTINGS_TITLE,Settings,Réglages,Einstellungen
+SETTINGS_VOLUME,Volume,Volume,Lautstärke
+SETTINGS_LANGUAGE,Language,Langue,Sprache
+SETTINGS_CONTROLS,Keys,Touches,Tasten
+SETTINGS_PRESS_KEY,Press a key,Appuyez sur une touche,Taste drücken
+SETTINGS_BACK,Back,Retour,Zurück
+CONTROL_ACCELERATE,Accelerate,Accélérer,Gas geben
+CONTROL_BRAKE,Brake,Freiner,Bremsen
+CONTROL_LEFT,Steer left,Tourner à gauche,Links lenken
+CONTROL_RIGHT,Steer right,Tourner à droite,Rechts lenken
+LANG_EN,English,English,English
+LANG_FR,Français,Français,Français
+LANG_DE,Deutsch,Deutsch,Deutsch
+CREDITS_TITLE,Credits,Crédits,Mitwirkende
+CREDITS_BACK,Back,Retour,Zurück
+CREDITS_THIRD_PARTY,Third-party material,Contenus tiers,Material Dritter
+CREDITS_THANKS,Thanks,Remerciements,Dank
+CREDITS_ENGINE,Engine,Moteur,Engine
+VICTORY_TITLE,Champion,Champion,Meister
+VICTORY_MESSAGE,Every track of the cinder loop is yours.,Tous les circuits de cendre sont à vous.,Jede Aschenstrecke gehört dir.
+VICTORY_MENU,Back to menu,Retour au menu,Zurück zum Menü

@@ -1,0 +1,9 @@
+{
+  "frames": 1500,
+  "args": ["--autoplay", "--seed=1", "--no-save"],
+  "rules": [
+    { "event": "race_start", "feedback": ["flash", "sfx"], "withinMs": 100 },
+    { "event": "position_gained", "feedback": ["pop", "sfx"], "withinMs": 100 },
+    { "event": "lap_completed", "feedback": ["pop", "sfx"], "withinMs": 100 }
+  ]
+}
