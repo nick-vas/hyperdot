@@ -106,6 +106,22 @@ In the Compatibility renderer colours above 1.0 are clamped, so an edge or rim c
   without the effect, at the target resolution (`-Resolution 1920x1080`), and compare. Fill-rate bound when a small window is
   much faster than a large one.
 - `Viewport.DebugDraw = Viewport.DebugDrawEnum.Overdraw` shows where layers pile up.
+- Precision qualifiers (`lowp`, `mediump`, usually 16 bits, `highp`, the default 32) can speed up fragment maths on
+  phones; desktop GPUs mostly ignore them. Colour maths survives 16 bits; positions, UVs on large textures and `TIME`
+  (it runs to an hour before it wraps) do not. Some mobile drivers misbehave with them, so add them only where `bench`
+  on the device shows a gain:
+
+```glsl
+shader_type canvas_item;
+
+uniform lowp vec4 tint : source_color = vec4(1.0);
+
+void fragment() {
+	mediump vec4 base = texture(TEXTURE, UV) * COLOR;  // colour: fine in 16 bits
+	highp float wave = sin(TIME * 2.0 + UV.x * 6.283);  // TIME grows: keep it at full precision
+	COLOR = vec4(base.rgb * tint.rgb * (0.9 + 0.1 * wave), base.a);
+}
+```
 
 ## 4. Particles
 
@@ -126,8 +142,8 @@ In the Compatibility renderer colours above 1.0 are clamped, so an edge or rim c
   it pops out at the screen edge; too big, and it is never culled.
 - Change `AmountRatio`, not `Amount`, at run time (`Amount` restarts the system). `Preprocess` warms a loop up but runs the
   simulation many times at start; keep it short.
-- Cost: sweep 100, 1000 and 10000 particles with `bench` (`-GameArgs '--particles=1000'` read by a test scene), and sweep
-  particle *size*, since overdraw usually dominates.
+- Cost: sweep 100, 1000 and 10000 particles with `bench -Sweep particles=100,1000,10000` (a test scene reads
+  `--particles=<n>`; `sweep.rows[]` gives p99 per value), and sweep particle *size*, since overdraw usually dominates.
 
 ## 5. Post-processing and quality tiers
 
@@ -158,7 +174,7 @@ Switching on an unsupported effect only prints a warning; check `RenderingServer
 Keep tonemapping and glow the same in every tier: they are the look, not a cost. Apply a tier in one function that sets the
 `Viewport`, the `Environment` and the sun (`RenderingServer.DirectionalShadowAtlasSetSize`,
 `DirectionalSoftShadowFilterSetQuality`, `EnvironmentSetSsaoQuality`), and let `--quality=low` select it so `bench` can
-compare tiers: `bench -GameArgs '--quality=low'`, then `high`.
+compare tiers in one run: `bench -Sweep quality=low,medium,high`.
 
 ## 6. Shaders from GodotShaders.com and elsewhere
 

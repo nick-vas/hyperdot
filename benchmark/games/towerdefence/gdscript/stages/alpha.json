@@ -1,0 +1,165 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/credits.gd",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "bench",
+    "test/flows/settings.flow.json",
+    "test/unit/test_repath.gd"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.5.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\")"
+    },
+    {
+      "file": "main.tscn",
+      "find": "[node name=\"CreditsButton\" type=\"Button\" parent=\"Menu\"]\ncustom_minimum_size = Vector2(0, 88)\ntheme_override_font_sizes/font_size = 28\ntext = \"Credits\"\n\n",
+      "replace": ""
+    },
+    {
+      "file": "game/game.gd",
+      "find": "\tif options.autoplay:\n\t\t_bot = Bot.new()\n",
+      "replace": ""
+    },
+    {
+      "file": "game/game.gd",
+      "find": "\t# On its own (a flow, or the game scene run alone) nobody listens; a bot run then ends here.\n\tif options.autoplay and finished.get_connections().is_empty():\n\t\tget_tree().quit()\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/save_store.gd",
+      "find": "## Version 2 is current; version 1 kept only a list of the maps cleared and the volume, and players still have such files.\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/save_store.gd",
+      "find": "\tvar version := int(raw.get(\"version\", 1))\n\tif version == 1:\n\t\t# Version 1 kept no stars: each map it lists was cleared, with one star.\n\t\tvar cleared: Variant = raw.get(\"cleared\", [])\n\t\tif typeof(cleared) == TYPE_ARRAY:\n\t\t\tfor id: Variant in cleared:\n\t\t\t\tdata.progress[str(id)] = {\"stars\": 1, \"lives\": 0}\n\t\tdata.settings.volume = clampf(float(raw.get(\"volume\", 1.0)), 0.0, 1.0)\n\t\treturn data\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/save_store.gd",
+      "find": "## Any version's data as the current version.",
+      "replace": "## The saved data, with defaults for anything missing."
+    },
+    {
+      "file": "test/unit/test_save_store.gd",
+      "find": "func test_a_version_1_save_keeps_its_cleared_maps():\n\t_write_raw('{\"version\": 1, \"cleared\": [\"meadow\", \"sunken\"], \"volume\": 0.5}')\n\tvar data := SaveStore.new(PATH).read()\n\tassert_true(Progress.is_cleared(data, \"meadow\"))\n\tassert_true(Progress.is_cleared(data, \"sunken\"))\n\tassert_almost_eq(float(data.settings.volume), 0.5, 0.001)\n\n\n",
+      "replace": ""
+    },
+    {
+      "file": "test/unit/test_save_store.gd",
+      "find": "## SaveStore: reading, writing and the move from version 1.",
+      "replace": "## SaveStore: reading and writing."
+    }
+  ],
+  "tasks": [
+    {
+      "template": "add-content",
+      "vars": {
+        "content": "a new pest, the moth (id moth, its name under the key ENEMY_MOTH in i18n/strings.csv), in data/enemies.json: faster than any other pest, at 2.4 cells a second, with 34 hit points, a reward of 6 sap and 1 seed taken at the store; and a fifth wave for the Sunken Path (map sunken) in data/waves.json and data/groups.json, paying a bonus of 45, in which at least 12 moths come along with beetles. The map must stay fair: the game's bot (Bot.play on Battle.create(catalog, \"sunken\", seed)) clears it with seeds 1, 2 and 3, and a field with no tower (Bot.idle) loses it"
+      },
+      "hidden": [
+        "hidden/test_hidden_moth.gd",
+        {
+          "from": "hidden/sunken.flow.json",
+          "to": "test/flows/sunken.flow.json"
+        }
+      ],
+      "reference": "solutions/alpha/add-content"
+    },
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "when a tower is planted in the pests' way, the pests already on the field walk up to it and stand still in front of it until it shoots them, instead of turning at once onto the way round it as the pests that come after do"
+      },
+      "edits": [
+        {
+          "file": "scripts/battle.gd",
+          "find": "\tmap.set_tower(cell, true)\n\t_repath()\n",
+          "replace": "\tmap.set_tower(cell, true)\n"
+        }
+      ],
+      "unchanged": [
+        "test/unit/test_battle.gd"
+      ],
+      "hidden": [
+        "hidden/test_hidden_repath.gd"
+      ],
+      "reference": "solutions/alpha/fix-bug",
+      "decoy": "solutions/alpha/fix-bug-decoy"
+    },
+    {
+      "template": "fix-architecture",
+      "vars": {
+        "problem": "the architecture runner fails with an error in game/field.gd (per-frame-lookup)"
+      },
+      "edits": [
+        {
+          "file": "game/game.gd",
+          "find": "\t_gold_label.text = tr(\"HUD_SAP\") % battle.gold\n",
+          "replace": ""
+        },
+        {
+          "file": "game/field.gd",
+          "find": "func _process(delta: float) -> void:\n\tif _pops.is_empty():\n",
+          "replace": "func _process(delta: float) -> void:\n\tif battle != null:\n\t\tget_node(\"../HUD/GoldLabel\").text = tr(\"HUD_SAP\") % battle.gold\n\tif _pops.is_empty():\n"
+        }
+      ],
+      "hidden": [
+        "hidden/test_hidden_gold_label.gd"
+      ],
+      "reference": "solutions/alpha/fix-architecture"
+    },
+    {
+      "template": "migrate-save",
+      "vars": {
+        "report": "the maps they had cleared are locked again after the update. The previous version saved user://save.json as {\"version\": 1, \"cleared\": [<map ids>], \"volume\": <0 to 1>}, with no stars and no language"
+      },
+      "hidden": [
+        "hidden/test_hidden_save_migration.gd"
+      ],
+      "reference": "solutions/alpha/migrate-save"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "a title menu as the main scene res://main.tscn (root Main) with Menu/StartButton, Menu/SettingsButton and Menu/QuitButton, where Start adds a map select (a child of Main named MapSelect, with a button Box/Grid/Map<N>Button per map, open once the map before is cleared, and Box/BackButton back to the menu) and choosing a map adds the game scene res://game/game.tscn as a child of Main named Game, with the map's place in the campaign in its property level and the map's name in its HUD/MapLabel (map 1 is The Meadow); pause: Escape or the button HUD/PauseButton of the game shows its PauseMenu node (a CanvasLayer with ResumeButton and QuitButton) and pauses the tree, ResumeButton hides it and resumes; the Meadow's fourth wave and a second map, the Sunken Path (id sunken, 4 waves), in the data files; a data.json for the kit's data runner; and a save by a SaveStore class (scripts/save_store.gd: SaveStore.new(path), read() and write(data) of a dictionary whose progress maps map ids to {\"stars\", \"lives\"}) in user://save.json, written by a Progress class (scripts/progress.gd: Progress.record(save, map_id, lives, start_lives) keeping the best result, Progress.stars(save, map_id), and Progress.is_unlocked(save, catalog, index)) when a map is won, with 3 stars for no seed lost, 2 for at least half kept and 1 otherwise"
+    },
+    "hidden": [
+      {
+        "from": "game/test/flows/start.flow.json",
+        "to": "test/flows/start.flow.json"
+      },
+      {
+        "from": "game/test/flows/select.flow.json",
+        "to": "test/flows/select.flow.json"
+      },
+      {
+        "from": "game/test/flows/pause.flow.json",
+        "to": "test/flows/pause.flow.json"
+      },
+      "hidden/test_hidden_two_maps.gd",
+      {
+        "from": "game/data.json",
+        "to": "data.json"
+      }
+    ],
+    "reference": "solutions/milestone-alpha"
+  }
+}

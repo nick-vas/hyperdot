@@ -204,9 +204,12 @@ no `APPLICATION_PAUSED`. Its next frame had a delta of 0.134 s against 3.013 s o
   `Facepunch.Steamworks` when a preset exports to anything but Windows.
 - **Doctor's Steamworks files** (`ci/godot/lib/Steam.ps1`): a game keeps copies of what it uploads to Steamworks in
   `steam/` (with an empty `.gdignore`), and doctor reads them against the game's `.cs` and `.gd` files (outside `addons/`
-  and folders with a `.gdignore`). Only string literals are read: a name held in a constant or built at run time is not
-  followed. Files are VDF (Valve's KeyValues text), read by `ConvertFrom-Vdf` without escape sequences, as steamcmd reads
-  `"..\content\"`; a `.vdf` that does not parse warns.
+  and folders with a `.gdignore`) and the C# of its solution outside the Godot folder, less test projects (a folder
+  named `test` or `tests`, or ending `.Tests`), whose wrong names are on purpose. A name is a string literal or a string
+  constant: C# `const string` or `static readonly string` (several to a line), GDScript `const`, matched by the name's
+  last part (`BreakoutProgress.FirstFloor` is `FirstFloor`) when only one value goes by it; a name built at run time is
+  not followed. The C# example keeps its `steam/` this way. Files are VDF (Valve's KeyValues text), read by
+  `ConvertFrom-Vdf` without escape sequences, as steamcmd reads `"..\content\"`; a `.vdf` that does not parse warns.
   - **Rich presence**: any `.vdf` in `steam/` whose root is `"lang"`, one language per file (`"Language" "english"`
     with `"Tokens"`) or all in one (`"english" { "Tokens" { ... } }`). A `steam_display` value the code sets
     (`setRichPresence("steam_display", "#Token")` in any binding) that does not start with `#` fails, and so does a token

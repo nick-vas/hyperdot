@@ -108,32 +108,70 @@ function Get-RichPresenceTokens($Entries) {
     return $languages
 }
 
-# Literal names the code passes to Steam: rich presence tokens set as steam_display, achievements and stats. GodotSteam
+# Names the code passes to Steam: rich presence tokens set as steam_display, achievements and stats. GodotSteam
 # (setAchievement, setStatInt), Steamworks.NET and Facepunch (SetAchievement, SteamUserStats.SetStat, new Achievement),
-# GodotSteam's raw Call("setAchievement", ...) and wrappers named like Steam's (UnlockAchievement). Names held in
-# constants or built at run time are not followed.
-function Get-SteamCodeNames([string]$ProjectDir) {
+# GodotSteam's raw Call("setAchievement", ...) and wrappers named like Steam's (UnlockAchievement). A name may be a
+# string constant (C# `const string` or `static readonly string`, several to a line; GDScript `const`), followed by its
+# last name part (BreakoutProgress.FirstFloor is FirstFloor) when one value goes by that name; names built at run time
+# are not followed. $CodeDirs are more folders of C# (the solution's, outside the Godot project), named by path, less
+# their test projects (a folder named test or tests, or ending .Tests), whose wrong names are on purpose.
+function Get-SteamCodeNames([string]$ProjectDir, [string[]]$CodeDirs = @()) {
     $found = [ordered]@{ display = [ordered]@{}; achievements = [ordered]@{}; stats = [ordered]@{} }
+    # Each pattern's name is a literal (n) or an identifier passed as the whole argument (id).
+    $q = '["''](?<n>[^"''\s]+)["'']|(?<id>[A-Za-z_][\w.]*)(?=\s*[,)])'
     $patterns = [ordered]@{
-        display = @('(?i)\bsetRichPresence\s*\(\s*["'']steam_display["'']\s*,\s*["''](?<n>[^"''{}]*)["'']\s*\)',
-            '(?i)["'']setRichPresence["'']\s*,\s*["'']steam_display["'']\s*,\s*["''](?<n>[^"''{}]*)["'']')
-        achievements = @('(?i)\b(?:set|clear|get|unlock)Achievement(?:AndUnlockTime)?\s*\(\s*["''](?<n>[^"''\s]+)["'']',
-            '(?i)\bindicateAchievementProgress\s*\(\s*["''](?<n>[^"''\s]+)["'']',
-            '(?i)["''](?:set|clear|get)Achievement["'']\s*,\s*["''](?<n>[^"''\s]+)["'']',
-            '\bnew\s+(?:Steamworks\.Data\.)?Achievement\s*\(\s*"(?<n>[^"\s]+)"')
-        stats = @('\b(?:SteamUserStats|Steam)\s*\.\s*(?i:set|get|add)Stat(?:Int|Float|Int32)?\s*\(\s*["''](?<n>[^"''\s]+)["'']',
-            '(?i)["''](?:set|get)Stat(?:Int|Float)["'']\s*,\s*["''](?<n>[^"''\s]+)["'']')
+        display = @('(?i)\bsetRichPresence\s*\(\s*["'']steam_display["'']\s*,\s*(?:["''](?<n>[^"''{}]*)["'']|(?<id>[A-Za-z_][\w.]*))\s*\)',
+            '(?i)["'']setRichPresence["'']\s*,\s*["'']steam_display["'']\s*,\s*(?:["''](?<n>[^"''{}]*)["'']|(?<id>[A-Za-z_][\w.]*)(?=\s*[,)]))')
+        achievements = @("(?i)\b(?:set|clear|get|unlock)Achievement(?:AndUnlockTime)?\s*\(\s*(?:$q)",
+            "(?i)\bindicateAchievementProgress\s*\(\s*(?:$q)",
+            "(?i)[`"''](?:set|clear|get)Achievement[`"'']\s*,\s*(?:$q)",
+            '\bnew\s+(?:Steamworks\.Data\.)?Achievement\s*\(\s*(?:"(?<n>[^"\s]+)"|(?<id>[A-Za-z_][\w.]*)(?=\s*[,)]))')
+        stats = @("\b(?:SteamUserStats|Steam)\s*\.\s*(?i:set|get|add)Stat(?:Int|Float|Int32)?\s*\(\s*(?:$q)",
+            "(?i)[`"''](?:set|get)Stat(?:Int|Float)[`"'']\s*,\s*(?:$q)")
     }
-    $files = @(@(Find-ProjectFiles -Root $ProjectDir -Filter '*.cs') + @(Find-ProjectFiles -Root $ProjectDir -Filter '*.gd'))
-    foreach ($file in $files) {
-        $text = [System.IO.File]::ReadAllText($file.FullName)
+    $seen = [System.Collections.Generic.HashSet[string]]::new()
+    $files = [System.Collections.Generic.List[object]]::new()
+    foreach ($file in @(@(Find-ProjectFiles -Root $ProjectDir -Filter '*.cs') + @(Find-ProjectFiles -Root $ProjectDir -Filter '*.gd'))) {
+        if ($seen.Add($file.FullName)) { $files.Add([pscustomobject]@{ File = $file; Where = (ConvertTo-ResPath $ProjectDir $file.FullName) }) }
+    }
+    foreach ($dir in @($CodeDirs | Where-Object { $_ -and (Test-Path -LiteralPath $_) })) {
+        foreach ($file in @(Find-ProjectFiles -Root $dir -Filter '*.cs')) {
+            $parts = @([System.IO.Path]::GetRelativePath($dir, $file.DirectoryName) -split '[\\/]')
+            if (@($parts | Where-Object { $_ -match '(?i)^tests?$|\.tests?$' }).Count -gt 0) { continue }
+            if ($seen.Add($file.FullName)) { $files.Add([pscustomobject]@{ File = $file; Where = ([System.IO.Path]::GetRelativePath($dir, $file.FullName) -replace '\\', '/') }) }
+        }
+    }
+    # String constants by name; a name given two values is dropped, since which one a call means is not known here.
+    $texts = @{}
+    $constants = @{}
+    foreach ($entry in $files) {
+        $text = [System.IO.File]::ReadAllText($entry.File.FullName)
+        $texts[$entry.File.FullName] = $text
+        $declared = if ($entry.File.Extension -eq '.gd') {
+            @([regex]::Matches($text, '(?m)^\s*(?:static\s+)?const\s+(?<k>[A-Za-z_]\w*)\s*(?::\s*String\s*=|:=|=)\s*["''](?<v>[^"''\\]*)["'']'))
+        } else {
+            @(foreach ($d in [regex]::Matches($text, '\b(?:const|static\s+readonly)\s+(?:string|String|System\.String)\s+(?<list>[^;]+);')) {
+                [regex]::Matches($d.Groups['list'].Value, '(?<k>[A-Za-z_]\w*)\s*=\s*"(?<v>[^"\\]*)"')
+            })
+        }
+        foreach ($c in $declared) {
+            $key = $c.Groups['k'].Value
+            $value = $c.Groups['v'].Value
+            if (-not $constants.ContainsKey($key)) { $constants[$key] = $value }
+            elseif ($null -ne $constants[$key] -and $constants[$key] -cne $value) { $constants[$key] = $null }
+        }
+    }
+    foreach ($entry in $files) {
+        $text = $texts[$entry.File.FullName]
         if ($text -notmatch '(?i)achievement|stat|richpresence') { continue }
-        $where = ConvertTo-ResPath $ProjectDir $file.FullName
         foreach ($kind in $patterns.Keys) {
             foreach ($pattern in $patterns[$kind]) {
                 foreach ($m in [regex]::Matches($text, $pattern)) {
-                    $name = $m.Groups['n'].Value
-                    if (-not $found[$kind].Contains($name)) { $found[$kind][$name] = $where }
+                    $name = if ($m.Groups['n'].Success) { $m.Groups['n'].Value } else {
+                        $last = @($m.Groups['id'].Value -split '\.')[-1]
+                        if ($constants.ContainsKey($last) -and $null -ne $constants[$last]) { $constants[$last] } else { $null }
+                    }
+                    if ($null -ne $name -and -not $found[$kind].Contains($name)) { $found[$kind][$name] = $entry.Where }
                 }
             }
         }
@@ -223,10 +261,10 @@ function Get-AppBuildProblems($Entries, [string]$ScriptDir, [string]$Name) {
     return , $problems.ToArray()
 }
 
-function Get-SteamworksProblems([string]$ProjectDir) {
+function Get-SteamworksProblems([string]$ProjectDir, [string[]]$CodeDirs = @()) {
     $problems = [System.Collections.Generic.List[object]]::new()
     $steamDir = Join-Path $ProjectDir 'steam'
-    $names = Get-SteamCodeNames $ProjectDir
+    $names = Get-SteamCodeNames $ProjectDir $CodeDirs
     $vdfs = @(if (Test-Path -LiteralPath $steamDir) { Get-ChildItem -LiteralPath $steamDir -Recurse -File -Filter '*.vdf' | Sort-Object FullName })
     $richPresence = [ordered]@{}
     $richFiles = [System.Collections.Generic.List[string]]::new()

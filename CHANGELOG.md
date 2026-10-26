@@ -1,6 +1,455 @@
 # Changelog
 
 ## Unreleased
+- **The judge's calibration runs in CI.** `token-benchmark.yml` with `calibrate: <run id>` rebuilds the blind pairs
+  of that run, checks they are the ones the owner judged (`benchmark/calibration/pilot-1.json` holds the verdicts and
+  the answer key's hash), and has the candidate judges, cheapest first, judge them both ways until one agrees with the
+  owner on 80% and with itself on 90%. A judgement that fails or names no choice is now an error, not "even": it
+  fails the side-by-side run and counts as neither agreeing nor consistent, so a broken judge cannot pass.
+- **The judge's rubric rewritten from the owner's verdicts.** The first calibration (Haiku and Sonnet both agreed with
+  the owner on 53%) showed the rubric discounting what the owner values: an answer that explains the change with the
+  context the next developer needs now counts for the work, "as small as the task allows" is gone, and work that
+  does different parts of a task is even. A second blind set (`Invoke-SideBySide.ps1 -ReviewIdPrefix q`, shown
+  without the rubric) checks it on pairs it was not written from.
+- **The staged game programme's idle genre**, Duskhive, in GDScript (`benchmark/games/idle/`). A moth hive gathers
+  glow at dusk: five producers whose prices grow geometrically, Buy 1, 10 or as many as the glow pays for, upgrades,
+  and a dawn that trades a run's glow for embers. Every number is in data checked by the `data` runner; glow is a
+  double printed with suffixes and two-letter groups past 2^53 and 1e36, never in scientific notation, with a tested
+  tolerance and no `pow()` or `log()` in its simulation code; time away is paid from the saved clock, capped at
+  eight hours and immune to a clock set back; saves of the previous version keep their embers. The release candidate is
+  a portrait layout for phones, tablets and the Web (a SafeArea autoload, the `layout` and `textsize` checks; English,
+  German and French), 62 GUT tests, five flows, a bot that greets six dawns with `--speed=60`, juice for every event,
+  Linux, Web and Android presets, store art, credits and a plan; its four stages, tasks and milestones each have hidden
+  checks, a reference and a decoy, and pass `tests/Test-GameProgramme.ps1 -Genre idle`.
+- **Bug reports pinned on their level.** `ci/godot/templates/addons/hyperdot_report_pins/`, an add-on a game copies:
+  `bug_report.gd` saves the feedback key's report (`user://reports/<time>.json`: the line typed, the scene, the
+  player's position and the camera's view in 2D or 3D, the seed, the commit, a screenshot), and the editor plugin pins
+  each report of the open scene on it (a dot where the player stood, a ring where the camera was) and lists them in a
+  Reports dock with the seed to replay. GDScript, so C# games use it too with no build. `tests/Test-ReportPins.ps1`.
+- **`doctor`'s Steam names follow constants and the solution.** An achievement, stat or `steam_display` value passed
+  as a string constant (C# `const string` or `static readonly string`, several to a line; GDScript `const`) is checked
+  like a literal, and the solution's C# outside the Godot folder is read too, less its test projects. The C# example's
+  `BreakoutProgress` names were invisible before; the example now keeps `steam/achievements.json` and
+  `steam/rich_presence.vdf`, which `doctor` checks them against.
+- **`placement` reads limits from C# too.** A `placement.json` limit may name a C# file and field
+  (`"res://Tuning.cs:Reach"`): a `const` or `static readonly` field set to a number, `true`, `false`, a plain string or
+  arithmetic on the file's other such fields (`JumpVelocity * JumpVelocity / (2f * Gravity) + BodyHeight`, divided as C#
+  divides), read from the source past comments, since Godot gives no constants for a C# script. A field it cannot work
+  out (`Mathf.Pi * 2`) is refused by name. The standard build reads it as well as the .NET one.
+- **The staged game programme's seventh genre: a narrative game**, Saltmere Crossing, in GDScript
+  (`benchmark/games/narrative/`). A ferrywoman takes a stranger across a foggy river at night; the story is data
+  (nodes, choices that need and change flags in the kit's criteria grammar, three endings) checked by the `data`
+  runner, and a search the game ships finds every node and ending reachable, no dead end and no flag set but never
+  read. Every line is a translation key in English, French and German with a length limit per row for the `l10n`
+  runner, and the story is saved at every line with its flags and history, with old saves replayed into the new form.
+  The release candidate has 53 GUT tests, five flows, a bot that plans its way to every ending, juice, store art
+  rendered from the game and credits. Its four stages carry 17 tasks and three milestones, each with hidden checks and
+  a reference solution, most with a decoy; all pass `tests/Test-GameProgramme.ps1 -Genre narrative -Language
+  gdscript`. `DESIGN.md` holds the language-neutral contract for the C# port, which is still to come.
+- **The staged game programme's fifth genre: a top-down roguelite**, Wickerdeep, in GDScript
+  (`benchmark/games/roguelite/`). A candle-bearer goes down four floors of a crypt, each generated from the run's seed
+  (rooms joined by a spanning tree of corridors, every cell reachable, checked over sweeps of seeds), while shades, cinder
+  bats and tallow brutes wander until they see it and then hunt it down one shared distance field. The rules live in a
+  plain grid simulation stepped in ticks, so a floor replays exactly from its seed; `--swarm=N` adds hundreds of
+  hunters for `bench`. Embers banked across runs buy vigor at a shrine, and the save keeps that meta progress and the run
+  in progress for Continue, with version 1 saves migrated. The release candidate has 44 GUT tests, five flows, a bot
+  that reaches the bottom, juice, three languages, store art rendered from the game and credits. Its four stages carry
+  17 tasks and three milestones, each with hidden checks and a reference solution, most with a decoy; all pass
+  `tests/Test-GameProgramme.ps1 -Genre roguelite -Language gdscript`. `DESIGN.md` holds the language-neutral contract
+  for the C# port, which is still to come.
+- **The staged game programme's sixth genre: a tower defence**, Bramblegate, in GDScript
+  (`benchmark/games/towerdefence/`), one of the mid tier's three genres. Pests walk the shortest way across a grid
+  (AStarGrid2D) from a gate to a seed store; every tower planted reroutes the pests on the field at once, and a tower
+  that would leave the gate or any pest without a way is refused. Towers and their upgrades, pests, maps, waves and
+  their groups are JSON checked by the `data` runner; a rule-based bot that builds a maze holds every map to a measured
+  balance (cleared over several seeds, lost without towers); a swarm scene loads the field for `bench`; the save keeps
+  each map's best stars. The release candidate has 63 GUT tests, five flows, a bot run through all three maps, juice,
+  three languages, store art rendered from the game and credits. Its four stages carry 17 tasks and three milestones,
+  each with hidden checks and a reference solution, most with a decoy; all pass
+  `tests/Test-GameProgramme.ps1 -Genre towerdefence -Language gdscript`. `DESIGN.md` holds the language-neutral
+  contract for the C# port, which is still to come.
+- **The card game in C#.** Lanternfen now has its C# version (`benchmark/games/cards/csharp/`), written from the
+  language-neutral contract in its `DESIGN.md`: the same scenes, node names, data files, flows, named phases, bot and
+  juice runs, with 55 gdUnit4 tests in place of the GUT ones and a Linux export only. Both versions shuffle with the
+  engine's seeded generator and score with the same arithmetic, so a seed deals the same duel and the AI makes the same
+  choices: the bot run prints the same log lines, line for line. Its four stages carry the same 17 tasks and three
+  milestones as the GDScript version, each with hidden checks in C# and a reference solution, most with a decoy; all
+  pass `tests/Test-GameProgramme.ps1 -Genre cards -Language csharp`. `DESIGN.md`'s "As built" records the port's
+  choices.
+- **The platformer in C#.** Glowmoss Ridge now has its C# version (`benchmark/games/platformer/csharp/`), written from
+  the language-neutral contract in its `DESIGN.md`: the same level scenes, scene tree, node names, data files, flows,
+  bot and juice runs and log lines, with 34 gdUnit4 tests in place of the GUT ones and a Linux export only. Its four
+  stages carry the same tasks and milestones as the GDScript version, each with hidden checks in C# and a reference
+  solution, most with a decoy; all pass `tests/Test-GameProgramme.ps1 -Genre platformer -Language csharp`. Its
+  `placement.json` names `Movement.Reach` in the C# source; `DESIGN.md`'s "As built" records the port's choices.
+- **The staged game programme's fourth genre: a turn-based card game**, Lanternfen, in GDScript
+  (`benchmark/games/cards/`). Two lantern-keepers duel with wisps that strike across three lanes and rites that act
+  once; a turn is written as named phases (Draw, Main, Clash, End) in a plain class, each transition logged and tested.
+  Cards, decks and five rivals are JSON checked by the `data` runner, the rivals are played by a utility AI with
+  per-rival weights, every duel shuffles from its own seed, fatigue ends every duel, and the save keeps the duel in
+  progress for Continue. The release candidate has 55 GUT tests, five flows, a bot that plays the AI against itself up
+  the whole ladder, juice, three languages, store art rendered from the game and credits. Its four stages carry 17
+  tasks and three milestones, each with hidden checks and a reference solution, most with a decoy; all pass
+  `tests/Test-GameProgramme.ps1 -Genre cards -Language gdscript`. `DESIGN.md` holds the language-neutral contract for
+  the C# port, which is still to come.
+- **The puzzle Frostmote in C#** (`benchmark/games/puzzle/csharp`), the third genre's port: the same scenes, node names,
+  data files, levels, flows, bot and juice logs as the GDScript build, with gdUnit4 tests (45 in the release candidate)
+  run by the kit's .NET runner. The daily drift draws from Godot's `RandomNumberGenerator` with the same seed formula and
+  draw order, and compares its rolls as doubles as GDScript does, so a seed gives the same level in both languages; seed
+  7 is pinned by the same rows in each. Its four stages carry the same 17 tasks and 3 milestones, each with hidden
+  gdUnit4 checks, a reference solution and the same decoys; all pass `tests/Test-GameProgramme.ps1 -Genre puzzle
+  -Language csharp`. The C# build exports to Linux only, as Godot 4.7 cannot export C# to the Web.
+  the C# port.
+- **Blind review and the judge's calibration.** `benchmark/Invoke-SideBySide.ps1 -ReviewOut` writes the pairs the judge
+  sees for a person instead (A and B in a seeded order, nothing naming the plugin, the key kept apart);
+  `benchmark/review-page.html` shows them and keeps the owner's verdicts in its own store; `benchmark/Get-JudgeAgreement.ps1`
+  scores the judge against those verdicts and against itself (80% and 90%, from `benchmark/PLAN.md`). Self-test:
+  `tests/Test-ReviewPairs.ps1`.
+- **A coverage map** ([docs/coverage.md](docs/coverage.md), made by `tests/Get-CoverageMap.ps1`): every command,
+  documented error code, lib file, tool, skill, subagent and workflow job, with the self-tests and `self-test.yml` steps
+  behind it and a list of gaps. It joins what the tests say (commands run, codes checked, files named) with what their kit
+  runs reached: a run recorded under `HYPERDOT_COVERAGE` now names the `Test-*.ps1` that started it, and
+  `tests/coverage-records.json` keeps each test's commands, codes and functions. `tests/Test-CoverageMap.ps1` (in the
+  `lint` job) fails when something has no row; the `coverage` job adds the map from that run's records to its artifact.
+  New cases for the gaps it showed: `import-failed` (a `project.godot` Godot cannot parse) and `no-browser` in
+  `tests/Test-ErrorCodes.ps1`, `audio-clipping` in `tests/Test-Audio.ps1 -Mix` (`audio-fixture/loud.tscn`).
+- **Argument mistakes come back as JSON.** An unknown command, a value outside a parameter's set (`-Do`, `-Mcp`,
+  `-Profile`, `-Retry` above 5), an unknown flag or a word that belongs to no parameter used to be refused by PowerShell
+  before the script started, with nothing on stdout under `-Json`. They now give `invalid-arguments` with the parameter,
+  the value, what it takes and the nearest name (`-Projct` → `-Project`). The sets stay in the param block, as
+  `[ArgumentCompletions]` (tab completion, not enforced while binding), checked by `Assert-KitArguments`; `help`, the
+  skill and context checks and the coverage report read the same attributes. A flag without its value and a value of the
+  wrong type (`-Retry abc`) are still PowerShell's. Self-test: `tests/Test-ErrorCodes.ps1 -NoGodot`.
+- **The staged programme's first pilot** (min tier, 32 sessions, $1.89; `benchmark/PLAN.md`): five of the eight arcade
+  GDScript tasks were solved by every configuration, Haiku's fix-playthrough sessions ran out of time (the template now
+  allows 1800 s), the plugin used about twice the tokens again, and `cost-model.json` now holds the measured costs. The
+  arcade explain-failure task asked for a bare `2`, which the prompt's `Godot 4.7.2` already contains, so the runner
+  refused every tier holding it; its number terms now skip digits after a point, and `tests/Test-GameProgramme.ps1`
+  first runs the runner's dry run on the programme, which catches such a task before any grading.
+- **Design prompts placed.** `godot-progression` section 6: saving as a difficulty lever, pressure against stalling,
+  sinks players want, fixed costs as a share of wealth, and charges on limited-use items shown, each ending in a number
+  a test holds. A camera cost checklist in `godot-camera`, asked for by the `concept.decisions` gate. A premise in five
+  Ws and a story summary with the player's verbs in bold (`godot-narrative`, and an optional Story section in the GDD
+  template). A turn written as named phases with a test per transition (`godot-patterns`). The retro asks who owns each
+  recurring job ("What recurring job has no owner?").
+- **Intentional mistakes in `godot-game-ai`** (`mistakes.md`, a side file: the skill is at its size limit): Lars Lidén's
+  "Artificial Stupidity" (*AI Game Programming Wisdom 2*) as rules with a test each: move before firing, miss the first
+  time, be visible, poor aim on purpose, a few attackers at a time, tell the player, ease off at the end, openings on
+  purpose. The chapter could not be read here, so only the two points the citing papers quote are marked verified;
+  `docs/roadmap.md` asks for the text.
+- **`templates/ARCHITECTURE.md`**, the shape of a game's code on one page: autoloads (each with its decision), the scene
+  tree, signals that cross scenes, authored versus runtime data, the save schema version with its migrations, the
+  minimum spec and the open technical questions an ADR answers. The `godot-architect` subagent creates it from the code
+  with its first decision and adds what each proposal would change; `/game`'s review flags it missing or out of step
+  with `status`'s inventory.
+- **First-session steps as stubs.** `status -Json` lists the GDD's "First session, step by step" as
+  `gdd.firstSession[]` (`S1`... from each step's number), with the flows, tests and `playthrough.json` tagged `GDD:S<n>`
+  that play it and the `*.stub.json` files that only stub it; a confirmed GDD warns about steps with neither, and about
+  tags for steps it lacks. Stubs never count as a feature's tests. `/game` writes the stubs
+  (`test/flows/first_session_s<n>.stub.json` and `playthrough.stub.json`, which no runner plays, so a run stays green)
+  and a task per step; starting the task turns the stub into a failing `.flow.json` first. `playthrough.json` may name
+  the steps it plays in `"covers"`. Self-test: `tests/Test-Plan.ps1`.
+- **A GDScript playtest tracker** (`examples/gdscript/playtest/playtest_tracker.gd`): the C# example's `PlaytestTracker`,
+  its consent rule and `PlaytestFileSink` in one class. It raises the seven events of `templates/playtest-events.json`
+  from the player's position and the game's calls, records nothing before the player agrees, and `flush()` appends one
+  batch a line to `user://playtests/<session>.jsonl`; refusing consent deletes those files. Ten GUT tests
+  (`test/test_playtest_tracker.gd`) repeat the C# cases with a fake clock and check every event against the template;
+  `godot-playtest` and `docs/telemetry.md` point to it (the latter also had the sink's folder wrong). `doctor` now counts
+  `PlaytestTracker` in the code as collecting player data, so a game using it without a privacy policy is warned; the
+  GDScript example has one (`store/privacy-policy.md`).
+- **GitLab CI template** (`ci/gitlab/hyperdot.gitlab-ci.yml`, untested on GitLab): `hyperdot-test` and `hyperdot-export`
+  jobs, the GitHub action's steps and inputs as `HYPERDOT_*` variables (`ci/gitlab/Invoke-Hyperdot.ps1`), in the .NET 8
+  SDK image, with Godot, NuGet and templates cached inside the checkout. Test results reach merge requests through
+  `artifacts:reports:junit` and coverage through `coverage_report` (Cobertura). For it, `test` now also writes every
+  runner's results as JUnit into `<results>/junit/` (`dotnet`'s and `gdunit4`'s TRX converted; `junitDir` in `-Json`).
+  `tests/Test-GitLabTemplate.ps1` parses the template, holds it to GitLab's keywords and matches its report paths against
+  what the kit writes. Docs: `docs/usage.md`, "GitLab CI".
+- **`bench -Sweep <name>=<v1,v2,...>`:** one bench per value, the game getting `--<name>=<value>` after `-GameArgs`, one
+  `bench.csv` row each (labelled `<-Label> <name>=<value>`) and a table of p99, p50, fps, draw calls and load time against the
+  value in the log and in `-Json` (`sweep`). A value over `-BudgetMs`, `-MaxDrawCalls` or `-MaxLoadMs` is marked
+  (`withinLimits`, `lastWithinLimits`), not a failure; a run that cannot be measured fails the sweep with the new code
+  `bench-sweep-failed` after every value ran. `godot-performance` and `godot-shaders-vfx` use it for particle counts and
+  quality tiers. Self-test: `tests/Test-BenchSweep.ps1` (`tests/bench-fixture/sweep.tscn`, headless).
+- **Known-status list for add-ons** (`ci/godot/addons-status.json`): `doctor` warns about Godot Jolt on Godot 4.7,
+  godot-steam-audio (archived), Godot-PerfBullets (Godot 4.1 and 4.2) and py4godot (a prototype), found by their folder
+  in any letter case or, renamed, by their `.gdextension` file name and `entry_symbol`. Each name was confirmed from the
+  add-on's repository (docs/addons.md says which files). `ci/godot/tools/Update-AddonStatus.ps1` refreshes each entry's
+  newest commit and archived state; the canary runs it, puts what moved in its pull request and opens an issue for what
+  needs a person. Tests: `tests/Test-Addons.ps1` (detection, the refresh on made-up repositories),
+  `tests/Test-UpdatePins.ps1` (the canary).
+- **The canary tracks aseprite-mcp's pins.** `Update-Versions.ps1` reads the commit and MCP SDK that `init -McpAseprite`
+  writes (`lib/Init.ps1`) and proposes the server's newest commit (`git ls-remote`) and the newest `mcp` release on PyPI
+  within the pinned major (a newer major is a note: SDK 2.x renamed the `FastMCP` the server imports). `-Apply` rewrites
+  `lib/Init.ps1` and `docs/mcp.md`. `Invoke-Canary.ps1` tries them by starting the server through `uvx` and listing its
+  tools (`-Uvx`, a stand-in in `tests/Test-UpdatePins.ps1`), without the example projects, which these pins do not touch;
+  `canary.yml` installs uv.
+- **A third genre for the staged game programme: the puzzle Frostmote, in GDScript** (`benchmark/games/puzzle`). A mote
+  slides on ice until a wall, snow stops it, sparks open the exit: eight hand-made levels as JSON, checked by the `data`
+  runner and held to their pars by a solver test, a daily drift from a seeded generator, undo, and a line that says when
+  the exit can no longer be reached. Four stages with 17 tasks and 3 milestones, each with a reference solution and most
+  with a decoy; `tests/Test-GameProgramme.ps1 -Genre puzzle -Language gdscript` checks them all. Its `DESIGN.md` is the
+  contract the C# port follows.
+- **The staged game programme's second genre: a platformer**, Glowmoss Ridge, in GDScript
+  (`benchmark/games/platformer/`). A side view of a 3D world, so the `placement` runner measures every tuft of glowmoss
+  against the climber's reach, read from the movement code. The jump has coyote time, a jump buffer and a short hop, and
+  moves by each tick's average velocity, so it peaks at the same height at any tick rate. The release candidate has 34
+  GUT tests, four flows, a bot that finishes five levels, juice, three languages, store art and credits. Its four stages
+  carry 17 tasks and three milestones, each with hidden checks and a reference solution, most with a decoy; all pass
+  `tests/Test-GameProgramme.ps1 -Genre platformer -Language gdscript`. `DESIGN.md` holds the language-neutral contract
+  for the C# port.
+- **Benchmark sessions as a separate user** (`-Isolate`, `benchmark/Isolation.ps1`; benchmark/PLAN.md stage 5). Each
+  session runs as a user made for the run (`useradd`; `runuser` as root, `sudo -n -u` otherwise) whose only folder is its
+  game copy: the runner's temporary files move into a folder it cannot list, the checkout is closed to other users for the
+  run, and Godot (or a .NET SDK in the runner's home) is copied where it can run them. Credentials pass by inheritance,
+  nothing else of the runner's environment does. After each session its processes are ended, links out of the game are
+  removed and the game's `.git` is put back before grading. On in the Token benchmark workflow (input `isolate`); on
+  Windows or without root or passwordless sudo it warns and runs as before. Self-test: `tests/Test-BenchmarkIsolation.ps1`.
+- **The private field test** (`-GameSource <folder>`, `benchmark/FieldTest.ps1`, `benchmark/field-test.json`; stage 8):
+  `fix-mutant`, `write-tests`, `doctor-green` and `bot-finish` on a copy of an owner's game, under the four
+  configurations, reported as numbers only in `field-test.md`. Defects are planted generically: one flipped operator or
+  changed number in the game's GDScript or C#, in an order a seed fixes, kept only when the game's own checks find it.
+  `docs/token-benchmark.md` has the owner's steps on Windows, and `docs/label.md` a field-test table beside the label,
+  outside the class. Self-test: `tests/Test-FieldTest.ps1` (both examples, with the stand-in).
+- **Two installs of one Godot take turns.** Runs on one machine installing the same Godot (parallel jobs, two agent
+  sessions) used to share the download's `.part` file and could start a half-unpacked editor. `setup` now holds a lock
+  file per Godot build while it downloads and unpacks, unpacks beside the final folder and renames it into place (a run
+  killed halfway leaves nothing that looks installed), and stops with the new code `install-busy` after waiting
+  `HYPERDOT_TIMEOUT` seconds. Self-test: `tests/Test-InstallLock.ps1`.
+- **Coverage counts the reusable workflow's jobs.** `godot.yml` takes a `kit-coverage` input (for the self-test only):
+  its test and export jobs then record what the kit ran and upload it, and the self-test's `coverage` job adds the
+  `zero-config`, `csharp` and `explicit-runners` jobs to its count.
+- **Precision qualifiers in `godot-shaders-vfx`:** when `lowp` and `mediump` help on phones, what must stay `highp`, and
+  a quoted shader using all three that `tests/Test-SkillShaders.ps1` compiles.
+- **Lights per mesh on phones in `godot-mobile-web`.** The Mobile renderer's limit, 8 OmniLights and 8 SpotLights per
+  mesh instance, is not a project setting: it is read from 4.7.2's Mobile scene shader, which packs each instance's lights
+  as 8-bit indices in two 32-bit words (`sc_omni_lights(8)`). Compatibility's two settings sit beside it.
+- **Commissioning a composer in `godot-audio`** (`commissioning.md`, from Untold History lesson 30): send something
+  playable, say why it has to be them, hand over the adaptive plan and settle the rights.
+- **Build size breakdown** on `export -Json` (`exports[].size`, `ci/godot/lib/BuildSize.ps1`): the output folder item by
+  item, and Godot's pack (a `.pck`, one embedded in the executable, or one in a `.zip`) by top-level folder and by kind of
+  source file, with imported textures and sounds and compiled scripts counted as their sources. The log names the largest
+  folders. `tests/Test-BuildSize.ps1` reads a synthetic pack three ways and a real Linux export, separate and embedded.
+- **Three `doctor` warnings**, each with a case both ways in `tests/doctor-fixture` (`tests/Test-DoctorFixture.ps1`):
+  - asset files with the same content (size, then SHA-256), outside `addons/` and `.godot/`;
+  - `OccluderInstance3D` nodes while `rendering/occlusion_culling/use_occlusion_culling` is off, so they cull nothing;
+  - a `CharacterBody` or `RigidBody` script that moves the body in `_physics_process` / `_PhysicsProcess` while
+    `physics/common/physics_interpolation` is off, unless the frame rate is capped at the tick rate (`application/run/max_fps`
+    or `Engine.max_fps` / `Engine.MaxFps`).
+- **Add-on licences without an `assets.json` entry** (`doctor`): an `addons/<name>/LICENSE*` whose add-on code no entry
+  covers is a warning, since `credits` then writes no notice for code that ships. The fix is the entry, with the licence
+  read from the text, `copyright` from its first `Copyright` line and `licenceFile`. GUT, gdUnit4 and the git plugin are
+  left out.
+- **Placeholders in `assets.json`**: `"placeholder": true`, with an optional `"due"` (yyyy-MM-dd) and `"status"` (`needed`
+  or `in-progress`). `doctor` warns with the list and fails for one past its due date, as for an ended quarantine;
+  `status` counts them (`placeholders`: `count`, `pastDue`, `entries[]`) and warns about those past due. The TECH-DEBT
+  template points at the field.
+- `doctor` reports MPL-2.0 entries (file-level copyleft) as INFO instead of an unrecognised licence.
+- **MPL-2.0 in `credits`** (gdext and other Rust bindings): the licence text ships with the kit
+  (`ci/godot/templates/licences/MPL-2.0.txt`, SPDX 3.29.0), and the notice tells players where the source of those files
+  is, as section 3.2(a) asks. An MPL entry whose `source` is not a URL fails (`source-offer-missing`); a modified one
+  warns (`mpl-modified`) that the changes are MPL-2.0 too. `copyright` is optional for it.
+- **`help` and `/kit`.** `hyperdot.ps1 help` prints one line for each command, skill and subagent, and `help <name>`
+  the short page of one (with `-Json`: `entries[]` or `entry`); it needs no project. The `kit` skill (`/kit`, `/kit <name>`)
+  prints the same. The text has one source, `docs/help.md`; `tests/Test-Help.ps1` fails when a command, skill or subagent
+  has no entry there.
+- **`/game` reviews design and architecture.** Besides the feature marks, `plan/STATUS.md` gets a "Review" section: at
+  most five design and architecture problems with their evidence (features that serve no kind of fun, scope drift,
+  `architecture` warnings, autoloads no decision covers, subagent verdicts nobody acted on).
+- **Handoff log.** `status -Handoff <subagent> -Checked <what> -Verdict <answer>` appends one line (time, subagent,
+  what was checked, verdict, commit) to `.godot/hyperdot-handoffs.jsonl`, keeping the newest 200; `status` returns the 20
+  newest as `handoffs[]`. Both subagents record their handoff before replying, and `/game` and `/retro` read the log.
+  `tests/Test-Handoffs.ps1` checks it.
+- **Kit notes.** `init -Agents` and `-Plugin` create `docs/kit-notes.md` in the game (template
+  `ci/godot/templates/kit-notes.md`): one line each time the kit gets in the way. The `game` skill and the game's
+  `AGENTS.md` say to append a line; `/retro` and `weekly-review` read it, and the weekly review proposes up to three kit
+  changes for the owner to approve.
+- **Start with `/game`.** The README's quick start, `docs/usage.md`, `docs/plan.md` and the game's `AGENTS.md` template
+  say to start every Claude Code session in a game with `/game`.
+- **`init` pins the kit's workflow at `@v1`** instead of `@main`, so a kit change reaches a game only when a release
+  moves the `v1` tag, and a game moves up on purpose. The docs' snippets use `@v1` too. The tag is created at the 0.1.0
+  release; a workflow `init` wrote earlier keeps its ref.
+- **Trello sync is marked experimental** wherever it is described (README, `docs/plan.md`, `docs/reference.md`,
+  `docs/json.md`, the skills): it has met only a stand-in Trello, and it uses API keys, not the Trello connector.
+- **The Stop hook says what it checks.** The README, `docs/reference.md`, the hook, the plugin's description and
+  `godot-verify-before-done` say plainly that it only checks that the tests passed after the last edit; it is not a design
+  or code review.
+- **`deck`, the Steam Deck check in one command** (note 15 of the question round): at 1280x800, the `textsize` runner,
+  the `layout` runner on the new `steam_deck` profile (anything off screen), `shot`, and `bench` with a 33.3 ms (30 fps)
+  budget unless `-BudgetMs` is given. Every part runs even after one fails; one verdict (`deck-failed`) with each part's
+  own code in `deck.parts`. `-Scene` names the screens for all four. The parts are the existing commands and runners,
+  run in one process. `tests/Test-Deck.ps1` on `tests/deck-fixture`.
+- **`bench` holds three more budgets.** `-MaxDrawCalls` fails a scene that averages more draw calls a frame
+  (`bench-over-draw-calls`); `loadMs`, with `loadBreakdownMs` (resource, instantiate, first frame), is the time from
+  `load()` to the scene's first frame, and `-MaxLoadMs` fails a slower load (`bench-over-load-time`); `frameHistogram`
+  puts every frame in a fixed bucket: 120, 60, 30 and 20 fps or better, and slower. A run over several limits names them
+  all. `tests/bench-fixture/heavy.tscn` (a 300 ms `_ready`, 24 boxes with their own materials) checks each.
+- **`-GpuValidation`** for `bench`, `shot` and `export -Run`: Godot's `--gpu-validation` and `--accurate-breadcrumbs`,
+  and the run fails on the Vulkan validation layer's errors (`gpu-validation-errors`, each VUID in `gpuValidation`). A run
+  that could not be validated (Compatibility renderer, headless, no layer installed) fails with `no-gpu-validation`
+  instead of passing unchecked; `export -Run` launches the build with a window for it. `tests/Test-GpuValidation.ps1`
+  binds a float texture to an unsigned-integer image in a compute shader, which Godot lets through and the layer
+  reports as `VUID-vkCmdDispatch-format-07753`; it runs on Mesa's lavapipe in the web job.
+- **Plan tasks and Trello: the six bugs from the connector test.**
+  - `plan -Do move`, `add` and `link` take a board list's name as `-Column` ("To Do", "testing", "Done" with an emoji),
+    case-insensitive and by prefix as sync matches lists, as well as the column id; `plan.json` stores the id. A name
+    that is neither fails with `invalid-arguments` and lists both.
+  - `plan -Do remove -Id <task>` deletes a task. Its id is never given again (`lastTaskNumber`), and its card goes on
+    `trello.toArchive`, which the next `plan -Do sync` archives (`sync.archived`); with the Trello connector, `/game`
+    archives it itself from the returned `task.cardId`.
+  - A card a person adds on the board becomes a task in its list's column on `plan -Do sync` (`sync.imported`). A card
+    the kit made for a task no task links now (`plan task <id>` in its description) is reported, not imported.
+  - `plan -Do sync` records the board's column (`boardColumn`) of a task it moves; the self-test now checks it.
+  - `-Card` takes the Trello connector's ARI (`ari:cloud:trello::card/workspace/<workspace>/<card>`) and stores the
+    plain 24-hex id; `sync` fixes an ARI an older plan stored; a card URL is refused. `-Board` also takes a board URL or
+    ARI.
+  - `move`, `remove` and `link` return `task` with `-Json`, like `add`.
+- **`plan -Do reopen -Id <gate>`** opens a manual gate marked done again, without editing `plan.json` (note 13). An
+  automatic gate is refused with `auto-gate`: it opens by itself when the project stops meeting it.
+- **Plan gates for what was prose.** `concept.risks` wants `docs/RISKS.md`; `concept.budget` (`docs/BUDGET.md`) is the
+  first optional gate (`"optional": true`: listed while open, with `optional` in `nextActions[]`, but it does not hold
+  its phase back); `beta.placeholders` uses a new check, `placeholders`, met when no `assets.json` entry has
+  `"placeholder": true` and the Placeholders table of `docs/TECH-DEBT.md` has no row (open while neither file exists).
+  `file:<path>` checks now want a file with something in it (or a folder): an empty file no longer meets a gate. A plan
+  made before keeps its gates (plan.json is the game's); `godot-game-plan` offers to add them.
+- **`plan -Do init -Profile jam`**: a plan for a game jam of 2 to 9 days (`ci/godot/templates/plan-jam.json`), five
+  phases sized in days (`timeboxDays`, for a 7-day jam) with the gates of `GDD-jam.md`'s day table (`jam.platform`
+  first: "browser build?"). `plan -Json` gives `timeboxDays` and `elapsedDays` beside the weeks, PLAN.md sizes jam
+  phases in days, and a jam phase over its timebox warns in days.
+- **The `placement` runner** (`lib/Placement.ps1`, `tools/placement.gd`): `templates/placement_check.gd` on every level a
+  `placement.json` names, each limit read from the GDScript constant it names, with no test to write. One case per
+  scene with its findings; the summary per group, exemptions and wayfinding in `placement/placement.txt`. Selected when
+  `placement.json` exists. `tests/Test-Placement.ps1` runs it on the fixture after the GUT path, and with a missing
+  constant and a limit of the wrong type.
+- **The `data` runner checks soft-locks, sinks and translations.**
+  - A table of `"kind": "softlock"` holds levels as areas, passages, pickups, supplies and goals, and the runner searches
+    each the way Example.Core's `SoftLockCheck` does, with the same counterexample text, so GDScript games get it too;
+    `SoftLockTable.Load` reads the same file in C#. The ten levels of `softlock-examples.json` run in both.
+  - `"economy": { "currency", "rate" }` on a table of money flows fails a currency with a source and no sink, and, when
+    the currency is a `ref`, one no flow moves (`EconomySim.WithoutSink` checked it in code only).
+  - `"locales"` on a responses table fails a line missing a locale's text or voice file, or naming a locale the table
+    does not list; `ResponseTable.Load(..., locale: "fr")` reads them, and the C# example's barks are in French too.
+  - An unknown `kind` now lists both kinds.
+- **Playtest telemetry from a real level in the C# example.** `Main` raises `PlaytestTracker`'s events from each floor
+  (deaths with the floor as checkpoint, the upgrade taken as the item found, a floor's time as finished, failed or quit),
+  `Diagnostics` adds `PlaytestEvents` to its schema, and a playtest build (the custom feature `playtest`, or
+  `--playtest`) writes its batches with the new `PlaytestFileSink`, one `<session>.jsonl` line a batch, every 30 s and
+  on quit, for `hyperdot.ps1 playtest`. `DiagnosticsTest` plays a floor and checks the file gets the events only after
+  consent.
+- **The maths conventions pinned in the C# example** (`game/test/gdunit4/MathConventionsTest.cs`): on Godot's types, a
+  positive yaw turns `Vector3.Forward` to the left, `Right x Up` is +Z and the book's cross product has area 26.94; and
+  where Example.Core's `System.Numerics` differs (no forward axis, matrices composed left first). `godot-math` points to it.
+- **`DifficultyDirector` in the C# example** (`Ai/DifficultyDirector.cs`): dynamic difficulty from a window of attempts,
+  with a dead band, one bounded step at a time and the window emptied after each change, so two changes are always a
+  window apart. In 600 simulated attempts it changed 20 times where moving on every result changed 500 times and
+  reversed 311. `godot-progression` points to it.
+- **The C# example's replicator packs bits and keeps to the client's rate.** `GhostFormat` gives each state group of
+  `GhostReplicator` its own width (a ghost's creation: 14 bytes against 27 at 4 bytes a value) and `GhostReceiver`
+  reads the packed payload; a value too wide for its group throws before anything is marked sent. `LinkBudget` holds
+  the packets a second and bytes a packet the client asked for, capped by the tick rate and the server's uplink;
+  `ReplicationTests` checks that no packet and no second carries more than was asked, through two changes of rate.
+- **The C# example draws from `DeterministicRandom` everywhere a run must repeat.** `Steering.Wander` and
+  `Aim.Scatter` take it by `ref`, `PacingDirector` and `ResponseSystem` take one at construction (the director exposes
+  `RandomState` for saves), as `godot-game-ai` asks; `DeterministicRandom.NextDouble` replaces `EconomySim`'s private copy.
+- **The Hyperdot label** (`docs/label.md`, `benchmark/Get-HyperdotLabel.ps1`, `benchmark/label-scale.json`), modelled on
+  the EU energy label (Regulation (EU) 2017/1369; washing machines, 2019/2014):
+  - an agent-efficiency class from A to G, from the Agent Efficiency Index: tokens per solved task over a standard, per
+    task, geometric mean, × 100, with the washing machine's thresholds;
+  - a minimum requirement (half the answers pass);
+  - a product information sheet and an SVG label per configuration (model, with or without the plugin), and a tested
+    class;
+  - verification as Annex IX does it: one unit, then three more whose mean decides;
+  - a rescale review when 30% of what is rated reaches class A;
+  - a new scale reports whether class A starts empty.
+
+  Scale 2026-10 was set from 216 sessions of 0.1.0. Haiku 5.5 rates D (AEI 74.2, 96% of answers pass), Sonnet 5.5 F
+  (92.8, 54%, nearly every failure over the stated word limit). The plugin makes both worse on these tasks, which are
+  about Hyperdot's own code.
+- **The game programme** (`benchmark/game-benchmark.json`): five tasks on a small Godot game, built from `evals/` and
+  made deterministic (explain a failing test, fix a bug from a player report, add a feature with tests, write tests
+  that catch planted bugs, expose a value to the editor). Each session works in its own copy of the game with Bash,
+  Edit and Write, and is graded afterwards by the kit's own `test`: the game's tests and hidden ones, files that must not
+  change, and five mutants its tests must catch. The label now has two classes per version, **tool efficiency** and
+  **game-making efficiency** (`-Programme tool|game`), each with its own standard tokens. `tests/Test-GameBenchmark.ps1`
+  checks the grading with a stand-in that does every task well and badly.
+- **CI pipelines, sanity pass.**
+  - The web job's 11-minute install of Playwright's system packages (Ubuntu's mirror at 35 kB/s) now comes from the
+    Actions cache, through `.github/actions/apt`. That action replaces `.github/actions/ffmpeg` and also serves ffmpeg
+    and the evals' sandbox.
+  - A push to a branch with an open pull request no longer runs Self-test twice, and a newer push cancels an older
+    run (not on main).
+  - The game benchmark's self-tests have a job of their own, with Godot set up for them; before, the staged check had
+    no `GODOT_BIN` there.
+  - Four lint steps ran no-Godot parts of tests that run whole in later jobs; they are gone.
+  - A second `doctor` run on Windows is gone.
+  - The inline version-update check moved into `tests/Test-UpdatePins.ps1`.
+  - Three job comments sat above the wrong job.
+  - The runner lists in the workflow and action inputs were missing eight runners.
+- **Judged grading for the game programme**: a task can be scored by a pinned judge model against a rubric (median of
+  three), and `benchmark/Invoke-SideBySide.ps1` judges each model's work with and without the plugin blind, both ways
+  round. The plugin's win rate becomes a quality factor on its index (`Get-HyperdotLabel.ps1 -Preferences`).
+  `tests/Test-GameProgramme.ps1` checks every staged task without a model: the planted defect is caught, the reference
+  solution passes, the decoy fails.
+- **The staged game programme, stage 1** (`benchmark/PLAN.md`): the benchmark runs programmes made of genres, stages
+  (prototype to release candidate), languages and task templates, chosen by a tier (min under $10, mid under $50, max)
+  and narrowed by genre, stage, language or task. A stage is built from the genre's whole game. Milestones take a game
+  to the next stage. The runner estimates a run's cost (`benchmark/cost-model.json`), refuses one over its ceiling, and
+  stops starting sessions once the real cost passes it. The workflow runs all four configurations in parallel after a
+  dry run of each.
+- Token benchmark: a grader that cannot be fooled.
+  - Whole-word terms, `re:` regular expressions, `mustAdd` for a diff's added lines, forbidden commands found where a
+    statement starts. Markup is not counted as words.
+  - A spec whose required term is in the task's own prompt is refused.
+  - Sessions run in a copy of the repository without the benchmark, so they cannot read the expected answers.
+  - Only an answer that never came is retried. A run with an ungraded session exits 1.
+  - Profiles rotate so no profile always meets a cold cache. `maxCalls` holds with retries.
+  - CI-PS-003 replaces CI-PS-002, which needed the spec. CI-PS-001 and CODE-PS-001 no longer require a word good
+    answers do without.
+- Coverage: `HYPERDOT_COVERAGE` makes the kit record the commands, functions and error codes a run reaches.
+  - `tests/Get-KitCoverage.ps1` reports them.
+  - Every self-test job collects them, and a `coverage` job fails below its floors.
+  - The first full run found 27 of the 50 documented error codes raised by no test. `tests/Test-ErrorCodes.ps1` raises
+    them.
+- An adversarial review of every area (core, planning, measurement, skills and plugin, CI and benchmark, examples and
+  docs) found 62 defects. 59 are fixed, each with a regression test. One (a fuzzy PO comment) is how Godot itself
+  behaves, so it stays. Binding errors that print no JSON are documented, and a download race is recorded in the roadmap. Among the fixes:
+  - **Results folder:** `test -Results` naming a folder inside the project deleted it; now `unsafe-results-dir`.
+  - **GUT:** a test script that fails to parse left the gut runner green.
+  - **Solution detection:** outside a git checkout, `detect` picked the C# example's csproj instead of its solution, so
+    552 of 580 tests never ran. A solution that lists a project of the same name elsewhere was also taken.
+  - **Stop hook:** any passing `test` run satisfied it (`-Runners none`, a `-Filter`). It also missed deletions,
+    commits, non-ASCII names and data files.
+  - **Trello sync:**
+    - undid a local `plan -Do move`;
+    - duplicated cards after a failure halfway;
+    - dropped a custom `trello.lists` mapping.
+  - **Plan and status:**
+    - the `tests` gate and doctor counted the data and l10n runners as tests;
+    - `status` failed outright on a plan problem.
+  - **Measurement:**
+    - the palette check missed off-palette colours close together;
+    - `shot` overwrote pictures of scenes that share a file name;
+    - `bench -Seconds 0` passed any budget and `audio -Mix -Seconds 0` hung;
+    - the hitch count was capped at 50;
+    - CSV numbers followed the machine's culture.
+  - **Data and soak:**
+    - `data` compared `enum` and `pattern` without regard to case;
+    - soak metrics in scientific notation were misread.
+  - **Error codes and logs:**
+    - a game printing "Error:" failed with an empty error list;
+    - paths with brackets broke a GUT upgrade;
+    - paths with spaces lost their failure location;
+    - the time limit was not enforced on a program that closed its output.
+  - **Release and canary:**
+    - a tag push would have published the C# example as the kit's release;
+    - the canary mapped Godot 4.7 to GUT's 4.8 release;
+    - anyone's marker comment could stop the PR summary;
+    - a fork could set the coverage baseline.
+  - **Examples:** the C# example's tests deleted a developer's own telemetry consent and saved key bindings.
+
+  New self-tests: `Test-Detect`, `Test-InstallAddon`, `Test-StopGate`, `Test-ResultsDir`, `Test-HyperdotLabel`,
+  `Test-ErrorCodes`.
+- Versioning: the first Hyperdot release will be 0.1.0 (Semantic Versioning; 0.x while it is used on its first real
+  game, 1.0.0 once the criteria in `docs/roadmap.md` hold). `plugin.json` goes from 0.4.0 to 0.1.0 with the new name.
 - Licensed under the Apache License 2.0 (`LICENSE`, `NOTICE`); before this the repository had no licence. The files a
   game receives (`ci/godot/templates/`, the starter tests `init` writes) are MIT No Attribution
   (`ci/godot/templates/LICENSE.md`). `NOTICE` lists the third-party parts and their licences: Sfxr (Apache-2.0 and MIT),
@@ -16,10 +465,10 @@
   calling `nick-vas/hyperdot`, and `.claude/settings.json`'s `godot-agent-kit` plugin entry becomes `hyperdot`. The C#
   example is `examples/csharp` (`Example.sln`, `Example.Core`, project name "CSharp Example"), so it is no longer
   confused with Breakout Roguelike.
-- Docs cleanup for 1.0. README: a prerequisites section (Node.js for Web runs and two MCP servers, uv, ffmpeg, a
+- Docs cleanup for the first release. README: a prerequisites section (Node.js for Web runs and two MCP servers, uv, ffmpeg, a
   display), the `-Project` form throughout, 50 skills grouped by area, every page in `docs/` linked, what each command
   writes into a project, and a refreshed status (exports run, eval results). `docs/roadmap.md` keeps only what is open
-  (44 KB to 24 KB): the 1.0 plan, what was decided, the open Trello work (the live run waits for the repository's
+  (44 KB to 24 KB): the release plan, what was decided, the open Trello work (the live run waits for the repository's
   secrets) and three to-do groups. `docs/strategies.md` is retired into the roadmap's decisions. AGENTS.md lists the
   self-tests once, in a table; `docs/reference.md` documents `-Templates` and the environment variables.
 - `tests/Test-TrelloSync.ps1` tests `plan -Do sync`: cards created in the right lists (a prefix match on "Done" plus an
@@ -32,27 +481,27 @@
   with "String '10/23/2026 05:57:27' was not recognized as a valid DateTime", because the phase's start time was read back
   through text in the PC's culture. Stored times now go through `ConvertTo-UtcTime` (Common.ps1), which also keeps
   `status`'s error history from shifting by the UTC offset. `Test-Plan.ps1` runs `plan` under el-GR.
-- Fixes before 1.0. `bench` and `audio -Mix` split `-Scene` on commas as `shot` does and refuse several scenes with
+- Fixes before the first release. `bench` and `audio -Mix` split `-Scene` on commas as `shot` does and refuse several scenes with
   `invalid-arguments` before any setup, instead of passing `a.tscn,b.tscn` on as one scene. The run log (`log`,
-  `godot-ci.log`) now sits with each command's own results: `bench-results`, `soak-results`, `audio-results`, and `shot`'s
+  `hyperdot.log`) now sits with each command's own results: `bench-results`, `soak-results`, `audio-results`, and `shot`'s
   `-Output`, not `test-results`. `no-display` advises starting Xvfb and setting `DISPLAY` (not `xvfb-run`, which breaks
   `-Json`) and prints the kit's real command. `sfx` no longer counts `<project>-assets/...` as inside the project (no
   `../` entry in `assets.json`). The PR summary comment pages through every comment, so a busy pull request gets its
   summary updated instead of a new one per run. `Update-Versions.ps1` fails on a pinned file that is missing instead of
   skipping it. Errors that fell back to `failed` now carry `export-failed` (an export with no `export_path`, a file not
-  created, an exported build exiting non-zero) or `invalid-arguments` (an unknown runner, a bad `GODOT_CI_TIMEOUT` or
-  `GODOT_CI_IGNORE_ERRORS`); `docs/json.md` lists `invalid-arguments` as a general code and says `soak` and `credits`
+  created, an exported build exiting non-zero) or `invalid-arguments` (an unknown runner, a bad `HYPERDOT_TIMEOUT` or
+  `HYPERDOT_IGNORE_ERRORS`); `docs/json.md` lists `invalid-arguments` as a general code and says `soak` and `credits`
   write the log and history line too. `textsize` and `layout` join the runners that collect no coverage. New self-tests:
   `Test-SceneCount.ps1`, `Test-UpdatePins.ps1`, `Test-PrComment.ps1`; `Test-Sfx.ps1` and `Test-Audio.ps1` cover the path
   check and the log folder.
-- Skills cleanup for 1.0: 55 skills become 50. `godot-test-frameworks` merged into `godot-test-loop`, `godot-ui-layout`
+- Skills cleanup for the first release: 55 skills become 50. `godot-test-frameworks` merged into `godot-test-loop`, `godot-ui-layout`
   into `godot-ui-accessibility` (`layout.md`), `godot-steam-deck` into `godot-console-cert`, `godot-credits` into
   `godot-asset-pipeline`, and `godot-architecture` into `godot-patterns`, its other sections going to `godot-procgen`,
   `godot-progression`, `godot-multiplayer`, `godot-modding`, `godot-shaders-vfx`, `godot-game-design` and
   `godot-algorithms`. Contradictions fixed (Steam Auto-Cloud roots, seeded random in game AI, bot flags only in debug
   builds, MIT credits, hit-stop length, VRAM compression for 3D only, saving on suspend per platform, volume buses, one
   `--capture=nohud` flag); the `playthrough` runner replaces grepping for an ending; `/game` writes Trello cards the way
-  `plan -Do sync` does, and Trello sync is marked experimental in 1.0. Descriptions are narrower and no longer share
+  `plan -Do sync` does, and Trello sync is marked experimental. Descriptions are narrower and no longer share
   triggers; legal, audio and game AI moved detail to side files; duplicated advice has one owner. The skill validator
   now checks kit commands in side files too (`tests/skill-fixtures/bad-side-file`). `Update-Versions.ps1` and the credits
   error name the merged skills.
@@ -100,7 +549,7 @@
   Self-test: `Test-Palette.ps1` (`-NoGodot` for its synthetic part); method and measurements in `docs/art.md`.
 - Playtest telemetry, from the roadmap's Valve list: the events `godot-playtest` names (`stuck`, `revisit`,
   `solved_but_stayed`, `item_found`, `death`, `hint_requested`, `level_time`, each with level, position and level time)
-  as a ready schema, `ci/godot/templates/playtest-events.json`, and in Breakout.Core as `PlaytestEvents` for the existing
+  as a ready schema, `ci/godot/templates/playtest-events.json`, and in Example.Core as `PlaytestEvents` for the existing
   `TelemetrySchema` (consent, no free text). `PlaytestTracker` raises them from the player's position and the game's
   progress calls: a stall is no progress and no new ground for 120 s, a revisit is re-entering a cell after 10 s away,
   solved-but-stayed is still near a solved puzzle 30 s later (`PlaytestTests`, with a fake clock). New command
@@ -110,7 +559,7 @@
   screenshot that the new `playtest.json` places in the world. The PNGs are drawn by `ci/godot/tools/Heatmap.cs`, compiled
   with `Add-Type`, so no Godot is needed. New error codes `no-playtest-sessions` and `invalid-playtest-config`;
   `-HotspotCell` also sets the maps' cell. Self-test: `Test-Playtest.ps1` with `tests/playtest-fixture`.
-- From the roadmap's Valve list ("never a soft-lock", `docs/valve.md` lesson 30): Breakout.Core gains `SoftLockCheck`.
+- From the roadmap's Valve list ("never a soft-lock", `docs/valve.md` lesson 30): Example.Core gains `SoftLockCheck`.
   A level is written down as areas, passages (one-way, needing an item held, or using items up once: a key, three
   rounds for a cracked wall), one-time pickups, supplies that top an item back up (Portal's box delivery tubes), items
   that can be lost at any moment, and goals. A breadth-first search over area, items held, pickups taken and ways opened
@@ -135,10 +584,10 @@
   criteria syntax errors with the column, a `then` no rule answers (across all responses tables, with the near name),
   voice files that do not exist (and lines without one when `"voiced": true`), rules with the same who, concept and
   criteria, and criteria that contradict each other; a fact read but never remembered nor listed in `facts` is a
-  `fact-never-written` warning. `"type": "criteria"` checks the grammar in any table. Breakout.Core gains
+  `fact-never-written` warning. `"type": "criteria"` checks the grammar in any table. Example.Core gains
   `ResponseTable.Load` (rules from the same JSON, every bad row reported at once), `Rule.Voices` and `Rule.VoiceOf`, and
   one strict criteria grammar, `CriteriaSyntax` (`Criterion.Parse` no longer accepts `a=` or `a=1;b=2` as one
-  criterion); 37 shared cases in `criteria-examples.json` keep the C# and PowerShell parsers in agreement. Breakout has a
+  criterion); 37 shared cases in `criteria-examples.json` keep the C# and PowerShell parsers in agreement. The C# example has a
   green dialogue table (`game/data/barks.json`), and `tests/data-fixture` a broken one per check.
 - Design and production practice. The GDD template gains audience and expected age rating, a core fantasy, the loop at
   three scales (moment, session, playthrough), the first session step by step (for flows and `playthrough.json`
@@ -154,7 +603,7 @@
   Bartle's player types kept apart from MDA. *Untold History* read again: lessons 16-39 in `docs/studio-lessons.md`
   (quotes checked word for word), each placed in one skill line where it adds something.
 - From the TRIBES networking paper, *Mathematics for Game Developers*, a Unity performance checklist and Adam Sawicki's
-  GPU debugging talk: Breakout.Core gains `BitPacker` (`BitWriter`/`BitReader`: bools, ints in the bits their range
+  GPU debugging talk: Example.Core gains `BitPacker` (`BitWriter`/`BitReader`: bools, ints in the bits their range
   needs, floats quantised in a range; a reader that disagrees with its writer throws) and `EventStream` (TRIBES'
   events in the same packets as ghost state: numbered, a lost packet's events resent ahead of newer ones, and an event
   naming an object sent only once its creation is in the packet or acknowledged; at 20% loss, 0 events before their
@@ -193,7 +642,7 @@
   `plan -Json` returns the timeline as `release`. `doctor` reads `store/steam/trailer*` with ffprobe (H.264, AAC, 30 or
   60 fps, 44.1 or 48 kHz, up to 1920x1080) and `store/steam/tags.txt` (5 to 20, one per line, no duplicates); warns when
   telemetry, a `policyVersion` or an Android or iOS preset has no privacy policy (`store/privacy-policy.md` or
-  `PRIVACY.md`; Breakout now has one, written from what its telemetry records), or the policy does not say the version the code asks consent for; and checks the Steamworks files a
+  `PRIVACY.md`; the C# example now has one, written from what its telemetry records), or the policy does not say the version the code asks consent for; and checks the Steamworks files a
   game keeps in `steam/` against its code with a new VDF reader (`ci/godot/lib/Steam.ps1`): rich presence tokens set as
   `steam_display`, achievement and stat names against `steam/achievements.json`, and steamcmd app build scripts (a
   numeric `AppID`, a `FileMapping` per depot, no secrets, no `SetLive "default"`, no `steam_appid.txt` uploaded).
@@ -209,9 +658,9 @@
 - Audio, from the roadmap's to-do list: a mono option after all. `AudioEffectStereoEnhance` with `pan_pullout` 0 on Master
   makes each side (L+R)/2, measured in the engine by `tests/Test-MonoAudio.ps1` (left-only tone 0.353/0 becomes
   0.177/0.177, centred unchanged, opposite phase cancels), so `godot-audio` now gives the recipe for Xbox Accessibility
-  Guideline 105. Breakout.Core gains `VoiceBudget`: a global voice cap with categories, priorities, oldest-first stealing
+  Guideline 105. Example.Core gains `VoiceBudget`: a global voice cap with categories, priorities, oldest-first stealing
   and protected categories, the part Godot leaves to games.
-- From the roadmap's to-do list: Breakout.Core's steering gains `Alignment` and `Cohesion` (with `Separation`, a flock: 30
+- From the roadmap's to-do list: Example.Core's steering gains `Alignment` and `Cohesion` (with `Separation`, a flock: 30
   boids head the same way within ten seconds without overlapping), `FollowPath` (Reynolds' corridor following, stopping at
   the end) and `AvoidObstacles`; and `LookTrigger` (Valve's look target with a fallback timer: fires when the player has
   looked at a point long enough, or when time runs out). A new architecture rule, `nondeterministic-sim`, flags
@@ -219,7 +668,7 @@
   `architecture.json` lists as `simulation`. `validate` fails a `.tres` that keeps a key its class no longer has (a renamed
   export, whose value Godot drops on load).
 - Valve, from its own public material (talk slides, the 2012 handbook, the Cabal article, seven games' developer
-  commentary; `docs/valve.md`, 115 quotes checked word for word): Breakout.Core gains `PacingDirector` and `Intensity`
+  commentary; `docs/valve.md`, 115 quotes checked word for word): Example.Core gains `PacingDirector` and `Intensity`
   (Left 4 Dead's AI Director: build up, sustain the peak 3-5 s, fade, relax 30-45 s; pacing, never difficulty) and
   `ResponseSystem` (the dialogue rule database of Left 4 Dead 2, Portal 2 and Dota 2: a flat query, most criteria wins,
   random ties, memory that expires, follow-ups looked up when a line ends, rules that remove themselves). New skill
@@ -245,7 +694,7 @@
   the session, so it needs no Godot; the same seed gives bfxr2's sound sample for sample. WAVs at `-PeakDb` (-6 dBFS),
   `.bfxr` files bfxr2's editor opens, `-Vary` for variations of one sound, and an `assets.json` entry.
 - Google for Games' open source (Agones, Open Match, Quilkin, Open Saves, clean-chat, the GenAI demos; Apache-2.0;
-  `docs/googleforgames.md`), without their Google Cloud setup: `godot-servers` and `godot-llm` skills; Breakout.Core
+  `docs/googleforgames.md`), without their Google Cloud setup: `godot-servers` and `godot-llm` skills; Example.Core
   gains a server lifecycle with a health watchdog, Agones' HTTP SDK, join tokens for Godot's authentication step, a
   matchmaker, a rate limiter and chat moderation. `soak` stops the server with SIGTERM at the end and reports
   `soak.stop` (headless Godot dies at once with 143 unless the game handles it; C# can); `-RequireCleanStop` fails
@@ -261,7 +710,7 @@
   installs ffmpeg through `.github/actions/ffmpeg`, which keeps its packages in the Actions cache: Ubuntu's mirror took
   12 minutes for them in one run.
 - Algorithms (TheAlgorithms/C-Sharp, GPL-3.0, studied and measured, not copied; its MIT explanations read too;
-  `docs/algorithms.md`): a `godot-algorithms` skill; Breakout.Core gains a Dijkstra map for crowds and fleeing
+  `docs/algorithms.md`): a `godot-algorithms` skill; Example.Core gains a Dijkstra map for crowds and fleeing
   (`DistanceField`), region labelling and union-find (`Regions`, `DisjointSet`) and "did you mean" (`Suggest`). The
   `data` runner reports loops among prerequisites (`"acyclic": true`) and names the near id, enum value, column or
   table for a typo; `test -Runners` suggests the runner a mistyped name meant.
@@ -287,7 +736,7 @@
   - Plan gates: `slice.debt`, `slice.budget`, `prototype.trailer` (with a `TRAILER.md` template) and `concept.name`.
     The placement checker checks placed objects against the game's limits and landmarks and routes for wayfinding;
     the `data` runner holds puzzle levels to one solution sentence and a purpose.
-  - Tested code in Breakout.Core a game can copy: statistics for comparing versions, Eldritch-style mazes, GOAP costs,
+  - Tested code in Example.Core a game can copy: statistics for comparing versions, Eldritch-style mazes, GOAP costs,
     perception, aim and projectiles, squad decisions, a FrameBudget scheduler, forgiveness timings, stick settings,
     dead reckoning, a rollback session, Overwatch-style input handling, a rewind log, an input log for replays, a voice
     limiter, a beat clock, an assist narrator, a balance report from run data, an expressive-range map, shuffle bags
@@ -323,7 +772,7 @@
     minimum.
   - Skills: `godot-store-page`, `godot-legal`, `godot-credits` and `godot-release-readiness`. Sources and what was tested:
     `docs/store-and-legal.md`.
-- The TRIBES networking model (Frohnmayer and Gift, GDC 2000) in Breakout.Core (`Net/Replication.cs`): a connection
+- The TRIBES networking model (Frohnmayer and Gift, GDC 2000) in Example.Core (`Net/Replication.cs`): a connection
   layer that reports every packet delivered or dropped, in order, and never resends; a ghost replicator per client with
   scope, priority, a byte budget and per-object state masks, where lost state is resent only if no newer value was sent;
   creations and deletions resent until they arrive. Tested against the paper's four loss cases and a lossy run (5% of the
@@ -339,7 +788,7 @@
     missing for an exported platform, and flags Steam packages that cannot work (Steamworks.NET.AnyCPU 2026.165.0 to .2
     on Linux, the stale Steamworks.NET, Facepunch.Steamworks for Windows only). Runs of a game that uses Steam set
     `SteamAppId=480`, so `RestartAppIfNecessary` cannot end a smoke run early.
-  - Breakout.Core: platform services (achievements, stats, a leaderboard, rich presence) with a local backend that
+  - Example.Core: platform services (achievements, stats, a leaderboard, rich presence) with a local backend that
     behaves like Steam, and `SaveStore.SaveResolved`, which ends a cloud conflict so the next sync goes one way.
   - `godot-console-cert`: PlayStation and Nintendo details are out of scope (NDA); "save on suspend" is now "save often".
 - Token benchmark (`benchmark/`, `docs/token-benchmark.md`): tasks from this repository run as read-only `claude -p`
@@ -354,42 +803,43 @@
     `docs/console-cert.md`, `docs/debug-tools.md`, `docs/profiling-and-builds.md`.
   - `data` runner: tables in JSON or CSV checked against `data.json` (types, ranges, enums, patterns, references between
     tables, unknown columns, duplicate ids), and a CSV still imported as a translation, which the export would drop.
-  - Breakout.Core: a determinism toolkit (`IDeterministic`, `DeterminismCheck.Record`, `Verify` and GGPO's `SyncTest`,
+  - Example.Core: a determinism toolkit (`IDeterministic`, `DeterminismCheck.Record`, `Verify` and GGPO's `SyncTest`,
     FNV-1a checksums, a saveable random generator); the server now grants one input per tick of real time, so a client
-    that sends extra inputs no longer moves faster (`InputsRejected`). Breakout.Core has 83 unit tests.
+    that sends extra inputs no longer moves faster (`InputsRejected`). Example.Core has 83 unit tests.
   - `export -GameVersion` (and the action's `game-version`, passed on tags by the release workflow): the numbers go into
     `config/version` for that export only, the whole version into the C# assembly. `export` fails when a desktop C#
     build has no `data_*` folder with the game's assembly. The action caches Godot's import cache.
   - Architecture rules: `untrusted-load` (a Godot resource loaded from `user://` runs any script embedded in it) and
     `culture-parse` (number parsing without an invariant culture reads "0.5" as 5 on a German system).
   - `doctor` warns when `config/version` is not numbers and dots, and when a Windows preset does not write the game's
-    version and icon into the exe (Breakout's now does).- Game AI, multiplayer, crash reports and telemetry:
+    version and icon into the exe (the C# example's now does).
+- Game AI, multiplayer, crash reports and telemetry:
   - Skills: `godot-game-ai` (choosing a decision structure, behaviour trees that interrupt, utility with momentum,
     GOAP, steering, Godot 4.7 navigation readiness), `godot-multiplayer` (choosing a model, prediction, reconciliation,
     interpolation, lag compensation, rollback, Godot 4.7 specifics) and `godot-telemetry` (consent, no free text,
     catching C# errors through a `Logger`, Sentry's defaults, export and erasure). Sources and measurements:
     `docs/game-ai.md`, `docs/multiplayer.md`, `docs/telemetry.md`.
-  - Breakout.Core: utility scoring, a reactive behaviour tree, a backward-searching GOAP planner and Reynolds steering;
+  - Example.Core: utility scoring, a reactive behaviour tree, a backward-searching GOAP planner and Reynolds steering;
     a netcode model (lossy link, server input queue, prediction, interpolation, lag compensation) tested at 50, 100 and
     250 ms; a telemetry client with consent per purpose, a schema without free text, persistence, sampling, export and
-    erasure; crash fingerprints and a session marker. Breakout.Core now has 73 unit tests.
-  - Breakout: crash reports through a Godot `Logger`, with consent, installed only by the running game.
+    erasure; crash fingerprints and a session marker. Example.Core now has 73 unit tests.
+  - The C# example: crash reports through a Godot `Logger`, with consent, installed only by the running game.
   - `soak` command: one headless server and `-Clients` clients run together for `-Seconds`; fails on a crash, an engine
     error, a process that never got ready (`soak-failed`) or memory that keeps growing (`soak-leak`, `-MaxGrowthMbPerHour`).
   - The `architecture` runner warns when ENet's `create_server` gets a channel count (`enet-server-channels`): Godot 4.7.2
     uses it as the server's incoming bandwidth limit.
   - `doctor` warns when the Sentry addon starts before the player is asked, attaches the whole log, or sends personal data.
-  - Release exports of Breakout map source paths to `/_/`, so stack traces do not carry the developer's paths.
+  - Release exports of the C# example map source paths to `/_/`, so stack traces do not carry the developer's paths.
 - Saves, localization and input:
   - Skills: `godot-saves` (where and how to write so a crash or power cut loses nothing, plain-data formats, migrations
     and golden saves, cloud conflicts decided by lineage, saving without a freeze), `godot-localization` (keys, CSV or
     gettext, plurals, fonts for every script, right-to-left, pseudolocalization) and `godot-input` (actions, rebinding
     and saving bindings, keyboard and controller at once, prompts that follow the device, Steam Input, accessibility).
     Sources and what was measured: `docs/saves.md`, `docs/localization.md`, `docs/input.md`.
-  - Breakout saves through a versioned, checksummed `SaveStore`: written to a temporary file, flushed and swapped in
+  - The C# example saves through a versioned, checksummed `SaveStore`: written to a temporary file, flushed and swapped in
     with a backup; loads recover from an interrupted write or the backup, chosen by a generation counter, and put the
     good copy back. Golden saves from versions 1 to 3 load in CI, and tests truncate and flip a bit at every byte.
-  - Breakout's paddle takes keyboard and controller input at once (it still plays itself otherwise), with rebinding,
+  - The C# example's paddle takes keyboard and controller input at once (it still plays itself otherwise), with rebinding,
     bindings saved as JSON, and prompts that follow the device; gdUnit4 tests cover each.
   - `l10n` runner: fails on duplicate keys, untranslated entries (empty, fuzzy, short of plural forms) and keys the code
     uses that no table has. It reads Godot 4.6+ `?context` and `?plural` columns.
@@ -425,7 +875,7 @@
     left on Master (`audio-on-master`).
   - Godot 4.7.2's "resources still in use at exit" line, printed when a windowed run quits while a sound plays, is ignored.
     Before this, `bench` and `shot` failed on any game whose music played at the end of the run.
-- Every program the kit runs has a time limit (30 minutes; `GODOT_CI_TIMEOUT` in seconds, `0` for none). A hung Godot is
+- Every program the kit runs has a time limit (30 minutes; `HYPERDOT_TIMEOUT` in seconds, `0` for none). A hung Godot is
   stopped with its child processes and fails with exit code 124, instead of stalling the run and the agent waiting on it.
 - Lessons from studios, second pass: the captions of Croteam's Talos Principle post-mortem and Sasko's quest design talk
   replace their press write-ups, Croteam's talk on CI and automated testing is added, and Bohemia's published DayZ Central
@@ -489,7 +939,7 @@
   - `godot-game-design` skill: the MDA framework and its eight kinds of fun, the 400 Project's design rules of thumb,
     and Bjork and Holopainen's gameplay design patterns, summarised with links, plus a design review.
   - GDD features name the kinds of fun they serve on a `Fun:` line. `status -Json` returns `features[].fun` and warns
-    about must and should features without one, or with an unknown kind. The template, Breakout's GDD and `/game`
+    about must and should features without one, or with an unknown kind. The template, the C# example's GDD and `/game`
     (drafting, cutting, new features) use it.
 - Accessibility for menus and UI:
   - `docs/wcag-ui.md`: all 86 WCAG 2.2 success criteria read as rules for game menus, HUD and settings screens (31 apply as
@@ -536,11 +986,11 @@
   xunit.runner.visualstudio 4.0.1 pass; gdUnit4.test.adapter 3.1.1 fails (it needs the pre-release gdUnit4.api 5.1.0-rc5).
 - Build diagnostics now include restore and project errors (`NU1605` and the like, with no line or column), not only compiler errors.
 - Agent efficiency, each item measured or sourced in [docs/research.md](docs/research.md):
-  - `-Quiet`: Godot and dotnet output goes only to `<Results>/godot-ci.log` (named by the new `log` JSON field); stderr drops
+  - `-Quiet`: Godot and dotnet output goes only to `<Results>/hyperdot.log` (named by the new `log` JSON field); stderr drops
     from 7-16 KB to about 1 KB per test run on the examples.
   - Test failures now carry the specific `message`, `file` and `line` (GUT's bare "failed", Godot backtraces, `at line N`,
     C# stack traces) and a few lines of `details`, so the log rarely needs reading.
-  - Run history in `.godot/godot-ci-history.jsonl` for `build`, `test`, `export`, `bench` and `shot`.
+  - Run history in `.godot/hyperdot-history.jsonl` for `build`, `test`, `export`, `bench` and `shot`.
   - The kit is a Claude Code plugin (`.claude-plugin/`): the skills, a `godot-verifier` subagent for screenshots, benchmarks and
     export launches, and a Stop hook that keeps a turn from ending while Godot files changed after the last passing test run.
     `init -Plugin` enables it for a game; `init -Agents` also copies the subagent and fills in the kit path.
@@ -565,7 +1015,7 @@
   - `doctor` warns when a preset's include filter ships `.md`/`.pdf` documents.
   - Skills: `godot-performance`, `godot-automation-hooks`, `godot-ui-layout`, `godot-architecture`; thirteen pitfalls added.
   - Plan gates: automation flags and screenshots (vertical slice), bot balance runs (production), a measured performance gate (beta).
-  - The Breakout example scales with the window (`canvas_items`, aspect `keep`); a 1080p screenshot showed it stuck in a corner.
+  - The C# example scales with the window (`canvas_items`, aspect `keep`); a 1080p screenshot showed it stuck in a corner.
 - `-Json` on every command: one document on stdout, logs on stderr, stable `error.code`, build diagnostics and test failures with file and line ([docs/json.md](docs/json.md)).
 - `plan` command and `ci/godot/templates/plan.json`: seven-phase solo plan with automatic and manual gates, timebox and WIP warnings.
 - `flows` runner: declarative `*.flow.json` UI flows played headless in the real engine (press, input actions, waits, asserts on node properties).

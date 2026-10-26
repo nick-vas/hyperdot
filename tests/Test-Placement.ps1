@@ -6,7 +6,8 @@
 # exemption and the change since the last run in the summary. The wayfinding level has a drifting balloon, a tower seen
 # from one stretch of its trail and nothing ahead on the way back; fixed (the balloon is scenery, a canopy over the trail
 # hides the tower for a while, a beacon stands behind the start), each landmark is seen twice and the trail has one in
-# view both ways. Needs Godot (GODOT_BIN, or the kit installs it).
+# view both ways. Last, the kit's `placement` runner checks the same levels from a placement.json that names the
+# constants to read, with no test written. Needs Godot (GODOT_BIN, or the kit installs it).
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -106,6 +107,61 @@ Assert-True ($f.Ok -and $f.Findings.Count -eq 0) "the fixed level passes: $($f.F
 Assert-True ($f.Lines -contains "exempt: $level ZipLines/ZipLineBlocked zipline_clear: the crate breaks when the player slides into it") 'the exemption is listed with its reason'
 Assert-True ($f.Lines -contains 'zipline: 2 checked, 0 finding(s) (-1 since the last run), 1 exempt') "the summary gives the change per type since the last run: $($f.Lines -match '^zipline:')"
 Assert-True ($f.Lines -contains 'ai_point: 3 checked, 0 finding(s) (-1 since the last run), 0 exempt') 'and for ai_point'
+
+# The same check as the kit's `placement` runner: placement.json names the levels and the constants each limit is read
+# from, and no test is written. The broken level is fixed by now (its zip line exempt); the rule cases are not.
+function Invoke-PlacementKitRunner([string]$Config) {
+    Set-Content -LiteralPath (Join-Path $game 'placement.json') -Value $Config
+    $results = Join-Path $game "r-runner-$([guid]::NewGuid().ToString('N').Substring(0, 6))"
+    $json = pwsh -NoProfile -File $kit test -Json -Quiet -Project $game -Runners placement -Results $results 2>$null | ConvertFrom-Json
+    $runner = @($json.runnerResults | Where-Object runner -eq 'placement')[0]
+    $summary = @(Get-Content -LiteralPath (Join-Path $results 'placement/placement.txt') -ErrorAction SilentlyContinue)
+    return [pscustomobject]@{ Ok = $json.ok; Total = $runner.total; Failures = @($runner.failures); Summary = $summary }
+}
+$p = Invoke-PlacementKitRunner '{ "levels": ["res://levels", "res://rule_cases"], "limits": { "reach": "res://player.gd:REACH", "zipline_max_angle": "res://zipline.gd:MAX_ANGLE_DEGREES" } }'
+$failed = @($p.Failures | ForEach-Object { "$($_.name -replace '^placement\.', '')|$($_.message)" })
+Assert-True (-not $p.Ok -and $p.Total -eq 3 -and $p.Failures.Count -eq 2) "the runner has a case per scene, the fixed level passing: $($failed -join ' | ')"
+Assert-True ($failed -contains "res://rule_cases/rules.tscn|$cases Near (-10.00, 0.20, 0.00) path_to_link: path to Far stops 12.00 m short (limit 0.50 m)") 'a scene fails with its findings, limits read from the constants'
+Assert-True ($failed -contains "res://rule_cases/wayfinding.tscn|res://rule_cases/wayfinding.tscn Golem (-5.00, 0.00, 10.00) landmark_still: a CharacterBody3D (limit: stationary)") 'the moving landmark is reported by the runner too'
+Assert-True ($p.Summary -contains "exempt: $level ZipLines/ZipLineBlocked zipline_clear: the crate breaks when the player slides into it") "the summary lists exemptions: $($p.Summary -join ' | ')"
+Assert-True ($p.Summary -contains 'interactable: 3 checked, 1 finding(s), 0 exempt') 'and counts per group'
+$m = Invoke-PlacementKitRunner '{ "levels": ["res://levels"], "limits": { "reach": "res://player.gd:REAC" } }'
+$run = @($m.Failures | Where-Object { $_.name -eq 'placement.run' })
+Assert-True ($run.Count -eq 1 -and "$($run[0].message)" -eq "placement.json: limit 'reach' names res://player.gd, which has no constant REAC (it has: REACH)") "a constant that does not exist fails the run: $($m.Failures | ForEach-Object message)"
+$n = Invoke-PlacementKitRunner '{ "levels": ["res://levels"], "limits": { "reach": 4.0, "zipline_max_angle": "res://zipline.gd:MAX_ANGLE_DEGREES", "hang": "low" } }'
+$run = @($n.Failures | Where-Object { $_.name -eq 'placement.run' })
+Assert-True ($run.Count -eq 1 -and "$($run[0].message)" -eq "placement.json: limit 'hang' is String, not a float") "a limit of the wrong type fails the run: $($n.Failures | ForEach-Object message)"
+
+# A C# game names its own source: Godot gives no constants for a C# script, so the runner reads the field there, past
+# comments, a literal or arithmetic on the file's other fields (2.5 from a jump of 6 against a fall of 12, as C# divides
+# by 2f, not as integers), and the same levels give the same findings. A field it cannot read is refused, by name.
+Set-Content -LiteralPath (Join-Path $game 'Tuning.cs') -Value @"
+namespace Fixture;
+public static class Tuning
+{
+    public const float Jump = 6f;
+    public const float Fall = 12f;
+    public const float Body = 1f;
+    // public const float Reach = 9f;
+    public const float Reach = Jump * Jump / (2f * Fall) + Body;
+    /* public static readonly double ZipMaxAngle = 80d; */
+    public static readonly double ZipMaxAngle = 25d;
+    public const int Hops = 1_000;
+    public const float Low = 1 / 4f;
+    public static readonly float Tau = Mathf.Pi * 2;
+}
+"@
+$c = Invoke-PlacementKitRunner '{ "levels": ["res://levels", "res://rule_cases"], "limits": { "reach": "res://Tuning.cs:Reach", "zipline_max_angle": "res://Tuning.cs:ZipMaxAngle" } }'
+$cFailed = @($c.Failures | ForEach-Object { "$($_.name -replace '^placement\.', '')|$($_.message)" })
+Assert-True (-not $c.Ok -and $c.Total -eq 3 -and ($cFailed -join "`n") -eq ($failed -join "`n")) "limits read from a C# file give the GDScript constants' findings: $($cFailed -join ' | ')"
+$l = Invoke-PlacementKitRunner '{ "levels": ["res://levels"], "limits": { "reach": "res://Tuning.cs:Low" } }'
+Assert-True (@($l.Failures | ForEach-Object message) -contains "$level Torches/TorchLow (-8.00, 2.00, 0.00) ground_in_reach: ground 2.00 m below (limit 0.25 m)") "a computed C# limit is the value C# gives (1 / 4f is 0.25): $(@($l.Failures | ForEach-Object message) -join ' | ')"
+$e = Invoke-PlacementKitRunner '{ "levels": ["res://levels"], "limits": { "reach": "res://Tuning.cs:Tau" } }'
+$run = @($e.Failures | Where-Object { $_.name -eq 'placement.run' })
+Assert-True ($run.Count -eq 1 -and "$($run[0].message)" -eq "placement.json: limit 'reach' names res://Tuning.cs, whose Tau is Mathf.Pi * 2: the runner reads numbers, true, false, plain strings and arithmetic on the file's other constants") "a C# field it cannot read fails the run: $($e.Failures | ForEach-Object message)"
+$g = Invoke-PlacementKitRunner '{ "levels": ["res://levels"], "limits": { "reach": "res://Tuning.cs:Range" } }'
+$run = @($g.Failures | Where-Object { $_.name -eq 'placement.run' })
+Assert-True ($run.Count -eq 1 -and "$($run[0].message)" -eq "placement.json: limit 'reach' names res://Tuning.cs, which has no constant Range (it has: Jump, Fall, Body, Reach, ZipMaxAngle, Hops, Low, Tau)") "a C# constant that does not exist fails the run: $($g.Failures | ForEach-Object message)"
 
 Remove-Item -Recurse -Force $game
 if ($failures.Count) { throw "$($failures.Count) placement check(s) failed" }

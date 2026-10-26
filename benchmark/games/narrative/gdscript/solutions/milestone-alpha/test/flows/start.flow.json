@@ -1,0 +1,16 @@
+{
+  "name": "New story on the menu starts the story at the landing, and its first choices appear",
+  "scene": "res://main.tscn",
+  "seed": 1,
+  "steps": [
+    { "assert": { "node": "Menu", "prop": "visible", "equals": true } },
+    { "press": "Menu/NewButton" },
+    { "wait": 2 },
+    { "assert": { "node": "Story", "exists": true } },
+    { "assert": { "node": "Menu", "prop": "visible", "equals": false } },
+    { "assert": { "node": "Story/HUD/ChapterLabel", "prop": "text", "equals": "Chapter 1: The Landing" } },
+    { "wait_until": { "node": "Story", "prop": "state", "equals": "choosing" }, "timeout": 300 },
+    { "assert": { "node": "Story/Choices/Choice0", "exists": true } },
+    { "assert": { "node": "Story/Choices/Choice1", "exists": true } }
+  ]
+}

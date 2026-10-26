@@ -10,6 +10,14 @@ pwsh -NoProfile -File ci/godot/hyperdot.ps1 test -Json 2>$null | ConvertFrom-Jso
 Add `-Quiet` when an agent reads the output: Godot's and dotnet's output then goes only to the run log (see `log`
 below) and stderr carries just the kit's own lines, about 1 KB instead of 7 to 16 KB per test run on the examples.
 
+Arguments the kit cannot use give `invalid-arguments` in JSON too, with a message naming the parameter, the value and
+what it takes: a command not in the `command` list below, a value outside a parameter's set (`-Do`, `-Mcp`,
+`-Profile`, `-Retry` above 5), an unknown flag (with the nearest real one), a word that belongs to no parameter, an
+unknown runner, a misspelt sound or a bad environment variable. Two mistakes are still refused by PowerShell before the
+script starts, and print no JSON: a flag left without its value (`-Project` as the last word) and a value of the wrong
+type (`-Retry abc`). Then stdout is empty, the exit code is 1 and stderr says which argument was wrong; treat an empty
+stdout with exit code 1 as such an error.
+
 Run it as a child process, as an agent does. The document is written to the process's standard output, so dot-sourcing or calling the script
 in-process (`& ./hyperdot.ps1`) will not capture it in a variable.
 
@@ -18,10 +26,10 @@ in-process (`& ./hyperdot.ps1`) will not capture it in a variable.
 | Field | Type | |
 |---|---|---|
 | `schema` | string | `hyperdot/1`. Fields are only ever added within a schema version |
-| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest` |
+| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest`, `help`, `deck` |
 | `ok` | bool | The verdict |
 | `error` | object, when `ok` is false | `{ "code": "<stable-code>", "message": "<for people>" }` |
-| `log` | string, for `setup`, `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits` | Path of the full run log, `hyperdot.log` in the command's results folder: `-Results` (default `test-results`; `bench-results`, `soak-results` and `audio-results` for those commands), or `-Output` for `shot` (default `screenshots`). Search it; don't read it whole |
+| `log` | string, for `setup`, `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits`, `deck` | Path of the full run log, `hyperdot.log` in the command's results folder: `-Results` (default `test-results`; `bench-results`, `soak-results`, `audio-results` and `deck-results` for those commands), or `-Output` for `shot` (default `screenshots`). Search it; don't read it whole |
 
 Branch on `error.code`; `message` can change.
 
@@ -37,16 +45,22 @@ Branch on `error.code`; `message` can change.
 | `coverage-below-minimum` | Line coverage under `-MinCoverage` | `coverage` |
 | `no-coverage` | `-MinCoverage` set but nothing was collected | - |
 | `export-failed`, `no-presets`, `preset-not-found` | Export problems | `exports[]` (completed so far) |
-| `unsafe-results-dir` | `-Results` would delete the project or cwd | - |
+| `unsafe-results-dir` | `-Results` would delete the project or cwd, or a non-empty folder inside the project that holds no `summary.json` or `hyperdot.log` of the kit's | - |
 | `doctor-problems` | `doctor` found `FAIL` checks | `checks[]` |
-| `invalid-arguments` | Any command: a parameter or environment variable the kit cannot use (an unknown runner, several `-Scene`s for `bench` or `audio`, a bad `HYPERDOT_TIMEOUT` or `HYPERDOT_IGNORE_ERRORS`, an out-of-range percentage, a misspelt sound); checked before the work starts where it can be | `error.message` |
+| `invalid-arguments` | Any command: a parameter or environment variable the kit cannot use (an unknown command, flag or runner, a value outside a parameter's set, a word that belongs to no parameter, several `-Scene`s for `bench` or `audio`, `-Seconds` of 0 or less for `bench` or `audio -Mix`, a malformed `-Sweep` or one on another command, a bad `HYPERDOT_TIMEOUT` or `HYPERDOT_IGNORE_ERRORS`, an out-of-range percentage, a misspelt sound); checked before the work starts where it can be | `error.message` |
 | `no-plan`, `invalid-plan`, `unknown-gate`, `auto-gate`, `unknown-task`, `wip-limit` | `plan` problems (`wip-limit`: too many tasks in `doing`) | - |
 | `trello-credentials`, `trello-error`, `trello-list-missing` | `plan -Do sync` could not reach or map the board | - |
 | `invalid-mcp-config` | `.mcp.json` exists but is not valid JSON | - |
 | `aseprite-not-found` | `init -McpAseprite` names no Aseprite program (a path to it or to its install folder) | - |
 | `bench-over-budget` | `bench`: the 99th-percentile frame time is above `-BudgetMs` | `bench` |
-| `bench-failed` | `bench` could not load the scene, Godot exited non-zero, or no result was printed | `error.message` |
+| `bench-over-draw-calls` | `bench -MaxDrawCalls <n>`: the scene averaged more than n draw calls a frame (when `-BudgetMs` is also crossed, that code wins; the message names both) | `bench.drawCalls` |
+| `bench-over-load-time` | `bench -MaxLoadMs <n>`: the scene took more than n ms from `load()` to its first frame drawn (after `bench-over-budget` and `bench-over-draw-calls`) | `bench.loadMs`, `bench.loadBreakdownMs` |
+| `bench-failed` | `bench` could not load the scene, Godot exited non-zero, no result was printed, or no frame was measured | `error.message` |
+| `bench-sweep-failed` | `bench -Sweep`: the run for one or more values could not be measured (its own code: `bench-failed`, `engine-errors`, `gpu-validation-errors`...); every value still ran, and a value over a limit is not a failure | `sweep.rows[]` (`ok`, `code`, `message`) |
 | `shot-failed` | `shot` could not load a scene or save an image | `shots[]` (pictures that did work) |
+| `deck-failed` | `deck`: one or more of its parts (`textsize`, `layout`, `shot`, `bench`) failed; every part still ran | `deck.parts[]` (each part's own `code`) |
+| `gpu-validation-errors` | `bench`, `shot` or `export -Run` with `-GpuValidation`: the graphics API's validation layer reported errors (Vulkan VUIDs such as `VUID-vkCmdDispatch-format-07753`); checked before the engine error check, which then leaves those lines out | `gpuValidation` (`exports[].gpuValidation` for `export`) |
+| `no-gpu-validation` | `-GpuValidation`, but nothing was validated: the project renders with OpenGL (the Compatibility renderer), the run was headless, or Vulkan's validation layer is not installed (Linux: `vulkan-validationlayers`; Windows, macOS: the Vulkan SDK) | `gpuValidation.driver`, `gpuValidation.layerLoaded` |
 | `soak-failed` | `soak`: a process exited early, never printed `[soak] ready`, or printed `[soak] fail` | `soak.processes[]` |
 | `soak-leak` | `soak`: a process's memory grew faster than `-MaxGrowthMbPerHour` | `soak.processes[].memoryMb` |
 | `soak-unclean-stop` | `soak -RequireCleanStop`: the server did not quit with 0 within `-StopGraceSeconds` of SIGTERM | `soak.stop` |
@@ -68,8 +82,9 @@ Branch on `error.code`; `message` can change.
 | `invalid-playtest-config` | `playtest`: `playtest.json` is not valid (an unknown setting, a bad cell, plane or bounds, an image without bounds or missing), a level's screenshot is not a PNG it can read (8-bit, not interlaced), or a level's grid would exceed 2048 cells a side | `error.message` |
 | `shallow-checkout` | `export -GameVersion auto` in a shallow clone, which has neither the tags nor the commits to count (actions/checkout fetches one commit unless `fetch-depth: 0`); checked before Godot is set up. No version is guessed | `error.message` |
 | `download-failed` | Godot or its export templates could not be downloaded after four attempts (an HTTP error, no network): the network or the server, not the project; retry later | `error.message` (the URL and the last error) |
-| `unexpected-error` | Anything else (bad path, missing tool) | `error.message` |
-| `failed` | Generic failure without a specific code | `error.message` |
+| `install-busy` | Another run on the same machine has been installing the same Godot for longer than `HYPERDOT_TIMEOUT`; the two take turns, so this is a stuck or very slow install, not the project; stop it or wait, then retry | `error.message` (the lock file) |
+| `unexpected-error` | An error the kit did not expect, such as a `-Project` folder that does not exist, a file it cannot read, or a bug in the kit | `error.message` |
+| `failed` | A failure with no code of its own: no `project.godot` in the project folder, a program not found (the .NET SDK, a tool on the `PATH`), an add-on or runner set-up that is missing or misnamed, a tool that exited non-zero | `error.message` |
 
 ## Per command
 
@@ -84,7 +99,9 @@ codes; the Steamworks, trailer, tag and privacy checks are described in [steam.m
 or `engineErrors[]`: `message`, `file` (`res://...` when Godot named one, on the line or in the `at:`/backtrace lines
 under it), `line`, `key` (the error key, see the run history below).
 
-**test**: `resultsDir`, `coverage` (`linePercent`, `minimum`), `runnerResults[]`:
+**test**: `resultsDir`, `junitDir` (every runner's results as JUnit, `<results>/junit/<runner>-<file>.junit.xml`: JUnit
+copied, TRX converted, failed `-Retry` attempts left out; for CI systems such as GitLab; absent when no runner wrote a
+report), `coverage` (`linePercent`, `minimum`), `runnerResults[]`:
 
 ```json
 { "runner": "gut", "ok": false, "total": 3, "passed": 2, "failed": 1, "skipped": 0,
@@ -98,13 +115,18 @@ The `juice` runner has one case named `run` (Godot's exit and engine errors) and
 case per expected line, named `reached: <text>`, failed with the last milestone reached, or `Not checked` after the first one
 missing; its log is `playthrough.log`.
 The `data` runner has a case `data.json` (files that cannot be read, references to tables it does not list) and one
-case `table <name>` per table, each listing up to 50 problems, one per line. A fact that a `"kind": "responses"` table's
+case `table <name>` per table, each listing up to 50 problems, one per line (for a `"kind": "softlock"` table, a level's
+soft-lock is one line with the steps into it; for a table with `"economy"`, each currency without a sink). A fact that a `"kind": "responses"` table's
 criteria read but no rule remembers and its `facts` do not list is a warning (`fact-never-written`, `file` the table's
 file, `line` null) in `runnerResults[].warnings`; it does not fail the run.
 The `textsize` runner has one case per resolution (`1280x800`), listing text whose font size is under the minimum,
 subtitles under the subtitle minimum and, when integer scaling cuts the game off, that; a case `run` when Godot fails or
 finds no visible text. Text under the recommended size is a warning (`text-below-recommended`), subtitles under theirs
 another (`subtitle-below-recommended`), in `runnerResults[].warnings`; its log is `textsize.log`.
+The `placement` runner has one case per level scene that `placement.json` names, failed with its findings, one per line
+(`<scene> <node path> (<x>, <y>, <z>) <rule>: <measured> (limit <limit>)`), and a case `run` when Godot fails or a
+limit names a script or constant that does not exist; the summary (counts per group with the change since the last
+run, exemptions, wayfinding) is `placement/placement.txt` in the results folder.
 The `layout` runner has a passing case per profile that is clean, and one failing case per profile, scene and node
 (`phone_portrait res://ui/menu.tscn TopBar/Pause`) whose message lists each problem as `kind: detail` (`off-screen`,
 `unsafe-area`, `small-target`, and `small-control` when `layout.json` sets `minControlDp`: a TouchScreenButton or a Control
@@ -191,7 +213,7 @@ arrays when there is nothing to list; `retry` is the `-Retry` value):
   compared run and is flaky or quarantined now is not `fixed`. The policy is Rare's for Sea of Thieves
   ([gdc/sea-of-thieves-automated-testing.md](gdc/sea-of-thieves-automated-testing.md)).
 
-Each `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak` and `credits` run also appends one line to `.godot/hyperdot-history.jsonl` in the
+Each `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits` and `deck` run also appends one line to `.godot/hyperdot-history.jsonl` in the
 project: `time` (UTC), `command`, `ok`, `code`, `seconds`, and `failedRunners` for `test`. A `test` run that reached its
 runners also records `scope` (`runners`, sorted, and `filter`, `""` without `-Filter`), `failures` (up to 200 ids
 `<runner>|<test name>`, in ordinal order) and `failuresTruncated`; the next run of the same scope compares itself with them.
@@ -208,8 +230,9 @@ groups the history by key (`recurringErrors`), after Activision's error buckets 
 ([gdc/call-of-duty-error-keys.md](gdc/call-of-duty-error-keys.md)).
 The plugin's Stop hook and the `retro` skill read it.
 
-**export**: `exports[]`: `preset`, `platform`, `file`, `retried` (1 or 2, present when Godot crashed during the export, an exit code of 128 or more or a negative one, and the export was run again; the export's file is deleted first, and a crash on every run still fails with `export-failed`), and for Web presets `web` (`files`, `rawMb`, `gzipMb`: the export
-folder's download size); with `-Run`, `webRuns[]` for Web presets: `preset`, `browser`, `ok`, `started`, `startMs`, `notice`
+**export**: `exports[]`: `preset`, `platform`, `file`, `size` (below), `retried` (1 or 2, present when Godot crashed during the export, an exit code of 128 or more or a negative one, and the export was run again; the export's file is deleted first, and a crash on every run still fails with `export-failed`), and for Web presets `web` (`files`, `rawMb`, `gzipMb`: the export
+folder's download size), and with `-Run -GpuValidation`, for a build launched on this machine, `gpuValidation` (see below; the
+build then runs with a window instead of headless, and a Web build, drawn with WebGL, is not validated); with `-Run`, `webRuns[]` for Web presets: `preset`, `browser`, `ok`, `started`, `startMs`, `notice`
 (Godot's message when the engine cannot start), `crossOriginIsolated`, `renderer`, `screenshot` (in `<preset>-debug`, not the
 release folder), `errors[]`, `console[]` (up to 60 lines); with `-GameVersion`, `gameVersion`: `numbers` (`1.2.3`), `full` (`1.2.3-rc.1`)
 and `androidVersionCode` (major\*1,000,000 + minor\*1,000 + patch, `1002003`, set as `version/code` of the Android presets
@@ -226,19 +249,64 @@ that tag, or in all without one) and `commit` (short hash), and the version is, 
 After a tag the numbers are its major.minor.patch (missing ones 0, a fourth one replaced) and the commit count; the
 Android version code leaves the count out, so builds between two tags share one: tag each build you upload to a store.
 
+`exports[].size`, what makes the build big: `bytes` and `files` of the preset's output folder, `items[]` (each file or
+folder at its top, a folder summed, such as a C# game's `data_*` folder: `name`, `bytes`, `files`; the 15 largest) and
+`pack`, the Godot pack in the folder (a `.pck`, one embedded at the end of the executable, or one inside a `.zip` such as
+a macOS `.app`), or `null` when there is none it can read (an Android export, whose files sit in the APK's assets): `file`
+(as found, `game.x86_64 (embedded)` for an embedded one), `format` (4 for Godot 4.7.2), `engine`, `encrypted` (an
+encrypted directory: nothing more is read), `files`, `bytes`, `byFolder[]` (`folder`: the first folder of each file's
+source, `(root)` for files at the top; `bytes`, `files`) and `byType[]` (`type`: the source's extension, `(engine)` for
+`project.binary` and the rest of `.godot/`; `bytes`, `files`), each the 15 largest. Imported and exported files count as
+their sources, through their `.import` and `.remap` files: a texture's `.ctex` counts as `.png` in its folder, a compiled
+`.gdc` as `.gd`.
 **bench**: `bench` with `scene`, `frames`, `fps` (`avg`, `low1`, `low01`: 1% and 0.1% lows), `frameMs` (`avg`, `p50`, `p90`, `p99`,
-`max`), `over20ms`, `over33ms`, `hitches[]` (`t` seconds into the run, `ms`, `pos`: where the camera was, `[x, y, z]` or `[x, y]`,
-`null` without one; a hitch is a frame longer than twice the median and over 8.33 ms), `hitchThresholdMs`, `camera` (`3d`, `2d` or
+`max`), `over20ms`, `over33ms`, `hitches[]` (the first 50; `t` seconds into the run, `ms`, `pos`: where the camera was, `[x, y, z]` or `[x, y]`,
+`null` without one; a hitch is a frame longer than twice the median and over 8.33 ms), `hitchCount` (all of them), `hitchThresholdMs`, `camera` (`3d`, `2d` or
 `none`: the root viewport's active camera in most frames; for `2d` the place is the centre of the screen), `hotspotCell` (the grid
 cell, aligned to the origin, in metres or pixels, `-HotspotCell`, default 10 in 3D and 512 in 2D; 0 without a camera), `hotspots[]` (where it is slow: the
 10 cells of camera positions with the worst p99 frame time, worst first, each with `centre`, `frames`, `p99Ms`, `maxMs`; empty
 when `camera` is `none`), `drawCalls` (`avg`, `max`), `primitives` (`avg`, `max`: triangles, lines and points drawn per
 frame), `gpuMs` (`avg`, `max`: GPU time per frame; 0 when nothing is drawn), `textureMemoryMB` and `videoMemoryMB` (at the end), `objects` and `staticMemoryMB` (`start`, `end`), `customMonitors`
 (each custom monitor the game registered: `start`, `end`, `delta`), `display` (`headless` means CPU timings only), `renderer`,
-`driver`, `vsync`, `maxFps`, `resolution`, `label`, `budgetMs`. The same object is written to `bench-results/bench.json`, and a
-row is appended to `bench-results/bench.csv`.
+`driver`, `vsync`, `maxFps`, `resolution`, `label`, `budgetMs`, `maxDrawCalls` and `maxLoadMs` (0 when not set). `loadMs` is
+the time from `load()` of the scene to its first frame drawn, and `loadBreakdownMs` splits it into `resource` (reading the
+scene and what it loads), `instantiate` and `firstFrame` (adding it to the tree, which runs `_ready`, and drawing that
+frame); the files were imported by the build step, so this is a load from `.godot/imported`, not from an exported `.pck`.
+`frameHistogram[]` puts every measured frame in one of five fixed buckets, `fromMs` (exclusive) to `toMs` (inclusive):
+0 to 8.33 (120 fps or better), to 16.67 (60), to 33.33 (30), to 50 (20), and over 50 (`toMs` `null`), each with `frames`
+and `percent`; the frames add up to `frames`. A run capped by V-Sync jitters around its refresh interval, so at 60 Hz
+some frames land just over 16.67: read the histogram of an `-Uncapped` run for headroom. The same object is written to
+`bench-results/bench.json`, and a row is appended to `bench-results/bench.csv`.
 
-**shot**: `shots[]` with `scene`, `file` (absolute path of the PNG), `width`, `height`, `locale` (`null` for the project's own,
+**sweep** (`bench -Sweep <name>=<v1,v2,...>`, in place of `bench`): `name`, `values[]`, `budgetMs`, `maxDrawCalls`,
+`maxLoadMs`, and `rows[]`, one per value in the order given, each run with `--<name>=<value>` after `-GameArgs`: `value`,
+`label` (`-Label` and `<name>=<value>`, as in `bench.csv`), `ok` (the run was measured), `withinLimits` (and under
+`-BudgetMs`, `-MaxDrawCalls` and `-MaxLoadMs`), `code` and `message` (the run's own stop, e.g. `bench-over-budget`; `null`
+when it passed), `p50Ms`, `p99Ms`, `maxMs`, `fpsAvg`, `low1`, `drawCallsAvg`, `loadMs` (`null` for a run with no result) and
+`result` (the run's `bench.<name>-<value>.json`, beside its `.log`). `withinLimits[]` lists the values that passed every
+limit, and `lastWithinLimits` is the last value, in order, before the first that did not (`null` when the first did not).
+A value over a limit does not fail the sweep; a run that could not be measured does (`bench-sweep-failed`).
+
+**deck**: `deck` with `resolution` (`1280x800`), `budgetMs` (`-BudgetMs`, 33.3 by default), `ok`, and `parts[]`, one per
+part in the order run: `part` (`textsize`, `layout`, `shot`, `bench`), `ok`, `code` (`null` when it passed; `tests-failed`
+for a runner with failing cases, else the code the part stopped with, such as `bench-over-budget`, `shot-text` or
+`no-display`) and `message`. The runner parts add `total`, `failed`, `failures[]` (`name`, `message`: the runner's
+JUnit cases, such as `textsize.1280x800` and `layout.steam_deck res://ui/menu.tscn Quit`) and `warnings[]` (`rule`,
+`file`, `message`); `shot` adds `folder`, `bench` `p99Ms` and `fpsAvg`. The parts' own fields sit beside it as their
+commands write them: `shots[]` and `palette` from `shot`, `bench` from `bench`, `engineErrors[]` and, with
+`-GpuValidation`, `gpuValidation` from the last part that set them.
+
+**gpuValidation** (`bench`, `shot` and, per export, `exports[].gpuValidation`, with `-GpuValidation`): `driver` (`vulkan`,
+`opengl3`, `d3d12`, `metal`, or `null` when nothing was drawn), `layerLoaded` (Vulkan: whether the loader loaded
+`VK_LAYER_KHRONOS_validation`; `null` for other drivers, whose logs do not say), `errorCount`, `warningCount` and
+`errors[]` (the first 20: `id`, the VUID or message number, or `null`; `message`, up to 600 characters). Messages matching
+`HYPERDOT_IGNORE_ERRORS` are left out. The runs get Godot's `--gpu-validation` and `--accurate-breadcrumbs` (a barrier
+between the GPU markers, so a device loss names the command that caused it); not `--gpu-abort`, which would stop at the
+first error, and which release builds ignore. Validation makes rendering much slower: `bench` numbers from such a run
+are not frame times to keep.
+
+**shot**: `shots[]` with `scene`, `file` (absolute path of the PNG, `<name>.png` after the scene, or after its path, `a_main.png`,
+when two scenes share a name), `width`, `height`, `locale` (`null` for the project's own,
 else the `-Locale` entry or `pseudo`) and `text[]`: `node` (path from the scene root), `problem` (`cut off`, `off screen`,
 `missing glyphs`) and `detail`. With a fixed aspect ratio (`keep`), the
 picture is the game area without the black bars, so it can be smaller than `-Resolution`. With `-Baseline <folder>`, each shot
@@ -290,15 +358,16 @@ the pictures). Each `levels[]` entry: `level`, `sessions` (sessions with any eve
 `medianPerSession`, `maxPerSession`), `stuck` (`total`, `sessions` with one, `medianPerSession`, `medianSeconds`,
 `maxSeconds`), `revisits`, `solvedButStayed` (`total`, `medianSeconds`), `hints`, `items[]` (`item`, `sessions` that found it,
 `share` of the level's sessions). Per-session medians count sessions with none as 0; a median of nothing is `null`. Each
-`heatmaps[]` entry is one level and event type with positions: `level`, `event`, `file` (`<Results>/heatmaps/<level>.<event>.png`),
+`heatmaps[]` entry is one level and event type with positions: `level`, `event`, `file` (`<Results>/heatmaps/<level>.<event>.png`,
+`-2`, `-3` after the level when an earlier level id makes the same file name, case aside),
 `width`, `height`, `background` (the screenshot, or `null`), `plane` (`xy` or `xz`), `cell`, `origin` (the grid's corner), `cols`,
 `rows`, `count`, `outside` (events outside `bounds`, not drawn), `maxCount` and `hotCells[]` (up to 5, most events first, then
 by row and column: `col`, `row`, `count`, `from` and `to`, the cell's corners in the plane's coordinates). Only reports: no
 counts fail the run.
 
 **soak**: `soak` with `clients`, `seconds` (actual), `port`, `server` and `processes[]` (each: `name`, `ready`, `exitCode`,
-`memoryMb` (`start`, `end`, `growthPerHour`), `cpuPercent`, `metrics` (the `[soak] metric` values the game printed),
-`fails[]`, `log`), `clientMemoryMb` (`average`), and, with `-JunkPps`, `junk` (`pps`, `packetsSent`: the loopback junk
+`memoryMb` (`start`, `end`, `growthPerHour`: on Linux anonymous resident memory, the heaps and stacks a leak grows, not the binary and libraries mapped from files; elsewhere the working set; `residentGrowthPerHour`: all resident memory), `cpuPercent`, `metrics` (the `[soak] metric` values the game printed),
+`unparsedMetrics[]` (the `[soak] metric` lines whose value is not a finite number, such as `1.2.3` or `inf`), `fails[]`, `log`), `clientMemoryMb` (`average`), and, with `-JunkPps`, `junk` (`pps`, `packetsSent`: the loopback junk
 flood's requested rate and how many packets it sent), and `stop`: how the server took SIGTERM at the end, after the
 clients were stopped (`signal`, `graceSeconds`, `exitCode` (143 when the signal killed it: no handler), `seconds` to quit,
 `clean`: quit with 0 within the grace period; `null` on Windows, which has no SIGTERM, and when the server had already
@@ -309,31 +378,48 @@ exited). Written to `soak-results/soak.json`. Fails as `soak-failed` (a process 
 courtesy), `notices` (licence and notice blocks in `THIRD-PARTY-NOTICES.txt`), `folder` (where the files went), `files[]`
 (`CREDITS.md`, `credits.json`, `THIRD-PARTY-NOTICES.txt`), `errors[]` and `warnings[]` (`code`, `path`, `message`).
 Error codes: `credit-author-missing`, `credit-source-not-url`, `copyright-missing`, `licence-text-missing`,
-`licence-file-missing`, `notice-file-missing`, `noderivs-modified`, `licence-blocked`, `licence-unknown`,
+`licence-file-missing`, `notice-file-missing`, `noderivs-modified`, `licence-blocked`, `licence-unknown`, `source-offer-missing`
+(an `MPL-2.0` entry whose `source` is not a URL: players must be told where its source is),
 `dotnet-notices-missing` (a path given that does not exist). Warning codes: `credit-title-missing`, `apache-notice-unchecked`,
-`apache-modified`, `ofl-modified`, `licence-custom`, `licence-proprietary`, `engine-notices-missing`,
+`apache-modified`, `ofl-modified`, `mpl-modified` (changed MPL files are MPL-2.0 too), `licence-custom`, `licence-proprietary`, `engine-notices-missing`,
 `dotnet-notices-missing` (a C# project with no .NET runtime pack in the NuGet cache). `credits.json` has `schema`
 (`game-credits/1`), `game`, `sections[]` (`id`, `heading`: a translation key, `entries[]`: `text`, `licence`, `source`)
 and `noticesFile`.
 
 **init**: `steps[]`: `status` (added/updated/skipped), `message`.
 
+**help** (no project needed): without a name, `entries[]` (`name`, `kind`: command, skill or subagent, `summary`: one
+line); with one (`help shot`, `help /game`), `entry` with `name`, `kind`, `summary`, `page` (the rest of its text in
+[help.md](help.md)), and for a skill or subagent `when` (its description), `start` (how it starts) and `file`. A name
+help does not know, or a name given to another command, fails with `invalid-arguments`.
+
 **flows** is a runner like the others: it appears in `runnerResults[]`; each failure's `name` is the flow file and `message` is `step N (<step>): <reason>`.
 
-**plan**: `plan` (path), `currentPhase` (`id`, `name`, `goal`, `timeboxWeeks`, `elapsedWeeks`), `nextActions[]`
-(`id`, `text`, `auto`, `check`), `phases[]` (`id`, `name`, `complete`, `gatesDone`, `gatesTotal`), `board`
+**plan**: `plan` (path), `currentPhase` (`id`, `name`, `goal`, `timeboxWeeks`, `elapsedWeeks`, `timeboxDays`, `elapsedDays`; a jam plan sizes phases in days, the other plan in weeks, and both are given), `nextActions[]`
+(`id`, `text`, `auto`, `check`, `optional`: an open optional gate does not hold the phase back), `phases[]` (`id`, `name`, `complete`, `gatesDone`, `gatesTotal`), `board`
 (tasks per column), `tasks[]` (`id`, `title`, `column`, `phase`, `feature`, `cardId`, `boardColumn`), `trelloBoard`,
 `release` (`null` until plan.json's `release.date` is set: `date`, `daysLeft`, `businessDaysLeft`, `dateLocked`,
 `deadlines` with `steamFee`, `comingSoon`, `buildReview`, `dateLock`, and `storePageReview` and `demoReview` when
 `release.comingSoon` and `release.nextFest` are set; all yyyy-MM-dd), `warnings[]` (release timeline warnings included;
 see [plan.md](plan.md#release-dates)).
-`plan -Do add` also returns `task`; `plan -Do sync` returns `sync` (`board`, `created`, `moved`, `warnings`).
+`plan -Do add`, `move`, `remove` and `link` also return `task` (as in `tasks[]`; for `remove`, the task removed, whose `cardId` the Trello connector should archive); `plan -Do sync` (experimental) returns `sync` (`board`, `created`, `moved` (tasks moved to follow the board), `cardsMoved` (cards moved to follow the plan), `imported` (tasks added for cards a person added on the board), `archived` (cards of removed tasks archived), `warnings`).
+
+**status -Handoff** `<subagent>` **-Checked** `<what>` **-Verdict** `<answer>` records one subagent handoff instead of
+reporting: one line in `.godot/hyperdot-handoffs.jsonl` (`time`, `subagent`, `checked`, `verdict`, `commit`; each text on
+one line, `checked` up to 500 characters, `verdict` up to 300), the newest 200 kept. It returns `handoff` (the line) and
+`handoffsKept`. A name that is not lowercase letters, digits and hyphens, a missing `-Checked` or `-Verdict`, or these flags
+on another command fail with `invalid-arguments`, before anything is written. `.godot/` is never committed (`init` puts it
+in `.gitignore`).
 
 **status** (read-only; it never fails on what it finds):
-- `gdd`: `path`, `draft`, `pitch`, `featureCount`, or `null` when the project has no `docs/GDD.md`.
+- `gdd`: `path`, `draft`, `pitch`, `featureCount`, `firstSession[]`, or `null` when the project has no `docs/GDD.md`.
+  `firstSession[]` holds the numbered steps of its "First session, step by step" section: `id` (`S1`... from the step's
+  number), `text`, `tests[]` (`file`, `line` of each `GDD:S<n>` tag in tests, flows, code and `playthrough.json`) and
+  `stubs[]` (the same in `*.stub.json` files, flows or a `playthrough.json` not written yet, which no runner plays). A
+  confirmed GDD (not a draft) warns about steps with neither; a `GDD:S<n>` tag for a step the GDD lacks also warns.
 - `features[]`: `id` (F1...), `title`, `priority`, `fun[]` (the kinds of fun on its `Fun:` line), `doneWhen[]`, `taggedTests[]` (`file`, `line` of each `GDD:F<n>` tag in
-  tests, flows and code), `tasks[]` (`id`, `column`), `testedAndPassing` (tagged tests exist and the latest test run passed).
-- `plan`: `path`, `board`, `currentPhase`, `openGates[]`, `wipLimit`, `columns`, `tasks[]` as for `plan`; `null` without a plan.
+  tests, flows, code and `playthrough.json`; stubs do not count), `tasks[]` (`id`, `column`), `testedAndPassing` (tagged tests exist and the latest full test run passed: every runner of the project, no `-Filter`).
+- `plan`: `path`, `board`, `currentPhase`, `openGates[]`, `wipLimit`, `columns`, `tasks[]` as for `plan`; `null` without a plan, or with one `plan` would refuse as `invalid-plan` (a warning says why).
 - `decisions[]`: `number`, `title`, `status` (Proposed, Accepted, ...), `feature`, `path` of each file in `docs/decisions/`.
 - `runs`: the latest history entry per command (`test`, `build`, ...), as in `.godot/hyperdot-history.jsonl`.
 - `testDuration`: `runners` (the usual scope), `runs` and `medianSeconds` (the last 10 passing test runs of that scope without
@@ -351,9 +437,15 @@ see [plan.md](plan.md#release-dates)).
 - `git`: `branch`, `lastCommit`, `commits7Days`, `commits28Days`, `filesChanged7Days`, `uncommitted`, `recent[]`; `null` outside git.
 - `inventory`: `mainScene`, `scenes[]` (up to 60), `sceneCount`, `scriptCount`, `testFileCount`, `autoloads[]`,
   `inputActions[]`, `todoCount`, `todos[]` (`file`, `line`, `text`; up to 15).
+- `placeholders`: `count` and `pastDue` (entries of `assets.json` with `"placeholder": true`, and those whose `due` date
+  has passed), `entries[]` (`path`, `due` (yyyy-MM-dd or `null`), `status` (`needed` when not set), `files` (asset files the
+  entry covers), `pastDue`). A placeholder past due is also a warning.
+- `handoffs[]`: the 20 newest lines of the handoff log, `.godot/hyperdot-handoffs.jsonl`, newest first: `time`, `subagent`,
+  `checked` (what it was asked to check), `verdict` (its answer, such as `PASS`, `FAIL: ...` or `Proposed 0003`),
+  `commit` (short hash, `null` outside git). Empty without a log.
 - `look`: `styleGuide` (path of `docs/STYLE.md`, or `null`), `resolutions[]` (from its `Resolutions:` line), `juiceRules` (rules
   in `juice.json`, 0 without one).
 - `warnings[]`: a draft GDD, must-have features with no tagged test, must and should features with no `Fun:` line or an
   unknown kind of fun, features with no plan task, tags or tasks naming
-  features the GDD does not have, a failed or missing latest test run, plan overruns, repeatedly flaky tests, ended
-  quarantines and a latest failure whose error predates the current commit.
+  features the GDD does not have, a failed or missing latest test run, a plan.json that cannot be read, plan overruns, repeatedly flaky tests, ended
+  quarantines, placeholders past their due date and a latest failure whose error predates the current commit.

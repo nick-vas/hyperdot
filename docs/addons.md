@@ -65,6 +65,8 @@ Godot also refuses an extension outside `compatibility_minimum` and `compatibili
 | The game uses an autoload an add-on's plugin registers, and `project.godot` lacks it | WARN |
 | `addons/gut`, `addons/gdUnit4` or `addons/godot-git-plugin` in a preset without an exclusion | WARN |
 | `forced_dd3d` in a preset's custom features (Debug Draw 3D drawing in release builds) | WARN |
+| An add-on from the known-status list below (`ci/godot/addons-status.json`), by its folder in any letter case or, renamed, by its `.gdextension` file name and `entry_symbol`; one with a Godot range only above it | WARN |
+| `addons/<name>/LICENSE*` (or `LICENCE*`, `COPYING*`) and no `assets.json` entry covering the add-on's code; the fix is the entry, with the licence read from the text and `copyright` from its first `Copyright` line (`lib/Assets.ps1`; GUT, gdUnit4 and the git plugin are left out) | WARN |
 
 The autoload rule replaces "plugin not enabled", which would be wrong: `examples/gdscript` keeps `addons/gut` disabled
 and GUT's command-line runner works. What breaks a game is an autoload such as Dialogue Manager's `DialogueManager` that
@@ -106,6 +108,27 @@ Do not use on Godot 4.7:
   and 4.2", Windows builds only. Use a `MultiMeshInstance2D` in the game's own code.
 - **py4godot** ([niklas2902/py4godot](https://github.com/niklas2902/py4godot)): "don't use this for bigger projects".
 
+### The known-status list
+
+`doctor` finds the four above in a game from `ci/godot/addons-status.json`: each entry's folder under `addons/`, its
+`.gdextension` file name and `entry_symbol` (for a copy in another folder), the Godot it stops at (`godotMax`), why and
+the fix. Each name was confirmed on 2026-10-23 from the add-on's repository at its newest commit, read with git (the
+`confirmed` field of each entry says which files):
+
+| Add-on | Folder | `.gdextension` | `entry_symbol` | From |
+|---|---|---|---|---|
+| Godot Jolt | `addons/godot-jolt` | `godot-jolt.gdextension` | `godot_jolt_main` | `CMakeLists.txt`, `cmake/GodotJoltUtilities.cmake`, `cmake/GodotJoltVersionInfo.cmake` (4.3 to 4.6) |
+| godot-steam-audio | `addons/godot-steam-audio` | `libgodot-steam-audio.gdextension` | `init_extension` | the `.gdextension` in `project/addons/godot-steam-audio/bin/` |
+| Godot-PerfBullets | `addons/PerfBullets` | `spawner.gdextension` | `spawner_library_init` | `addons/PerfBullets/bin/spawner.gdextension` (no tags or releases) |
+| py4godot | `addons/py4godot` | `python.gdextension` | `initialize_pythonscript` | `create_plugin.py`, `build_resources/gdextension_template.gdextension` |
+
+Not confirmed here: the release zips themselves (GitHub's release downloads and API answered 403 from this sandbox, so
+the folder names come from the files and build scripts that make the releases), and whether Godot Jolt, PerfBullets and
+py4godot are archived (`archived` is `null` until the canary reads it). The weekly canary runs
+`ci/godot/tools/Update-AddonStatus.ps1`: it records each repository's newest commit (`head`) and `archived`, checks that
+the file each entry names still holds its `entry_symbol`, and opens an issue for what needs a person, such as new commits
+on an add-on that may now support Godot 4.7. Statuses are changed by hand.
+
 Not add-ons: [gdext](https://github.com/godot-rust/gdext) (Rust, 5,319 stars, MPL-2.0), [graphics.gd](https://github.com/quaadgras/graphics.gd)
 (Go), [godot-cpp-template](https://github.com/godotengine/godot-cpp-template) (the reference for writing a GDExtension;
 [nathanfranke/gdextension](https://github.com/nathanfranke/gdextension) is older and has no macOS or iOS) and
@@ -127,6 +150,6 @@ for AI agents", not a game backend.
 ## Licences
 
 Every add-on's code ships with the game, so its licence notice does too: an `assets.json` entry for `addons/<name>/**`
-lets `credits` write it (`godot-asset-pipeline`). Some add-ons wrap SDKs with their own terms (FMOD, Steamworks, Epic Online
+lets `credits` write it (`godot-asset-pipeline`), and `doctor` writes that entry for an add-on with a licence file and none. Some add-ons wrap SDKs with their own terms (FMOD, Steamworks, Epic Online
 Services, Steam Audio's "proprietary libraries"), ProtonScatter's textures "cannot redistribute them on their own", and
 EIRTeam.FFmpeg's h264 needs a check of patent law where the game sells.

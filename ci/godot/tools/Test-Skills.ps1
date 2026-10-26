@@ -33,9 +33,14 @@ $agentsTemplateMaxBytes = 4KB
 $entry = Join-Path $Root 'ci/godot/hyperdot.ps1'
 $ast = [System.Management.Automation.Language.Parser]::ParseFile($entry, [ref]$null, [ref]$null)
 $params = @{}
-foreach ($p in $ast.ParamBlock.Parameters) {
-    $set = $p.Attributes | Where-Object { $_.TypeName.Name -eq 'ValidateSet' } | Select-Object -First 1
-    $params[$p.Name.VariablePath.UserPath] = $set ? @($set.PositionalArguments | ForEach-Object { $_.Value }) : $null
+foreach ($p in @($ast.ParamBlock.Parameters | Where-Object { $_.Name.VariablePath.UserPath -ne 'UnboundArguments' })) {
+    $set = $p.Attributes | Where-Object { $_.TypeName.Name -in 'ArgumentCompletions', 'ValidateSet' } | Select-Object -First 1
+    $values = $set ? @($set.PositionalArguments | ForEach-Object { $_.Value }) : $null
+    $params[$p.Name.VariablePath.UserPath] = $values
+    # A flag can bind to a variable of another name (-Profile to $PlanProfile).
+    foreach ($alias in @($p.Attributes | Where-Object { $_.TypeName.Name -eq 'Alias' })) {
+        foreach ($a in $alias.PositionalArguments) { $params[$a.Value] = $values }
+    }
 }
 $commands = $params['Command']
 $jsonDoc = Get-Content -LiteralPath (Join-Path $Root 'docs/json.md') -Raw

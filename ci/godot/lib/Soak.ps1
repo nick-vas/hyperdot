@@ -12,6 +12,22 @@ function Get-FreeUdpPort {
     try { return ([System.Net.IPEndPoint]$socket.Client.LocalEndPoint).Port } finally { $socket.Dispose() }
 }
 
+# The "[soak] metric <name> <value>" lines of a process's log: the values as numbers (the last one of each name), and the
+# lines whose value is not one. The value is the whole next word, read in the invariant culture, so Godot's 1e-07 is a
+# number, and 1.2.3 (or inf, nan) is reported rather than cut short or thrown on.
+function ConvertFrom-SoakMetrics([string[]]$Lines) {
+    $metrics = [ordered]@{}
+    $unparsed = [System.Collections.Generic.List[string]]::new()
+    foreach ($line in $Lines) {
+        if ($line -notmatch '^\[soak\] metric (?<n>\S+) (?<v>\S+)') { continue }
+        $value = 0.0
+        $ok = [double]::TryParse($Matches.v, [System.Globalization.NumberStyles]::Float, [cultureinfo]::InvariantCulture, [ref]$value)
+        if ($ok -and [double]::IsFinite($value)) { $metrics[$Matches.n] = $value }
+        else { $unparsed.Add($line) }
+    }
+    return [pscustomobject]@{ Metrics = $metrics; Unparsed = $unparsed.ToArray() }
+}
+
 # A loopback-only junk flood for measuring how an ENet server holds up when packets crowd its socket buffer. It sends
 # small UDP datagrams to 127.0.0.1 on the server's own port (never any other host) at about -JunkPps a second for the
 # run, in a child process so the pacing does not steal the sampler's thread. The child writes how many it sent to a file.
@@ -63,16 +79,31 @@ function Start-SoakProcess([string]$ProjectDir, [string]$Log, [string[]]$UserArg
     return $process
 }
 
-# Least-squares slope of memory over time, in MB per hour: steady growth, not the noise of one sample.
-function Get-GrowthMbPerHour($Samples) {
+# Least-squares slope of memory over time, in MB per hour: steady growth, not the noise of one sample. $Field picks the
+# sample's value: Mb (the memory a leak shows in) or Resident (everything resident).
+function Get-GrowthMbPerHour($Samples, [string]$Field = 'Mb') {
     $points = @($Samples)
     if ($points.Count -lt 3) { return 0 }
     $meanT = ($points | Measure-Object -Property T -Average).Average
-    $meanM = ($points | Measure-Object -Property Mb -Average).Average
+    $meanM = ($points | Measure-Object -Property $Field -Average).Average
     $num = 0.0; $den = 0.0
-    foreach ($p in $points) { $num += ($p.T - $meanT) * ($p.Mb - $meanM); $den += ($p.T - $meanT) * ($p.T - $meanT) }
+    foreach ($p in $points) { $num += ($p.T - $meanT) * ($p.$Field - $meanM); $den += ($p.T - $meanT) * ($p.T - $meanT) }
     if ($den -eq 0) { return 0 }
     return [Math]::Round($num / $den * 3600, 1)
+}
+
+# The memory a leak grows, in MB: on Linux the anonymous resident memory (RssAnon: heaps and stacks), not the pages of
+# the binary, libraries and .NET assemblies mapped from files, which fill in as code first runs and grew a C# server's
+# working set about 370 MB/h for minutes on GitHub's runners with nothing leaking; elsewhere the working set.
+function Get-LeakMemoryMb([System.Diagnostics.Process]$Process) {
+    if ($IsLinux) {
+        try {
+            foreach ($line in [System.IO.File]::ReadAllLines("/proc/$($Process.Id)/status")) {
+                if ($line -match '^RssAnon:\s+(\d+)\s+kB') { return [double]$Matches[1] / 1024 }
+            }
+        } catch [System.IO.IOException] { Write-Verbose "$($Process.Id) has no status to read" }
+    }
+    return $Process.WorkingSet64 / 1MB
 }
 
 function Invoke-Soak {
@@ -111,7 +142,7 @@ function Invoke-Soak {
             if ($clock.Elapsed.TotalSeconds -ge $nextSample) {
                 $t = $clock.Elapsed.TotalSeconds
                 foreach ($p in $procs) {
-                    try { $p.Process.Refresh(); $p.Samples.Add([pscustomobject]@{ T = $t; Mb = $p.Process.WorkingSet64 / 1MB; Cpu = $p.Process.TotalProcessorTime.TotalSeconds }) }
+                    try { $p.Process.Refresh(); $p.Samples.Add([pscustomobject]@{ T = $t; Mb = (Get-LeakMemoryMb $p.Process); Resident = $p.Process.WorkingSet64 / 1MB; Cpu = $p.Process.TotalProcessorTime.TotalSeconds }) }
                     catch [System.InvalidOperationException] { Write-Verbose "$($p.Name) exited while sampled" }
                 }
                 $nextSample += $sampleEvery
@@ -155,10 +186,9 @@ function Invoke-Soak {
     $report = @(); $problems = @(); $errors = @(); $errorDetails = @()
     foreach ($p in $procs) {
         $lines = if (Test-Path -LiteralPath $p.Log) { @(Get-Content -LiteralPath $p.Log) } else { @() }
-        $metrics = [ordered]@{}
-        foreach ($line in $lines) {
-            if ($line -match '^\[soak\] metric (?<n>\S+) (?<v>-?[\d.]+)') { $metrics[$Matches.n] = [double]::Parse($Matches.v, [cultureinfo]::InvariantCulture) }
-        }
+        $parsed = ConvertFrom-SoakMetrics $lines
+        $metrics = $parsed.Metrics
+        foreach ($bad in $parsed.Unparsed) { Write-CiLog "$($p.Name): not a number, so not in metrics: $bad" }
         $fails = @($lines | Where-Object { $_ -match '^\[soak\] fail ' } | ForEach-Object { $_ -replace '^\[soak\] fail ', '' })
         $ready = @($lines | Where-Object { $_ -eq '[soak] ready' }).Count -gt 0
         $samples = @($p.Samples)
@@ -169,9 +199,11 @@ function Invoke-Soak {
                 start = $samples ? [Math]::Round($samples[0].Mb, 1) : $null
                 end = $samples ? [Math]::Round($samples[-1].Mb, 1) : $null
                 growthPerHour = Get-GrowthMbPerHour $samples
+                residentGrowthPerHour = Get-GrowthMbPerHour $samples 'Resident'
             }
             cpuPercent = if ($samples.Count -ge 2 -and $samples[-1].T -gt $samples[0].T) { [Math]::Round(100 * ($samples[-1].Cpu - $samples[0].Cpu) / ($samples[-1].T - $samples[0].T), 1) } else { $null }
             metrics = $metrics
+            unparsedMetrics = $parsed.Unparsed
             fails = $fails
             log = $p.Log
         }
@@ -220,6 +252,6 @@ function Invoke-Soak {
     }
     $leaks = @($report | Where-Object { $_.memoryMb.growthPerHour -gt $MaxGrowthMbPerHour })
     if ($MaxGrowthMbPerHour -gt 0 -and $leaks) {
-        Stop-GodotCi "Memory keeps growing: $(($leaks | ForEach-Object { "$($_.name) +$($_.memoryMb.growthPerHour) MB/h" }) -join ', ') (limit $MaxGrowthMbPerHour MB/h)" 'soak-leak'
+        Stop-GodotCi "Memory keeps growing: $(($leaks | ForEach-Object { "$($_.name) +$($_.memoryMb.growthPerHour) MB/h (all resident memory +$($_.memoryMb.residentGrowthPerHour) MB/h)" }) -join ', ') (limit $MaxGrowthMbPerHour MB/h)" 'soak-leak'
     }
 }

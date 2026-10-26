@@ -134,6 +134,10 @@ steps, `godot-ui-flows`), and check text at the smallest aspect ratio in each or
   (`godot-saves`). Desktops, Steam Deck and consoles send nothing before a suspend: save often there instead
   (`godot-console-cert`). Pause the game there and resume on `NotificationApplicationResumed`.
 - `OS.GetMemoryInfo()` gives physical, free and available memory for telemetry. Godot has no memory budget API.
+- **Lights per mesh.** Mobile lights each mesh instance with at most 8 OmniLights and 8 SpotLights, a limit fixed in its
+  shader, not a setting; Compatibility's are `rendering/limits/opengl/max_lights_per_object` (8) and
+  `max_renderable_lights` (32). Lights past the limit silently skip that mesh: split large floors so nearby lights stay
+  under it, and bake the rest (`LightmapGI`).
 
 ## 5. Android export
 
@@ -168,7 +172,8 @@ by default. `ScreenSetOrientation` works only when the orientation setting is se
   The PWA option "Ensure Cross Origin Isolation Headers" works around it, but needed a second reload here. `doctor`
   warns about threads builds.
 - **Size:** the engine alone is 38 MB, 9.9 MB gzipped (GitHub Pages compresses; itch.io does not). `export` reports
-  `exports[].web` (`rawMb`, `gzipMb`). Web portals cap downloads; CrazyGames, for example, allows 50 MB, or 20 MB for
+  `exports[].web` (`rawMb`, `gzipMb`), and `exports[].size.pack` what the game adds, by folder and kind of file
+  (`byFolder`, `byType`). Web portals cap downloads; CrazyGames, for example, allows 50 MB, or 20 MB for
   its mobile homepage.
 - **Export outside the project.** An export into `res://build/...` gets imported, and the next export packs it (the
   `.pck` grew tenfold here). `export` adds a `.gdignore` to an output folder inside the project; `doctor` warns about

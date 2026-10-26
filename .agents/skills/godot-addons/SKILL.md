@@ -14,7 +14,8 @@ was measured on Godot 4.7.2.
   extension ("only supported versions of Godot are between 4.3 and 4.6") never goes into a 4.7 game.
 - Check the add-on says it supports the project's Godot (its README, release notes, `compatibility_minimum` and
   `compatibility_maximum` in the `.gdextension`) and has shipped a release this year. Archived, alpha or "4.1 and
-  4.2" add-ons (godot-steam-audio, PerfBullets, py4godot) are prototypes, not dependencies.
+  4.2" add-ons (godot-steam-audio, PerfBullets, py4godot) are prototypes, not dependencies; `doctor` warns when one of
+  them, or Godot Jolt on 4.4+, is in the project, even in a renamed folder.
 - Check it ships a library for every platform the game exports to: fmod-gdextension has no Web build, gdTree3D is
   desktop only, Terrain3D's Web libraries are release only.
 - In a C# game, prefer add-ons that ship a C# wrapper (Phantom Camera, Dialogue Manager). Others are reached through
@@ -30,7 +31,8 @@ was measured on Godot 4.7.2.
    its autoloads (`DialogueManager`, `PhantomCameraManager`), which an export otherwise lacks.
 3. Exclude test and editor add-ons from every export preset (`addons/gut/*`, `addons/gdUnit4/*`,
    `addons/godot-git-plugin/*`).
-4. Add an `assets.json` entry for `addons/<name>/**` with its licence, so `credits` ships the notice (`godot-asset-pipeline`).
+4. Add an `assets.json` entry for `addons/<name>/**` with its licence, so `credits` ships the notice (`godot-asset-pipeline`);
+   `doctor` prints the entry for an add-on with a `LICENSE` file and none, with the licence and copyright line filled in.
 5. Run `pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 doctor -Json` and fix every add-on line.
 
 ## 3. Why an add-on works in the editor but not in the export

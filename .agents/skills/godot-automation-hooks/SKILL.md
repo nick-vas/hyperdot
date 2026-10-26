@@ -159,6 +159,9 @@ Pick and win rates per card, relic or upgrade, from one summary per finished run
 - **A feedback key.** One key and one typed line ("these rocks look wrong") save a screenshot, the log, the save file and
   a `user://reports/<time>.json` with the scene path, the player's and camera's `GlobalTransform`, the seed and the
   commit (Inkbound, Croteam). The place and view are what make a vague report fixable; the fixing commit names the report.
+  Copy `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/addons/hyperdot_report_pins/` to `res://addons/`: its `bug_report.gd`
+  saves that report (2D or 3D), and the editor add-on pins each report on its scene, with a Reports dock. Share a
+  report in `res://reports/` with an empty `.gdignore`, so it is never exported.
 
 ## Record a solution, replay it in CI
 

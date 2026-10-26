@@ -15,6 +15,8 @@
 .EXAMPLE
     ./ci/godot/hyperdot.ps1 bench -Scene res://levels/Boss.tscn -GameArgs '--stress' -Seconds 30 -BudgetMs 16.7
 .EXAMPLE
+    ./ci/godot/hyperdot.ps1 bench -Sweep particles=1000,5000,20000 -BudgetMs 16.7   # one run per value: p99 against the value
+.EXAMPLE
     ./ci/godot/hyperdot.ps1 shot -Scene res://ui/Menu.tscn,res://ui/Map.tscn -Resolution 1920x1080
 .EXAMPLE
     ./ci/godot/hyperdot.ps1 audio -Mix -Seconds 60 -GameArgs '--autoplay' -TargetLufs -18   # loudness of the files and of the game's mix
@@ -24,6 +26,9 @@
     ./ci/godot/hyperdot.ps1 sfx -Sound jump,coin,hit -Count 3 -Seed 7   # placeholder sounds in sounds/sfx: WAV and .bfxr
 .EXAMPLE
     ./ci/godot/hyperdot.ps1 playtest -Sessions playtests/sessions   # per-level counts and medians, heat maps of stalls and deaths
+.EXAMPLE
+    ./ci/godot/hyperdot.ps1 help shot     # one line per command, skill and subagent; with a name, its page (docs/help.md)
+    ./ci/godot/hyperdot.ps1 deck -Scene res://levels/Boss.tscn   # text size, layout, a screenshot and a 30 fps budget at 1280x800
 #>
 [CmdletBinding()]
 param(
@@ -37,9 +42,16 @@ param(
     # credits: CREDITS.md, credits.json and THIRD-PARTY-NOTICES.txt from assets.json and the engine's notices; fails on missing credit details.
     # sfx: placeholder sound effects from a seed (bfxr's synth: coin, laser, explosion, powerup, hit, jump, blip), as WAV and .bfxr.
     # playtest: per-level counts, medians and heat maps (PNG) from a folder of playtest telemetry sessions; no Godot needed.
+    # help: one line for each command, skill and subagent, or the page of one (help <name>); no project needed.
+    # deck: the Steam Deck check at 1280x800: textsize, layout, shot and bench with a Deck budget, one verdict.
+    # The sets of values (here and for -Retry, -Mcp, -Do and -Profile) are [ArgumentCompletions], which PowerShell does not
+    # enforce while binding: Assert-KitArguments checks them in the script, so a wrong value still gives a JSON result.
     [Parameter(Position = 0)]
-    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx', 'playtest')]
+    [ArgumentCompletions('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx', 'playtest', 'help', 'deck')]
     [string]$Command = 'test',
+    # help: the command, skill or subagent to show the page of, e.g. help shot.
+    [Parameter(Position = 1)]
+    [string]$Topic,
 
     # Folder with project.godot. Default: the shallowest one under the current folder.
     [string]$Project,
@@ -47,13 +59,13 @@ param(
     [string]$Solution,
     # e.g. 4.7.2 or 4.8-rc1. Default: from Godot.NET.Sdk in the csproj, else 4.7.2.
     [string]$GodotVersion,
-    # validate, architecture, dotnet, gdunit4, godottest, gut, flows, smoke, juice, playthrough, l10n, data, textsize, layout (or none to only build). Default: detected.
+    # validate, architecture, dotnet, gdunit4, godottest, gut, flows, smoke, juice, playthrough, l10n, data, textsize, layout, placement (or none to only build). Default: detected.
     [string[]]$Runners,
     # Passed to each runner's own filter.
     [string]$Filter,
     # test: run a runner that failed again, up to this many times; a test that passes on a retry passes, but is listed in
     # flaky[] and recorded in the history (status lists the repeat offenders). 0: no retries.
-    [ValidateRange(0, 5)]
+    [ArgumentCompletions('0', '1', '2', '3', '4', '5')]
     [int]$Retry = 0,
     # Collect coverage (dotnet, gdunit4, godottest) into one report.
     [switch]$Coverage,
@@ -86,13 +98,26 @@ param(
     [double]$Seconds = 10,
     [double]$Warmup = 3,
     # bench: fail when the 99th-percentile frame time is above this many milliseconds (16.7 for 60 fps). 0: no budget.
+    # deck: the Deck budget, 33.3 (30 fps) unless given.
     [double]$BudgetMs = 0,
+    # bench: fail when the scene averages more draw calls a frame than this (bench-over-draw-calls). 0: no limit.
+    [double]$MaxDrawCalls = 0,
+    # bench: fail when the scene takes longer than this many milliseconds to load, from load() to its first frame drawn
+    # (bench-over-load-time). 0: no limit.
+    [double]$MaxLoadMs = 0,
+    # bench, shot, export -Run: turn on the graphics API's validation layers (Vulkan) and fail on their errors
+    # (gpu-validation-errors); a run that could not be validated (OpenGL, headless, no layer installed) fails with
+    # no-gpu-validation. export -Run then launches the build with a window instead of headless.
+    [switch]$GpuValidation,
     # bench: the size of the grid cells, in metres (3D) or pixels (2D), that frames are grouped into by camera position for
     # "hotspots", the slowest places. 0: 10 m in 3D, 512 px in 2D. playtest: the heat maps' cell (0: playtest.json's, else
     # 2 m in 3D, 64 px in 2D).
     [double]$HotspotCell = 0,
     # bench: a name for this run in bench.csv, e.g. 'vsync-off 1080p'.
     [string]$Label = '',
+    # bench: one run per value, the game getting --<name>=<value> after -GameArgs, e.g. -Sweep particles=100,1000,10000; one
+    # bench.csv row each (labelled "<-Label> particles=100") and a table of p99 against the value (sweep in -Json).
+    [string[]]$Sweep,
     # bench, shot: window size, e.g. 1920x1080.
     [string]$Resolution,
     # shot: a folder of earlier screenshots; each new one is compared with its namesake there (percent changed, side-by-side image).
@@ -149,7 +174,7 @@ param(
     # detect: also write the values to $GITHUB_OUTPUT. export: also write version and android-version-code there.
     [switch]$GitHubOutput,
     # init: also register an editor-bridge MCP server for the project.
-    [ValidateSet('none', 'godot-mcp', 'godot-ai')]
+    [ArgumentCompletions('none', 'godot-mcp', 'godot-ai')]
     [string]$Mcp = 'none',
     # init: also register minimal-godot-mcp (GDScript diagnostics and the running game's console).
     [switch]$McpDiagnostics,
@@ -159,40 +184,65 @@ param(
     [switch]$Agents,
     # init: like -Agents, but enable this kit as a Claude Code plugin (skills, verifier, Stop hook) instead of copying skills.
     [switch]$Plugin,
-    # plan: status (default), init (create plan/plan.json), done (mark a manual gate done: -Id), add (a task: -Title),
-    # move (a task to -Column: -Id), sync (with a Trello -Board), link (a task to a GDD -Feature or a Trello -Card: -Id).
-    [ValidateSet('status', 'init', 'done', 'add', 'move', 'sync', 'link')]
+    # plan: status (default), init (create plan/plan.json), done (mark a manual gate done: -Id), reopen (undo done: -Id), add (a task: -Title),
+    # move (a task to -Column: -Id), remove (delete a task: -Id), sync (with a Trello -Board), link (a task to a GDD
+    # -Feature or a Trello -Card: -Id).
+    [ArgumentCompletions('status', 'init', 'done', 'reopen', 'add', 'move', 'remove', 'sync', 'link')]
     [string]$Do = 'status',
-    # plan -Do done: the gate to mark, e.g. prototype.loop. plan -Do move: the task id.
+    # plan -Do done|reopen: the gate, e.g. prototype.loop. plan -Do move|remove|link: the task id.
     [string]$Id,
     # plan -Do add: the task title.
     [string]$Title,
-    # plan -Do add|move: backlog, design, todo, doing, verify or done.
+    # plan -Do add|move|link: backlog, design, todo, doing, verify or done, or the board list one maps to ("To Do").
     [string]$Column,
-    # plan -Do sync: the Trello board id or short link (needs TRELLO_KEY and TRELLO_TOKEN).
+    # plan -Do sync|link: the Trello board id, short link, board URL or Trello connector ARI (sync needs TRELLO_KEY and TRELLO_TOKEN).
     [string]$Board,
     # plan -Do init: the game's name (default: config/name).
     [string]$Game,
+    # plan -Do init: full (seven phases sized in weeks) or jam (a game jam of 2 to 9 days, sized in days).
+    # The flag is -Profile; the variable has another name because $PROFILE is PowerShell's own.
+    [ArgumentCompletions('full', 'jam')]
+    [Alias('Profile')]
+    [string]$PlanProfile = 'full',
     # plan -Do add|link: the GDD feature a task delivers, e.g. F3.
     [string]$Feature,
-    # plan -Do link: the Trello card id of a task (set by /game when it creates the card through the Trello connector).
+    # plan -Do link: a task's Trello card: its 24-hex id or the Trello connector's ARI (the plain id is stored).
     [string]$Card,
+    # status -Handoff <subagent> -Checked <what> -Verdict <answer>: record one subagent handoff in the project's handoff log
+    # (.godot/hyperdot-handoffs.jsonl, the newest 200 kept) instead of reporting; status reads the log back as handoffs[].
+    [string]$Handoff,
+    [string]$Checked,
+    [string]$Verdict,
     # Print one JSON document on stdout (schema hyperdot/1) and send all logs to stderr. For agents and scripts.
     [switch]$Json,
     # Keep tool output (Godot, dotnet) off the console; it still goes to hyperdot.log in the results folder. Pair it with -Json
     # so an agent reads the verdict, with failure messages, files and lines, instead of the whole log.
-    [switch]$Quiet
+    [switch]$Quiet,
+    # Not a flag: whatever PowerShell could not bind to the parameters above (an unknown flag, a word too many) lands here,
+    # so the script can answer it with invalid-arguments, in JSON with -Json, instead of PowerShell printing an error.
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [object[]]$UnboundArguments
 )
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons', 'Playtest', 'Palette') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons', 'Playtest', 'Palette', 'BuildSize', 'Help', 'Deck', 'Placement') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+Start-KitCoverage $Command
 if ($Json) {
     Enable-JsonMode $Command
 }
 $script:QuietMode = [bool]$Quiet
 # Any unexpected terminating error still ends with a structured result.
 trap { Stop-GodotCi $_.Exception.Message 'unexpected-error' }
+Assert-KitArguments $MyInvocation.MyCommand.ScriptBlock.Ast.ParamBlock $PSBoundParameters
+
+# help needs no project: it is answered before one is looked for.
+if ($Topic -and $Command -ne 'help') { Stop-GodotCi "'$Topic' is not a parameter of $Command; only help takes a name (help $Topic)" 'invalid-arguments' }
+if ($Command -eq 'help') {
+    Invoke-Help $Topic
+    Write-JsonResult
+    exit 0
+}
 
 $GameArgs = @(Split-GameArgs $GameArgs)
 $info = Get-ProjectInfo -Project $Project -Solution $Solution -GodotVersion $GodotVersion -Runners $Runners
@@ -303,13 +353,23 @@ function Invoke-Build {
 }
 
 # -Results is wiped before each run, so refuse folders whose loss would hurt: the current folder, the
-# project, anything containing either, or a drive root.
+# project, anything containing either, or a drive root; and inside the project, a folder with files in it that the kit did
+# not make (no run log or summary of its own), such as -Results test, which would delete the game's tests.
 function Assert-SafeToClear([string]$Dir) {
     $norm = { param($p) ([System.IO.Path]::GetFullPath($p).TrimEnd('\', '/') -replace '\\', '/') + '/' }
     $target = & $norm $Dir
     foreach ($precious in $PWD.Path, $info.ProjectDir) {
         if ((& $norm $precious).StartsWith($target, [StringComparison]::OrdinalIgnoreCase)) {
             Stop-GodotCi "-Results $Dir would delete $precious; point it at a dedicated folder such as test-results" 'unsafe-results-dir'
+        }
+    }
+    $full = [System.IO.Path]::GetFullPath($Dir)
+    if ($target.StartsWith((& $norm $info.ProjectDir), [StringComparison]::OrdinalIgnoreCase) -and (Test-Path -LiteralPath $full -PathType Container)) {
+        $ours = (Test-Path -LiteralPath (Join-Path $full 'summary.json')) -or (Test-Path -LiteralPath (Join-Path $full 'hyperdot.log'))
+        $items = @(Get-ChildItem -LiteralPath $full -Force)
+        if ($items.Count -gt 0 -and -not $ours) {
+            Stop-GodotCi ("-Results $Dir would delete $($items.Count) item(s) of the project that the kit did not make ($(@($items | Select-Object -First 3 | ForEach-Object Name) -join ', '));" +
+                " point it at a dedicated folder such as test-results") 'unsafe-results-dir'
         }
     }
 }
@@ -331,10 +391,13 @@ function Invoke-Tests {
     }
     $runs = @(foreach ($runner in $info.Runners) {
         Invoke-TestRunnerWithRetry -Runner $runner -Info $info -ResultsDir (Join-Path $resultsDir $runner) -Retry $Retry -Quarantine $quarantine.Entries `
-            -Filter $Filter -Coverage ($collect -and $runner -notin 'gut', 'smoke', 'validate', 'flows', 'architecture', 'juice', 'playthrough', 'l10n', 'data', 'textsize', 'layout') -Frames $Frames -GameArgs $GameArgs -FixedFps $FixedFps
+            -Filter $Filter -Coverage ($collect -and $runner -notin 'gut', 'smoke', 'validate', 'flows', 'architecture', 'juice', 'playthrough', 'l10n', 'data', 'textsize', 'layout', 'placement') -Frames $Frames -GameArgs $GameArgs -FixedFps $FixedFps
     })
     $percent = if ($collect) { Merge-Coverage $resultsDir } else { $null }
     Write-RunSummary $resultsDir $info $runs $percent $MinCoverage
+    # The same results as JUnit only, in one folder, for CI systems such as GitLab (ci/gitlab/hyperdot.gitlab-ci.yml).
+    $junitDir = Export-JUnitReports $resultsDir @($runs | ForEach-Object Runner)
+    if ($junitDir) { Set-JsonField junitDir $junitDir }
     # Which failures this run added, kept or fixed, against the last run with the same runners and -Filter.
     $scope = Get-TestScope $info.Runners $Filter
     $failing = Get-FailureIds $runs
@@ -443,16 +506,8 @@ function Invoke-Export {
 function Invoke-ExportPresets {
     $exports = @()
     $details = Get-ExportPresetDetails $info.ProjectDir
-    # Godot imports whatever lands inside the project, and the next export packs it (a web export's icons, a whole
-    # previous build): an output folder inside the project gets a .gdignore first.
-    $outputRoot = [System.IO.Path]::GetFullPath($Output)
-    $relative = [System.IO.Path]::GetRelativePath($info.ProjectDir, $outputRoot)
-    if ($relative -ne '.' -and -not $relative.StartsWith('..') -and -not [System.IO.Path]::IsPathRooted($relative) -and
-        -not (Test-Path -LiteralPath (Join-Path $outputRoot '.gdignore'))) {
-        New-Item -ItemType Directory -Force $outputRoot | Out-Null
-        New-Item -ItemType File -Path (Join-Path $outputRoot '.gdignore') | Out-Null
-        Write-CiLog "Added $(Join-Path $outputRoot '.gdignore'): the output folder is inside the project"
-    }
+    # A web export's icons or a whole previous build would be packed into the next export.
+    Add-OutputGdignore $Output $info.ProjectDir
     foreach ($name in $presets) {
         if (-not $details.Contains($name)) { Stop-GodotCi "Preset '$name' not found; the project has: $($info.Presets -join ', ')" 'preset-not-found' }
         $preset = $details[$name]
@@ -482,9 +537,14 @@ function Invoke-ExportPresets {
         # The licence notices the game must ship (credits command), next to the executable.
         $notices = Join-Path $info.ProjectDir 'THIRD-PARTY-NOTICES.txt'
         if (Test-Path -LiteralPath $notices) { Copy-Item -LiteralPath $notices -Destination $dir -Force }
-        Write-CiLog ("Exported {0:N0} MB to {1}" -f ((Get-ChildItem -LiteralPath $dir -Recurse -File | Measure-Object Length -Sum).Sum / 1MB), $dir)
+        # What makes the build big: the folder item by item, and the pack by folder and by kind of source file.
+        $size = Get-ExportSizeBreakdown $dir
+        Write-CiLog ("Exported {0:N1} MB to {1}" -f ($size.bytes / 1MB), $dir)
+        if ($size.pack -and -not $size.pack.encrypted) {
+            Write-CiLog "  $($size.pack.file): $(@($size.pack.byFolder | Select-Object -First 5 | ForEach-Object { '{0} {1:N1} MB' -f $_.folder, ($_.bytes / 1MB) }) -join ', ')"
+        }
 
-        $entry = [ordered]@{ preset = $name; platform = $preset.Platform; file = $file }
+        $entry = [ordered]@{ preset = $name; platform = $preset.Platform; file = $file; size = $size }
         if ($run.Retries) { $entry.retried = $run.Retries }
         if ($preset.Platform -eq 'Web') {
             $entry.web = Get-WebBuildSize $dir
@@ -492,8 +552,11 @@ function Invoke-ExportPresets {
         }
         $exports += $entry
         Set-JsonField exports $exports
-        if ($Run -and $preset.Platform -eq 'Web') { Test-WebExport $name $preset $dir }
-        elseif ($Run) { Test-ExportedBuild $name $preset.Platform $file }
+        if ($Run -and $preset.Platform -eq 'Web') {
+            if ($GpuValidation) { Write-CiLog "-GpuValidation: the browser renders '$name' with WebGL, which has no validation layers; not validated" }
+            Test-WebExport $name $preset $dir
+        }
+        elseif ($Run) { Test-ExportedBuild $name $preset.Platform $file $entry }
     }
 }
 
@@ -523,23 +586,34 @@ function Test-WebExport([string]$Name, $Preset, [string]$ReleaseDir) {
 }
 
 # Launches the exported game headless, as a player would get it, and fails on any engine error. This catches
-# what the editor hides: missing assets, code trimmed from the build, test-only dependencies.
-function Test-ExportedBuild([string]$Name, [string]$Platform, [string]$File) {
+# what the editor hides: missing assets, code trimmed from the build, test-only dependencies. With -GpuValidation it runs
+# with a window instead, since a headless run draws nothing, and its validation is reported in the export's entry.
+function Test-ExportedBuild([string]$Name, [string]$Platform, [string]$File, $Entry) {
     if (-not (Test-CanRunPlatform $Platform)) {
         Write-CiLog "Can't launch the '$Name' build ($Platform) on this machine; skipped. Run export -Run on a matching OS."
         return
     }
     if (-not $IsWindows) { Invoke-Checked chmod @('+x', $File) }
-    Start-LogGroup "Run exported '$Name' ($Frames frames)"
+    $launch = if ($GpuValidation) {
+        Assert-Display 'export -Run -GpuValidation'
+        @('--audio-driver', 'Dummy') + @(Get-GpuValidationArgs -On) + @('--quit-after', "$Frames")
+    } else { @('--headless', '--quit-after', "$Frames") }
+    Start-LogGroup "Run exported '$Name' ($Frames frames$(if ($GpuValidation) { ', GPU validation' }))"
     $log = [System.IO.Path]::GetTempFileName()
-    $code = Invoke-Logged $File (@('--headless', '--quit-after', "$Frames") + $(if ($GameArgs) { @('--') + $GameArgs })) $log
+    $code = Invoke-Logged $File (@($launch) + $(if ($GameArgs) { @('--') + $GameArgs })) $log
     Stop-LogGroup
     if ($code -ne 0) { Stop-GodotCi "The exported '$Name' build exited with $code" 'export-failed' }
-    Assert-GodotLogClean $log "The exported '$Name' build"
+    $validation = if ($GpuValidation) { Get-GpuValidation @(Get-Content -LiteralPath $log) } else { $null }
+    if ($validation) { $Entry['gpuValidation'] = $validation.Report; Assert-GpuValidation $validation.Report "The exported '$Name' build" }
+    Assert-GodotLogClean $log "The exported '$Name' build" -Expected $(if ($validation) { $validation.Lines } else { @() })
     Write-CiLog "Exported '$Name' build ran $Frames frames without errors"
 }
 
 Write-CiLog "Project $($info.ProjectDir) | Godot $($info.GodotVersion) | solution $(if ($info.Solution) { $info.Solution } else { 'none' }) | runners $(if ($info.Runners) { $info.Runners -join ',' } else { 'none' })"
+# Before any run log or history: flags that belong to another command.
+if (($Handoff -or $Checked -or $Verdict) -and ($Command -ne 'status' -or -not $Handoff)) {
+    Stop-GodotCi '-Handoff, -Checked and -Verdict go together, with status: status -Handoff <subagent> -Checked <what> -Verdict <answer>' 'invalid-arguments'
+}
 # Before any slow setup: refuse a -Results folder that wiping would hurt.
 if ($Command -eq 'test') { Assert-SafeToClear $Results }
 # bench and audio -Mix run one scene. -Scene a,b arrives as one "a,b" string with pwsh -File: split it as shot does, and
@@ -548,17 +622,30 @@ $scenes = @($Scene | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim
 if ($Command -in 'bench', 'audio' -and $scenes.Count -gt 1) {
     Stop-GodotCi "$Command runs one scene, but -Scene names $($scenes.Count): $($scenes -join ', '). Run $Command once per scene" 'invalid-arguments'
 }
+# bench -Sweep, checked before Godot is set up.
+if ($Sweep -and $Command -ne 'bench') { Stop-GodotCi "-Sweep is for bench (one run per value), not $Command" 'invalid-arguments' }
+$benchSweep = if ($Sweep) { ConvertFrom-BenchSweep $Sweep } else { $null }
+# deck runs everything at the Deck's own 1280x800.
+if ($Command -eq 'deck' -and $Resolution -and $Resolution -ne '1280x800') {
+    Stop-GodotCi "deck runs at the Steam Deck's 1280x800; leave out -Resolution $Resolution (bench and shot take other sizes)" 'invalid-arguments'
+}
+# A bench of no time measures no frames, and audio -Mix would pass Godot --quit-after 0, which never quits.
+if (($Command -in @('bench', 'deck') -or ($Command -eq 'audio' -and $Mix)) -and $Seconds -le 0) {
+    Stop-GodotCi "-Seconds must be above 0 for $Command, not $Seconds" 'invalid-arguments'
+}
 # Each command's results folder, which also holds its run log: -Results (test-results) for setup, build, test, export and
 # credits; bench, soak and audio default to their own folder, and shot writes to -Output (screenshots).
-$commandDefaults = @{ bench = 'bench-results'; soak = 'soak-results'; audio = 'audio-results' }
+$commandDefaults = @{ bench = 'bench-results'; soak = 'soak-results'; audio = 'audio-results'; deck = 'deck-results' }
 $commandResultsDir = [System.IO.Path]::GetFullPath($(
         if ($Command -eq 'shot') { if ($PSBoundParameters.ContainsKey('Output')) { $Output } else { 'screenshots' } }
         elseif ($commandDefaults.ContainsKey($Command) -and -not $PSBoundParameters.ContainsKey('Results')) { $commandDefaults[$Command] }
         else { $Results }))
-if ($Command -in 'setup', 'build', 'test', 'export', 'bench', 'shot', 'audio', 'soak', 'credits') {
+if ($Command -in 'setup', 'build', 'test', 'export', 'bench', 'shot', 'audio', 'soak', 'credits', 'deck') {
     Start-RunLog (Join-Path $commandResultsDir 'hyperdot.log')
     if ($Command -ne 'setup') { Start-RunHistory $Command $info.ProjectDir }
 }
+# Screenshots, recordings and measurements run from the game's folder land inside it.
+if ($Command -in 'bench', 'shot', 'audio', 'soak', 'deck') { Add-OutputGdignore $commandResultsDir $info.ProjectDir }
 $script:ExportVersion = if ($Command -eq 'export' -and $GameVersion) { Resolve-ExportVersion } else { $null }
 switch ($Command) {
     'doctor' { Invoke-Doctor $info }
@@ -568,21 +655,33 @@ switch ($Command) {
         if ($Mcp -ne 'none' -or $McpDiagnostics -or $McpAseprite) { Add-McpConfig $info $Mcp ([bool]$McpDiagnostics) $McpAseprite }
         Write-CiLog "Done. Next: $(Format-KitCommand 'doctor'), then $(Format-KitCommand 'test')"
     }
-    'plan' { Invoke-Plan $info $Do $Id $Game $Title $Column $Board $Feature $Card }
-    'status' { Invoke-Status $info }
+    'plan' { Invoke-Plan $info $Do $Id $Game $Title $Column $Board $Feature $Card $PlanProfile }
+    'status' { if ($Handoff) { Add-Handoff $info.ProjectDir $Handoff $Checked $Verdict } else { Invoke-Status $info } }
     'setup' { Invoke-Setup -WithTemplates:$Templates }
     'build' { Invoke-Setup; Invoke-Build }
     'test' { Invoke-Setup; Invoke-Build; Invoke-Tests }
     'export' { Invoke-Setup -WithTemplates; Invoke-Build; Invoke-Export }
     'bench' {
         Invoke-Setup; Invoke-Build
+        if ($benchSweep) {
+            Invoke-BenchSweep -Info $info -Sweep $benchSweep -Scene ($scenes -join ',') -Seconds $Seconds -Warmup $Warmup -Resolution $Resolution -Uncapped:$Uncapped `
+                -MaxFps $MaxFps -Headless:$Headless -BudgetMs $BudgetMs -Label $Label -GameArgs $GameArgs -HotspotCell $HotspotCell -ResultsDir $commandResultsDir `
+                -MaxDrawCalls $MaxDrawCalls -MaxLoadMs $MaxLoadMs -GpuValidation:$GpuValidation
+            break
+        }
         Invoke-Bench -Info $info -Scene ($scenes -join ',') -Seconds $Seconds -Warmup $Warmup -Resolution $Resolution -Uncapped:$Uncapped `
-            -MaxFps $MaxFps -Headless:$Headless -BudgetMs $BudgetMs -Label $Label -GameArgs $GameArgs -HotspotCell $HotspotCell -ResultsDir $commandResultsDir
+            -MaxFps $MaxFps -Headless:$Headless -BudgetMs $BudgetMs -Label $Label -GameArgs $GameArgs -HotspotCell $HotspotCell -ResultsDir $commandResultsDir `
+            -MaxDrawCalls $MaxDrawCalls -MaxLoadMs $MaxLoadMs -GpuValidation:$GpuValidation
     }
     'shot' {
         Invoke-Setup; Invoke-Build
         Invoke-Shot -Info $info -Scene $Scene -Frames $Frames -Resolution $Resolution -GameArgs $GameArgs -Baseline $Baseline -MaxChangedPercent $MaxChangedPercent -Locale $Locale -Pseudo:$Pseudo -ColorVision $ColorVision `
-            -MaxOffPalettePercent $MaxOffPalettePercent -PaletteTolerance $PaletteTolerance -OutputDir $commandResultsDir
+            -MaxOffPalettePercent $MaxOffPalettePercent -PaletteTolerance $PaletteTolerance -OutputDir $commandResultsDir -GpuValidation:$GpuValidation
+    }
+    'deck' {
+        Invoke-Setup; Invoke-Build
+        Invoke-Deck -Info $info -Scene $Scene -Seconds $Seconds -Warmup $Warmup -Frames $Frames -BudgetMs $BudgetMs -MaxDrawCalls $MaxDrawCalls `
+            -MaxLoadMs $MaxLoadMs -GameArgs $GameArgs -Locale $Locale -Pseudo:$Pseudo -GpuValidation:$GpuValidation -ResultsDir $commandResultsDir
     }
     'soak' {
         Invoke-Setup; Invoke-Build

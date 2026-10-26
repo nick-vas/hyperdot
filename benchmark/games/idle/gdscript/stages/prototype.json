@@ -1,0 +1,201 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.gd",
+    "ui/credits.tscn",
+    "test/flows/credits.flow.json",
+    "main.tscn",
+    "ui/main.gd",
+    "ui/settings.gd",
+    "ui/settings.tscn",
+    "game/upgrade_row.gd",
+    "scripts/bot.gd",
+    "scripts/offline.gd",
+    "scripts/save_store.gd",
+    "scripts/launch_options.gd",
+    "data/upgrades.json",
+    "data.json",
+    "sounds",
+    "default_bus_layout.tres",
+    "plan",
+    "docs",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "architecture.json",
+    "test/flows/pages.flow.json",
+    "test/flows/dawn.flow.json",
+    "test/flows/settings.flow.json",
+    "test/unit/test_buy_max.gd",
+    "test/unit/test_upgrades.gd",
+    "test/unit/test_dawn.gd",
+    "test/unit/test_offline.gd",
+    "test/unit/test_save_store.gd",
+    "test/unit/test_bot.gd",
+    "test/unit/test_launch_options.gd",
+    "test/unit/test_main.gd"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "run/main_scene=\"res://main.tscn\"",
+      "replace": "run/main_scene=\"res://game/game.tscn\""
+    },
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.1.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.de.translation\", \"res://i18n/strings.fr.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\")"
+    },
+    {
+      "file": "game/producer_row.gd",
+      "find": "var amount := mode if mode > 0 else maxi(1, economy.max_affordable(id))",
+      "replace": "var amount := mode"
+    },
+    {
+      "file": "game/producer_row.gd",
+      "find": "## Shows the producer as the economy has it, for a buy amount of mode (0: as many as the glow pays for).",
+      "replace": "## Shows the producer as the economy has it, for a buy amount of mode."
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "Buy 10 asks more than the ten single prices added up: ten Glow Snails cost 2.80K glow at once, but 2.43K bought one at a time"
+      },
+      "edits": [
+        {
+          "file": "scripts/economy.gd",
+          "find": "return base * (Numbers.power(g, n + amount) - Numbers.power(g, n)) / (g - 1.0)",
+          "replace": "return base * (Numbers.power(g, n + amount + 1) - Numbers.power(g, n + 1)) / (g - 1.0)"
+        }
+      ],
+      "unchanged": [
+        "test/unit/test_economy.gd"
+      ],
+      "hidden": [
+        "hidden/test_hidden_bulk_cost.gd"
+      ],
+      "reference": "solutions/prototype/fix-bug",
+      "decoy": "solutions/prototype/fix-bug-decoy"
+    },
+    {
+      "template": "write-tests",
+      "vars": {
+        "code": "scripts/economy.gd",
+        "rules": "a producer's price is its base cost times its growth for each one owned, a purchase of several costs the sum of their single prices, a purchase spends its price and adds the amount bought, nothing is bought when the glow does not cover the price, production per second is each producer's rate times how many are owned, every 25 of one producer double its rate, production over a tick is the rate times the seconds, and the rate changes as soon as something is bought",
+        "subject": "Economy class (scripts/economy.gd: prices, purchases and production)",
+        "file": "test/unit/test_economy_rules.gd"
+      },
+      "unchanged": [
+        "scripts/economy.gd"
+      ],
+      "mutantTests": [
+        "test/unit/test_economy_rules.gd"
+      ],
+      "mutants": [
+        {
+          "name": "the price does not grow with the count",
+          "file": "scripts/economy.gd",
+          "find": "\tvar n := count(id)\n",
+          "replace": "\tvar n := 0\n"
+        },
+        {
+          "name": "several at once cost the first price each",
+          "file": "scripts/economy.gd",
+          "find": "return base * (Numbers.power(g, n + amount) - Numbers.power(g, n)) / (g - 1.0)",
+          "replace": "return base * Numbers.power(g, n) * amount"
+        },
+        {
+          "name": "a purchase spends nothing",
+          "file": "scripts/economy.gd",
+          "find": "\tglow -= cost(id, amount)\n",
+          "replace": "\tglow -= 0.0\n"
+        },
+        {
+          "name": "a purchase the glow does not cover goes through",
+          "file": "scripts/economy.gd",
+          "find": "cost(id, amount) <= glow",
+          "replace": "cost(id, amount) <= glow * 2.0"
+        },
+        {
+          "name": "a purchase of several adds one",
+          "file": "scripts/economy.gd",
+          "find": "owned[id] = count(id) + amount",
+          "replace": "owned[id] = count(id) + 1"
+        },
+        {
+          "name": "production ignores the seconds",
+          "file": "scripts/economy.gd",
+          "find": "var earned := rate() * seconds",
+          "replace": "var earned := rate()"
+        },
+        {
+          "name": "the 25th of a producer does not double it",
+          "file": "scripts/economy.gd",
+          "find": "floori(count(id) / float(every))",
+          "replace": "floori(count(id) / float(every * 1000))"
+        },
+        {
+          "name": "the rate is not worked out again after a purchase",
+          "file": "scripts/economy.gd",
+          "find": "owned[id] = count(id) + amount\n\t_dirty = true\n",
+          "replace": "owned[id] = count(id) + amount\n"
+        }
+      ],
+      "reference": "solutions/prototype/write-tests",
+      "decoy": "solutions/prototype/write-tests-decoy"
+    },
+    {
+      "template": "add-feature",
+      "vars": {
+        "feature": "a third buy mode, Buy max: the mode button (Safe/Column/Header/BuyModeButton) steps through Buy 1, Buy 10 and Buy max (the game's buy_mode 1, 10 and 0, then back to 1), and in Buy max each producer's row offers and buys as many as the glow pays for, through two new Economy methods: max_affordable(id) -> int, the most of that producer the glow pays for at its growing prices (0 when not even one), and buy_max(id) -> int, which buys that many and returns how many"
+      },
+      "hidden": [
+        "hidden/test_hidden_buy_max.gd"
+      ],
+      "reference": "solutions/prototype/add-feature",
+      "decoy": "solutions/prototype/add-feature-decoy"
+    },
+    {
+      "template": "explain-failure",
+      "edits": [
+        {
+          "file": "scripts/numbers.gd",
+          "find": "\tvar n := group - SUFFIXES.size()\n\treturn String.chr(97 + floori(n / 26.0) % 26) + String.chr(97 + n % 26)\n",
+          "replace": "\treturn \"e%d\" % (group * 3)\n"
+        }
+      ],
+      "unchanged": [
+        "scripts/numbers.gd",
+        "scripts/economy.gd",
+        "scripts/catalog.gd",
+        "game/game.gd",
+        "game/producer_row.gd",
+        "test/unit/test_numbers.gd",
+        "test/unit/test_economy.gd",
+        "test/unit/test_game.gd"
+      ],
+      "expected": {
+        "mustInclude": [
+          "test_past_decillions_letters_take_over",
+          "re:test_numbers\\.gd\\D{0,40}\\b3[123]\\b",
+          "re:1\\.50aa",
+          "re:1\\.50e\\+?36"
+        ]
+      },
+      "reference": "solutions/prototype/explain-failure"
+    }
+  ]
+}

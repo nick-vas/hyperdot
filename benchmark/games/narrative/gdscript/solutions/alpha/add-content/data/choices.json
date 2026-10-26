@@ -1,0 +1,23 @@
+[
+  { "id": "dock_greet", "from": "dock", "to": "toll", "text": "C_DOCK_GREET", "raise": ["trust"] },
+  { "id": "dock_silent", "from": "dock", "to": "toll", "text": "C_DOCK_SILENT" },
+  { "id": "toll_true", "from": "toll", "to": "launch", "text": "C_TOLL_TRUE", "raise": ["trust"] },
+  { "id": "toll_lie", "from": "toll", "to": "launch", "text": "C_TOLL_LIE", "set": ["lied"] },
+  { "id": "launch_row", "from": "launch", "to": "fog", "text": "C_LAUNCH_ROW", "set": ["afraid"] },
+  { "id": "fog_steady", "from": "fog", "to": "crossing", "text": "C_FOG_STEADY", "clear": ["afraid"] },
+  { "id": "fog_hurry", "from": "fog", "to": "crossing", "text": "C_FOG_HURRY" },
+  { "id": "ask_name", "from": "crossing", "to": "name", "text": "C_ASK_NAME", "raise": ["trust"], "once": true },
+  { "id": "ask_cargo", "from": "crossing", "to": "cargo", "text": "C_ASK_CARGO", "once": true },
+  { "id": "ask_bell", "from": "crossing", "to": "bell_tale", "text": "C_ASK_BELL", "set": ["knows_bell"], "once": true },
+  { "id": "confess", "from": "crossing", "to": "confession", "text": "C_CONFESS", "needs": "lied=1", "raise": ["trust"], "clear": ["lied"] },
+  { "id": "cross_on", "from": "crossing", "to": "far_bank", "text": "C_CROSS_ON" },
+  { "id": "name_back", "from": "name", "to": "crossing", "text": "C_ROW_ON" },
+  { "id": "cargo_back", "from": "cargo", "to": "crossing", "text": "C_ROW_ON" },
+  { "id": "bell_back", "from": "bell_tale", "to": "crossing", "text": "C_ROW_ON" },
+  { "id": "confess_back", "from": "confession", "to": "crossing", "text": "C_ROW_ON" },
+  { "id": "land", "from": "far_bank", "to": "end_shore", "text": "C_LAND", "needs": "trust>=2;!afraid" },
+  { "id": "turn_back", "from": "far_bank", "to": "end_return", "text": "C_TURN_BACK" },
+  { "id": "to_tower", "from": "far_bank", "to": "bell_tower", "text": "C_TO_TOWER", "needs": "knows_bell=1" },
+  { "id": "ring_bell", "from": "bell_tower", "to": "end_bell", "text": "C_RING_BELL" },
+  { "id": "leave_tower", "from": "bell_tower", "to": "far_bank", "text": "C_LEAVE_TOWER" }
+]

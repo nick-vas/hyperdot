@@ -1,0 +1,50 @@
+keys,en,fr,de
+MENU_TITLE,Wickerdeep,Wickerdeep,Wickerdeep
+MENU_EMBERS,Embers banked: %d   Deepest floor: %d,Braises en réserve : %d   Étage le plus bas : %d,Glut gespart: %d   Tiefste Ebene: %d
+MENU_START,Descend,Descendre,Hinabsteigen
+MENU_CONTINUE,Continue,Continuer,Fortsetzen
+MENU_SHRINE,Shrine,Sanctuaire,Schrein
+MENU_SETTINGS,Settings,Réglages,Einstellungen
+MENU_CREDITS,Credits,Crédits,Mitwirkende
+MENU_QUIT,Quit,Quitter,Beenden
+MENU_VERSION,Version %s,Version %s,Version %s
+HUD_FLOOR,Floor %d: %s,Étage %d : %s,Ebene %d: %s
+HUD_HP,Wick: %d / %d,Mèche : %d / %d,Docht: %d / %d
+HUD_EMBERS,Embers: %d,Braises : %d,Glut: %d
+HUD_ENEMIES,Enemies left: %d,Ennemis restants : %d,Übrige Feinde: %d
+HUD_STAIRS_OPEN,The stairs are open,L'escalier est ouvert,Die Treppe ist offen
+HUD_PAUSE,Pause,Pause,Pause
+FLOOR_1,The Wax Cellar,La Cave de cire,Der Wachskeller
+FLOOR_2,The Ossuary,L'Ossuaire,Das Beinhaus
+FLOOR_3,The Drowned Nave,La Nef noyée,Das versunkene Schiff
+FLOOR_4,The Wick's End,Le Bout de la mèche,Das Dochtende
+ENEMY_SHADE,Shade,Ombre,Schatten
+ENEMY_BAT,Cinder bat,Chauve-souris de cendre,Aschenfledermaus
+ENEMY_BRUTE,Tallow brute,Brute de suif,Talgrohling
+PAUSE_TITLE,Paused,En pause,Pausiert
+PAUSE_RESUME,Resume,Reprendre,Weiter
+PAUSE_QUIT,Quit to menu,Retour au menu,Zum Menü
+RUN_WON,The wick burns on,La mèche brûle encore,Der Docht brennt weiter
+RUN_LOST,The wick is out,La mèche est éteinte,Der Docht ist aus
+RUN_WON_MESSAGE,You reached the bottom of the crypt. %d embers go to the bank.,Vous avez atteint le fond de la crypte. %d braises vont en réserve.,Du hast den Grund der Gruft erreicht. %d Glut wird gespart.
+RUN_LOST_MESSAGE,Snuffed on floor %d. %d embers go to the bank.,Soufflée à l'étage %d. %d braises vont en réserve.,Auf Ebene %d gelöscht. %d Glut wird gespart.
+RUN_AGAIN,Descend again,Redescendre,Erneut hinab
+RUN_MENU,Back to menu,Retour au menu,Zum Menü
+SHRINE_TITLE,The shrine,Le sanctuaire,Der Schrein
+SHRINE_EMBERS,Embers: %d,Braises : %d,Glut: %d
+SHRINE_VIGOR,Vigor %d / %d: the wick has %d hp,Vigueur %d / %d : la mèche a %d PV,Kraft %d / %d: der Docht hat %d LP
+SHRINE_BUY,Buy vigor (%d embers),Acheter de la vigueur (%d braises),Kraft kaufen (%d Glut)
+SHRINE_FULL,Vigor is full,Vigueur au maximum,Kraft ist voll
+SHRINE_BACK,Back,Retour,Zurück
+SETTINGS_TITLE,Settings,Réglages,Einstellungen
+SETTINGS_VOLUME,Volume,Volume,Lautstärke
+SETTINGS_LANGUAGE,Language,Langue,Sprache
+SETTINGS_BACK,Back,Retour,Zurück
+LANG_EN,English,English,English
+LANG_FR,Français,Français,Français
+LANG_DE,Deutsch,Deutsch,Deutsch
+CREDITS_TITLE,Credits,Crédits,Mitwirkende
+CREDITS_BACK,Back,Retour,Zurück
+CREDITS_ENGINE,Engine,Moteur,Engine
+CREDITS_THIRD_PARTY,Third-party assets,Ressources tierces,Fremde Inhalte
+CREDITS_THANKS,Thanks,Remerciements,Dank

@@ -8,14 +8,19 @@
 .DESCRIPTION
     All updates are tried together first. If that fails, each is tried alone and the passing ones are tried together
     again, so one broken release does not hold back the others. Needs a clean git working tree; it resets the tree
-    between attempts. -LatestFile is passed to Update-Versions.ps1 (for tests).
+    between attempts. -LatestFile is passed to Update-Versions.ps1 (for tests). The aseprite-mcp commit and MCP SDK pins
+    touch no game: they are tried by starting the server through uvx with the new pins and listing its tools (-Uvx names
+    the uvx to run, for tests), not on the example projects.
 #>
 [CmdletBinding()]
 param(
     [string]$Root = (Join-Path $PSScriptRoot '../../..'),
     [string]$LatestFile,
     # Example projects every update must pass.
-    [string[]]$Projects = @('examples/gdscript', 'examples/csharp/game')
+    [string[]]$Projects = @('examples/gdscript', 'examples/csharp/game'),
+    # The uv tool runner that starts aseprite-mcp (init -McpAseprite writes uvx into .mcp.json).
+    [string]$Uvx = 'uvx',
+    [string]$AddonSource
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
@@ -26,17 +31,50 @@ if (@(& git -C $Root status --porcelain).Count -gt 0) { throw 'Invoke-Canary.ps1
 $versionArgs = @('-NoProfile', '-File', (Join-Path $tools 'Update-Versions.ps1'), '-Root', $Root, '-Json')
 if ($LatestFile) { $versionArgs += '-LatestFile', $LatestFile }
 $report = & pwsh @versionArgs | ConvertFrom-Json
+if ($LASTEXITCODE) { throw "Update-Versions.ps1 failed ($LASTEXITCODE)" }
 $names = @($report.updates | ForEach-Object name)
 # A Godot minor without a GUT release cannot pass the GDScript example; report it instead of trying.
 if ($report.blocked.Count -gt 0) { $names = @($names | Where-Object { $_ -ne 'godot' }) }
+# Updates tried as one: a new Godot minor and its GUT release only work together (Update-Versions.ps1 will not apply
+# that GUT release alone), so they pass or fail as a pair.
+$minor = { param($v) ($v -split '\.')[0..1] -join '.' }
+$newMinor = @($report.updates | Where-Object { $_.name -eq 'godot' -and (& $minor $_.latest) -ne (& $minor $_.current) }).Count -gt 0
+$units = @(foreach ($name in $names) {
+    if ($newMinor -and 'godot' -in $names -and 'gut' -in $names) {
+        if ($name -eq 'godot') { , @('godot', 'gut') }
+        elseif ($name -ne 'gut') { , @($name) }
+    } else { , @($name) }
+})
+
+# Starts aseprite-mcp from the pins now in lib/Init.ps1, through uvx as init -McpAseprite's .mcp.json entry does, and lists
+# its tools without Aseprite (listing runs no Lua). An SDK that renamed what the server imports fails here.
+function Test-AsepriteMcp {
+    $init = Get-Content -LiteralPath (Join-Path $Root 'ci/godot/lib/Init.ps1') -Raw
+    $source = [regex]::Match($init, "AsepriteMcpSource = '(?<v>[^']+)'").Groups['v'].Value
+    $sdk = [regex]::Match($init, "AsepriteMcpSdk = '(?<v>[^']+)'").Groups['v'].Value
+    if (-not (Get-Command $Uvx -ErrorAction SilentlyContinue)) { return @("aseprite-mcp: $Uvx was not found, so the pins $source and $sdk could not be tried (install uv)") }
+    $list = 'import asyncio, aseprite_mcp.tools; from aseprite_mcp import mcp; print("@@tools", len(asyncio.run(mcp.list_tools())))'
+    $env:ASEPRITE_PATH = 'aseprite'
+    $out = @(& $Uvx --from $source --with $sdk python -c $list 2>&1 | ForEach-Object { "$_" })
+    $code = $LASTEXITCODE
+    $count = @($out | Where-Object { $_ -match '^@@tools (\d+)$' } | ForEach-Object { [int]($_ -replace '^@@tools ', '') }) | Select-Object -Last 1
+    if ($code -or -not $count) { return @("aseprite-mcp ($source with $sdk) did not start (exit $code): $(@($out | Select-Object -Last 5) -join ' ')") }
+    return @()
+}
 
 function Test-Updates([string[]]$Selected) {
     & git -C $Root checkout -q -- .
-    & pwsh @versionArgs -Apply -Only ($Selected -join ',') | Out-Null
+    # A failed rewrite (a pinned file gone) leaves the tree as it was, which would then pass every test.
+    $applyErrors = @(& pwsh @versionArgs -Apply -Only ($Selected -join ',') 2>&1 | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+    if ($LASTEXITCODE) { return @("Update-Versions.ps1 -Apply failed: $(@($applyErrors | ForEach-Object { "$_" }) -join ' ')") }
     $problems = @()
+    # aseprite-mcp's pins: the server, installed by uvx exactly as .mcp.json runs it, must import and list its tools.
+    if (@($Selected | Where-Object { $_ -in 'aseprite-mcp', 'mcp' }).Count -gt 0) { $problems += @(Test-AsepriteMcp) }
     $skills = & pwsh -NoProfile -File (Join-Path $tools 'Test-Skills.ps1') -Root $Root -Json | ConvertFrom-Json
     if (-not $skills.ok) { $problems += "skill validator: $(@($skills.findings | Where-Object level -eq 'error' | ForEach-Object message) -join '; ')" }
-    foreach ($project in $Projects) {
+    # Pins that touch no game do not need the example projects.
+    $gamePins = @($Selected | Where-Object { $_ -notin 'aseprite-mcp', 'mcp' })
+    foreach ($project in @(if ($gamePins.Count -gt 0) { $Projects })) {
         $results = Join-Path ([System.IO.Path]::GetTempPath()) "canary-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
         $out = & pwsh -NoProfile -File (Join-Path $Root 'ci/godot/hyperdot.ps1') test -Json -Quiet -Project (Join-Path $Root $project) -Results $results 2>$null
         $d = try { $out | ConvertFrom-Json } catch { $null }
@@ -61,23 +99,41 @@ $passing = @(); $failing = [ordered]@{}
 if ($names.Count -gt 0) {
     $together = @(Test-Updates $names)
     if ($together.Count -eq 0) { $passing = $names }
-    elseif ($names.Count -eq 1) { $failing[$names[0]] = $together -join "`n" }
+    elseif ($units.Count -eq 1) { foreach ($name in $names) { $failing[$name] = $together -join "`n" } }
     else {
-        foreach ($name in $names) {
-            $alone = @(Test-Updates @($name))
-            if ($alone.Count -eq 0) { $passing += $name } else { $failing[$name] = $alone -join "`n" }
+        $passingUnits = @()
+        foreach ($unit in $units) {
+            $alone = @(Test-Updates $unit)
+            if ($alone.Count -eq 0) { $passingUnits += , $unit } else { foreach ($name in $unit) { $failing[$name] = $alone -join "`n" } }
         }
         # Updates that pass alone can still clash; keep the set only if it passes as a whole, else the first one.
-        if ($passing.Count -gt 1 -and @(Test-Updates $passing).Count -gt 0) {
-            foreach ($name in $passing[1..($passing.Count - 1)]) { $failing[$name] = "passes alone, but not together with $($passing[0])" }
-            $passing = @($passing[0])
+        $passing = @($passingUnits | ForEach-Object { $_ })
+        if ($passingUnits.Count -gt 1 -and @(Test-Updates $passing).Count -gt 0) {
+            foreach ($unit in $passingUnits[1..($passingUnits.Count - 1)]) {
+                foreach ($name in $unit) { $failing[$name] = "passes alone, but not together with $($passingUnits[0] -join ' and ')" }
+            }
+            $passing = @($passingUnits[0])
         }
     }
 }
 
 & git -C $Root checkout -q -- .
 $changed = @()
-if ($passing.Count -gt 0) { $changed = @((& pwsh @versionArgs -Apply -Only ($passing -join ',') | ConvertFrom-Json).changed) }
+if ($passing.Count -gt 0) {
+    $applied = & pwsh @versionArgs -Apply -Only ($passing -join ',')
+    if ($LASTEXITCODE) { throw "Update-Versions.ps1 -Apply -Only $($passing -join ',') failed ($LASTEXITCODE)" }
+    $changed = @(($applied | ConvertFrom-Json).changed)
+}
+
+# The add-on status list: what moved (newest commit, archived) is applied beside the version updates; what needs a person
+# (a new commit on an add-on doctor warns about, a file that moved) is reported for an issue.
+$statusArgs = @('-NoProfile', '-File', (Join-Path $tools 'Update-AddonStatus.ps1'), '-Root', $Root, '-Apply', '-Json')
+if ($AddonSource) { $statusArgs += '-Source', $AddonSource }
+$addonOut = & pwsh @statusArgs
+$addons = if (-not $LASTEXITCODE) { try { ($addonOut -join "`n") | ConvertFrom-Json } catch { $null } }
+$notes = @($report.notes)
+if ($addons) { $changed = @($changed) + @($addons.changed) }
+else { $notes += "Update-AddonStatus.ps1 failed ($LASTEXITCODE): $($addonOut -join ' ')" }
 
 $byName = @{}; foreach ($u in $report.updates) { $byName[$u.name] = $u }
 [ordered]@{
@@ -85,6 +141,7 @@ $byName = @{}; foreach ($u in $report.updates) { $byName[$u.name] = $u }
     passing = @($passing | ForEach-Object { $byName[$_] })
     failing = @($failing.Keys | ForEach-Object { [ordered]@{ name = $_; current = $byName[$_].current; latest = $byName[$_].latest; problem = $failing[$_] } })
     blocked = @($report.blocked)
-    notes = @($report.notes)
+    notes = $notes
+    addons = [ordered]@{ updates = @(if ($addons) { $addons.updates }); review = @(if ($addons) { $addons.review }); notes = @(if ($addons) { $addons.notes }) }
     changed = $changed
 } | ConvertTo-Json -Depth 5

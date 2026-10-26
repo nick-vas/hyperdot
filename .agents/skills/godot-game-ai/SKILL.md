@@ -8,7 +8,7 @@ description: Use when a Godot game has enemies, companions or opponents that dec
 Pick the simplest decision structure that holds, keep it in plain C# so it is tested without the engine, and wait for
 navigation before trusting a path. Tested implementations: `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Ai/`
 (`Utility.cs`, `BehaviorTree.cs`, `Goap.cs`, `Steering.cs`, `Aim.cs`, `Perception.cs`) with
-`examples/csharp/tests/Example.Core.Tests/AiTests.cs` and `AimTests.cs`. Sources and measurements:
+`${CLAUDE_PLUGIN_ROOT}/examples/csharp/tests/Example.Core.Tests/AiTests.cs` and `AimTests.cs`. Sources and measurements:
 `${CLAUDE_PLUGIN_ROOT}/docs/game-ai.md`.
 
 ## 1. Which structure
@@ -91,7 +91,7 @@ applies it capped at `MaxForce` per second. Feed `agent.Velocity` to `CharacterB
 - Arrive slows inside a radius; Seek overshoots and orbits ("like a moth around a light bulb").
 - Pursuit aims at `target + targetVelocity * distance / speed`; it catches a crossing target sooner than Seek. That guess
   is fine for a body that re-steers every frame, not for a projectile, which cannot (below).
-- Wander nudges a point on a circle ahead each step; random force each frame is twitchy. Pass in a generator seeded from the run seed (`godot-procgen`), not `System.Random` (`godot-determinism`).
+- Wander nudges a point on a circle ahead each step; random force each frame is twitchy. Pass in a generator seeded from the run seed (`godot-procgen`), not `System.Random` (`godot-determinism`): the C# example's `Wander`, `Aim.Scatter`, `PacingDirector` and `ResponseSystem` take a `DeterministicRandom`.
 - Summed behaviours can cancel out; put obstacle avoidance first (the first non-zero wins) when it must not lose.
 
 ### Aiming projectiles
@@ -99,7 +99,7 @@ applies it capped at `MaxForce` per second. Feed `agent.Velocity` to `CharacterB
 Lead anything slow enough to dodge with `Aim.Lead` (the exact intercept: the smallest positive root of a quadratic; null
 means no shot), arc with `Aim.Ballistic`, and miss on purpose with `Aim.Scatter` (±2 degrees) or the AI is an aimbot.
 `position + velocity * distance / speed` hit 3.6% of fast targets where `Aim.Lead` hit 100%. Details, the designer knobs
-and the fallbacks: [aiming.md](aiming.md).
+and the fallbacks: [aiming.md](aiming.md). Losing well (Lidén's intentional mistakes, as tests): [mistakes.md](mistakes.md).
 
 ## 6. Perception
 

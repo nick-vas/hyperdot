@@ -1,0 +1,5 @@
+{
+  "frames": 10800,
+  "args": ["--autoplay", "--speed=60", "--no-save"],
+  "expect": ["[Run] dawn 1,", "[Run] dawn 2,", "[Run] dawn 3,", "[Run] goal"]
+}

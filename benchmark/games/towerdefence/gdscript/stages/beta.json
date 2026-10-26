@@ -1,0 +1,167 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/credits.gd"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.9.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\")"
+    },
+    {
+      "file": "main.tscn",
+      "find": "[node name=\"CreditsButton\" type=\"Button\" parent=\"Menu\"]\ncustom_minimum_size = Vector2(0, 88)\ntheme_override_font_sizes/font_size = 28\ntext = \"Credits\"\n\n",
+      "replace": ""
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-playthrough",
+      "vars": {
+        "report": "the bot that plays it through (playthrough.json) never gets past the last wave of the Briar Maze, and playtesters lose there every time"
+      },
+      "edits": [
+        {
+          "file": "data/enemies.json",
+          "find": "\"hp\": 1170,",
+          "replace": "\"hp\": 11700,"
+        }
+      ],
+      "hidden": [
+        "hidden/test_hidden_queen.gd"
+      ],
+      "reference": "solutions/beta/fix-playthrough",
+      "decoy": "solutions/beta/fix-playthrough-decoy"
+    },
+    {
+      "template": "fix-performance",
+      "vars": {
+        "situation": "many pests are on the field late in a wave"
+      },
+      "edits": [
+        {
+          "file": "scripts/battle.gd",
+          "find": "\t\tif enemy.pos.distance_squared_to(from) > reach * reach:\n\t\t\tcontinue\n\t\tvar left := enemy.remaining()\n",
+          "replace": "\t\tvar left := float(map.path_from(enemy.cell()).size())\n\t\tif enemy.pos.distance_squared_to(from) > reach * reach:\n\t\t\tcontinue\n"
+        }
+      ],
+      "hidden": [
+        "hidden/test_hidden_path_queries.gd"
+      ],
+      "reference": "solutions/beta/fix-performance"
+    },
+    {
+      "template": "add-feedback",
+      "vars": {
+        "report": "a falling pest feels flat"
+      },
+      "edits": [
+        {
+          "file": "game/game.gd",
+          "find": "\t_play(_sfx_kill)\n",
+          "replace": ""
+        }
+      ],
+      "reference": "solutions/beta/add-feedback"
+    },
+    {
+      "template": "fill-translations",
+      "vars": {
+        "locale": "French",
+        "report": "the panel shown at the end of a map partly in English"
+      },
+      "edits": [
+        {
+          "file": "i18n/strings.csv",
+          "find": "RESULT_WON_MESSAGE,Cleared with %d of 3 stars.,Gagnée avec %d étoiles sur 3.\n",
+          "replace": "RESULT_WON_MESSAGE,Cleared with %d of 3 stars.,\n"
+        },
+        {
+          "file": "i18n/strings.csv",
+          "find": "RESULT_LOST_MESSAGE,The pests ate every seed.,Les nuisibles ont mangé toutes les graines.\n",
+          "replace": "RESULT_LOST_MESSAGE,The pests ate every seed.,\n"
+        },
+        {
+          "file": "i18n/strings.csv",
+          "find": "RESULT_RETRY,Retry,Réessayer\n",
+          "replace": "RESULT_RETRY,Retry,\n"
+        }
+      ],
+      "unchanged": [
+        "game/result_menu.gd",
+        "game/game.tscn"
+      ],
+      "reference": "solutions/beta/fill-translations",
+      "decoy": "solutions/beta/fill-translations-decoy"
+    },
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "after clearing a map, the maps they had cleared before it lose their stars, and the map select locks them out of maps they had opened"
+      },
+      "edits": [
+        {
+          "file": "scripts/progress.gd",
+          "find": "\t\tprogress[map_id] = {\"stars\": stars, \"lives\": lives}\n",
+          "replace": "\t\tsave.progress = {map_id: {\"stars\": stars, \"lives\": lives}}\n"
+        }
+      ],
+      "unchanged": [
+        "test/unit/test_progress.gd"
+      ],
+      "hidden": [
+        "hidden/test_hidden_progress.gd"
+      ],
+      "reference": "solutions/beta/fix-bug",
+      "decoy": "solutions/beta/fix-bug-decoy"
+    },
+    {
+      "template": "fix-flow",
+      "vars": {
+        "report": "the Back button of the map select does nothing, so players are stuck there"
+      },
+      "edits": [
+        {
+          "file": "ui/map_select.gd",
+          "find": "\t_back.pressed.connect(closed.emit)\n",
+          "replace": ""
+        }
+      ],
+      "reference": "solutions/beta/fix-flow"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "a third map, the Briar Maze (id briar), of 6 waves whose last brings the slug queen (id slug_queen, a pest of about 1,200 hit points, slow, and taking all 20 seeds if she reaches the store), and the moth (id moth, the fastest pest) in the waves of the Sunken Path and the Briar Maze; the game's bot (Bot.play) must clear every map with seeds 1 to 3 and a field with no tower (Bot.idle) must lose each; a bot run: with --autoplay (after --) the game plays from the main scene with the bot building, map after map from --map=N (1 by default), at three battle ticks a frame unless --speed=N says otherwise, prints [Run] map N won or [Run] map N lost after each map, replays a lost map with the next seed, and after the last map prints [Run] victory and quits, every random choice from generators seeded by --seed=N and nothing saved with --no-save; juice: print [juice] event tower_placed <ms>, [juice] event enemy_killed <ms> and [juice] event enemy_leaked <ms> in game time (ms), each answered within 100 ms by [juice] feedback sfx <ms> for a sound, and also [juice] feedback pop <ms> for a ring drawn where the tower went up or the pest fell, and [juice] feedback flash <ms> and [juice] feedback shake <ms> for a pest reaching the store; and French: every visible text through tr() with an fr column in the translation table, menus, maps and towers included, and a settings screen (Menu/SettingsButton opens a child of Main named Settings with a button Box/Languages/<Locale>Button per language, FrButton and EnButton, and Box/BackButton back to the menu)"
+    },
+    "hidden": [
+      {
+        "from": "game/playthrough.json",
+        "to": "playthrough.json"
+      },
+      {
+        "from": "game/juice.json",
+        "to": "juice.json"
+      },
+      {
+        "from": "game/test/flows/settings.flow.json",
+        "to": "test/flows/settings.flow.json"
+      },
+      "hidden/test_hidden_french.gd",
+      "hidden/test_hidden_three_maps.gd"
+    ],
+    "reference": "solutions/milestone-beta"
+  }
+}

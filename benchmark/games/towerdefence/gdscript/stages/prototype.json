@@ -1,0 +1,194 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "main.tscn",
+    "ui",
+    "game/pause_menu.gd",
+    "game/result_menu.gd",
+    "scripts/progress.gd",
+    "scripts/save_store.gd",
+    "scripts/launch_options.gd",
+    "scripts/bot.gd",
+    "data.json",
+    "i18n",
+    "sounds",
+    "plan",
+    "docs",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "architecture.json",
+    "bench",
+    "test/flows",
+    "test/unit/test_battle_rules.gd",
+    "test/unit/test_selling.gd",
+    "test/unit/test_blocking.gd",
+    "test/unit/test_repath.gd",
+    "test/unit/test_balance.gd",
+    "test/unit/test_progress.gd",
+    "test/unit/test_save_store.gd",
+    "test/unit/test_launch_options.gd",
+    "test/unit/test_game.gd"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "run/main_scene=\"res://main.tscn\"",
+      "replace": "run/main_scene=\"res://game/game.tscn\""
+    },
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.1.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "[internationalization]\n\nlocale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")\n\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/battle.gd",
+      "find": "## What selling the tower on this cell gives back: SELL_SHARE of its cost and of every upgrade bought for it.\nfunc refund(cell: Vector2i) -> int:\n\tif not towers.has(cell):\n\t\treturn 0\n\tvar tower: Dictionary = towers[cell]\n\tvar value := catalog.cost(tower.id)\n\tfor level in range(2, tower.level + 1):\n\t\tvalue += catalog.upgrade_cost(tower.id, level)\n\treturn floori(value * SELL_SHARE)\n\n\n## Sells the tower on this cell; the pests take the shorter ways it opens. Returns the sap given back.\nfunc sell(cell: Vector2i) -> int:\n\tif is_over() or not towers.has(cell):\n\t\treturn 0\n\tvar back := refund(cell)\n\tgold += back\n\ttowers.erase(cell)\n\tmap.set_tower(cell, false)\n\t_repath()\n\ttower_sold.emit(cell, back)\n\treturn back\n\n\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/battle.gd",
+      "find": "signal tower_sold(cell: Vector2i, refund: int)\n",
+      "replace": ""
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "a tower can be planted so that no way is left to the seed store, neither for the pests still to come nor for those already on the field: the pests then stand still and the wave never ends"
+      },
+      "edits": [
+        {
+          "file": "scripts/battle.gd",
+          "find": "## Whether a tower of this kind may go on this cell now: enough sap, an open cell no pest stands on or is heading to,\n## and the gate and every pest still with a way to the store.\n",
+          "replace": "## Whether a tower of this kind may go on this cell now: enough sap, and an open cell no pest stands on or is heading to.\n"
+        },
+        {
+          "file": "scripts/battle.gd",
+          "find": "\tif not map.is_buildable(cell) or towers.has(cell) or _occupied(cell):\n\t\treturn false\n\treturn not map.blocks(cell, _enemy_targets())\n",
+          "replace": "\treturn map.is_buildable(cell) and not towers.has(cell) and not _occupied(cell)\n"
+        }
+      ],
+      "unchanged": [
+        "test/unit/test_battle.gd",
+        "test/unit/test_path_map.gd"
+      ],
+      "hidden": [
+        "hidden/test_hidden_blocking.gd"
+      ],
+      "reference": "solutions/prototype/fix-bug",
+      "decoy": "solutions/prototype/fix-bug-decoy"
+    },
+    {
+      "template": "write-tests",
+      "vars": {
+        "subject": "Battle class (scripts/battle.gd: building, sap, seeds, and which pest a tower shoots)",
+        "file": "test/unit/test_battle_rules.gd",
+        "rules": "a tower costs its price in sap and one that costs more than the sap left cannot be placed, a pest that falls pays its reward, a pest that reaches the store takes its own number of seeds (a beetle takes 2), the map is lost when the last seed goes, a tower shoots only pests within its range, and of those it shoots the one closest to the store along its way",
+        "code": "scripts/battle.gd"
+      },
+      "unchanged": [
+        "scripts/battle.gd"
+      ],
+      "mutantTests": [
+        "test/unit/test_battle_rules.gd"
+      ],
+      "mutants": [
+        {
+          "name": "a tower costs nothing",
+          "file": "scripts/battle.gd",
+          "find": "\tgold -= catalog.cost(id)\n",
+          "replace": "\tgold -= 0\n"
+        },
+        {
+          "name": "a tower dearer than the sap left can be placed",
+          "file": "scripts/battle.gd",
+          "find": "gold < catalog.cost(id)",
+          "replace": "gold < 0"
+        },
+        {
+          "name": "a fallen pest pays nothing",
+          "file": "scripts/battle.gd",
+          "find": "gold += enemy.reward",
+          "replace": "gold += 0"
+        },
+        {
+          "name": "every pest takes one seed",
+          "file": "scripts/battle.gd",
+          "find": "lives = maxi(lives - enemy.leak, 0)",
+          "replace": "lives = maxi(lives - 1, 0)"
+        },
+        {
+          "name": "the map goes on with no seed left",
+          "file": "scripts/battle.gd",
+          "find": "\tif lives == 0:\n",
+          "replace": "\tif lives < 0:\n"
+        },
+        {
+          "name": "towers shoot past their range",
+          "file": "scripts/battle.gd",
+          "find": "> reach * reach:",
+          "replace": "> reach * reach * 2.0:"
+        },
+        {
+          "name": "towers shoot the newest pest in range",
+          "file": "scripts/battle.gd",
+          "find": "if left < best_left:",
+          "replace": "if left >= 0.0:"
+        }
+      ],
+      "reference": "solutions/prototype/write-tests"
+    },
+    {
+      "template": "add-feature",
+      "vars": {
+        "feature": "selling a tower: a new Battle.sell(cell) that removes the tower on that cell and returns the sap it gives back, which is added to the sap: 70% of everything paid for the tower (its cost and every upgrade bought for it), rounded down. The cell is open again, the route and every pest on the field take the way it opens, and on a cell without a tower, or once the map is over, it does nothing and returns 0"
+      },
+      "hidden": [
+        "hidden/test_hidden_sell.gd"
+      ],
+      "reference": "solutions/prototype/add-feature"
+    },
+    {
+      "template": "explain-failure",
+      "edits": [
+        {
+          "file": "scripts/battle.gd",
+          "find": "\tgold += bonus\n",
+          "replace": "\tgold += bonus\n\tgold += bonus\n"
+        }
+      ],
+      "unchanged": [
+        "scripts/battle.gd",
+        "scripts/path_map.gd",
+        "scripts/enemy.gd",
+        "scripts/catalog.gd",
+        "game/game.gd",
+        "test/unit/test_economy.gd",
+        "test/unit/test_battle.gd",
+        "test/unit/test_path_map.gd"
+      ],
+      "expected": {
+        "mustInclude": [
+          "test_clearing_a_wave_pays_its_bonus",
+          "re:test_economy\\.gd\\D{0,40}\\b21\\b",
+          "re:(?<![\\d.])115(?!\\d)",
+          "re:(?<![\\d.])130(?!\\d)"
+        ]
+      },
+      "reference": "solutions/prototype/explain-failure"
+    }
+  ]
+}

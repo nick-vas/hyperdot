@@ -15,6 +15,38 @@ function Write-Console {
 
 function Write-CiLog([string]$Message) { Write-Console "[hyperdot] $Message" }
 
+# HYPERDOT_COVERAGE names a folder: a run started with it set writes there, one line each the first time, the command,
+# every function of the kit it enters and the error code it stops with, so tests/Get-KitCoverage.ps1 can tell what the
+# self-tests exercise. A breakpoint on each function's name records the entry; nothing changes when it is not set.
+$script:CoverageFile = $null
+$script:CoverageSeen = $null
+function Start-KitCoverage([string]$Command) {
+    if (-not $env:HYPERDOT_COVERAGE) { return }
+    New-Item -ItemType Directory -Force -Path $env:HYPERDOT_COVERAGE | Out-Null
+    $script:CoverageFile = Join-Path $env:HYPERDOT_COVERAGE "$PID-$([guid]::NewGuid().ToString('N').Substring(0, 8)).txt"
+    $script:CoverageSeen = [System.Collections.Generic.HashSet[string]]::new()
+    Add-KitCoverage "command:$Command"
+    # The self-test that started this run (the nearest tests/Test-*.ps1 among the parent processes) and the CI job, so
+    # tests/Get-CoverageMap.ps1 can say which test reaches what.
+    $process = Get-Process -Id $PID
+    for ($depth = 0; $process -and $depth -lt 8; $depth++) {
+        $line = try { $process.CommandLine } catch { $null }
+        if ($line -match '(?<t>Test-[\w-]+)\.ps1') { Add-KitCoverage "test:$($Matches.t)"; break }
+        $process = try { $process.Parent } catch { $null }
+    }
+    if ($env:GITHUB_JOB) { Add-KitCoverage "job:$env:GITHUB_JOB" }
+    $sources = @(Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.ps1' -File) + @(Get-Item -LiteralPath (Join-Path (Split-Path $PSScriptRoot) 'hyperdot.ps1'))
+    $names = foreach ($source in $sources) {
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile($source.FullName, [ref]$null, [ref]$null)
+        $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $true) | ForEach-Object { $_.Name }
+    }
+    $names = @($names | Where-Object { $_ -notin 'Start-KitCoverage', 'Add-KitCoverage' } | Sort-Object -Unique)
+    if ($names.Count) { Set-PSBreakpoint -Command $names -Action { Add-KitCoverage "function:$($_.Command)" } | Out-Null }
+}
+function Add-KitCoverage([string]$Entry) {
+    if ($script:CoverageFile -and $script:CoverageSeen.Add($Entry)) { Add-Content -LiteralPath $script:CoverageFile -Value $Entry }
+}
+
 # Commands the kit suggests in its own output, written so they can be pasted as they are: the kit's real path, and
 # -Project when the project is not the current folder (the kit usually lives outside the game).
 $script:KitScript = $null
@@ -147,7 +179,16 @@ function Write-JsonResult {
 }
 
 # Code is a stable, machine-readable reason: callers can branch on it, while Message is for people.
+# A command made of other commands' checks (deck) sets $script:CatchStops while it runs one of them: a stop is then thrown
+# as an exception carrying its code (Data['HyperdotCode']), so that command can record the part and go on to the next.
+$script:CatchStops = $false
 function Stop-GodotCi([string]$Message, [string]$Code = 'failed') {
+    Add-KitCoverage "error:$Code"
+    if ($script:CatchStops) {
+        $stop = [System.Exception]::new($Message)
+        $stop.Data['HyperdotCode'] = $Code
+        throw $stop
+    }
     Write-Console "[hyperdot] ERROR: $Message" -ForegroundColor Red
     if ($script:RunLogPath -and $script:QuietMode) { Write-Console "[hyperdot] Full log: $script:RunLogPath" }
     Add-RunHistory $false $Code
@@ -222,6 +263,11 @@ function Invoke-Logged {
             $pending[$stream] = $readers[$stream].ReadLineAsync()
             if ($writer) { $writer.WriteLine($line) }
             $line | ForEach-Object $show
+        }
+        # Both pipes can close while the program runs on (it redirected its output elsewhere): wait only for the time left.
+        if (-not $timedOut -and $timeout -gt 0) {
+            $left = [Math]::Min([int]::MaxValue, [Math]::Max(0, $timeout * 1000 - $clock.ElapsedMilliseconds))
+            if (-not $process.WaitForExit([int]$left)) { $timedOut = $true }
         }
         if ($timedOut) {
             try { $process.Kill($true) } catch [System.InvalidOperationException] { Write-Verbose 'It exited meanwhile.' }
@@ -307,6 +353,7 @@ $script:KnownNoise = @(
     '^\s*ERROR: No project icon specified'
 )
 
+# Godot's own prefixes, matched case-sensitively (-cmatch): a game that prints "Error: no save file yet" is not an engine error.
 $script:GodotErrorPattern = '^\s*(SCRIPT ERROR|SHADER ERROR|ERROR|USER ERROR):|Unhandled [Ee]xception|Failed to load script'
 
 # One regex for the error lines to leave out: the known noise and HYPERDOT_IGNORE_ERRORS. An invalid HYPERDOT_IGNORE_ERRORS
@@ -330,7 +377,7 @@ function Select-GodotErrors([string[]]$Lines) {
     $errors = @()
     foreach ($raw in $Lines) {
         $line = $raw -replace "`e\[[0-9;]*m", ''
-        if ($line -match $pattern) {
+        if ($line -cmatch $pattern) {
             if ($line -match $ignoreRegex) { Write-CiLog "Ignored known engine noise: $line" }
             else { $errors += $line }
         }
@@ -371,12 +418,12 @@ function Get-GodotErrorDetails([string[]]$Lines, [switch]$Lenient) {
         # A cheap test first: a log can run to many thousands of lines, and few are errors.
         if ($Lines[$i] -cnotmatch 'ERROR|xception|Failed to load') { continue }
         $line = $Lines[$i] -replace "`e\[[0-9;]*m", ''
-        if ($line -notmatch $script:GodotErrorPattern -or $line -match $ignoreRegex) { continue }
+        if ($line -cnotmatch $script:GodotErrorPattern -or $line -match $ignoreRegex) { continue }
         $at = [regex]::Match($line, $location)
         if (-not $at.Success) {
             $frames = @(for ($j = $i + 1; $j -lt [math]::Min($Lines.Count, $i + 8); $j++) {
                 $next = $Lines[$j] -replace "`e\[[0-9;]*m", ''
-                if ($next -notmatch '^\s' -or $next -match $script:GodotErrorPattern) { break }
+                if ($next -notmatch '^\s' -or $next -cmatch $script:GodotErrorPattern) { break }
                 foreach ($m in [regex]::Matches($next, $location)) { $m }
             })
             $own = @($frames | Where-Object { $_.Groups['file'].Value -notlike 'res://addons/*' })
@@ -435,7 +482,21 @@ function Assert-GodotLogClean([string]$LogFile, [string]$What, [string[]]$Expect
 
 # File search that skips folders which never hold the user's own files (and are often huge).
 $script:PrunedDirs = @('.git', '.godot', 'addons', 'bin', 'obj', 'node_modules', '.godot-pipelines',
-    'test-results', 'TestResults')
+    'test-results', 'TestResults', 'audio-results')
+
+# Godot imports whatever lands inside the project, and the next export packs it (screenshots, a whole previous build):
+# an output folder the kit writes inside the project gets an empty .gdignore first. Find-ProjectFiles then skips it
+# too, so the next audio run does not measure the last one's mix.wav.
+function Add-OutputGdignore([string]$Dir, [string]$ProjectDir) {
+    $full = [System.IO.Path]::GetFullPath($Dir)
+    $relative = [System.IO.Path]::GetRelativePath($ProjectDir, $full)
+    if ($relative -eq '.' -or $relative.StartsWith('..') -or [System.IO.Path]::IsPathRooted($relative)) { return }
+    $marker = Join-Path $full '.gdignore'
+    if (Test-Path -LiteralPath $marker) { return }
+    New-Item -ItemType Directory -Force $full | Out-Null
+    New-Item -ItemType File -Path $marker | Out-Null
+    Write-CiLog "Added $($marker): the output folder is inside the project"
+}
 
 function Find-ProjectFiles {
     param([string]$Root, [string]$Filter)
@@ -460,6 +521,16 @@ function ConvertTo-UtcTime($Value) {
     if ($Value -is [datetime]) { return $Value.ToUniversalTime() }
     if ($Value -is [System.DateTimeOffset]) { return $Value.UtcDateTime }
     return [datetime]::Parse([string]$Value, [cultureinfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AdjustToUniversal -bor [System.Globalization.DateTimeStyles]::AssumeUniversal)
+}
+
+# Rows to a CSV file with numbers as 59.5 under every culture: Export-Csv writes them in the current one (59,5 in de-DE),
+# which a spreadsheet or script in another culture misreads, and which the next run's rows would then disagree with.
+function Export-InvariantCsv([object[]]$Rows, [string]$Path, [switch]$Append) {
+    $culture = [cultureinfo]::CurrentCulture
+    try {
+        [cultureinfo]::CurrentCulture = [cultureinfo]::InvariantCulture
+        $Rows | Export-Csv -LiteralPath $Path -Append:$Append -NoTypeInformation -Encoding utf8
+    } finally { [cultureinfo]::CurrentCulture = $culture }
 }
 
 # res:// path of a file inside the project.
@@ -505,8 +576,10 @@ function Get-DotnetDiagnostics([string]$LogFile) {
 
 # Where a failure happened: the first .cs/.gd location with a line number in the text, as an absolute path (C# stack
 # traces) or a res:// path (Godot backtraces). Frames inside addons/ (GUT, gdUnit4) are the framework, not the failure.
+# A .NET frame's path ("in C:\Users\Jane Doe\game\Test.cs:line 12") may hold spaces, so after " in " the path runs to
+# the first .cs:line N.
 function Get-FailureLocation([string]$Text) {
-    $pattern = '(?<![\w:/])(?<file>(?:[A-Za-z]:[\\/]|/)[^\s:]+\.(?:cs|gd))(?::line |:)(?<line>\d+)|res://(?<res>[^\s:()]+\.(?:gd|cs|tscn|tres)):(?<rline>\d+)'
+    $pattern = '(?<![\w:/])(?<file>(?:[A-Za-z]:[\\/]|/)[^\s:]+\.(?:cs|gd))(?::line |:)(?<line>\d+)|(?<=\bin )(?<file>(?:[A-Za-z]:[\\/]|/)[^:\r\n]+?\.cs):line (?<line>\d+)|res://(?<res>[^\s:()]+\.(?:gd|cs|tscn|tres)):(?<rline>\d+)'
     foreach ($m in [regex]::Matches($Text, $pattern)) {
         if ($m.Groups['res'].Success) {
             if ($m.Groups['res'].Value -like 'addons/*') { continue }
@@ -556,4 +629,58 @@ function Get-ClosestName([string]$Typed, [string[]]$Candidates) {
         if ($bestDistance -eq 0) { break }
     }
     return $best
+}
+
+# The sets of values hyperdot.ps1's parameters take, read from its param block: parameter name -> its values. The sets are
+# [ArgumentCompletions] (tab completion, which PowerShell does not enforce while it binds), so a wrong value reaches the
+# script, where Assert-KitArguments answers it; the help, the skill and context checks and the coverage report read the
+# same attributes, so each set is written once.
+function Get-KitParameterSets($ParamBlock) {
+    $sets = [ordered]@{}
+    foreach ($p in $ParamBlock.Parameters) {
+        $attribute = @($p.Attributes | Where-Object { $_.TypeName.Name -in 'ArgumentCompletions', 'ValidateSet' })
+        if ($attribute.Count) { $sets[$p.Name.VariablePath.UserPath] = @($attribute[0].PositionalArguments | ForEach-Object { "$($_.Value)" }) }
+    }
+    return $sets
+}
+
+# The flag a parameter is written as: its alias when it has one (-Profile binds to $PlanProfile), else its name.
+function Get-KitFlagName($Parameter) {
+    $alias = @($Parameter.Attributes | Where-Object { $_.TypeName.Name -eq 'Alias' } | ForEach-Object { $_.PositionalArguments } | ForEach-Object { $_.Value })
+    if ($alias.Count) { return $alias[0] }
+    return $Parameter.Name.VariablePath.UserPath
+}
+
+# What PowerShell would have refused before the script started, refused here with invalid-arguments so -Json still gives
+# one document: a flag hyperdot.ps1 does not have, a word too many, a command or a value outside its set. (A flag left
+# without its value, or a value of the wrong type such as -Retry abc, still fails in PowerShell's binding.)
+function Assert-KitArguments($ParamBlock, [hashtable]$Bound) {
+    $flags = @{}   # variable name -> the flag as written
+    foreach ($p in $ParamBlock.Parameters) { if ($p.Name.VariablePath.UserPath -ne 'UnboundArguments') { $flags[$p.Name.VariablePath.UserPath] = Get-KitFlagName $p } }
+    $names = @($flags.Values | Sort-Object)
+    if ($Bound.ContainsKey('UnboundArguments')) {
+        $words = @($Bound['UnboundArguments'] | ForEach-Object { "$_" })
+        $flag = @($words | Where-Object { $_ -match '^-[A-Za-z]' })
+        if ($flag.Count) {
+            $name = $flag[0].TrimStart('-').TrimEnd(':')
+            $closest = Get-ClosestName $name.ToLowerInvariant() @($names | ForEach-Object { $_.ToLowerInvariant() })
+            $suggestion = if ($closest) { " (did you mean -$(@($names | Where-Object { $_ -eq $closest })[0])?)" } else { '' }
+            Stop-GodotCi "-$name is not a parameter of hyperdot.ps1$suggestion; docs/reference.md lists them all" 'invalid-arguments'
+        }
+        $gameFlag = @($words | Where-Object { $_.StartsWith('--') })
+        if ($gameFlag.Count) {
+            Stop-GodotCi "'$($gameFlag[0])' belongs to no parameter: the game's own flags go to -GameArgs as one list, e.g. -GameArgs '--seed=3','$($gameFlag[0])'" 'invalid-arguments'
+        }
+        Stop-GodotCi "'$($words -join ' ')' belongs to no parameter: name the parameter it is for (e.g. -Project <folder>) and quote a value with spaces" 'invalid-arguments'
+    }
+    $sets = Get-KitParameterSets $ParamBlock
+    foreach ($name in $sets.Keys) {
+        if (-not $Bound.ContainsKey($name)) { continue }
+        $value = "$($Bound[$name])"
+        if ($value -in $sets[$name]) { continue }
+        $closest = if ($value -match "[A-Za-z]") { Get-ClosestName $value.ToLowerInvariant() $sets[$name] } else { $null }
+        $suggestion = if ($closest) { " (did you mean ${closest}?)" } else { '' }
+        if ($name -eq 'Command') { Stop-GodotCi "'$value' is not a command of hyperdot.ps1$suggestion; the commands: $($sets[$name] -join ', ')" 'invalid-arguments' }
+        Stop-GodotCi "-$($flags[$name]) $value is not one of: $($sets[$name] -join ', ')$suggestion" 'invalid-arguments'
+    }
 }

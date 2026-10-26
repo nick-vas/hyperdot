@@ -1,0 +1,9 @@
+"lang"
+{
+	"Language"	"english"
+	"Tokens"
+	{
+		"#Status_Menu"	"In the menu"
+		"#Status_Floor"	"Floor %floor%"
+	}
+}

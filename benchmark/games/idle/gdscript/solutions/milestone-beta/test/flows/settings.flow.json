@@ -1,0 +1,18 @@
+{
+  "name": "Settings switch the hive to German and back to English, and Back returns to it",
+  "scene": "res://main.tscn",
+  "seed": 1,
+  "steps": [
+    { "press": "Game/Safe/Column/Bar/SettingsButton" },
+    { "assert": { "node": "Settings", "exists": true } },
+    { "assert": { "node": "Game", "prop": "visible", "equals": false } },
+    { "press": "Settings/Safe/Box/Languages/DeButton" },
+    { "assert": { "node": "Settings/Safe/Box/Title", "prop": "text", "equals": "Einstellungen" } },
+    { "assert": { "node": "Game/Safe/Column/Bar/DawnButton", "prop": "text", "equals": "Morgengrauen" } },
+    { "press": "Settings/Safe/Box/Languages/EnButton" },
+    { "assert": { "node": "Game/Safe/Column/Bar/DawnButton", "prop": "text", "equals": "Dawn" } },
+    { "press": "Settings/Safe/Box/BackButton" },
+    { "assert": { "node": "Settings", "exists": false } },
+    { "assert": { "node": "Game", "prop": "visible", "equals": true } }
+  ]
+}

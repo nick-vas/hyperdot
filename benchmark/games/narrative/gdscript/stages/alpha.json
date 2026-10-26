@@ -1,0 +1,174 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/credits.gd",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "test/flows/settings.flow.json"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.5.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\")"
+    },
+    {
+      "file": "main.tscn",
+      "find": "[node name=\"CreditsButton\" type=\"Button\" parent=\"Menu\"]\ncustom_minimum_size = Vector2(0, 88)\ntheme_override_font_sizes/font_size = 28\ntext = \"Credits\"\n\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/save_store.gd",
+      "find": "## Version 2 is current; version 1 kept only the choices taken and the endings found, and players still have such files.\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/save_store.gd",
+      "find": "\tvar version := int(raw.get(\"version\", 1))\n\tif version == 1:\n\t\t# Version 1 kept the choices taken and the endings found: replaying the choices gives the node and the flags.\n\t\tdata.endings = _ids(raw.get(\"found\", []))\n\t\tvar taken := _ids(raw.get(\"choices\", []))\n\t\tif not taken.is_empty():\n\t\t\tdata.story = Story.replay(StoryGraph.from_files(), taken).to_dict()\n\t\treturn data\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/save_store.gd",
+      "find": "## Any version's data as the current version.",
+      "replace": "## The saved data, with defaults for anything missing."
+    },
+    {
+      "file": "test/unit/test_save_store.gd",
+      "find": "func test_a_version_1_save_keeps_its_story_and_endings():\n\t_write_raw('{\"version\": 1, \"choices\": [\"dock_greet\", \"toll_lie\", \"launch_row\"], \"found\": [\"return\"]}')\n\tvar data := SaveStore.new(PATH).read()\n\tassert_eq(data.endings, [\"return\"])\n\tvar story := Story.from_dict(StoryGraph.from_files(), data.story)\n\tassert_eq(story.node_id, \"fog\")\n\tassert_eq(story.flags.trust, 1)\n\tassert_eq(story.flags.lied, 1)\n\n\n",
+      "replace": ""
+    },
+    {
+      "file": "test/unit/test_save_store.gd",
+      "find": "## SaveStore: reading, writing and the move from version 1.",
+      "replace": "## SaveStore: reading and writing."
+    },
+    {
+      "file": "scripts/launch_options.gd",
+      "find": "## The game's own flags, after \"--\" on the command line: --autoplay, --no-save.\n\n## The bot plays the story through to every ending, one after another, then quits.\nvar autoplay := false\n",
+      "replace": "## The game's own flags, after \"--\" on the command line: --no-save.\n\n"
+    },
+    {
+      "file": "scripts/launch_options.gd",
+      "find": "\t\tif arg == \"--autoplay\":\n\t\t\toptions.autoplay = true\n\t\telif arg == \"--no-save\":",
+      "replace": "\t\tif arg == \"--no-save\":"
+    },
+    {
+      "file": "test/unit/test_launch_options.gd",
+      "find": "LaunchOptions.parse(PackedStringArray([\"--autoplay\", \"--no-save\"]))\n\tassert_true(options.autoplay)\n",
+      "replace": "LaunchOptions.parse(PackedStringArray([\"--no-save\"]))\n"
+    },
+    {
+      "file": "test/unit/test_launch_options.gd",
+      "find": "\tassert_false(options.autoplay)\n",
+      "replace": ""
+    },
+    {
+      "file": "test/unit/test_launch_options.gd",
+      "find": "## LaunchOptions: the flags bot runs and tests pass after \"--\".",
+      "replace": "## LaunchOptions: the flags runs and tests pass after \"--\"."
+    }
+  ],
+  "tasks": [
+    {
+      "template": "add-content",
+      "vars": {
+        "content": "a third ending, the drowned bell. At the crossing, a new once-only question, ask_bell, leads to a new node, bell_tale, where the stranger tells of the bell of Old Hensmouth still ringing under the water; asking sets a new flag, knows_bell, and from bell_tale the player rows on back to the crossing. At the far bank, a new choice, to_tower, offered only to a player who knows of the bell, leads to a new node, bell_tower, whose choice ring_bell ends the story at a new node, end_bell, the ending bell in data/endings.json with its title under the key ENDING_BELL; from bell_tower the player can also row back to the far bank. Every new line, choice and title needs its English text in i18n/strings.csv within the length limits of its kind, and the other two endings must stay as they are"
+      },
+      "hidden": [
+        "hidden/test_hidden_bell.gd"
+      ],
+      "reference": "solutions/alpha/add-content"
+    },
+    {
+      "template": "fix-architecture",
+      "vars": {
+        "problem": "the architecture runner fails with an error in story/backdrop.gd (per-frame-lookup)"
+      },
+      "edits": [
+        {
+          "file": "story/story.gd",
+          "find": "\t_chapter_label.text = tr(CHAPTER_KEYS[clampi(chapter, 0, CHAPTER_KEYS.size() - 1)])\n",
+          "replace": ""
+        },
+        {
+          "file": "story/backdrop.gd",
+          "find": "func _draw() -> void:\n",
+          "replace": "func _process(_delta: float) -> void:\n\tget_node(\"../HUD/ChapterLabel\").text = tr(\"CHAPTER_%d\" % chapter)\n\n\nfunc _draw() -> void:\n"
+        }
+      ],
+      "hidden": [
+        "hidden/test_hidden_chapter_label.gd"
+      ],
+      "reference": "solutions/alpha/fix-architecture"
+    },
+    {
+      "template": "migrate-save",
+      "vars": {
+        "report": "Continue is gone and the endings they had found are forgotten after the update. The previous version saved user://save.json as {\"version\": 1, \"choices\": [<the ids of the choices taken in the story in progress, in order>], \"found\": [<the ids of the endings found>]}, with no node, flags or settings"
+      },
+      "hidden": [
+        "hidden/test_hidden_save_migration.gd"
+      ],
+      "reference": "solutions/alpha/migrate-save"
+    },
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "after Continue, the story has forgotten what they said before they quit: the stranger acts as if they had never won her trust, they cannot bring the boat in at the far bank, and a lie they told about the toll can no longer be confessed"
+      },
+      "edits": [
+        {
+          "file": "scripts/story.gd",
+          "find": "\t\t\"flags\": flags.duplicate(),\n",
+          "replace": ""
+        }
+      ],
+      "unchanged": [
+        "test/unit/test_story_save.gd"
+      ],
+      "hidden": [
+        "hidden/test_hidden_flags_saved.gd"
+      ],
+      "reference": "solutions/alpha/fix-bug",
+      "decoy": "solutions/alpha/fix-bug-decoy"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "a title menu as the main scene res://main.tscn (root Main) with Menu/NewButton, Menu/ContinueButton, Menu/SettingsButton and Menu/QuitButton, where New story adds the story scene res://story/story.tscn as a child of Main named Story; in the story scene, a history (HUD/HistoryButton shows a CanvasLayer named History whose Box/Scroll/Lines label lists the lines so far and the choices taken, and whose Box/CloseButton hides it) and pause (Escape or HUD/PauseButton shows the scene's PauseMenu, a CanvasLayer with ResumeButton and QuitButton, and pauses the tree; ResumeButton hides it and resumes); once-only choices (\"once\": true in data/choices.json, read into each choice's once, offered only until taken in this story) for the stranger's questions ask_name and ask_cargo; a data.json for the kit's data runner covering the story's tables; a story check, StoryCheck.problems(graph) in scripts/story_check.gd, listing what is wrong with a story (a choice into a missing node, a node or an ending no order of choices reaches, a flag never set or never read) and empty for the game's; and a save by a SaveStore class (scripts/save_store.gd: SaveStore.new(path), read() and write(data) of a dictionary whose story holds the story in progress as Story.to_dict() gives it, its node, flags and history, and whose endings lists the endings found) in user://save.json, written at every line shown, so that ContinueButton carries on from that line"
+    },
+    "hidden": [
+      {
+        "from": "game/test/flows/start.flow.json",
+        "to": "test/flows/start.flow.json"
+      },
+      {
+        "from": "game/test/flows/pause.flow.json",
+        "to": "test/flows/pause.flow.json"
+      },
+      {
+        "from": "game/test/flows/history.flow.json",
+        "to": "test/flows/history.flow.json"
+      },
+      "hidden/test_hidden_alpha.gd",
+      {
+        "from": "game/data.json",
+        "to": "data.json"
+      }
+    ],
+    "reference": "solutions/milestone-alpha"
+  }
+}

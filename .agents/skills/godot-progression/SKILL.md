@@ -49,6 +49,11 @@ Data tables and the `data` runner are `godot-data`; seeded loot generation is `g
   more than its share.
 - **Stats over aim in a hybrid.** Hellgate removed "the necessity for players to have pixel-perfect aiming skills"; test
   with a bot that aims badly. Shooter players at its show missed the loot entirely: make the other genre's systems loud.
+- **Adaptive difficulty moves slowly.** Changed after every attempt from that attempt alone, it chases noise: a player
+  who wins half the time sees it go up, down, up. Judge a window of attempts, hold inside a dead band, move one bounded
+  step and start the window again: `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Ai/DifficultyDirector.cs`
+  (`DifficultyDirectorTests`: 20 changes in 600 simulated attempts, where moving on every result made 500). It scales
+  enemies; players can see and override it.
 
 ## 3. Add up the path
 
@@ -90,7 +95,8 @@ and simulate it: The C# example's `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Exa
 
 - **Net change per hour** (`PlannedNetPerHour`, and `NetPerHour` from a seeded run) stays inside a band you choose:
   slightly positive lets players save for something big; well above it, prices stop meaning anything.
-- **Every currency has a sink** (`WithoutSink`): a source alone only piles up, the usual shape of an exploit.
+- **Every currency has a sink** (`WithoutSink`): a source alone only piles up, the usual shape of an exploit. With the
+  flows in a table, `"economy": { "currency": "currency", "rate": "perHour" }` makes the `data` runner fail it.
 - **Hours short, not only the balance.** A sink takes only what the player has, so sinks above sources show a net
   change near 0 that looks healthy; `ShortHours` (hours a sink could not be paid in full) shows the dead economy: 94 of
   100 hours with 500 in and 700 out.
@@ -107,6 +113,26 @@ and simulate it: The C# example's `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Exa
   vocabulary (`[Export(PropertyHint.Flags, "Military,Police,Farm,Town")]`), rarity is painted on map zones rather than
   set per building, and a test fails on any label outside the vocabulary. Where each item then lands: `godot-procgen`.
 
+## 6. Pressure and spending
+
+Design prompts to answer in the GDD ("What failing costs", the economy table); each one ends in a number a test holds.
+
+- **Saving is a difficulty lever.** Save anywhere, checkpoints, or saves that cost something set how much a mistake
+  costs as surely as enemy damage. Write the save rule per difficulty, and test the longest stretch of play a death can
+  undo (the farthest checkpoint gap, in seconds of the bot's playthrough) against its limit.
+- **Pressure against stalling.** A player who loses nothing by waiting will grind the safe spot or turtle, then call the
+  game boring. Name what pushes them on (a clock, a rising threat, upkeep, rewards that shrink when farmed in one place),
+  show it before it bites, and check telemetry's time per area (`godot-playtest`: `stuck`, `revisit`).
+- **Sinks players want.** A sink that only takes (repairs, taxes, fees) feels like a fine; one that buys something the
+  player chose (cosmetics, convenience, upgrades, a house) is spent gladly. Mark each sink `wanted` or `upkeep` in the
+  flow table, and let most of the currency leave through wanted ones.
+- **Fixed costs pegged to a share of wealth.** A flat fee that hurts at hour 1 is nothing at hour 50. Price upkeep,
+  repairs, death penalties and fast travel as a share of what the player holds or earns per hour, with a floor and a
+  cap, and check with `EconomySim` that the share stays in its band at 10, 100 and 1000 hours.
+- **Charges on limited-use items.** A potion, a key or a tool with uses left the player cannot see gets hoarded as too
+  good to use, or breaks at the worst moment. Show the count and warn before the last use; hide it only as a decision
+  written in the GDD, and log uses left at the end of each level to see hoarding.
+
 ## In a review
 
 - Every reward marked power or cosmetic; no repeatable power-only source; nothing missable.
@@ -114,3 +140,5 @@ and simulate it: The C# example's `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Exa
 - `totals` on every table whose sum gates progress; the `data` runner green.
 - Difficulty changes made on enemies, checked with the strongest stats as well as the expected ones.
 - Each currency has a sink; its net change per hour stays in its band and no hours run short over 10, 100 and 1000 hours.
+- A save rule per difficulty, something that pushes against stalling, most sinks wanted, fixed costs as a share of
+  wealth, and limited uses shown.

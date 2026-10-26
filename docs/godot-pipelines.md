@@ -67,7 +67,8 @@ GoDotTest versions target older Godot minors. Add a small scene whose script cal
 [`GoDotTestRunner.cs`](../examples/csharp/game/test/godottest/GoDotTestRunner.cs); the kit finds it.
 
 **GUT**: just write `test_*.gd` scripts that extend `GutTest`. The kit installs GUT v9.4.0–v9.7.1 to
-match Godot 4.4–4.7; for other versions, commit `addons/gut` yourself.
+match Godot 4.4–4.7; for other versions, commit `addons/gut` yourself. GUT skips a test script that does not load (a
+parse error) and passes; the kit fails the `gut` runner with a case named after that file.
 
 ### Keep tests out of release builds
 
@@ -116,6 +117,7 @@ ci/godot/lib/Init.ps1               `init`: starter tests, .gitignore, export fi
 ci/godot/lib/Plan.ps1               `plan`: phases and gates, tasks, Trello sync
 ci/godot/lib/Measure.ps1            `bench` and `shot`
 ci/godot/lib/Palette.ps1            `shot`'s palette check against docs/STYLE.md
+ci/godot/lib/BuildSize.ps1          `export`'s size breakdown: the output folder and the pack by folder and kind of file
 ci/godot/tools/validate.gd          the load check Godot runs for the validate runner
 ci/godot/tools/flows.gd             the UI-flow player Godot runs for the flows runner
 ci/godot/tools/bench.gd             frame-pacing measurement for bench

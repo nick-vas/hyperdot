@@ -8,7 +8,7 @@ description: Use when a Godot game is played over a network: choosing a netcode 
 The server owns the truth; each client shows its own player at once and everyone else a little in the past; and every
 claim about "it feels fine" is measured at 50, 100 and 250 ms with jitter and loss. The tested model is in
 `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Net/` (`Netcode.cs`, `Link.cs`) with
-`examples/csharp/tests/Example.Core.Tests/NetcodeTests.cs`; the load and soak harness is `soak` with
+`${CLAUDE_PLUGIN_ROOT}/examples/csharp/tests/Example.Core.Tests/NetcodeTests.cs`; the load and soak harness is `soak` with
 `tests/soak-fixture`. Sources and measurements: `${CLAUDE_PLUGIN_ROOT}/docs/multiplayer.md`. Hosting, stopping and
 draining servers, join tokens, matchmaking and chat moderation are `godot-servers`.
 
@@ -83,10 +83,10 @@ budget, and cap how many creations or overdue objects jump the queue per packet 
   acknowledged (`Net/EventStream.cs`; at 20% loss, 11 events reached the client before their object without the wait,
   0 with it).
 - **Bits, not bytes.** A bool in 1 bit, an int in what its range needs, a float as a step in a range
-  (`Net/BitPacker.cs`): a position at 1/1024 m in a 2 km world, health, an animation and a flag fit in 7 bytes instead
-  of 20 at 4 bytes a value. Godot's `StreamPeerBuffer` works in whole bytes.
+  (`Net/BitPacker.cs`; `GhostFormat` per state group): a position at 1/1024 m in a 2 km world, health, an animation
+  and a flag fit in 7 bytes instead of 20. Godot's `StreamPeerBuffer` works in whole bytes.
 - **The client sets its rate.** Each client says how many packets a second and how many bytes each it can take, and
-  may change it while playing; the server caps that by its own uplink and feeds it to the byte budget.
+  may change it while playing; the server caps that by its own uplink and feeds it to the byte budget (`LinkBudget`).
 
 Halo: Reach's rules for each mechanic (predict the look and let the host decide the outcome; ask where the lag is
 hidden; change the mechanic when that hides it; warp the logic and blend the look): [halo-reach.md](halo-reach.md).

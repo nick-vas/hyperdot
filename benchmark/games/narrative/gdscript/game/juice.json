@@ -1,0 +1,32 @@
+{
+  "frames": 1800,
+  "args": [
+    "--autoplay",
+    "--no-save"
+  ],
+  "rules": [
+    {
+      "event": "choice_made",
+      "feedback": [
+        "sfx"
+      ],
+      "withinMs": 100
+    },
+    {
+      "event": "trust_gained",
+      "feedback": [
+        "glow",
+        "sfx"
+      ],
+      "withinMs": 100
+    },
+    {
+      "event": "ending_reached",
+      "feedback": [
+        "flash",
+        "sfx"
+      ],
+      "withinMs": 100
+    }
+  ]
+}

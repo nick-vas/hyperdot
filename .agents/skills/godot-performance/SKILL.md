@@ -17,14 +17,18 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 bench -Json -Quiet -Scene res:/
 ```
 
 `bench` records the wall-clock time of every frame after a warm-up and returns `fps.low1`/`fps.low01` (1% and 0.1% lows),
-`frameMs.p50`/`p99`/`max`, frames over 20 and 33 ms, a timestamped `hitches[]` log, the slowest places (`hotspots`), draw calls,
-and every custom monitor's delta.
+`frameMs.p50`/`p99`/`max`, frames over 20 and 33 ms, a `frameHistogram` (shares of frames at 120, 60, 30 and 20 fps or
+slower), a timestamped `hitches[]` log, the slowest places (`hotspots`), draw calls, the scene's load time (`loadMs`, from
+`load()` to its first frame) and every custom monitor's delta.
 Each run appends a labelled row to `bench-results/bench.csv`, so runs stay comparable. Several benchmark runs are a good job
 for the `godot-verifier` subagent, which returns the numbers without the logs. `-BudgetMs` fails the run
-(`bench-over-budget`) when p99 is above the budget.
+(`bench-over-budget`) when p99 is above the budget; `-MaxDrawCalls` (`bench-over-draw-calls`, the average a frame) and
+`-MaxLoadMs` (`bench-over-load-time`) hold the other two budgets.
 
 - **Benchmark the worst case**, not the menu: the heaviest scene with the most on screen. Give the game a flag for it
   (`--stress`: a boss that never dies, every effect on) and pass it with `-GameArgs` (`godot-automation-hooks`).
+- **Sweep one knob** to find where it crosses the budget: `bench -Sweep enemies=10,50,200 -BudgetMs 16.7` runs once per
+  value with `--enemies=<n>`, one CSV row each; `sweep.lastWithinLimits` is the last value under the budget.
 - **Uncapped, then capped.** `-Uncapped` (V-Sync off) shows the headroom; `-MaxFps 60` or V-Sync on shows whether pacing is stable.
 - **Skip the warm-up** (`-Warmup`); first frames compile shaders and fill caches.
 - **Use a display.** Without `-Headless`, frames are really drawn. `-Headless` measures CPU time only (draw calls 0) and is what CI can run.
@@ -141,8 +145,8 @@ in both; `<RuntimeHostConfigurationOption Include="System.GC.Server" Value="true
   ```
 - **Engine (C++) time**: Tracy, Perfetto and Instruments need a custom engine build (`scons profiler=tracy
   profiler_path=...`); official 4.7.2 builds include Perfetto for Android only, and no desktop debug symbols.
-- `--benchmark` and `--benchmark-file` time startup and shutdown only (editor builds), not frames: use them for load-time
-  regressions. `--debug-stringnames` prints every `StringName` allocated, which finds per-frame ones from C#.
+- `--benchmark` and `--benchmark-file` time startup and shutdown only (editor builds), not frames; `bench`'s `loadMs` and
+  `-MaxLoadMs` hold one scene's load time. `--debug-stringnames` prints every `StringName` allocated, which finds per-frame ones from C#.
 
 ## First-use hitches are pipeline compiles
 
@@ -164,8 +168,8 @@ A one-frame spike the first time something appears (first enemy hit, first popup
   the simulation 1 ms a frame until the display queue drained. Keep `rendering/rendering_device/vsync/frame_queue_size`
   at its default 2 and measure input lag in the GPU-bound case, not only in the menu.
 - Movement that judders on a 144 Hz screen while the frame rate is fine: a body moved in `_PhysicsProcess` at 60 Hz
-  with `physics/common/physics_interpolation` off (the default). Turn it on, and call `ResetPhysicsInterpolation()`
-  after a teleport.
+  with `physics/common/physics_interpolation` off (the default; `doctor` warns). Turn it on, and call
+  `ResetPhysicsInterpolation()` after a teleport.
 
 ## Cheap wins
 
@@ -191,7 +195,7 @@ budget, not Godot measurements.
 - "Restrict cameras' culling mask": `Camera3D.CullMask` against `VisualInstance3D.Layers`, so a minimap or second
   camera draws only its layers.
 - "Use occlusion culling in interiors": `OccluderInstance3D` does nothing until
-  `rendering/occlusion_culling/use_occlusion_culling` is on (default off).
+  `rendering/occlusion_culling/use_occlusion_culling` is on (default off; `doctor` warns).
 - "Pause out-of-screen subsystems": `VisibleOnScreenEnabler2D/3D` stops its target's processing off screen.
 - "Adapt the budget allocated to physics": `physics/common/max_physics_steps_per_frame` (default 8) caps the steps one
   frame may catch up on, so a slow frame cannot snowball into ever slower ones.

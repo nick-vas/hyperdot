@@ -1,0 +1,11 @@
+[
+  { "id": "meadow_1", "map": "meadow", "number": 1, "bonus": 20 },
+  { "id": "meadow_2", "map": "meadow", "number": 2, "bonus": 25 },
+  { "id": "meadow_3", "map": "meadow", "number": 3, "bonus": 30 },
+  { "id": "meadow_4", "map": "meadow", "number": 4, "bonus": 40 },
+  { "id": "sunken_1", "map": "sunken", "number": 1, "bonus": 20 },
+  { "id": "sunken_2", "map": "sunken", "number": 2, "bonus": 25 },
+  { "id": "sunken_3", "map": "sunken", "number": 3, "bonus": 30 },
+  { "id": "sunken_4", "map": "sunken", "number": 4, "bonus": 35 },
+  { "id": "sunken_5", "map": "sunken", "number": 5, "bonus": 45 }
+]

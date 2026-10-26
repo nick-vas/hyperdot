@@ -57,8 +57,13 @@ function Read-Gdd([string]$Path) {
         }
     }
     $pitch = [regex]::Match($text, '(?ms)^## Pitch\s*\r?\n\s*(?<p>[^\r\n#].*?)\s*$').Groups['p'].Value
+    # "## First session, step by step": each numbered step is S<number>, the id a flow, test or stub tags as GDD:S<n>.
+    $session = [regex]::Match($text, '(?ms)^## First session[^\r\n]*\r?\n(?<s>.*?)(?=^## |\z)').Groups['s'].Value
+    $steps = @(foreach ($m in [regex]::Matches($session, '(?m)^[ \t]*(?<n>\d+)\.[ \t]+(?<t>\S[^\r\n]*?)[ \t]*\r?$')) {
+        [ordered]@{ id = "S$($m.Groups['n'].Value)"; text = $m.Groups['t'].Value }
+    })
     return [ordered]@{
-        path = $Path; draft = ($text -match '(?i)Status:\s*draft'); pitch = $pitch
+        path = $Path; draft = ($text -match '(?i)Status:\s*draft'); pitch = $pitch; firstSession = $steps
         features = @($features | ForEach-Object { $_.doneWhen = @($_.doneWhen); $_ })
     }
 }
@@ -83,19 +88,21 @@ function Get-Decisions($Info) {
     })
 }
 
-# Tests, flows and code that name a feature with a GDD:F<n> tag.
+# Tests, flows and code that name a feature (GDD:F<n>) or a first-session step (GDD:S<n>). Stubs (*.stub.json: a flow or
+# playthrough.json not written yet, which no runner plays) are marked stub, so they never count as tests.
 function Find-FeatureTags($Info) {
     $root = if ($Info.Solution) { Split-Path $Info.Solution } else { $Info.ProjectDir }
     $tags = @{}
-    foreach ($filter in '*.gd', '*.cs', '*.flow.json') {
+    foreach ($filter in '*.gd', '*.cs', '*.flow.json', 'playthrough.json', '*.stub.json') {
         foreach ($file in @(Find-ProjectFiles -Root $root -Filter $filter)) {
             $n = 0
             foreach ($line in Get-Content -LiteralPath $file.FullName) {
                 $n++
-                foreach ($m in [regex]::Matches($line, '\bGDD:(F\d+)\b')) {
+                foreach ($m in [regex]::Matches($line, '\bGDD:([FS]\d+)\b')) {
                     $id = $m.Groups[1].Value
                     if (-not $tags.ContainsKey($id)) { $tags[$id] = [System.Collections.Generic.List[object]]::new() }
-                    $tags[$id].Add([ordered]@{ file = ([System.IO.Path]::GetRelativePath($root, $file.FullName) -replace '\\', '/'); line = $n })
+                    $tags[$id].Add([ordered]@{ file = ([System.IO.Path]::GetRelativePath($root, $file.FullName) -replace '\\', '/'); line = $n
+                        stub = $file.Name.EndsWith('.stub.json', [StringComparison]::OrdinalIgnoreCase) })
                 }
             }
         }
@@ -110,6 +117,23 @@ function Get-LastRuns([string]$ProjectDir) {
     if (-not (Test-Path -LiteralPath $file)) { return $last }
     foreach ($entry in Get-Content -LiteralPath $file | Where-Object { Test-Json -Json $_ -ErrorAction SilentlyContinue } | ConvertFrom-Json) {
         $last[$entry.command] = $entry
+    }
+    return $last
+}
+
+# The newest test run that ran every runner of the project without -Filter: a passing run of one runner or of a few
+# tests says nothing about features tagged elsewhere. A run that stopped before its runners (no scope) counts, as a failure.
+function Get-LastFullTestRun([object[]]$History, [string[]]$Runners) {
+    $last = $null
+    foreach ($entry in $History) {
+        if ($entry -isnot [psobject] -or -not $entry.PSObject.Properties['command'] -or $entry.command -ne 'test') { continue }
+        $scope = $entry.PSObject.Properties['scope'] ? $entry.scope : $null
+        if ($scope) {
+            if ($scope.PSObject.Properties['filter'] -and $scope.filter) { continue }
+            $ran = @($scope.PSObject.Properties['runners'] ? $scope.runners : @())
+            if (@($Runners | Where-Object { $_ -notin $ran }).Count -gt 0) { continue }
+        }
+        $last = $entry
     }
     return $last
 }
@@ -170,6 +194,46 @@ function Get-ProjectInventory($Info) {
     }
 }
 
+# The handoff log, .godot/hyperdot-handoffs.jsonl: one line each time a subagent (godot-verifier, godot-architect) hands
+# its verdict back, so /game, /retro and status can see what was asked and answered after the conversation is gone. The
+# newest $script:HandoffLimit lines are kept; .godot/ is never committed.
+$script:HandoffLimit = 200
+function Get-HandoffFile([string]$ProjectDir) { return Join-Path $ProjectDir '.godot/hyperdot-handoffs.jsonl' }
+
+# The log's entries, oldest first; damaged lines are skipped.
+function Read-Handoffs([string]$ProjectDir) {
+    $file = Get-HandoffFile $ProjectDir
+    if (-not (Test-Path -LiteralPath $file)) { return @() }
+    return @(foreach ($line in Get-Content -LiteralPath $file) {
+        if (-not $line.Trim()) { continue }
+        try { ConvertFrom-Json -InputObject $line } catch { Write-RunLog "[hyperdot] Skipped a damaged line in ${file}" }
+    })
+}
+
+# status -Handoff <subagent> -Checked <what> -Verdict <answer>: appends one line (time, subagent, checked, verdict, commit)
+# and keeps the newest $script:HandoffLimit. One line of text each; the subagent name as Claude Code names agents.
+function Add-Handoff([string]$ProjectDir, [string]$Subagent, [string]$Checked, [string]$Verdict) {
+    $clean = { param([string]$Text, [int]$Max) $one = ($Text -replace '\s+', ' ').Trim(); if ($one.Length -gt $Max) { $one.Substring(0, $Max) } else { $one } }
+    if ($Subagent -cnotmatch '^[a-z0-9][a-z0-9-]{0,63}$') {
+        Stop-GodotCi "-Handoff '$Subagent' is not a subagent name (lowercase letters, digits and hyphens, such as godot-verifier)" 'invalid-arguments'
+    }
+    $what = & $clean $Checked 500
+    $answer = & $clean $Verdict 300
+    if (-not $what -or -not $answer) { Stop-GodotCi 'status -Handoff needs -Checked (what was checked) and -Verdict (the answer, such as PASS or FAIL)' 'invalid-arguments' }
+    $entry = [ordered]@{
+        time = (Get-Date).ToUniversalTime().ToString('o'); subagent = $Subagent; checked = $what; verdict = $answer
+        commit = Get-HeadCommit $ProjectDir
+    }
+    $file = Get-HandoffFile $ProjectDir
+    $lines = @(if (Test-Path -LiteralPath $file) { Get-Content -LiteralPath $file | Where-Object { $_.Trim() } })
+    $lines = @(@($lines) + @($entry | ConvertTo-Json -Compress) | Select-Object -Last $script:HandoffLimit)
+    New-Item -ItemType Directory -Force (Split-Path $file) | Out-Null
+    [System.IO.File]::WriteAllLines($file, [string[]]$lines, [System.Text.UTF8Encoding]::new($false))
+    Set-JsonField handoff $entry
+    Set-JsonField handoffsKept $lines.Count
+    Write-CiLog "Handoff recorded in ${file}: $Subagent, $answer ($($lines.Count) kept)"
+}
+
 function Invoke-Status($Info) {
     $warnings = [System.Collections.Generic.List[string]]::new()
 
@@ -178,34 +242,47 @@ function Invoke-Status($Info) {
     $tags = Find-FeatureTags $Info
     $runs = Get-LastRuns $Info.ProjectDir
     $lastTest = $runs.Contains('test') ? $runs['test'] : $null
+    $history = @(Read-RunHistory $Info.ProjectDir)
+    $lastFullTest = Get-LastFullTestRun $history @($Info.Runners)
 
     $plan = $null; $tasks = @(); $planDoc = $null
     $planPath = Get-PlanPath $Info
     if (Test-Path -LiteralPath $planPath) {
-        $planDoc = Read-Plan $planPath
-        $state = Get-PlanState $planDoc $Info
-        $tasks = @($planDoc.tasks | ForEach-Object {
-            [ordered]@{ id = $_.id; title = $_.title; column = $_.column; phase = $_.phase
-                feature = ($_.PSObject.Properties['feature'] ? $_.feature : $null); cardId = ($_.PSObject.Properties['cardId'] ? $_.cardId : $null)
-                boardColumn = ($_.PSObject.Properties['boardColumn'] ? $_.boardColumn : $null) } })
-        $plan = [ordered]@{
-            path = $planPath
-            board = ($planDoc.PSObject.Properties['trello'] ? $planDoc.trello.board : $null)
-            currentPhase = ($state.current ? [ordered]@{ id = $state.current.id; name = $state.current.name; goal = $state.current.goal } : $null)
-            openGates = @($state.current ? @($state.current.gates | Where-Object { -not $_.done } | ForEach-Object { [ordered]@{ id = $_.id; text = $_.text; auto = $_.auto } }) : @())
-            wipLimit = $state.wipLimit; columns = $state.board; tasks = $tasks
+        # status never fails on what it finds: a plan it cannot read is a warning, and plan is null.
+        $problems = @()
+        try { $planDoc = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json -Depth 10 } catch { $problems = @("it is not valid JSON: $($_.Exception.Message)") }
+        if ($problems.Count -eq 0) { $problems = @(Get-PlanProblems $planDoc) }
+        if ($problems.Count -eq 0) {
+            try {
+                $state = Get-PlanState $planDoc $Info
+                $tasks = @($planDoc.tasks | ForEach-Object {
+                    [ordered]@{ id = $_.id; title = $_.title; column = $_.column; phase = $_.phase
+                        feature = ($_.PSObject.Properties['feature'] ? $_.feature : $null); cardId = ($_.PSObject.Properties['cardId'] ? $_.cardId : $null)
+                        boardColumn = ($_.PSObject.Properties['boardColumn'] ? $_.boardColumn : $null) } })
+                $plan = [ordered]@{
+                    path = $planPath
+                    board = ($planDoc.PSObject.Properties['trello'] ? $planDoc.trello.board : $null)
+                    currentPhase = ($state.current ? [ordered]@{ id = $state.current.id; name = $state.current.name; goal = $state.current.goal } : $null)
+                    openGates = @($state.current ? @($state.current.gates | Where-Object { -not $_.done } | ForEach-Object { [ordered]@{ id = $_.id; text = $_.text; auto = $_.auto } }) : @())
+                    wipLimit = $state.wipLimit; columns = $state.board; tasks = $tasks
+                }
+                foreach ($w in $state.warnings) { $warnings.Add($w) }
+            } catch { $problems = @($_.Exception.Message) }
         }
-        foreach ($w in $state.warnings) { $warnings.Add($w) }
+        if ($problems.Count) {
+            $warnings.Add("$planPath cannot be read, so the plan is left out: $(($problems -join '; ').TrimEnd('.')). Fix it, then run plan")
+            $plan = $null; $tasks = @(); $planDoc = $null
+        }
     }
 
-    $features = @()
+    $features = @(); $firstSession = @()
     if ($gdd) {
         if ($gdd.draft) { $warnings.Add("$gddPath is still a draft; confirm it with the user before measuring progress against it") }
         $ids = @($gdd.features | ForEach-Object id)
         $features = @(foreach ($f in $gdd.features) {
-            $tagged = $tags.Contains($f.id) ? @($tags[$f.id]) : @()
+            $tagged = $tags.Contains($f.id) ? @($tags[$f.id] | Where-Object { -not $_.stub } | ForEach-Object { [ordered]@{ file = $_.file; line = $_.line } }) : @()
             $linked = @($tasks | Where-Object { $_.feature -eq $f.id })
-            $passing = $tagged.Count -gt 0 -and $lastTest -and $lastTest.ok
+            $passing = $tagged.Count -gt 0 -and $lastFullTest -and $lastFullTest.ok
             if ($plan -and $linked.Count -eq 0 -and $f.priority -ne "won't" -and -not $passing) { $warnings.Add("$($f.id) $($f.title) has no plan task") }
             if ($f.priority -eq 'must' -and $tagged.Count -eq 0) { $warnings.Add("$($f.id) $($f.title) is a must but no test is tagged GDD:$($f.id)") }
             if ($f.priority -in 'must', 'should' -and $f.fun.Count -eq 0) { $warnings.Add("$($f.id) $($f.title) does not say which kind of fun it serves (a ""Fun:"" line)") }
@@ -217,14 +294,28 @@ function Invoke-Status($Info) {
                 # Evidence only: tagged tests exist and the latest full test run passed. Whether that proves the feature is /game's call.
                 testedAndPassing = [bool]$passing }
         })
-        foreach ($id in $tags.Keys | Where-Object { $_ -notin $ids }) { $warnings.Add("GDD:$id is tagged in tests but not in the GDD") }
+        foreach ($id in $tags.Keys | Where-Object { $_ -like 'F*' -and $_ -notin $ids }) { $warnings.Add("GDD:$id is tagged in tests but not in the GDD") }
+        # The first session, step by step: which steps a flow, test or playthrough.json plays, and which only have a stub.
+        $stepIds = @($gdd.firstSession | ForEach-Object id)
+        $firstSession = @(foreach ($s in $gdd.firstSession) {
+            $found = $tags.Contains($s.id) ? @($tags[$s.id]) : @()
+            [ordered]@{ id = $s.id; text = $s.text
+                tests = @($found | Where-Object { -not $_.stub } | ForEach-Object { [ordered]@{ file = $_.file; line = $_.line } })
+                stubs = @($found | Where-Object { $_.stub } | ForEach-Object { [ordered]@{ file = $_.file; line = $_.line } }) }
+        })
+        foreach ($id in $tags.Keys | Where-Object { $_ -like 'S*' -and $_ -notin $stepIds }) {
+            $warnings.Add("GDD:$id is tagged in tests but the GDD's first session has no step $($id.Substring(1))")
+        }
+        $bare = @($firstSession | Where-Object { $_.tests.Count -eq 0 -and $_.stubs.Count -eq 0 } | ForEach-Object id)
+        if (-not $gdd.draft -and $bare.Count) {
+            $warnings.Add("First-session step(s) $($bare -join ', ') have no flow, test or stub tagged GDD:S<n>: /game writes stubs from the GDD's steps")
+        }
         foreach ($t in $tasks | Where-Object { $_.feature -and $_.feature -notin $ids }) { $warnings.Add("Task $($t.id) points at $($t.feature), which is not in the GDD") }
     }
     if ($lastTest -and -not $lastTest.ok) { $warnings.Add("The latest test run failed ($($lastTest.code), $(Format-RunTime $lastTest.time))") }
     if (-not $lastTest) { $warnings.Add('No test run is recorded yet; run test -Json -Quiet') }
 
     # Tests that passed only on a retry (test -Retry), most often first: each may hide a real bug in the test or the game.
-    $history = @(Read-RunHistory $Info.ProjectDir)
     $flaky = Get-FlakyOffenders $history
     foreach ($f in $flaky.tests | Where-Object { $_.count -ge 2 }) {
         $warnings.Add("$($f.runner) $($f.name) passed only on a retry in $($f.count) of the last $($flaky.testRuns) test runs ($($flaky.days) days): find the cause (timing, state left by another test, the network)")
@@ -251,10 +342,19 @@ function Invoke-Status($Info) {
     $decisions = @(Get-Decisions $Info)
     foreach ($d in $decisions | Where-Object { $_.status -match '^Proposed' }) { $warnings.Add("Decision $($d.number) $($d.title) awaits the user's answer") }
 
+    # Placeholders in assets.json (stand-ins to replace before release; doctor fails on one past its due date).
+    $placeholderReport = Get-AssetPlaceholders $Info.ProjectDir
+    $placeholders = [ordered]@{ count = @($placeholderReport.entries).Count; pastDue = @($placeholderReport.entries | Where-Object { $_.pastDue }).Count
+        entries = @($placeholderReport.entries) }
+    foreach ($p in @($placeholderReport.entries | Where-Object { $_.pastDue })) { $warnings.Add("Placeholder $($p.path) was due on $($p.due) (assets.json): replace it, or agree a new date") }
     $git = Get-GitActivity $Info.ProjectDir
     $inventory = Get-ProjectInventory $Info
+    $allHandoffs = @(Read-Handoffs $Info.ProjectDir)
+    [array]::Reverse($allHandoffs)
+    $handoffs = @($allHandoffs | Select-Object -First 20)
 
-    Set-JsonField gdd ($gdd ? [ordered]@{ path = $gdd.path; draft = $gdd.draft; pitch = $gdd.pitch; featureCount = $features.Count } : $null)
+    Set-JsonField gdd ($gdd ? [ordered]@{ path = $gdd.path; draft = $gdd.draft; pitch = $gdd.pitch; featureCount = $features.Count
+        firstSession = $firstSession } : $null)
     Set-JsonField features $features
     Set-JsonField plan $plan
     Set-JsonField decisions $decisions
@@ -268,12 +368,19 @@ function Invoke-Status($Info) {
         [ordered]@{ runner = $q.Runner; name = $q.Name; owner = $q.Owner; until = $q.Until; reason = $q.Reason; expired = $q.Expired } })
     Set-JsonField git $git
     Set-JsonField inventory $inventory
+    Set-JsonField placeholders $placeholders
+    Set-JsonField handoffs $handoffs
     Set-JsonField warnings @($warnings)
 
     if (-not $script:JsonMode) {
         Write-Console ''
         if ($gdd) {
             Write-Console "GDD: $($gdd.path)$(if ($gdd.draft) { ' (draft)' })"
+            if ($firstSession) {
+                $played = @($firstSession | Where-Object { $_.tests.Count -gt 0 }).Count
+                $stubbed = @($firstSession | Where-Object { $_.tests.Count -eq 0 -and $_.stubs.Count -gt 0 }).Count
+                Write-Console "  First session: $($firstSession.Count) step(s), $played played by a test, $stubbed only stubbed"
+            }
             foreach ($f in $features) {
                 $mark = if ($f.testedAndPassing) { 'tested' } elseif ($f.taggedTests.Count -gt 0) { 'tagged' } else { '      ' }
                 Write-Console ("  {0} {1,-4} {2,-8} {3}" -f $mark, $f.id, ($f.priority ? $f.priority : ''), $f.title)
@@ -290,6 +397,8 @@ function Invoke-Status($Info) {
         if ($git) { Write-Console "Git: $($git.commits7Days) commit(s) this week, $($git.uncommitted) uncommitted change(s), last commit $($git.lastCommit)" }
         Write-Console "Look: $(if ($look.styleGuide) { "style guide ($($look.resolutions -join ', '))" } else { 'no style guide (/look writes one)' }); $(if ($look.juiceRules) { "$($look.juiceRules) juice rule(s)" } else { 'no juice.json' })"
         if ($decisions) { Write-Console "Decisions: $($decisions.Count) ($(@($decisions | Where-Object { $_.status -match '^Proposed' }).Count) awaiting you)" }
+        if ($placeholders.count) { Write-Console "Placeholders: $($placeholders.count) in assets.json ($($placeholders.pastDue) past due)" }
+        foreach ($h in $handoffs | Select-Object -First 3) { Write-Console "Handoff $(Format-RunTime $h.time): $($h.subagent) checked $($h.checked): $($h.verdict)" }
         Write-Console "Project: $($inventory.sceneCount) scenes, $($inventory.scriptCount) scripts, $($inventory.testFileCount) test files, $($inventory.todoCount) TODO(s)"
         foreach ($w in $warnings) { Write-Console "WARNING: $w" -ForegroundColor Yellow }
     }

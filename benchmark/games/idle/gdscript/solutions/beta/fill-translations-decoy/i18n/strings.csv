@@ -1,0 +1,46 @@
+keys,en,de
+HUD_GLOW,%s glow,%s Glimmen
+HUD_RATE,The hive makes %s,Der Schwarm macht %s
+HUD_EMBERS,Embers: %s (+%d%% glow),Glutfunken: %s (+%d%% Glimmen)
+GATHER,Gather +%s,Sammeln +%s
+PAGE_PRODUCERS,Producers,Erzeuger
+PAGE_UPGRADES,Upgrades,Verbesserungen
+MODE_ONE,Buy 1,Kaufe 1
+MODE_TEN,Buy 10,Kaufe 10
+MODE_MAX,Buy max,Kaufe max
+BAR_PRODUCERS,Producers,Erzeuger
+BAR_UPGRADES,Upgrades,Verbesserungen
+BAR_DAWN,Dawn,Morgengrauen
+BAR_SETTINGS,Settings,Einstellungen
+ROW_DETAIL,%d owned · %s,%d im Besitz · %s
+ROW_BUY,"Buy %d
+%s","Kaufe %d
+%s"
+UPGRADE_DETAIL,%s ×%s,%s ×%s
+TARGET_ALL,Everything,Alles
+TARGET_TAP,Gathering,Sammeln
+PRODUCER_WICK_MOTH,Wick Moth,Dochtmotte
+PRODUCER_GLOW_SNAIL,Glow Snail,Glühschnecke
+PRODUCER_FIREFLY_CHOIR,Firefly Choir,Glühwürmchenchor
+PRODUCER_MOON_LILY,Moon Lily,Mondlilie
+PRODUCER_STAR_LOOM,Star Loom,Sternenwebstuhl
+UPGRADE_TWIN_WICKS,Twin Wicks,Doppeldochte
+UPGRADE_WARM_HANDS,Warm Hands,Warme Hände
+UPGRADE_SILVER_TRAILS,Silver Trails,Silberspuren
+UPGRADE_CHOIR_HARMONY,Choir Harmony,Chorharmonie
+UPGRADE_NIGHT_DEW,Night Dew,Nachttau
+UPGRADE_DUSK_BLOOM,Dusk Bloom,Dämmerblüte
+UPGRADE_STAR_THREAD,Star Thread,Sternenfaden
+TIME_HOURS,%d h %02d min,%d Std. %02d Min.
+TIME_MINUTES,%d min,%d Min.
+DAWN_TITLE,Dawn,Morgengrauen
+DAWN_MESSAGE,"The hive sleeps through the day: glow, producers and upgrades are gone, and %s new embers stay, each adding %d%% to all glow.","Der Schwarm schläft den Tag hindurch: Glimmen, Erzeuger und Verbesserungen verschwinden, und %s neue Glutfunken bleiben, jeder mit %d%% mehr Glimmen."
+DAWN_CONFIRM,Greet the dawn,Den Morgen begrüßen
+DAWN_CANCEL,Not yet,Noch nicht
+SETTINGS_TITLE,Settings,Einstellungen
+SETTINGS_VOLUME,Volume,Lautstärke
+SETTINGS_LANGUAGE,Language,Sprache
+SETTINGS_BACK,Back,Zurück
+SETTINGS_VERSION,Version %s,Version %s
+LANG_EN,English,English
+LANG_DE,Deutsch,Deutsch

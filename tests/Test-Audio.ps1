@@ -81,6 +81,26 @@ if (-not $slow -or -not $slow.PSObject.Properties['onsetMaxMs'] -or $slow.onsetM
     $failures += "-MaxOnsetMs 200 should be accepted and silence the onset warnings: $($d | ConvertTo-Json -Depth 4 -Compress)"
 }
 
+# Run from the game's folder, the results land inside it: they get a .gdignore (Godot neither imports nor exports them),
+# and a recording left there (a mix.wav) is not measured as one of the game's sounds, with or without that .gdignore.
+Push-Location $game
+try { $d = Invoke-Kit @('audio') } finally { Pop-Location }
+$inside = Join-Path $game 'audio-results'
+if (-not $d.ok -or -not (Test-Path -LiteralPath (Join-Path $inside '.gdignore'))) { $failures += "audio-results inside the game should get a .gdignore: $($d | ConvertTo-Json -Depth 3 -Compress)" }
+Copy-Item -LiteralPath (Join-Path $game 'music/theme.wav') (Join-Path $inside 'mix.wav')
+foreach ($marked in $true, $false) {
+    if (-not $marked) { Remove-Item -LiteralPath (Join-Path $inside '.gdignore') -Force -ErrorAction SilentlyContinue }
+    $d = Invoke-Kit @('audio', '-Results', (Join-Path $work 'audio-again'))
+    $measured = @(if ($d -and $d.PSObject.Properties['audio']) { $d.audio.files | ForEach-Object file })
+    if ($measured.Count -eq 0 -or ($measured -match 'audio-results')) { $failures += "the results folder's mix.wav was measured (.gdignore $marked): $($measured -join ', ')" }
+}
+
+# Under a decimal-comma culture loudness.csv still writes -24.1, not "-24,1", which another culture's tools would misread.
+$deResults = Join-Path $game 'audio-de'
+$null = & pwsh -NoProfile -Command "[cultureinfo]::CurrentCulture = 'de-DE'; & '$ci' audio -Json -Project '$game' -Results '$deResults'" 2>$null
+$deRow = @(Import-Csv -LiteralPath (Join-Path $deResults 'loudness.csv') | Where-Object file -eq 'res://voice/line1.wav')
+if ($deRow.Count -ne 1 -or $deRow[0].integratedLufs -notmatch '^-\d+\.\d+$') { $failures += "loudness.csv under de-DE should write -24.1, got '$(if ($deRow.Count) { $deRow[0].integratedLufs })'" }
+
 # Doctor: sound files, a bus layout without Ambience and UI buses.
 $d = Invoke-Kit @('doctor')
 $messages = @($d.checks | ForEach-Object message)
@@ -94,6 +114,9 @@ if ($Mix) {
     elseif (-not (Test-Path $d.audio.mix.file) -or $d.audio.mix.seconds -lt 5.9) { $failures += "mix recording: $($d.audio.mix | ConvertTo-Json -Compress)" }
     $d = Invoke-Kit @('audio', '-Mix', '-Seconds', '2', '-TargetLufs', '-12', '-Results', (Join-Path $game 'mix-loud'))
     if ($d.ok -or $d.error.code -ne 'audio-off-target') { $failures += "a -12 LUFS target should fail as off-target: $($d | ConvertTo-Json -Depth 4 -Compress)" }
+    # sfx/hit.wav peaks at about -0.5 dBFS, over the -1 dBTP limit.
+    $d = Invoke-Kit @('audio', '-Mix', '-Seconds', '2', '-Scene', 'res://loud.tscn', '-Results', (Join-Path $game 'mix-clip'))
+    if ($d.ok -or $d.error.code -ne 'audio-clipping') { $failures += "a mix peaking over -1 dBTP should fail as clipping: $($d | ConvertTo-Json -Depth 4 -Compress)" }
     $d = Invoke-Kit @('audio', '-Mix', '-Seconds', '2', '-Scene', 'res://silent.tscn', '-Results', (Join-Path $game 'mix-silent'))
     if ($d.ok -or $d.error.code -ne 'audio-silent') { $failures += "a silent scene should fail as silent: $($d | ConvertTo-Json -Depth 4 -Compress)" }
 }

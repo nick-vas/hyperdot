@@ -1,14 +1,23 @@
 # Reference
 
 **Script** (`ci/godot/hyperdot.ps1`): commands `test` (default), `build`, `export`, `setup`, `detect`,
-`doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx` and `playtest`.
+`doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest`, `help` and `deck`
+(`help [name]`: one line per command, skill and subagent, or the page of one, from [help.md](help.md)).
+
+**`deck`** is the Steam Deck check in one run, at 1280x800: the `textsize` runner (its resolutions forced to 1280x800),
+the `layout` runner on the `steam_deck` profile with the `off-screen` check only, `shot`, and `bench` with `-BudgetMs`,
+33.3 ms (30 fps) by default. `-Scene` names the scenes for all four (`bench` measures the first; without it, `textsize`
+and `layout` take their JSON files' scenes or the main scene). Every part runs even when one before it failed; the run
+fails with `deck-failed`, and `deck.parts[]` gives each part's own code ([json.md](json.md)). `-Resolution` other than
+1280x800 is refused. Results go to `deck-results` (`textsize/`, `layout/`, `screenshots/`, `bench/`). `bench` measures
+this machine at the Deck's resolution, not a Deck's speed.
 
 | Parameter | Default | |
 |---|---|---|
 | `-Project` | detected | Folder with `project.godot` |
-| `-Solution` | nearest `.sln` | What `dotnet build` / `dotnet test` run on |
+| `-Solution` | nearest `.sln` or `.slnx` at or above the project (no higher than the git root, if there is one) that lists its `.csproj`, else the `.csproj` | What `dotnet build` / `dotnet test` run on |
 | `-GodotVersion` | from csproj, else `4.7.2` | e.g. `4.7.2`, `4.8-rc1` |
-| `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`, `juice`, `playthrough`, `l10n`, `data`, `textsize`, `layout`; `none` to only build |
+| `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`, `juice`, `playthrough`, `l10n`, `data`, `textsize`, `layout`, `placement`; `none` to only build |
 | `-Filter` | | Passed to each runner's filter |
 | `-Retry` | `0` (off) | `test`: run a runner that failed again, up to this many times (at most 5); a test that passes only on a retry passes but is listed in `flaky[]`, `summary.md` and the run history. Tests in the project's `quarantine.json` (owner and end date each) run but do not fail the run ([json.md](json.md)) |
 | `-Coverage` | off | One merged coverage report |
@@ -18,14 +27,18 @@
 | `-Browser` | `chromium` | `export -Run` of a Web preset: `chromium`, `firefox`, `webkit` (Playwright's browsers: `npx playwright install --with-deps <name>`), `chrome`, `msedge` (the installed browsers); comma-separated. Needs Node.js; the playwright package comes from `HYPERDOT_PLAYWRIGHT`, the global npm folder, or is installed into the kit's tools folder. `HYPERDOT_WEB_HEADED=1` opens a browser window instead of running headless |
 | `-GameVersion` | | `export`: the game's version, e.g. the tag `v1.2.3-rc.1`: its numbers go into `config/version` for this export only (Windows file version, macOS and Android versions), all of it into the C# assembly's InformationalVersion, and Android presets get `version/code` major\*1,000,000 + minor\*1,000 + patch. `auto` reads it from git: the nearest `v*` tag and the commits since (`1.2.3.4`, `1.2.3+4.gabc1234`; without a tag `0.0.0.<commits>`); a shallow clone fails with `shallow-checkout` ([json.md](json.md)) |
 | `-GitHubOutput` | off | `detect`: also write what it found to `$GITHUB_OUTPUT`; `export`: write `version` and `android-version-code` there |
-| `-Results`, `-Output` | `test-results`, `build` | Where results and exports go (`bench` defaults to `bench-results`, `soak` to `soak-results`, `audio` to `audio-results`, `shot` to `screenshots`, `credits` to the project folder, `playtest` to `playtest-results`). The run log, `hyperdot.log`, goes in the command's results folder (`-Output` for `shot`) |
+| `-Results`, `-Output` | `test-results`, `build` | Where results and exports go (`bench` defaults to `bench-results`, `soak` to `soak-results`, `audio` to `audio-results`, `deck` to `deck-results`, `shot` to `screenshots`, `credits` to the project folder, `sfx` to `<project>/sounds/sfx`, `playtest` to `playtest-results`). The run log, `hyperdot.log`, goes in the command's results folder (`-Output` for `shot`). An `export`, `bench`, `shot`, `audio` or `soak` folder inside the project gets an empty `.gdignore`, so Godot neither imports nor exports it |
 | `-Frames` | `120` | How long smoke runs and launched exports play; how long `shot` waits before each picture |
 | `-FixedFps` | `0` | `smoke`: run at this fixed rate of game time (`--fixed-fps`), so `-Frames` is game time, as fast as the CPU allows and the same on every machine; `0` is real time |
-| `-GameArgs` | | Your game's flags, passed after `--` to smoke runs, `export -Run`, `bench` and `shot`; comma-separated |
-| `-Scene` | main scene | `bench` and `audio -Mix` (first scene), `shot` (every scene): `res://` paths |
+| `-GameArgs` | | Your game's flags, passed after `--` to smoke runs, the `juice` and `playthrough` runners (after their own `args`), `export -Run`, `bench`, `shot`, `soak` (every server and client) and `audio -Mix`; comma-separated |
+| `-Scene` | main scene | `bench` and `audio -Mix` (first scene), `shot` (every scene), `deck` (every part; `bench` the first): `res://` paths |
 | `-Seconds`, `-Warmup` | `10`, `3` | `bench`: how long to measure, after a warm-up that is not counted; `audio -Mix`: how long to record (default 60); `soak`: how long to run after the warm-up |
-| `-BudgetMs` | `0` (off) | `bench`: fail when the p99 frame time is above this |
+| `-BudgetMs` | `0` (off) | `bench`: fail when the p99 frame time is above this; `deck`: the Deck's budget, default `33.3` |
+| `-MaxDrawCalls` | `0` (off) | `bench`: fail (`bench-over-draw-calls`) when the scene averages more draw calls a frame than this |
+| `-MaxLoadMs` | `0` (off) | `bench`: fail (`bench-over-load-time`) when the scene takes longer than this from `load()` to its first frame drawn (`loadMs`) |
+| `-GpuValidation` | off | `bench`, `shot`, `export -Run`: run with the graphics API's validation layers (`--gpu-validation`, `--accurate-breadcrumbs`) and fail on their errors (`gpu-validation-errors`, `gpuValidation`). Needs Vulkan (Forward+ or Mobile) and its validation layer (Linux: `vulkan-validationlayers`, and `mesa-vulkan-drivers` without a GPU; Windows, macOS: the Vulkan SDK); a run that was not validated fails with `no-gpu-validation`. `export -Run` then launches the build with a window, so it needs a display |
 | `-Label` | | `bench`: the run's name in `bench.csv` |
+| `-Sweep` | | `bench`: `<name>=<v1,v2,...>`, one run per value with `--<name>=<value>` after `-GameArgs` (the game reads it like any of its flags), each a `bench.csv` row labelled `<-Label> <name>=<value>` and its own `bench.<name>-<value>.json` and `.log`; `sweep` in `-Json` holds p99 and the rest against the value. A value over `-BudgetMs`, `-MaxDrawCalls` or `-MaxLoadMs` is marked, not a failure; a run that cannot be measured fails the sweep (`bench-sweep-failed`) after every value ran |
 | `-HotspotCell` | `0` (10 m in 3D, 512 px in 2D) | `bench`: the grid cell that frame times are grouped into by camera position, for `hotspots` (where it is slow). `playtest`: the heat maps' cell, over `playtest.json`'s (default 2 m on the `xz` plane, 64 px on `xy`) |
 | `-Sessions` | `<project>/playtests/sessions` | `playtest`: the folder of session files to read: the telemetry batches playtest builds wrote or sent (`.json`, one batch or an array; `.jsonl`, one batch a line), searched recursively |
 | `-Resolution` | project setting | `bench`, `shot`: window size, e.g. `1920x1080` |
@@ -50,28 +63,33 @@
 | `-StopGraceSeconds` | `30` | `soak`: after the run, how long the server has to quit once sent SIGTERM (Kubernetes' default grace period; Docker's is 10 s, systemd's 90 s); reported under `soak.stop` |
 | `-RequireCleanStop` | off | `soak`: fail (`soak-unclean-stop`) when the server does not quit with 0 within `-StopGraceSeconds` of SIGTERM |
 | `-JunkPps` | `0` (off) | `soak`: flood the server's own port on `127.0.0.1` with this many junk UDP packets a second (loopback only), to measure how it holds up; reported under `soak.junk` |
+| `-Topic` | | `help`: the command, skill or subagent whose page to show; also the second word, `help shot` |
 | `-Json` | off | One JSON document on stdout, logs on stderr ([json.md](json.md)) |
 | `-Quiet` | off | Godot and dotnet output only in `hyperdot.log` in the results folder (`-Results`, or `-Output` for `shot`), not on the console. Use with `-Json` for agents |
-| `-Do`, `-Id`, `-Game` | `status` | `plan`: `init`, `status`, `done -Id <gate>`, `add`, `move -Id <task> -Column`, `sync`, `link` |
-| `-Title`, `-Column`, `-Board` | | `plan add` title; `add`/`move` column; `sync` Trello board; `link -Column` the card's list, `link -Board` the plan's board |
-| `-Feature`, `-Card` | | `plan add`/`link`: the GDD feature a task delivers (`F3`); `link`: the task's Trello card id |
+| `-Do`, `-Id`, `-Game` | `status` | `plan`: `init`, `status`, `done -Id <gate>`, `reopen -Id <gate>`, `add`, `move -Id <task> -Column`, `remove -Id <task>`, `sync`, `link` |
+| `-Title`, `-Column`, `-Board` | | `plan add` title; `add`/`move` column (an id or the board list it maps to, such as "To Do"); `sync` Trello board (experimental; id, short link, URL or ARI); `link -Column` the card's list, `link -Board` the plan's board |
+| `-Profile` | `full` | `plan -Do init`: `jam` writes a plan for a game jam of 2 to 9 days, sized in days (`ci/godot/templates/plan-jam.json`) instead of the seven phases |
+| `-Handoff`, `-Checked`, `-Verdict` | | `status`: record one subagent handoff (the subagent's name, what it checked, its verdict) in `.godot/hyperdot-handoffs.jsonl` instead of reporting; the newest 200 are kept and `status` returns them as `handoffs[]` ([json.md](json.md)) |
+| `-Feature`, `-Card` | | `plan add`/`link`: the GDD feature a task delivers (`F3`); `link`: the task's Trello card id (24 hex, or the Trello connector's ARI; the plain id is stored) |
 | `-McpDiagnostics` | off | `init`: also register minimal-godot-mcp (GDScript diagnostics, game console) |
 | `-McpAseprite` | none | `init`: also register aseprite-mcp for this Aseprite (the program, or its folder such as `C:\Program Files\Aseprite`) |
 | `-Mcp` | `none` | `init`: `godot-mcp` registers that editor MCP server; `godot-ai` prints its steps |
-| `-Agents` | off | `init`: also add AGENTS.md, CLAUDE.md, the skills and the subagents (`godot-verifier`, `godot-architect`) |
+| `-Agents` | off | `init`: also add AGENTS.md, CLAUDE.md, `docs/kit-notes.md` (one line each time the kit gets in the way), the skills and the subagents (`godot-verifier`, `godot-architect`) |
 | `-Templates` | off | `setup`: also install the export templates (`export` installs them when it needs them) |
-| `-Plugin` | off | `init`: AGENTS.md and CLAUDE.md, and enable this kit as a Claude Code plugin in `.claude/settings.json` instead of copying skills |
+| `-Plugin` | off | `init`: AGENTS.md, CLAUDE.md and `docs/kit-notes.md`, and enable this kit as a Claude Code plugin in `.claude/settings.json` instead of copying skills |
 
 **Environment variables**, all optional:
 
 | Variable | |
 |---|---|
 | `GODOT_BIN` | A Godot binary to use instead of the kit's own download (in `~/.hyperdot`); `setup -Templates` still installs the kit's Godot when this one has no export templates for the project's version |
+| `GODOT_TOOLS_DIR` | Where the kit keeps what it downloads (Godot, the export templates, .NET when it installs one, its other tools) instead of `~/.hyperdot` |
 | `GODOT_VERSION` | The Godot version when neither `-GodotVersion` nor the project names one (default `4.7.2`) |
-| `HYPERDOT_TIMEOUT` | Seconds a program the kit runs (Godot, `dotnet`) may run before it is stopped (default `1800`; `0` turns the limit off); not a whole number fails with `invalid-arguments` |
+| `HYPERDOT_TIMEOUT` | Seconds a program the kit runs (Godot, `dotnet`) may run before it is stopped (default `1800`; `0` turns the limit off), and how long `setup` waits for another run installing the same Godot (then `install-busy`); not a whole number fails with `invalid-arguments` |
 | `HYPERDOT_IGNORE_ERRORS` | A regex for engine error lines to leave out of the error count, on top of the known noise; an invalid regex fails with `invalid-arguments` |
 | `HYPERDOT_PLAYWRIGHT`, `HYPERDOT_WEB_HEADED` | Web `export -Run`: where the playwright package is; `1` opens a browser window (see `-Browser`) |
-| `TRELLO_KEY`, `TRELLO_TOKEN` | `plan -Do sync`: the Trello API key and token, sent in a header (see [plan.md](plan.md)) |
+| `HYPERDOT_STOP_GATE` | `off` turns off the plugin's Stop hook (`hooks/stop-gate.ps1`), which keeps Claude from ending its turn while the game changed after the last passing test run. It checks only that the tests passed after the last edit, not the design |
+| `TRELLO_KEY`, `TRELLO_TOKEN` | `plan -Do sync` (experimental): the Trello API key and token, sent in a header (see [plan.md](plan.md)) |
 
 **Workflow inputs** (`godot.yml`), all optional:
 
@@ -90,6 +108,7 @@
 | `timeout-minutes` | `60` | Longest each job may run before GitHub cancels it (its own limit is 6 hours) |
 | `game-version` | | Exports' version on runs that are not for a tag (tag runs use the tag): `1.2.3`, or `auto` (`-GameVersion auto`; the export jobs then fetch the whole history) |
 | `environment` | none | GitHub environment of the export jobs: its protection rules apply (required reviewers, tags only), and its secrets of the names below are used |
+| `kit-coverage` | none | For Hyperdot's own self-test: records what the kit ran (`HYPERDOT_COVERAGE`) and uploads it as artifacts with this prefix; games leave it empty |
 
 **Workflow secrets** (`godot.yml`), all optional, for signing during the export. Pass them by name or with
 `secrets: inherit`, or keep them in the `environment`. Files are base64 (`base64 -w0 release.keystore`): the workflow
@@ -114,7 +133,7 @@ preset's value, so the credentials stay out of `export_credentials.cfg`.
 jobs:
   godot:
     permissions: { contents: write }
-    uses: nick-vas/hyperdot/.github/workflows/godot.yml@main
+    uses: nick-vas/hyperdot/.github/workflows/godot.yml@v1
     with: { exports: all, release: true, environment: release }
     secrets: inherit
 ```
@@ -122,7 +141,7 @@ jobs:
 **Your own workflow:** the composite action runs one command with setup and caching, then uploads the
 results or the build.
 ```yaml
-      - uses: nick-vas/hyperdot/.github/actions/godot@main
+      - uses: nick-vas/hyperdot/.github/actions/godot@v1
         with:
           command: export        # test, build or export
           preset: Windows
@@ -187,6 +206,10 @@ reads it when the project has such files, and warns about:
 - GPL-family licences
 - licences it does not recognise
 - commissioned work with no `agreement`, with `rights` other than `assigned` or `licensed`, or licensed with no `uses`
+- add-ons with a licence file (`addons/<name>/LICENSE*`) whose code no entry covers; the fix is the entry to add, with
+  `licence` read from the text, `copyright` from its first `Copyright` line and `licenceFile` pointing at it (GUT, gdUnit4
+  and the git plugin, which are not exported, are left out)
+- placeholders still to replace (below); one past its `due` date is a `FAIL`
 
 It also reports how many files need a credit (attribution licences such as `CC-BY-4.0` and `MIT`):
 
@@ -210,6 +233,17 @@ The `path` patterns work like this:
 
 The `licence` field takes an SPDX identifier, or `LicenseRef-<name>` for custom terms such as the Sonniss bundles.
 
+Placeholders (stand-in art, sound or text that the real asset replaces before release; the Placeholders table of
+`templates/TECH-DEBT.md`) are entries with `"placeholder": true`, and optionally `due` (yyyy-MM-dd, when the real one is
+due) and `status`: `needed` (nobody is making it yet, the default) or `in-progress`. They need `source` and `licence` like
+any entry, since a stand-in ships if nobody replaces it. `doctor` warns with the list, and fails for any past its `due`
+date, as it does for an ended quarantine: the date was the team's own; replace the asset or agree a new date. `status`
+counts them (`placeholders` in its JSON).
+
+```json
+{ "path": "art/boss/**", "source": "own", "licence": "own", "placeholder": true, "due": "2026-12-01", "status": "in-progress" }
+```
+
 `"source": "commissioned"` marks work made for the game by anyone else: a contractor, a freelancer, a co-founder. Under US
 copyright the maker owns it unless a signed agreement says otherwise, so besides `licence` (`proprietary` when assigned,
 `LicenseRef-<name>` for a licence's own terms) such an entry has:
@@ -228,8 +262,9 @@ unless its `licence` asks for one. The rules: `godot-legal` section 4 and [gdc/c
 from the engine, and the .NET runtime's notices for a C# game). It fails (`credits-invalid`) when an entry lacks what its
 licence asks for. Optional fields help: `title`, `copyright` (the original copyright line), `modified` (what you changed),
 `licenceFile` and `noticeFile` (paths of the upstream licence and NOTICE files). Licence texts for MIT, ISC, BSD-2-Clause,
-BSD-3-Clause, Apache-2.0, OFL-1.1 and Zlib come with the kit (`ci/godot/templates/licences`). `export` copies
-`THIRD-PARTY-NOTICES.txt` next to each executable. The rules: the `godot-asset-pipeline` skill and [store-and-legal.md](store-and-legal.md).
+BSD-3-Clause, Apache-2.0, MPL-2.0, OFL-1.1 and Zlib come with the kit (`ci/godot/templates/licences`). `export` copies
+`THIRD-PARTY-NOTICES.txt` next to each executable. An `MPL-2.0` entry (gdext and other Rust bindings) needs `source` to be
+the URL of its source code, which the notice gives players (MPL-2.0 section 3.2(a)); `copyright` is optional for it. The rules: the `godot-asset-pipeline` skill and [store-and-legal.md](store-and-legal.md).
 
 **`store/steam/`** (optional, in the Godot project folder, with an empty `store/.gdignore` so Godot does not ship it) holds
 the Steam store art. `doctor` checks the current sizes (`header_capsule` 920x430, `small_capsule` 462x174, `main_capsule`
@@ -268,6 +303,9 @@ every text in `expect` must appear in a log line, in that order, the ending last
 `smoke` passes a bot that is stuck in the first room; this fails it and names the last milestone it reached. The game may
 quit by itself after the ending. The plan gate `production.playthrough` is checked as `runner:playthrough`: met once the
 runner is set up, so every CI run enforces it. `tests/playthrough-fixture` is a minimal example (`-GameArgs --stuck` fails).
+Other keys are ignored by the runner; `"covers": ["GDD:S1", "GDD:S2"]` names the GDD's first-session steps it plays, which
+`status` reads (`gdd.firstSession`). `/game` writes a `playthrough.stub.json` with the steps before the game has a bot;
+no runner reads a `.stub.json`, and it becomes `playthrough.json` once `--autoplay` exists.
 
 **The `l10n` runner** is picked when the project has translation CSVs (imported as translations, or a first header cell
 `keys` or `key`), `.po` files or translation remaps. It has seven cases, all but the last without Godot: `duplicate keys` (the same key
@@ -299,7 +337,8 @@ warns (`subtitle-below-recommended`). The numbers come from two GDC talks ([docs
 **`layout.json`** (optional, in the Godot project folder) turns on the `layout` runner, which lays out the listed scenes (the main
 scene by default), headless, at each profile and fails on controls that are off screen, outside the profile's safe area, or too small
 to touch (`minTouchDp`, 48) or click (`minPointerPx`, 24 CSS px). Profiles: `phone_portrait` (1080x2400 at 420 dpi, a 128 px top inset
-and 66 px bottom), `phone_landscape`, `tablet` (2048x1536 at 264 dpi) and `ultrawide` (3440x1440, mouse), or
+and 66 px bottom), `phone_landscape`, `tablet` (2048x1536 at 264 dpi), `ultrawide` (3440x1440, mouse) and `steam_deck` (1280x800 at 216 dpi;
+pointer targets, since the Deck is played with its controls and trackpads), or
 `name:WIDTHxHEIGHT@DPI[:touch][:insets=L,T,R,B]`. If the game has a `SafeArea` autoload with `set_insets`/`SetInsets(left, top, right,
 bottom)`, each profile's insets are passed to it first, so the game's own safe-area handling is measured. `checks` limits what is
 reported. `-Runners layout` runs it without the file, with the defaults.
@@ -314,12 +353,22 @@ Godot. Each table names its file (JSON: an array of objects or an object keyed b
 `type` (`string`, `int`, `number`, `bool`), `min`/`max`, `enum`, `pattern`, `ref` (another table whose ids the value must name),
 `list` (a JSON array, or `;` between values in a CSV cell) and `optional`. Columns that data.json does not list fail (`"extra": "allow"`
 to permit them), and so does a CSV table without a committed `.import` saying `importer="keep"`: Godot imports every `.csv` as a
-translation otherwise, and the exported game cannot read the file.
+translation otherwise, and the exported game cannot read the file. Tables can also add up per group (`totals`), name
+money flows that need a sink (`economy`), hold dialogue rules with their translations (`"kind": "responses"`,
+`locales`) or levels searched for soft-locks (`"kind": "softlock"`): [data.md](data.md).
 
 ```json
 { "tables": {
     "items":   { "file": "data/items.json", "id": "id", "fields": { "price": { "type": "int", "min": 0 }, "rarity": { "enum": ["common", "rare"] } } },
     "enemies": { "file": "data/enemies.csv", "id": "id", "fields": { "hp": { "type": "int", "min": 1 }, "drops": { "ref": "items", "list": true } } } } }
+```
+
+**`placement.json`** (optional, in the Godot project folder) turns on the `placement` runner: `templates/placement_check.gd`
+on every level under `levels` (folders or `.tscn` files), each property in `limits` set from the GDScript constant it names
+(`"res://player.gd:REACH"`) or to the value given. Rules, groups and exemptions: `godot-data` section 6.
+
+```json
+{ "levels": ["res://levels"], "limits": { "reach": "res://player.gd:REACH", "zipline_max_angle": "res://zipline.gd:MAX_ANGLE_DEGREES" } }
 ```
 
 **`playtest.json`** (optional, in the Godot project folder) tells `playtest` how to draw each level's heat maps. Without it,

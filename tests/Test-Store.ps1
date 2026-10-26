@@ -1,11 +1,11 @@
 #!/usr/bin/env pwsh
 # Self-test of the Steam store art checks (Store.ps1) without Godot: images are made with just the header bytes the check
-# reads. A correct set passes; old sizes, a JPEG hero, a logo without alpha, too few screenshots and a bad short description
+# reads. A correct set passes, a palette logo with a tRNS chunk too; old sizes, a JPEG hero, a logo without alpha, too few screenshots and a bad short description
 # are each named; doctor reports them for a project with a store/steam folder. The press kit in store/press: a complete one
 # passes; missing key art without the title, a screenshot count outside 6 to 10 and a fact sheet with no contact address
 # are each named, and doctor warns about them. Trailers made with ffmpeg at run time (skipped without it): H.264 and AAC
 # pass, an MPEG-4 trailer at 25 fps and 22.05 kHz is named on each count. tags.txt: duplicates, several tags on a line and
-# more than 20 are named. Privacy: telemetry, a policyVersion or an Android preset without a policy warns, and so does a
+# more than 20 are named. Privacy: telemetry, a playtest tracker, a policyVersion or an Android preset without a policy warns, and so does a
 # policy that does not say the version the code asks consent for.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
@@ -16,12 +16,20 @@ $failures = [System.Collections.Generic.List[string]]::new()
 function Assert-True([bool]$Condition, [string]$What) {
     if ($Condition) { Write-Host "ok     $What" } else { Write-Host "FAILED $What" -ForegroundColor Red; $failures.Add($What) }
 }
-function New-Png([string]$Path, [int]$Width, [int]$Height, [bool]$Alpha = $false) {
+# -Palette makes a palette PNG (colour type 3) with a PLTE chunk, and a tRNS chunk when -Alpha is set: transparency the
+# way image optimisers store it. CRCs are zero; the check does not read them.
+function New-Png([string]$Path, [int]$Width, [int]$Height, [bool]$Alpha = $false, [switch]$Palette) {
     $b = [byte[]]::new(33)
     [Array]::Copy([byte[]](0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52), $b, 16)
     for ($k = 0; $k -lt 4; $k++) { $b[16 + $k] = ($Width -shr (24 - 8 * $k)) -band 0xFF; $b[20 + $k] = ($Height -shr (24 - 8 * $k)) -band 0xFF }
-    $b[24] = 8; $b[25] = $(if ($Alpha) { 6 } else { 2 })
-    [IO.File]::WriteAllBytes($Path, $b)
+    $b[24] = 8; $b[25] = $(if ($Palette) { 3 } elseif ($Alpha) { 6 } else { 2 })
+    if ($Palette) {
+        $chunk = { param([string]$Type, [byte[]]$Data) [byte[]](0, 0, 0, $Data.Length) + [Text.Encoding]::ASCII.GetBytes($Type) + $Data + [byte[]](0, 0, 0, 0) }
+        $b += & $chunk 'PLTE' ([byte[]](0, 0, 0, 255, 255, 255))
+        if ($Alpha) { $b += & $chunk 'tRNS' ([byte[]](0)) }
+        $b += & $chunk 'IDAT' ([byte[]](0)); $b += & $chunk 'IEND' ([byte[]]@())
+    }
+    [IO.File]::WriteAllBytes($Path, [byte[]]$b)
 }
 function New-Jpeg([string]$Path, [int]$Width, [int]$Height) {
     [IO.File]::WriteAllBytes($Path, [byte[]](0xFF, 0xD8, 0xFF, 0xC0, 0, 17, 8, ($Height -shr 8), ($Height -band 0xFF), ($Width -shr 8), ($Width -band 0xFF), 3, 0, 0, 0, 0))
@@ -60,6 +68,14 @@ try {
         Assert-True ($codes -contains $expected) "names $expected"
     }
     Assert-True ($codes.Count -eq 6) "nothing else: $($codes -join ' | ')"
+
+    # A palette PNG is transparent with a tRNS chunk, and not without one.
+    New-Png (Join-Path $good 'library_logo.png') 1280 400 $true -Palette
+    $r = Test-SteamStoreAssets $good
+    Assert-True ($r.ok) "a palette logo with a tRNS chunk counts as transparent: $(@($r.problems | ForEach-Object message) -join ' | ')"
+    New-Png (Join-Path $good 'library_logo.png') 1280 400 $false -Palette
+    Assert-True (@((Test-SteamStoreAssets $good).problems | Where-Object { $_.code -eq 'asset-alpha' }).Count -eq 1) 'a palette logo without tRNS has no transparency'
+    New-Png (Join-Path $good 'library_logo.png') 1280 400 $true
 
     $description = 'Wishlist now! ' + ('A roguelike breakout where every brick fights back. ' * 6) + 'https://example.com'
     $problems = Test-SteamShortDescription $description
@@ -152,6 +168,12 @@ try {
     Assert-True ($p.Count -eq 1 -and $p[0][0] -eq 'OK' -and $p[0][1] -match 'version 2, as in the code') "the policy at the code's version passes: $($p | ForEach-Object { $_[1] })"
     Set-Content (Join-Path $privacyDir 'store/privacy-policy.md') "# Privacy policy`n`nVersion 2.1. We collect crash reports with your consent."
     Assert-True ((Get-PrivacyProblems $privacyDir '' $android)[0][0] -eq 'WARN') 'version 2.1 is not version 2'
+    # The playtest tracker (C# or the GDScript example's playtest_tracker.gd) records players too.
+    $trackerDir = Join-Path $work 'privacy-tracker'
+    New-Item -ItemType Directory -Force $trackerDir | Out-Null
+    Set-Content (Join-Path $trackerDir 'main.gd') "extends Node`nvar tracker := PlaytestTracker.new(func() -> float: return 0.0)`n"
+    $p = Get-PrivacyProblems $trackerDir '' ([ordered]@{})
+    Assert-True ($p.Count -eq 1 -and $p[0][1] -match '^The game collects player data \(PlaytestTracker in res://main\.gd\)') "PlaytestTracker is a sign the game collects player data: $($p | ForEach-Object { $_[1] })"
 
     # doctor, on a project keeping its store art in store/steam without a .gdignore
     $project = Join-Path $work 'game'

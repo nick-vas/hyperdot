@@ -1,0 +1,85 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://game/game.gd" id="1_game"]
+[ext_resource type="Script" path="res://game/sky.gd" id="2_sky"]
+[ext_resource type="Script" path="res://ui/safe_margins.gd" id="3_safe"]
+
+[node name="Game" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_game")
+
+[node name="Sky" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_sky")
+
+[node name="Safe" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("3_safe")
+extra = 16
+
+[node name="Column" type="VBoxContainer" parent="Safe"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Top" type="VBoxContainer" parent="Safe/Column"]
+layout_mode = 2
+
+[node name="GlowLabel" type="Label" parent="Safe/Column/Top"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 56
+text = "0 glow"
+horizontal_alignment = 1
+
+[node name="RateLabel" type="Label" parent="Safe/Column/Top"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "0/s"
+horizontal_alignment = 1
+
+[node name="GatherButton" type="Button" parent="Safe/Column"]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+theme_override_font_sizes/font_size = 34
+text = "Gather"
+
+[node name="Header" type="HBoxContainer" parent="Safe/Column"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="PageTitle" type="Label" parent="Safe/Column/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 30
+text = "Producers"
+
+[node name="BuyModeButton" type="Button" parent="Safe/Column/Header"]
+custom_minimum_size = Vector2(170, 88)
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "Buy 1"
+
+[node name="ProducerPage" type="ScrollContainer" parent="Safe/Column"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="List" type="VBoxContainer" parent="Safe/Column/ProducerPage"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8

@@ -29,6 +29,10 @@ Agents write a lot of text fast; without one source they contradict each other. 
   let the writer, or the agent, invent.
 - **Canon tiers.** Each entry is `core`, `soft` or `draft`. Agents build only on `core`; what an agent proposes stays
   `draft` until the user approves it. Blizzard kept "quasi-canonical" sources and dropped them when they got in the way.
+- **The story summary opens the bible.** First the premise as five Ws: who the player is, what they want, where and
+  when it happens, and why it matters now. Then a paragraph of the story with the player's verbs in bold ("you **sneak**
+  past the gate and **trade** the map for passage"): a story beat with no bold verb is one the player watches, and a
+  verb in the core loop that no beat uses is play the story ignores. Copy both into the GDD's Story section.
 - **Answer origin questions first.** Where a monster, race or relic comes from blocks the levels and quests built on
   it; list the open questions in the GDD and answer them before that content starts.
 
@@ -96,7 +100,8 @@ of four letters or more are checked; the same word in capitals is fine.
   criteria, and criteria that can never hold together; it warns on a fact read but never remembered and not in `facts`
   (the facts the game supplies), which is usually a typo. The game loads the same file with `ResponseTable.Load` in
   `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Narrative/ResponseTable.cs`; the grammar is in
-  `${CLAUDE_PLUGIN_ROOT}/docs/data.md`. Lines are one language: make them translation keys for other languages.
+  `${CLAUDE_PLUGIN_ROOT}/docs/data.md`. Translations go on each line (`"locales": { "fr": "..." }`); the table's
+  `"locales"` makes the runner fail a line missing one, and `ResponseTable.Load(json, symbols, locale: "fr")` reads them.
 
 ## 5. Voice
 

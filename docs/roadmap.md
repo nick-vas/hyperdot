@@ -21,10 +21,12 @@ Still open from phases 1 and 2:
 - A first real `/game` run on Breakout Roguelike: a confirmed GDD, a `plan/STATUS.md` the owner agrees with, and a board
   that matches it.
 
-## 1.0: Hyperdot
+## 0.1.0: the first Hyperdot release
 
 Agreed in a question round with the owner on 2026-10-22. The kit becomes **Hyperdot**, a Godot-specific game development
-interface, and ships as 1.0 once these steps are done, in this order. Each step is one or more pull requests.
+interface, and ships its first tagged release once these steps are done, in this order. Each step is one or more pull
+requests. On 2026-10-23 the owner chose to number it **0.1.0**, a fresh start for the new name (`plugin.json` had 0.4.0),
+instead of 1.0: see [Versions](#versions).
 
 1. **Sanity check.** Every self-test, both examples, `doctor` and `plan` on both, the Windows job; an inventory of the
    commands, skills, docs and library files, with what is dead, stale or contradictory.
@@ -39,43 +41,42 @@ interface, and ships as 1.0 once these steps are done, in this order. Each step 
    settings when the rename pull request merges (the code already calls the new name).
 4. **Fixes and features from the question round** (the notes below).
 5. **Benchmark.** Evals with 3 runs per arm (the first run where all four cases can run commands), the token benchmark
-   (costs money: confirm first) and `bench` on the C# example.
+   (costs money: confirm first) and `bench` on the C# example. Done for the token benchmark, with the Hyperdot label
+   ([label.md](label.md)): an adversarial review of every area (62 findings: 59 fixed with regression tests), a grader
+   that cannot be fooled, sessions that cannot read the test, and the 0.1.0 rating from 216 sessions.
 6. **Retro** over all of the above.
-7. **Release 1.0**: changelog, version, tag `v1.0.0`, a start-here page for working on a game (first use: The C# example
-   Roguelike, `nick-vas/BreakoutTheBreakout`, in a new chat with the kit cloned beside it).
+7. **Release 0.1.0**: changelog, version, tag `v0.1.0`; create and keep a moving `v1` tag (`init` and the docs already
+   write `@v1`, which does not resolve until then), a
+   start-here page for working on a game (first use: Breakout Roguelike, `nick-vas/BreakoutTheBreakout`, in a new chat
+   with the kit cloned beside it).
 
-Notes from the question round still open, each to be fixed, built or written down before 1.0 (numbers as first agreed):
+### Versions
+
+[Semantic Versioning](https://semver.org). The public interface is the commands and flags, the `-Json` output (schema
+`hyperdot/1`), the error codes, the environment variables, the workflow inputs and the files `init` writes.
+
+- **0.x** while Hyperdot is used on its first real game: anything may change; a breaking change bumps the minor (0.1 to
+  0.2), a fix the patch. Each release is a tag `v0.x.y` and a CHANGELOG section.
+- **1.0.0-beta.n, then 1.0.0-rc.n** once all of these hold: a vertical slice of Breakout Roguelike was built with
+  Hyperdot; about four weeks passed without a breaking change to the commands, the JSON or the error codes; the live
+  Trello run passes; the evals pass three runs in a row.
+- **1.0.0**: from then on a breaking change needs 2.0.
+
+Notes from the question round still open, each to be fixed, built or written down before 0.1.0 (numbers as first agreed):
 
 | # | Note | What to do |
 |---|---|---|
-| 1 | The Stop hook is easy to read as a design check; it only checks that tests passed after the last edit | Say so plainly where the hook is described |
-| 3 | Trello sync has only met a mock, and uses API keys, not the Trello connector | Marked experimental in 1.0; the live run and the bugs are under [Trello](#trello) |
-| 4 | Nothing says to start a session with `/game` | The start-here page and the game's `AGENTS.md` say it |
 | 6 | An eval grader was wrong for three runs before anyone looked | Test graders against real transcripts when they are written |
-| 7 | Kit friction in a game chat is lost unless it is in that chat or a failed run | `docs/kit-notes.md` in the game: one line per problem with the kit; `/retro` and `weekly-review` read it; a weekly scheduled review proposes kit changes for the owner to approve |
-| 10 | A game's CI workflow calls the kit's `@main`, so every kit change reaches every game at once | `init` writes `@v1`; games move up on purpose |
 | 11 | No quick way to see why CI and the owner's PC disagree | Later: compare the two runs' JSON results |
-| 12 | No help command | `/kit` lists every command, skill and subagent in one line each; `/kit <name>` shows a static page; `hyperdot.ps1 help [command]` prints the same text; a self-test fails when anything has no entry |
-| 13 | A gate cannot be reopened without editing `plan.json` | `plan -Do reopen -Id <gate>` |
-| 14 | `/game` reports tests, not design or technical problems | `/game` adds a short design and architecture review |
-| 15 | Checking for the Steam Deck takes four commands | One Deck check: `textsize`, `layout`, `shot` at 1280x800 and `bench` with a Deck budget, one verdict |
-| 16 | Nothing records what `/game` asked the verifier and architect, or what they answered | One line per handoff in `.godot/` (time, subagent, what was checked, verdict, commit), last 200 kept, never committed; `status`, `/game` and `/retro` read it. Proposed 2026-10-23 |
 
 ### Trello
 
 - **Live run.** `tests/Test-TrelloSync.ps1 -Live` (the Trello sync workflow) waits for the repository secrets
   `TRELLO_KEY` and `TRELLO_TOKEN`; postponed by the owner on 2026-10-23. The mock run passes in the self-test.
 
-Bugs found in the connector test, still open (`ci/godot/lib/Plan.ps1`):
-
-- `plan -Do move` and `plan -Do link` accept only the kit's column ids (`backlog`, `design`, `todo`, `doing`, `verify`,
-  `done`) and reject the board's list names, such as "To Do".
-- `plan -Do add` checks `-Column` against those ids only, not against the board's lists.
-- A card a person adds on the board gets no plan task; `plan -Do sync` only creates cards for tasks and moves tasks.
-- `plan -Do sync` changes a task's `column` but never its `boardColumn`.
-- There is no command to delete a task (`plan -Do` takes `status`, `init`, `done`, `add`, `move`, `sync` and `link`).
-- The Trello connector returns card ids as ARIs, while the kit stores plain 24-hex card ids (`cardId`) and `sync`
-  matches cards by them, so `/game` must store the plain id.
+The six bugs the connector test found (list names as columns, cards added on the board, `boardColumn`, removing a
+task, ARI card ids) are fixed and pass against the mock; the live run should also cover importing a card and archiving
+a removed task's card, which only the mock has seen.
 
 ## What was decided
 
@@ -124,80 +125,66 @@ Bugs found in the connector test, still open (`ci/godot/lib/Plan.ps1`):
 What was left open by the research passes (`docs/studio-lessons.md`, `docs/valve.md`, `docs/art.md`, `docs/audio.md`
 and the other topic pages), grouped by what it waits for. Done items are in `CHANGELOG.md`.
 
+### From the label and the adversarial review (2026-10-23)
+
+- **Sonnet over its word limits.** All but one of Sonnet's failed benchmark answers are 10 to 30% over the limit their
+  prompt states, which puts it in class F where Haiku is D. Whether a line in `AGENTS.md` ("keep to a stated length")
+  changes that is a question for the next benchmark run, not a reason to change the grader.
+- **The plugin on Hyperdot's own code.** Loading it adds tokens to every session and helps none of the tool
+  programme's tasks (its skills are about games). The game programme (`benchmark/game-benchmark.json`, built from
+  `evals/`) now rates what the plugin is for; each version gets a tool class and a game-making class.
+- **The staged game programme.** The pilot (five tasks on one prototype) is too easy to tell configurations apart.
+  `benchmark/PLAN.md` holds the owner's decisions and the design: ten genres, four stages each (prototype, alpha, beta,
+  release candidate), GDScript and C#, everyday tasks and milestone runs as two results, grading from hard checks to a
+  pinned model judge and human review, min/mid/max tiers, a private field test, and sessions isolated as a separate user.
+- **Hold-out tasks.** The verification procedure could also run tasks that are not in the published spec, as market
+  surveillance may test beyond the declared programme. That needs a private spec, and somewhere private to keep it.
+- **The last two binding errors as JSON.** A flag left without its value (`-Project` as the last word) and a value of the
+  wrong type (`-Retry abc`) are still refused by PowerShell before `hyperdot.ps1` runs, so `-Json` prints nothing.
+  Catching them needs a process in front of the script; forwarding `@args` from a wrapper loses `-Switch:$false`, so it
+  would have to re-parse the command line itself.
+- **gdUnit4 skipping two tests on Windows, sometimes.** Self-test run 39930228730 (local-windows, the C# example with
+  `-Coverage`): "gdUnit4 found 28 tests but ran 26", so the kit's guard failed the run, as it should; the next run on the
+  same kit code ran all 28. The log does not say which two, and a "CLR: Assert failure ... after the .NET runtime thread
+  state has been destroyed" follows. Needs a Windows machine: run the suite in a loop and keep the TRX files.
+
 ### Kit features not built
 
-- **Bug-report pins in the editor.** `godot-automation-hooks` asks reports to save scene, position and view; nothing
-  shows them. A small C# `[Tool]` node that draws each report for the open scene.
-- **An add-on's code without an `assets.json` entry.** `credits` writes notices only for what `assets.json` lists. WARN
-  in `doctor` for `addons/<name>/LICENSE*` with no entry covering `addons/<name>/**`; fill `copyright` from the licence's
-  first `Copyright` line.
-- **MPL-2.0 in `credits`.** gdext (Rust) is MPL-2.0, which `Credits.ps1` has no rule for: read the licence's notice
-  rules, add the policy row and the SPDX text.
-- **Known-status list for add-ons.** godot-steam-audio (archived), PerfBullets (4.1 and 4.2) and others are detected by
-  folder names that were not confirmed. Confirm each folder or `entry_symbol` from its release, then a small JSON
-  refreshed by `Invoke-Canary.ps1`.
-- **Plan gates for what is now prose:** `concept.risks` (`docs/RISKS.md`), an optional `concept.budget`, and
-  `beta.placeholders`. Each needs `plan.json`, `tests/Test-Plan.ps1` and `docs/json.md` if the output changes.
-- **`plan -Do init -Profile jam`:** a plan sized in days with the jam gates (`Plan.ps1`, `Test-Plan.ps1`).
-- **Placeholders in `assets.json`** (`"placeholder": true`, `"due"`, `"status": "needed"`), counted by `doctor` and
-  `status`, so the TECH-DEBT table becomes checkable.
-- **First-session steps as stubs.** `status` reads only the GDD's pitch and features; the first-session steps could
-  become flow and `playthrough.json` stubs that `/game` writes.
-- **`templates/ARCHITECTURE.md`:** autoloads, scene tree, signal catalogue, authored versus runtime data, save schema
-  version, minimum spec, open technical questions answered by ADRs; kept by `godot-architect`.
-- **`-GpuValidation`** for `shot`, `bench` and `export -Run`: pass `--gpu-validation` (and `--gpu-abort`,
-  `--accurate-breadcrumbs`), fail on validation errors with a new code. Needs a Vulkan-capable runner (a GitHub GPU
-  runner, or Mesa's lavapipe; neither checked).
-- **`bench`: `-MaxDrawCalls`, load time (`loadMs`, `-MaxLoadMs`) and a frame-time histogram**, each with a new failure
-  code. `Measure.ps1` already has `drawCalls.avg`. Also a sweep helper for particle counts and quality tiers (the skill
-  shows the manual way with `-GameArgs`).
-- **`doctor`: duplicate files under `res://`, occluders with occlusion culling off, and a build size breakdown on
-  `export -Json`**, each with a fixture.
-- **A `doctor` warning for moving physics bodies with `physics/common/physics_interpolation` off**, only if it can be
-  kept quiet: warn when a `CharacterBody` or `RigidBody` script moves it in `_PhysicsProcess` and the game sets no
-  `Engine.MaxFps` at the tick rate; a `tests/doctor-fixture` case each way.
-- **`data` runner:** a rule that every currency has a sink (`EconomySim` checks it in code only); soft-lock levels as a
-  `data.json` table (areas, passages, pickups, supplies, goals) so GDScript games can use `SoftLockCheck` too; per-locale
-  lines (and voice files) in a responses table, checked for lines missing in a locale.
-- **A `placement` runner, or placement checks in C#.** `templates/placement_check.gd` is GDScript run from a GUT test; a
-  runner could read each limit from a script constant named in a `placement.json`.
-- **Steam names held in constants.** `doctor`'s Steamworks checks read string literals only; following constants (as
-  The C# example's `BreakoutProgress` uses) or code outside the Godot project needs a C# and GDScript parser.
-- **CI:** a GitLab CI template using the JUnit and Cobertura files the kit already writes, and a container image with
-  Godot, templates, PowerShell and .NET, refreshed by the canary. Tag the kit's releases and keep a moving `v1` tag (no
-  tags exist yet; `init` still writes `@main`).
-- **Keeping aseprite-mcp's pins current.** `init` pins a commit and MCP SDK 1.30.0 (`docs/mcp.md`); the canary does not
-  track git pins.
+- **A GitHub Pages site.** A project page with what Hyperdot is, the quick start, the label (tool, game-making and
+  tested classes, with the SVG labels and information sheets from `docs/label/`), the benchmark results and the docs.
+  It would be built from the repository's Markdown by a workflow, so it never drifts from them. The scope and look are
+  still to agree with the owner.
+
+
+- **Add-on status from release zips and the API.** `ci/godot/addons-status.json`'s names were confirmed from each
+  repository's files and build scripts with git, because GitHub's release downloads and API answered 403 in the sandbox
+  that built it; Godot Jolt's, PerfBullets' and py4godot's `archived` are still `null`. The canary's first run fills
+  `archived` in; checking the folder inside each release zip needs a run where `github.com/<repo>/releases/download` is
+  reachable.
+- **`-GpuValidation` beyond Vulkan on Linux.** Tested with Mesa's lavapipe under Xvfb only. Not run: a real GPU, Windows
+  (Vulkan SDK layer), D3D12 (Godot's debug-layer messages are read by the same pattern as Vulkan's debug-utils ones, from
+  the source, never seen in a log) and Metal; on D3D12 and Metal `layerLoaded` is `null` because their logs do not say.
+
+- **CI:** the GitLab template (`ci/gitlab/hyperdot.gitlab-ci.yml`) has never run on GitLab: no GitLab project or runner
+  was reachable from the sandbox that wrote it. Run it once on a GitLab project (a copy of `examples/gdscript` and of
+  `examples/csharp`) and fix what breaks. A container image with Godot and its templates already in it was not built: the
+  .NET 8 SDK image GitLab jobs use already has PowerShell 7, git and .NET, Godot is a cached download, and an image with
+  the .NET build's templates would weigh about 2.1 GB more (1.9 GB of templates and 222 MB of Godot unpacked, 4.7.2) and need a
+  registry and a canary job to keep it current.
+  `init` writes `@v1`; the tag itself is created at the 0.1.0 release (step 7 above).
 
 In the example game (the C# example):
 
-- `Steering.Wander`, `PacingDirector` and `ResponseRules` take `System.Random`; `godot-game-ai` says to pass a seeded
-  `RandomNumberGenerator` or `DeterministicRandom`. Take `DeterministicRandom` (or an interface over it).
-- `GhostReplicator`: packed bits per group instead of 4 bytes a value, and a client-set `LinkBudget` checked in
-  `ReplicationTests` (never more than the client asked for).
-- A `DifficultyDirector` with slow, bounded steps and hysteresis, tested so it never flips every attempt.
-- A GDScript or gdUnit4 test in `examples/csharp/game` pinning the maths book's 3D yaw sign and cross-product area
-  (Example.Core's `System.Numerics` has other conventions).
-- Playtest telemetry in a real level: nothing raises `PlaytestTracker`'s events yet, and there is no file sink for
-  playtest builds and no GDScript tracker.
 - A Steam backend behind `IPlatformServices` (GodotSteam's add-on or Steamworks.NET.AnyCPU 2026.164.4 both load in 4.7.2).
 
 In the skills:
 
 - An XR skill (Godot's OpenXR: locomotion and comfort, hands, throwing from peak hand speed, one-controller play), from
   Half-Life: Alyx's commentary; needs an XR fixture to check its claims.
-- Shader precision qualifiers (`lowp`, `mediump`, `highp`) in `godot-shaders-vfx`, quoted so `tests/Test-SkillShaders.ps1`
-  compiles them.
-- Light and shadow limits on phones in `godot-mobile-web`: Compatibility's (8 per object, 32 renderable) were checked; the
-  Mobile renderer's per-object limit was not found in 4.7.2's settings.
+
+
 - A dialogue tool for `godot-narrative` (Ink, Yarn Spinner or Dialogic): read each licence and latest release, try each in
   a copy of the C# example on 4.7.2; if none fits, a JSON dialogue graph checked by the `data` and `l10n` runners.
-- Untold lesson 30 (commissioning a composer) in `godot-audio`, and Lars Liden's "Artificial Stupidity" cited in
-  `godot-game-ai`; both skills are at their size limit, so each needs a cut first.
-- Smaller design prompts not yet placed: saving as a difficulty lever, pressure against stalling, sinks players want,
-  fixed costs pegged to a share of wealth, hidden charges on limited-use items (`godot-progression`); a camera cost
-  checklist (`concept.decisions`); a five-Ws premise and the player's verbs in bold in the story summary; a turn written
-  as named phases with a test per transition; a team-shape note and the retro question "what recurring job has no owner?".
 - A flow test that the credits screen is reachable from the main menu stays game-specific; the skill tells games to add one.
 
 ### Not run or measured here (hardware, platforms, runners)
@@ -214,6 +201,9 @@ In the skills:
 - Real power-loss testing of `SaveStore` (needs a VM or `dm-log-writes`); directory sync on macOS after a rename.
 - `force_right_to_left_layout_direction` in an exported game.
 - Controller names per OS, `steam_input_index` on a Steam Deck, SDL3's pad limit on Windows.
+- Why Godot 4.7.2's headless editor (`--headless --editor --quit-after N`) aborts at exit about one run in three, with
+  no plugin and an empty project (`Parameter "singleton" is null` in `EditorNode::is_cmdline_mode`, exit 134): worth a
+  minimal reproduction for an upstream report; `tests/Test-ReportPins.ps1` allows exactly that abort.
 - Why a process that registered a C# `Logger` hangs at exit under coverlet (Godot 4.7.2 mono): no engine symbols; worth a
   minimal reproduction for an upstream report.
 - An 8-hour `soak` on a schedule (GitHub jobs stop at 6 hours); latency in `soak` (`tc ... netem` missing here; a
@@ -245,6 +235,9 @@ Pasting a source, allowing a host or answering a question is enough for each.
 - Bohemia's wiki (`community.bistudio.com`): a Cloudflare challenge. Optional: "DayZ:Central Economy Configuration" and
   "Arma Reforger:Multiplayer Scripting".
 - The full Iassenev interview on A-Life (AIGameDev, archived): web.archive.org rate-limited this server.
+- Lars Lidén's "Artificial Stupidity: The Art of Intentional Mistakes" (*AI Game Programming Wisdom 2*): the author's copy
+  (`lars.liden.cc`) has a self-signed certificate and web.archive.org reset the connection, so `godot-game-ai/mistakes.md`
+  rests on two papers that cite it and quotes nothing from the chapter. Pasting it would let the other points be checked.
 - FMOD: the Skill Tree course (needs a sign-in) and the licence and credit terms (a JavaScript-only page).
 - Sonniss's bundle licence (`License.pdf`) and Freesound's FAQ: both returned 403.
 - Epic and GOG cloud-save conflicts (404 and 500); PlayStation and Nintendo save rules, TRC and Lotcheck (under NDA).

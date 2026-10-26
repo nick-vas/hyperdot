@@ -1,33 +1,136 @@
-# Measures the tokens, cost and time Claude Code spends on the tasks in benchmark/token-benchmark.json under each profile
-# (benchmark/Invoke-TokenBenchmark.ps1). Manual only: each run calls the model. Authenticates with a Claude subscription,
-# not an API key: the repository secret CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token` (the same one the Evals
-# workflow uses). Runs count against that plan's usage, meant for ordinary individual use, so keep runs small (one task,
-# -Repeat 1) and start them by hand. The cost columns are Claude Code's own figure, not a charge on the plan.
+# Measures the tokens, cost and time Claude Code spends on the tasks of a programme under each profile
+# (benchmark/Invoke-TokenBenchmark.ps1):
+#   tool    questions about this kit's own code (benchmark/token-benchmark.json)
+#   game    the pilot: five tasks on a small Godot game graded by its tests (benchmark/game-benchmark.json)
+#   staged  the staged game programme (benchmark/game-programme.json, benchmark/PLAN.md): genres x stages x languages,
+#           chosen by a tier (min, mid, max) and narrowed by genre, stage and language
+# Manual only: each run calls the model. Authenticates with a Claude subscription, not an API key: the repository secret
+# CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token` (the same one the Evals workflow uses). Runs count against that plan's
+# usage, meant for ordinary individual use. The cost columns are Claude Code's own figure, not a charge on the plan.
+#
+# `isolate` (on by default) runs every session as a user made for the run that can read only its game copy, not this
+# checkout with its hidden tests and graders (benchmark/Isolation.ps1); the runner's passwordless sudo makes the user.
+#
+# `configurations: all` runs every configuration of the programme (Sonnet and Haiku, with and without the plugin) as
+# parallel jobs; the plan job checks the whole run's estimate against the tier's ceiling first, so nothing is spent on a
+# run that is over it.
+#
+# `calibrate: <run id>` runs no benchmark: it calibrates the judge (benchmark/PLAN.md, section 3). It takes that staged
+# run's results, rebuilds the blind pairs the owner judged on the review page (benchmark/calibration/*.json holds the
+# verdicts and the answer key's hash), and has each candidate judge, cheapest first (or the `model` input), judge them
+# both ways; the first that agrees with the owner on 80% and with itself on 90% is the judge, and the job stops there.
 name: Token benchmark
 
 on:
   workflow_dispatch:
     inputs:
+      programme:
+        description: Which programme to run
+        type: choice
+        options: [tool, game, staged]
+        default: tool
+      configurations:
+        description: One configuration (the model and plugin inputs) or all of the programme's
+        type: choice
+        options: [one, all]
+        default: one
       model:
-        description: Model alias or id (empty for the spec's)
+        description: Model alias or id, for one configuration (empty for the spec's)
+        default: ''
+      plugin:
+        description: Load this repository as a Claude Code plugin, for one configuration
+        type: boolean
+        default: false
+      tier:
+        description: Staged programme only, min, mid (the standard programme) or max
+        default: ''
+      genre:
+        description: Staged only, comma-separated genres (empty for the tier's)
+        default: ''
+      stage:
+        description: Staged only, comma-separated stages (empty for the tier's)
+        default: ''
+      language:
+        description: Staged only, gdscript, csharp or both (empty for the tier's)
         default: ''
       repeat:
-        description: Runs per task and profile (empty for the spec's)
+        description: Runs per task and profile (empty for the spec's or the tier's)
         default: ''
       profiles:
         description: Comma-separated profile ids (empty for all)
         default: ''
       tasks:
-        description: Comma-separated task ids (empty for all)
+        description: Comma-separated task ids, wildcards allowed (empty for all)
+        default: ''
+      isolate:
+        description: Run each session as a separate user that cannot read the checkout (hidden tests, graders)
+        type: boolean
+        default: true
+      calibrate:
+        description: Calibrate the judge instead, on this staged run's pairs (a run id with verdicts in benchmark/calibration)
         default: ''
 
 permissions:
   contents: read
 
 jobs:
-  benchmark:
+  plan:
+    if: inputs.calibrate == ''
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 10
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      spec: ${{ steps.matrix.outputs.spec }}
+    steps:
+      - uses: actions/checkout@v7
+      # One job per configuration; with `all`, a dry run of each first: one over its share of the tier's ceiling fails
+      # here, before any session runs.
+      - name: Configurations and their estimated cost
+        id: matrix
+        shell: pwsh
+        env:
+          PROGRAMME: ${{ inputs.programme }}
+          CONFIGURATIONS: ${{ inputs.configurations }}
+          MODEL: ${{ inputs.model }}
+          PLUGIN: ${{ inputs.plugin }}
+          TIER: ${{ inputs.tier }}
+          GENRE: ${{ inputs.genre }}
+          STAGE: ${{ inputs.stage }}
+          LANGUAGE: ${{ inputs.language }}
+          REPEAT: ${{ inputs.repeat }}
+          PROFILES: ${{ inputs.profiles }}
+          TASKS: ${{ inputs.tasks }}
+        run: |
+          $spec = switch ($env:PROGRAMME) { 'game' { 'benchmark/game-benchmark.json' } 'staged' { 'benchmark/game-programme.json' } default { 'benchmark/token-benchmark.json' } }
+          $doc = Get-Content $spec -Raw | ConvertFrom-Json -AsHashtable
+          $configs = if ($env:CONFIGURATIONS -eq 'all' -and $doc.Contains('programme') -and $doc.programme.Contains('configurations')) { @($doc.programme.configurations) }
+            elseif ($env:CONFIGURATIONS -eq 'all') { @(@{ model = 'sonnet'; plugin = $false }, @{ model = 'sonnet'; plugin = $true }, @{ model = 'haiku'; plugin = $false }, @{ model = 'haiku'; plugin = $true }) }
+            else { @(@{ model = $(if ($env:MODEL) { $env:MODEL } else { $doc.model }); plugin = ($env:PLUGIN -eq 'true') }) }
+          $total = 0.0
+          foreach ($c in $configs) {
+            $params = @{ SpecPath = $spec; Model = $c.model; DryRun = $true; Json = $true }
+            if ($c.plugin) { $params.Plugin = $true }
+            foreach ($pair in @(@('TIER', 'Tier'), @('GENRE', 'Genre'), @('STAGE', 'Stage'), @('LANGUAGE', 'Language'), @('PROFILES', 'ProfileId'), @('TASKS', 'TaskId'))) {
+              $value = [Environment]::GetEnvironmentVariable($pair[0]); if ($value) { $params[$pair[1]] = $value }
+            }
+            if ($env:REPEAT) { $params.Repeat = [int]$env:REPEAT }
+            $out = ./benchmark/Invoke-TokenBenchmark.ps1 @params
+            if ($LASTEXITCODE) { throw "$($c.model)$(if ($c.plugin) { ' with the plugin' }): the dry run failed (over its ceiling, or a bad selection)" }
+            $estimate = ($out | Select-Object -Last 1 | ConvertFrom-Json).estimateUsd
+            if ($null -ne $estimate) { $total += $estimate }
+          }
+          "Estimated cost of the whole run: $([math]::Round($total, 2)) USD over $($configs.Count) configuration(s)" | Add-Content $env:GITHUB_STEP_SUMMARY
+          "matrix=$(@{ include = @($configs | ForEach-Object { @{ model = $_.model; plugin = [bool]$_.plugin } }) } | ConvertTo-Json -Compress -Depth 4)" | Add-Content $env:GITHUB_OUTPUT
+          "spec=$spec" | Add-Content $env:GITHUB_OUTPUT
+
+  benchmark:
+    needs: plan
+    runs-on: ubuntu-latest
+    # A game session may take 15 minutes, a milestone 45, and each is graded with Godot afterwards.
+    timeout-minutes: ${{ inputs.programme == 'tool' && 120 || 330 }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     env:
       # An ANTHROPIC_API_KEY in the environment would take precedence over the token, so none is set here.
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -38,6 +141,12 @@ jobs:
         run: |
           if (-not $env:CLAUDE_CODE_OAUTH_TOKEN) { throw 'Add the CLAUDE_CODE_OAUTH_TOKEN repository secret (from claude setup-token) to run the benchmark' }
           npm install -g @anthropic-ai/claude-code
+      # The game programmes' sessions run Godot, and their grader runs the game's tests; setup sets GODOT_BIN for both.
+      # The staged programme has C# games too, so it takes the .NET build of Godot, which runs GDScript as well.
+      - name: Godot for the game programmes
+        if: inputs.programme != 'tool'
+        shell: pwsh
+        run: ./ci/godot/hyperdot.ps1 setup -Project $(if ('${{ inputs.programme }}' -eq 'staged') { 'examples/csharp/game' } else { 'examples/gdscript' })
       # One small request first: a token that is malformed or revoked fails here, by name, instead of as a run of 0 scores.
       - name: The subscription token works
         shell: pwsh
@@ -50,21 +159,92 @@ jobs:
       - name: Run the benchmark
         shell: pwsh
         env:
-          MODEL: ${{ inputs.model }}
+          SPEC: ${{ needs.plan.outputs.spec }}
+          MODEL: ${{ matrix.model }}
+          PLUGIN: ${{ matrix.plugin }}
+          TIER: ${{ inputs.tier }}
+          GENRE: ${{ inputs.genre }}
+          STAGE: ${{ inputs.stage }}
+          LANGUAGE: ${{ inputs.language }}
           REPEAT: ${{ inputs.repeat }}
           PROFILES: ${{ inputs.profiles }}
           TASKS: ${{ inputs.tasks }}
+          ISOLATE: ${{ inputs.isolate }}
         run: |
-          $params = @{ OutputDir = 'benchmark/results'; SaveResponses = $true }
-          if ($env:MODEL) { $params.Model = $env:MODEL }
+          $params = @{ SpecPath = $env:SPEC; OutputDir = 'benchmark/results'; SaveResponses = $true; Model = $env:MODEL }
+          if ($env:PLUGIN -eq 'true') { $params.Plugin = $true }
+          if ($env:ISOLATE -eq 'true') { $params.Isolate = $true }
+          foreach ($pair in @(@('TIER', 'Tier'), @('GENRE', 'Genre'), @('STAGE', 'Stage'), @('LANGUAGE', 'Language'), @('PROFILES', 'ProfileId'), @('TASKS', 'TaskId'))) {
+            $value = [Environment]::GetEnvironmentVariable($pair[0]); if ($value) { $params[$pair[1]] = $value }
+          }
           if ($env:REPEAT) { $params.Repeat = [int]$env:REPEAT }
-          if ($env:PROFILES) { $params.ProfileId = $env:PROFILES }
-          if ($env:TASKS) { $params.TaskId = $env:TASKS }
           ./benchmark/Invoke-TokenBenchmark.ps1 @params
           Get-ChildItem benchmark/results -Recurse -Filter summary.md | Get-Content -Raw | Add-Content $env:GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: token-benchmark
+          name: token-benchmark-${{ inputs.programme }}-${{ matrix.model }}${{ matrix.plugin && '-plugin' || '' }}
           path: benchmark/results/
           retention-days: 30
+
+  calibrate:
+    if: inputs.calibrate != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      actions: read   # the judged run's artifacts
+    env:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Claude Code
+        shell: pwsh
+        run: |
+          if (-not $env:CLAUDE_CODE_OAUTH_TOKEN) { throw 'Add the CLAUDE_CODE_OAUTH_TOKEN repository secret (from claude setup-token) to calibrate the judge' }
+          npm install -g @anthropic-ai/claude-code
+          $out = claude -p 'Reply with the single word OK.' --max-turns 1 --output-format json 2>&1
+          if ($LASTEXITCODE) { throw "Claude Code rejected CLAUDE_CODE_OAUTH_TOKEN; run claude setup-token again and replace the secret: $out" }
+      - uses: actions/download-artifact@v7
+        with:
+          run-id: ${{ inputs.calibrate }}
+          github-token: ${{ github.token }}
+          pattern: token-benchmark-staged-*
+          path: judged-run
+      - name: The judge against the owner's verdicts
+        shell: pwsh
+        env:
+          RUN: ${{ inputs.calibrate }}
+          JUDGES: ${{ inputs.model }}
+        run: |
+          $cal = @(Get-ChildItem benchmark/calibration -Filter *.json | ForEach-Object { Get-Content $_.FullName -Raw | ConvertFrom-Json } | Where-Object { "$($_.run)" -eq $env:RUN })
+          if ($cal.Count -eq 0) { throw "No file in benchmark/calibration holds verdicts for run $env:RUN" }
+          $cal = $cal[0]
+          $results = @(Get-ChildItem judged-run -Directory | ForEach-Object FullName) -join ','
+          $prefix = if ($cal.PSObject.Properties['idPrefix']) { $cal.idPrefix } else { 'p' }
+          ./benchmark/Invoke-SideBySide.ps1 -Results $results -ReviewOut review -ReviewIdPrefix $prefix | Out-Null
+          $hash = (Get-FileHash review/review-key.json -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($hash -ne $cal.keySha256) { throw "The pairs rebuilt from run $env:RUN are not the ones judged on the review page (key $hash, expected $($cal.keySha256))" }
+          ConvertTo-Json -InputObject @($cal.verdicts) | Set-Content verdicts.json
+          $candidates = if ($env:JUDGES) { @($env:JUDGES -split ',' | ForEach-Object Trim) } else { @($cal.candidates) }
+          $judge = $null
+          "| Judge | Agrees with the owner | Agrees with itself | Calibrated |`n|---|---|---|---|" | Add-Content $env:GITHUB_STEP_SUMMARY
+          foreach ($model in $candidates) {
+            ./benchmark/Invoke-SideBySide.ps1 -Results $results -Model $model -OutDir "judged/$model" | Out-Null
+            if ($LASTEXITCODE) { throw "The $model judge did not finish its judgements" }
+            $out = ./benchmark/Get-JudgeAgreement.ps1 -Key review/review-key.json -Verdicts verdicts.json -Preferences "judged/$model/preferences.json" -Json
+            $passed = $LASTEXITCODE -eq 0
+            ($out -join "`n") | Set-Content "judged/$model/agreement.json"
+            $d = ($out -join "`n") | ConvertFrom-Json
+            "| $($d.judgeModel) | $([math]::Round(100 * $d.agreement))% of $($d.compared) | $([math]::Round(100 * $d.consistency))% | $(if ($passed) { 'yes' } else { 'no' }) |" | Add-Content $env:GITHUB_STEP_SUMMARY
+            if ($passed) { $judge = $d.judgeModel; break }
+          }
+          if (-not $judge) { throw "No candidate judge ($($candidates -join ', ')) met the bars of 80% agreement and 90% consistency" }
+          "The judge: $judge" | Add-Content $env:GITHUB_STEP_SUMMARY
+          exit 0
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: judge-calibration
+          path: judged/
+          retention-days: 90

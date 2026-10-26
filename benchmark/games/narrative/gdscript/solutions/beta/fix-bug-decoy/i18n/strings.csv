@@ -1,0 +1,71 @@
+keys,en,fr,_max,_lines
+MENU_TITLE,Saltmere Crossing,Saltmere Crossing,,
+MENU_NEW,New story,Nouvelle histoire,,
+MENU_CONTINUE,Continue,Continuer,,
+MENU_SETTINGS,Settings,Réglages,,
+MENU_CREDITS,Credits,Crédits,,
+MENU_QUIT,Quit,Quitter,,
+MENU_VERSION,Version %s,Version %s,,
+MENU_ENDINGS,Endings found: %d of %d,Fins trouvées : %d sur %d,,
+CHAPTER_1,Chapter 1: The Landing,Chapitre 1 : L'embarcadère,40,1
+CHAPTER_2,Chapter 2: The Crossing,Chapitre 2 : La traversée,40,1
+CHAPTER_3,Chapter 3: The Far Bank,Chapitre 3 : L'autre rive,40,1
+SPEAKER_NARRATOR,The river,Le fleuve,24,1
+SPEAKER_STRANGER,The stranger,L'inconnue,24,1
+HUD_HISTORY,History,Historique,,
+HUD_PAUSE,Pause,Pause,,
+HISTORY_TITLE,So far,Jusqu'ici,,
+HISTORY_CLOSE,Close,Fermer,,
+HISTORY_CHOICE,» %s,» %s,,
+PAUSE_TITLE,Paused,En pause,,
+PAUSE_RESUME,Resume,Reprendre,,
+PAUSE_QUIT,Quit to menu,Retour au menu,,
+ENDING_AGAIN,Cross again,Traverser encore,,
+ENDING_MENU,Back to menu,Retour au menu,,
+ENDING_SHORE,The Letter,La lettre,30,1
+ENDING_RETURN,The Empty Seat,La place vide,30,1
+ENDING_BELL,The Drowned Bell,La cloche noyée,30,1
+SETTINGS_TITLE,Settings,Réglages,,
+SETTINGS_VOLUME,Volume,Volume,,
+SETTINGS_LANGUAGE,Language,Langue,,
+SETTINGS_BACK,Back,Retour,,
+LANG_EN,English,English,,
+LANG_FR,Français,Français,,
+LANG_DE,Deutsch,Deutsch,,
+CREDITS_TITLE,Credits,Crédits,,
+CREDITS_BACK,Back,Retour,,
+CREDITS_ENGINE,Engine,Moteur,,
+CREDITS_THIRD_PARTY,Third-party assets,Ressources tierces,,
+CREDITS_THANKS,Thanks,Remerciements,,
+N_DOCK,"Night on the Hensmouth landing. A stranger in a grey coat waits beside your ferry, a lantern held low in one hand.","La nuit, sur l'embarcadère de Hensmouth. Une inconnue en manteau gris attend près de votre bac, une lanterne basse à la main.",170,1
+N_TOLL,"“To Greywick, on the far bank,” the stranger says. “What does the crossing cost?”","« À Greywick, sur l'autre rive », dit l'inconnue. « Combien coûte la traversée ? »",170,1
+N_LAUNCH,"You push off from the landing. The lantern swings, and the lights of Hensmouth shrink behind you.","Vous quittez l'embarcadère. La lanterne se balance, et les lumières de Hensmouth rapetissent derrière vous.",170,1
+N_FOG,"Halfway across, the fog comes down. In the lantern light the stranger's face is pale and wet, as if drawn up from the river.","À mi-chemin, le brouillard tombe. À la lueur de la lanterne, le visage de l'inconnue est pâle et mouillé, comme tiré du fleuve.",170,1
+N_CROSSING,"The stranger sits very still. “You have rowed the Saltmere a long time,” she says. “Ask me something, if you like.”","L'inconnue ne bouge pas. « Vous ramez sur la Saltmere depuis longtemps », dit-elle. « Demandez-moi ce que vous voulez. »",170,1
+N_NAME,"“Maudrey,” she says. “Maudrey Quillon. My mother kept this ferry long before you did.”","« Maudrey », dit-elle. « Maudrey Quillon. Ma mère tenait ce bac bien avant vous. »",170,1
+N_CARGO,"She opens the bag: letters tied with river reed, every one of them sealed and never sent.","Elle ouvre le sac : des lettres nouées de roseau, toutes cachetées et jamais envoyées.",170,1
+N_BELL_TALE,"“Old Hensmouth drowned when the river moved,” she says. “Its bell still rings under the water, for anyone who listens.”","« Le vieux Hensmouth s'est noyé quand le fleuve a changé de lit », dit-elle. « Sa cloche sonne encore sous l'eau, pour qui écoute. »",170,1
+N_CONFESSION,"You admit that the toll is one copper. For the first time, the stranger laughs.","Vous avouez que le passage coûte un cuivre. Pour la première fois, l'inconnue rit.",170,1
+N_FAR_BANK,"The Greywick bank comes out of the fog. To your left, the broken tower of Old Hensmouth stands in the shallows.","La rive de Greywick sort du brouillard. À votre gauche, la tour brisée du vieux Hensmouth se dresse dans les hauts-fonds.",170,1
+N_BELL_TOWER,Under the tower the water hums. The stranger leans over the side and listens.,"Sous la tour, l'eau bourdonne. L'inconnue se penche par-dessus bord et écoute.",170,1
+N_END_SHORE,"The stranger steps onto the jetty and hands you a letter in your mother's hand. When you look up, the jetty is empty.","L'inconnue monte sur le ponton et vous tend une lettre de la main de votre mère. Quand vous levez les yeux, le ponton est vide.",170,1
+N_END_RETURN,"You row back to Hensmouth. At the landing the stranger's seat is empty and dry, and the lantern is yours.","Vous ramez jusqu'à Hensmouth. À l'embarcadère, la place de l'inconnue est vide et sèche, et la lanterne est à vous.",170,1
+N_END_BELL,"Far below, the drowned bell answers. The fog lifts, and the river is full of lanterns, one for every crossing ever made.","Tout au fond, la cloche noyée répond. Le brouillard se lève, et le fleuve est plein de lanternes, une pour chaque traversée.",170,1
+C_DOCK_GREET,Good evening. Where are you going?,Bonsoir. Où allez-vous ?,52,1
+C_DOCK_SILENT,"Nod, and untie the boat.",Hocher la tête et détacher le bateau.,52,1
+C_TOLL_TRUE,"One copper, as always.","Un cuivre, comme toujours.",52,1
+C_TOLL_LIE,Three coppers. The river is high tonight.,"Trois pièces de cuivre, parce que le fleuve est très haut ce soir et que le courant est bien trop fort.",100,1
+C_LAUNCH_ROW,Row out into the dark.,Ramer vers la nuit.,52,1
+C_FOG_STEADY,"Breathe slowly, and keep the oars steady.","Respirer lentement, garder les rames droites.",52,1
+C_FOG_HURRY,"Row faster, and do not look at her.","Ramer plus vite, sans la regarder.",52,1
+C_ASK_NAME,Ask her name.,Lui demander son nom.,52,1
+C_ASK_CARGO,Ask what is in her bag.,Demander ce que contient son sac.,52,1
+C_ASK_BELL,Ask about the bell you can hear.,Parler de la cloche que vous entendez.,52,1
+C_CONFESS,Admit that the toll is one copper.,Avouer que le passage coûte un cuivre.,52,1
+C_CROSS_ON,"Say nothing more, and row for the bank.","Ne plus rien dire, et ramer vers la rive.",52,1
+C_ROW_ON,Go back to rowing.,Reprendre les rames.,52,1
+C_LAND,Bring the boat in to the jetty.,Accoster au ponton.,52,1
+C_TURN_BACK,Turn the boat around.,Faire demi-tour.,52,1
+C_TO_TOWER,Row to the drowned tower.,Ramer jusqu'à la tour noyée.,52,1
+C_RING_BELL,"Strike the hull with your oar, three times.",Frapper trois fois la coque avec la rame.,52,1
+C_LEAVE_TOWER,Leave the tower and row for the bank.,Quitter la tour et ramer vers la rive.,52,1

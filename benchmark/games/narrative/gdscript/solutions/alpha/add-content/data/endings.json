@@ -1,0 +1,5 @@
+[
+  { "id": "shore", "node": "end_shore", "title": "ENDING_SHORE" },
+  { "id": "return", "node": "end_return", "title": "ENDING_RETURN" },
+  { "id": "bell", "node": "end_bell", "title": "ENDING_BELL" }
+]

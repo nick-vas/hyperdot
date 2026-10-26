@@ -1,0 +1,246 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://game/game.gd" id="1_game"]
+[ext_resource type="Script" path="res://game/sky.gd" id="2_sky"]
+[ext_resource type="Script" path="res://ui/safe_margins.gd" id="3_safe"]
+[ext_resource type="AudioStream" path="res://sounds/sfx/pickup_coin-9.wav" id="4_buy"]
+[ext_resource type="AudioStream" path="res://sounds/sfx/powerup-9.wav" id="5_upgrade"]
+[ext_resource type="AudioStream" path="res://sounds/sfx/jump-9.wav" id="6_dawn"]
+[ext_resource type="AudioStream" path="res://sounds/sfx/blip_select-9.wav" id="7_gather"]
+
+[node name="Game" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_game")
+
+[node name="Sky" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_sky")
+
+[node name="Safe" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("3_safe")
+extra = 16
+
+[node name="Column" type="VBoxContainer" parent="Safe"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Top" type="VBoxContainer" parent="Safe/Column"]
+layout_mode = 2
+
+[node name="GlowLabel" type="Label" parent="Safe/Column/Top"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 56
+text = "0 glow"
+horizontal_alignment = 1
+
+[node name="RateLabel" type="Label" parent="Safe/Column/Top"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "0/s"
+horizontal_alignment = 1
+
+[node name="EmbersLabel" type="Label" parent="Safe/Column/Top"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Embers: 0"
+horizontal_alignment = 1
+
+[node name="GatherButton" type="Button" parent="Safe/Column"]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+theme_override_font_sizes/font_size = 34
+text = "Gather"
+
+[node name="Header" type="HBoxContainer" parent="Safe/Column"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="PageTitle" type="Label" parent="Safe/Column/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 30
+text = "Producers"
+
+[node name="BuyModeButton" type="Button" parent="Safe/Column/Header"]
+custom_minimum_size = Vector2(170, 88)
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "Buy 1"
+
+[node name="ProducerPage" type="ScrollContainer" parent="Safe/Column"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="List" type="VBoxContainer" parent="Safe/Column/ProducerPage"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="UpgradePage" type="ScrollContainer" parent="Safe/Column"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="List" type="VBoxContainer" parent="Safe/Column/UpgradePage"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="Bar" type="HBoxContainer" parent="Safe/Column"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ProducersTab" type="Button" parent="Safe/Column/Bar"]
+custom_minimum_size = Vector2(0, 96)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 26
+text = "Producers"
+
+[node name="UpgradesTab" type="Button" parent="Safe/Column/Bar"]
+custom_minimum_size = Vector2(0, 96)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 26
+text = "Upgrades"
+
+[node name="DawnButton" type="Button" parent="Safe/Column/Bar"]
+custom_minimum_size = Vector2(0, 96)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 26
+text = "Dawn"
+
+[node name="SettingsButton" type="Button" parent="Safe/Column/Bar"]
+custom_minimum_size = Vector2(0, 96)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 26
+text = "Settings"
+
+[node name="Flash" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 0.88, 0.6, 0)
+
+[node name="WelcomePanel" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -190.0
+offset_right = 300.0
+offset_bottom = 190.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Box" type="VBoxContainer" parent="WelcomePanel"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="WelcomePanel/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+text = "Welcome back"
+horizontal_alignment = 1
+
+[node name="MessageLabel" type="Label" parent="WelcomePanel/Box"]
+custom_minimum_size = Vector2(560, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="CollectButton" type="Button" parent="WelcomePanel/Box"]
+custom_minimum_size = Vector2(0, 96)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "Collect"
+
+[node name="DawnPanel" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -240.0
+offset_right = 300.0
+offset_bottom = 240.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Box" type="VBoxContainer" parent="DawnPanel"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="DawnPanel/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+text = "Dawn"
+horizontal_alignment = 1
+
+[node name="MessageLabel" type="Label" parent="DawnPanel/Box"]
+custom_minimum_size = Vector2(560, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="ConfirmButton" type="Button" parent="DawnPanel/Box"]
+custom_minimum_size = Vector2(0, 96)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "Greet the dawn"
+
+[node name="CancelButton" type="Button" parent="DawnPanel/Box"]
+custom_minimum_size = Vector2(0, 96)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "Not yet"
+
+[node name="SfxBuy" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("4_buy")
+bus = &"Sfx"
+
+[node name="SfxUpgrade" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("5_upgrade")
+bus = &"Sfx"
+
+[node name="SfxDawn" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("6_dawn")
+bus = &"Sfx"
+
+[node name="SfxGather" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("7_gather")
+bus = &"Sfx"

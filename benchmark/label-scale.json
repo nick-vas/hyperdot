@@ -1,0 +1,127 @@
+{
+  "scale": "2026-10",
+  "introduced": "2026-10-23",
+  "classes": [
+    {
+      "class": "A",
+      "maxIndex": 52,
+      "color": "#00843d"
+    },
+    {
+      "class": "B",
+      "maxIndex": 60,
+      "color": "#4ba946"
+    },
+    {
+      "class": "C",
+      "maxIndex": 69,
+      "color": "#bed630"
+    },
+    {
+      "class": "D",
+      "maxIndex": 80,
+      "color": "#fff200"
+    },
+    {
+      "class": "E",
+      "maxIndex": 91,
+      "color": "#fdb913"
+    },
+    {
+      "class": "F",
+      "maxIndex": 102,
+      "color": "#f37021"
+    },
+    {
+      "class": "G",
+      "maxIndex": null,
+      "color": "#ed1c24"
+    }
+  ],
+  "programmes": {
+    "tool": {
+      "name": "Tool efficiency",
+      "spec": "benchmark/token-benchmark.json",
+      "standardProfile": "A-baseline",
+      "standardTokensPerSolvedTask": {
+        "COMP-PS-001": 256000.0,
+        "COMP-GD-001": 73000.0,
+        "CODE-PS-001": 48000.0,
+        "CODE-PS-002": 86000.0,
+        "DEBUG-PS-001": 116000.0,
+        "DEBUG-GD-001": 93000.0,
+        "CI-PS-001": 56000.0,
+        "CI-PS-003": 66000.0
+      },
+      "tolerance": {
+        "indexPercent": 20.0,
+        "successPoints": 10.0
+      },
+      "introducedFrom": "Hyperdot 0.1.0 at commit e4ccc2e: claude-sonnet-5-5 and claude-haiku-5-5, profiles A, B and C, and A with the plugin; 8 configurations, 216 sessions (GitHub Actions runs 39930259189 to 39930286282)"
+    },
+    "game": {
+      "name": "Game-making efficiency",
+      "spec": "benchmark/game-benchmark.json",
+      "standardProfile": "A-baseline",
+      "standardTokensPerSolvedTask": {
+        "GAME-DIAG-001": 96000.0,
+        "GAME-FIX-001": 145000.0,
+        "GAME-FEAT-001": 162000.0,
+        "GAME-TEST-001": 173000.0,
+        "GAME-TUNE-001": 140000.0
+      },
+      "tolerance": {
+        "indexPercent": 20.0,
+        "successPoints": 10.0
+      },
+      "introducedFrom": "Pilot: Hyperdot 0.1.0 at commit c190ddc, the five prototype-stage tasks of benchmark/game-benchmark.json; claude-sonnet-5-5 and claude-haiku-5-5, with and without the plugin; 60 sessions (GitHub Actions runs 39948344584 to 39948357149). Replaced when the staged programme of benchmark/PLAN.md is introduced."
+    }
+  },
+  "minimum": {
+    "successPercent": 50,
+    "everyTaskSolved": false
+  },
+  "rescale": {
+    "topClassPercent": 30,
+    "topTwoClassesPercent": 50
+  },
+  "coverage": {
+    "classes": [
+      {
+        "class": "A",
+        "minPercent": 95,
+        "color": "#00843d"
+      },
+      {
+        "class": "B",
+        "minPercent": 90,
+        "color": "#4ba946"
+      },
+      {
+        "class": "C",
+        "minPercent": 85,
+        "color": "#bed630"
+      },
+      {
+        "class": "D",
+        "minPercent": 75,
+        "color": "#fff200"
+      },
+      {
+        "class": "E",
+        "minPercent": 65,
+        "color": "#fdb913"
+      },
+      {
+        "class": "F",
+        "minPercent": 50,
+        "color": "#f37021"
+      },
+      {
+        "class": "G",
+        "minPercent": null,
+        "color": "#ed1c24"
+      }
+    ]
+  }
+}

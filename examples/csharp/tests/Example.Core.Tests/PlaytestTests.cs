@@ -159,11 +159,12 @@ public sealed class PlaytestTests
     public void TheKitsTemplateDescribesTheSameEvents()
     {
         // ci/godot/templates/playtest-events.json is what hyperdot.ps1 playtest reads sessions with, and what a game in
-        // another language copies: it must say exactly what PlaytestEvents does.
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null && !File.Exists(Path.Combine(dir.FullName, "ci", "godot", "templates", "playtest-events.json"))) dir = dir.Parent;
-        Assert.True(dir != null, "ci/godot/templates/playtest-events.json was not found above " + AppContext.BaseDirectory);
-        var template = JsonNode.Parse(File.ReadAllText(Path.Combine(dir!.FullName, "ci", "godot", "templates", "playtest-events.json")))!;
+        // another language copies: it must say exactly what PlaytestEvents does. The csproj copies it next to the tests
+        // while the example sits in the kit; a game copied from the example finds the kit above it (ci/godot), or, with no
+        // kit there, has nothing to compare with.
+        var path = TemplatePath();
+        if (path == null) return;
+        var template = JsonNode.Parse(File.ReadAllText(path))!;
         Assert.Equal(PlaytestEvents.Version, template["version"]!.GetValue<int>());
         var events = template["events"]!.AsObject();
         var definitions = PlaytestEvents.Definitions(new[] { "hub" });
@@ -200,5 +201,48 @@ public sealed class PlaytestTests
                 }
             }
         }
+    }
+
+    // The copy beside the tests, else the kit's file in a ci/godot above them, else null.
+    private static string? TemplatePath()
+    {
+        var copy = Path.Combine(AppContext.BaseDirectory, "playtest-events.json");
+        if (File.Exists(copy)) return copy;
+        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
+        {
+            var path = Path.Combine(dir.FullName, "ci", "godot", "templates", "playtest-events.json");
+            if (File.Exists(path)) return path;
+        }
+        return null;
+    }
+
+    // A playtest build flushes to files: one JSON batch a line, in a file named after the session, appended at each flush.
+    [Fact]
+    public async Task APlaytestBuildWritesEachBatchAsALineOfItsSessionsFile()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "playtest-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var sink = new PlaytestFileSink(folder, _client.SessionId);
+            _tracker.StartLevel("hub");
+            _tracker.Move(1, 1);
+            _tracker.Died(3);
+            Assert.Equal(1, await _client.FlushAsync(sink));
+            _now = 42;
+            _tracker.EndLevel(LevelResult.Finished);
+            Assert.Equal(1, await _client.FlushAsync(sink));
+            Assert.Equal(0, await _client.FlushAsync(sink));   // nothing left: nothing written
+
+            Assert.Equal(Path.Combine(folder, _client.SessionId + ".jsonl"), sink.File);
+            var lines = File.ReadAllLines(sink.File);
+            Assert.Equal(2, lines.Length);
+            var batches = lines.Select(l => JsonNode.Parse(l)!).ToList();
+            Assert.All(batches, b => Assert.Equal(_client.SessionId, b["session"]!.GetValue<string>()));
+            Assert.Equal(new[] { PlaytestEvents.Death, PlaytestEvents.LevelTime },
+                batches.Select(b => b["events"]![0]!["event"]!.GetValue<string>()));
+            Assert.Equal(42, batches[1]["events"]![0]!["fields"]!["seconds"]!.GetValue<double>());
+        }
+        finally { if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true); }
+        Assert.Throws<ArgumentException>(() => new PlaytestFileSink(folder, "../escape"));
     }
 }

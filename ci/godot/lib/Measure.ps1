@@ -31,35 +31,47 @@ function Get-WindowArgs([string]$Resolution, [switch]$Uncapped, [int]$MaxFps) {
 
 function Invoke-Bench {
     param($Info, [string]$Scene, [double]$Seconds, [double]$Warmup, [string]$Resolution, [switch]$Uncapped, [int]$MaxFps,
-        [switch]$Headless, [double]$BudgetMs, [string]$Label, [string]$ResultsDir, [string[]]$GameArgs, [double]$HotspotCell)
+        [switch]$Headless, [double]$BudgetMs, [string]$Label, [string]$ResultsDir, [string[]]$GameArgs, [double]$HotspotCell,
+        [double]$MaxDrawCalls, [double]$MaxLoadMs, [switch]$GpuValidation, [string]$RunName = '')
     if ($HotspotCell -lt 0) { Stop-GodotCi "-HotspotCell must be a size above 0 (or 0 for the default), not $HotspotCell" 'invalid-arguments' }
+    if ($MaxDrawCalls -lt 0) { Stop-GodotCi "-MaxDrawCalls must be 0 (no limit) or more, not $MaxDrawCalls" 'invalid-arguments' }
+    if ($MaxLoadMs -lt 0) { Stop-GodotCi "-MaxLoadMs must be 0 (no limit) or more, not $MaxLoadMs" 'invalid-arguments' }
     if (-not $Headless) { Assert-Display 'bench' }
     $tool = (Join-Path $PSScriptRoot '../tools/bench.gd' | Resolve-Path).Path -replace '\\', '/'
-    $engine = @('--path', $Info.ProjectDir) + (Get-WindowArgs $Resolution -Uncapped:$Uncapped -MaxFps $MaxFps)
+    $engine = @('--path', $Info.ProjectDir) + (Get-WindowArgs $Resolution -Uncapped:$Uncapped -MaxFps $MaxFps) + @(Get-GpuValidationArgs -On:$GpuValidation)
     if ($Headless) { $engine = @('--headless') + $engine }
     $user = @("--bench-seconds=$Seconds", "--bench-warmup=$Warmup") + $(if ($Scene) { "--bench-scene=$Scene" }) +
         $(if ($HotspotCell -gt 0) { "--bench-cell=$HotspotCell" }) + @(Split-GameArgs $GameArgs)
 
     New-Item -ItemType Directory -Force $ResultsDir | Out-Null
-    $log = Join-Path $ResultsDir 'bench.log'
+    # A sweep keeps each run's log and result apart: bench.<run>.log, bench.<run>.json.
+    $stem = if ($RunName) { "bench.$RunName" } else { 'bench' }
+    $log = Join-Path $ResultsDir "$stem.log"
     Start-LogGroup "Benchmark $(if ($Scene) { $Scene } else { 'main scene' }) for $Seconds s after $Warmup s warm-up"
     $code = Invoke-Logged $env:GODOT_BIN (@($engine) + @('-s', $tool, '--') + @($user)) $log
     Stop-LogGroup
     if ($code -ne 0) { Stop-GodotCi "Godot exited with $code during the benchmark" 'bench-failed' }
     $line = Get-Content -LiteralPath $log | Where-Object { $_ -match '^@@bench ' } | Select-Object -Last 1
-    if (-not $line) { Stop-GodotCi 'The benchmark printed no result; see bench.log' 'bench-failed' }
+    if (-not $line) { Stop-GodotCi "The benchmark printed no result; see $stem.log" 'bench-failed' }
     $result = ($line -replace '^@@bench ', '') | ConvertFrom-Json -AsHashtable
     if ($result.ContainsKey('error')) { Stop-GodotCi "Benchmark: $($result.error)" 'bench-failed' }
+    # No frame measured: no numbers, and nothing to hold against -BudgetMs, so the run is not a pass.
+    if ($result.frames -le 0) { Stop-GodotCi "The benchmark measured no frames in $Seconds s; see $stem.log" 'bench-failed' }
 
     $result['label'] = $Label
     $result['budgetMs'] = $BudgetMs
-    $result | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $ResultsDir 'bench.json') -Encoding utf8
+    $result['maxDrawCalls'] = $MaxDrawCalls
+    $result['maxLoadMs'] = $MaxLoadMs
+    $result | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $ResultsDir "$stem.json") -Encoding utf8
     Add-BenchCsvRow (Join-Path $ResultsDir 'bench.csv') $result
     Set-JsonField bench $result
 
     $summary = "{0} frames: avg {1} fps, 1% low {2}, 0.1% low {3}, p99 {4} ms, max {5} ms, {6} frame(s) over 33 ms, {7} hitch(es)" -f
-        $result.frames, $result.fps.avg, $result.fps.low1, $result.fps.low01, $result.frameMs.p99, $result.frameMs.max, $result.over33ms, @($result.hitches).Count
+        $result.frames, $result.fps.avg, $result.fps.low1, $result.fps.low01, $result.frameMs.p99, $result.frameMs.max, $result.over33ms, $result.hitchCount
     Write-CiLog $summary
+    Write-CiLog ("Loaded in {0} ms (resource {1}, instantiate {2}, first frame {3}); {4} draw calls a frame on average, {5} at most" -f
+        $result.loadMs, $result.loadBreakdownMs.resource, $result.loadBreakdownMs.instantiate, $result.loadBreakdownMs.firstFrame, $result.drawCalls.avg, $result.drawCalls.max)
+    Write-CiLog "Frame times: $((@($result.frameHistogram) | ForEach-Object { "$(if ($null -eq $_.toMs) { "over $($_.fromMs)" } else { "up to $($_.toMs)" }) ms $($_.percent)%" }) -join ', ')"
     if ($result.display -eq 'headless') { Write-CiLog 'Headless: nothing was drawn, so these are CPU timings only' }
     if ($result.camera -eq 'none') {
         Write-CiLog 'No active Camera3D or Camera2D in the root viewport, so no hotspots: frame times have no place'
@@ -70,11 +82,176 @@ function Invoke-Bench {
         }
     }
     foreach ($monitor in $result.customMonitors.GetEnumerator()) { Write-CiLog "  $($monitor.Key): +$($monitor.Value.delta)" }
-    # After the numbers are saved and reported: errors the game printed while measured still fail the run.
-    Assert-GodotLogClean $log 'The benchmark'
-    if ($BudgetMs -gt 0 -and $result.frameMs.p99 -gt $BudgetMs) {
-        Stop-GodotCi "p99 frame time $($result.frameMs.p99) ms is over the budget of $BudgetMs ms" 'bench-over-budget'
+    # After the numbers are saved and reported: GPU validation errors, then errors the game printed while measured, still
+    # fail the run.
+    $validation = if ($GpuValidation) { Get-GpuValidation @(Get-Content -LiteralPath $log) } else { $null }
+    if ($validation) { Set-JsonField gpuValidation $validation.Report; Assert-GpuValidation $validation.Report 'The benchmark' }
+    Assert-GodotLogClean $log 'The benchmark' -Expected $(if ($validation) { $validation.Lines } else { @() })
+    # Every limit that was crossed is named; the code is the first of them, in this order.
+    $over = @(
+        if ($BudgetMs -gt 0 -and $result.frameMs.p99 -gt $BudgetMs) { @{ code = 'bench-over-budget'; text = "p99 frame time $($result.frameMs.p99) ms is over the budget of $BudgetMs ms" } }
+        if ($MaxDrawCalls -gt 0 -and $result.drawCalls.avg -gt $MaxDrawCalls) { @{ code = 'bench-over-draw-calls'; text = "$($result.drawCalls.avg) draw calls a frame on average is over -MaxDrawCalls $MaxDrawCalls" } }
+        if ($MaxLoadMs -gt 0 -and $result.loadMs -gt $MaxLoadMs) { @{ code = 'bench-over-load-time'; text = "the scene took $($result.loadMs) ms to load, over -MaxLoadMs $MaxLoadMs" } }
+    )
+    if ($over.Count -gt 0) { Stop-GodotCi (@($over | ForEach-Object { $_.text }) -join '; ') $over[0].code }
+}
+
+# bench -Sweep <name>=<v1,v2,...>: the parameter and its values, or a stop (invalid-arguments). -Sweep a=1,2 arrives as
+# @('a=1', '2') from PowerShell and as 'a=1,2' through pwsh -File: joined with commas first.
+function ConvertFrom-BenchSweep([string[]]$Sweep) {
+    $text = (@($Sweep | ForEach-Object { "$_".Trim() } | Where-Object { $_ }) -join ',')
+    if ($text -notmatch '^(?<name>[A-Za-z][A-Za-z0-9_-]*)=(?<values>.+)$') {
+        Stop-GodotCi "-Sweep takes <name>=<value1>,<value2>,..., e.g. -Sweep particles=100,1000,10000 (the game gets --particles=100 and so on), not '$text'" 'invalid-arguments'
     }
+    $name = $Matches.name
+    if ($name -like 'bench-*') { Stop-GodotCi "-Sweep $name would clash with bench's own --bench-* flags; name the game's flag" 'invalid-arguments' }
+    $values = @($Matches.values -split ',' | ForEach-Object { $_.Trim() })
+    if (@($values | Where-Object { -not $_ -or $_ -match '\s' }).Count -gt 0) { Stop-GodotCi "-Sweep $name has an empty value or one with spaces: '$($Matches.values)'" 'invalid-arguments' }
+    $twice = @($values | Group-Object | Where-Object Count -gt 1 | ForEach-Object Name)
+    if ($twice) { Stop-GodotCi "-Sweep $name names $($twice -join ', ') more than once" 'invalid-arguments' }
+    return [pscustomobject]@{ Name = $name; Values = $values }
+}
+
+# One bench per value of -Sweep, the game getting --<name>=<value> after -GameArgs, labelled "<-Label> <name>=<value>":
+# one bench.csv row each, bench.<name>-<value>.json and .log, and the sweep's table in the JSON. A value whose run goes over
+# -BudgetMs, -MaxDrawCalls or -MaxLoadMs is marked, not a failure: finding where it crosses is the point. A run that
+# cannot be measured (Godot fails, engine errors, no frames) fails the sweep (bench-sweep-failed) after every value ran.
+function Invoke-BenchSweep {
+    param($Info, $Sweep, [string]$Scene, [double]$Seconds, [double]$Warmup, [string]$Resolution, [switch]$Uncapped, [int]$MaxFps,
+        [switch]$Headless, [double]$BudgetMs, [string]$Label, [string]$ResultsDir, [string[]]$GameArgs, [double]$HotspotCell,
+        [double]$MaxDrawCalls, [double]$MaxLoadMs, [switch]$GpuValidation)
+    $limitCodes = 'bench-over-budget', 'bench-over-draw-calls', 'bench-over-load-time'
+    $rows = [System.Collections.Generic.List[object]]::new()
+    foreach ($value in $Sweep.Values) {
+        $runName = ConvertTo-SafeName "$($Sweep.Name)-$value"
+        $runLabel = (@($Label, "$($Sweep.Name)=$value") | Where-Object { $_ }) -join ' '
+        $row = [ordered]@{ value = $value; label = $runLabel; ok = $true; withinLimits = $true; code = $null; message = $null
+            p50Ms = $null; p99Ms = $null; maxMs = $null; fpsAvg = $null; low1 = $null; drawCallsAvg = $null; loadMs = $null
+            result = (Join-Path $ResultsDir "bench.$runName.json") }
+        Write-CiLog "Sweep $($Sweep.Name)=${value}"
+        $script:CatchStops = $true
+        try {
+            Invoke-Bench -Info $Info -Scene $Scene -Seconds $Seconds -Warmup $Warmup -Resolution $Resolution -Uncapped:$Uncapped -MaxFps $MaxFps `
+                -Headless:$Headless -BudgetMs $BudgetMs -Label $runLabel -GameArgs (@($GameArgs) + @("--$($Sweep.Name)=$value")) -HotspotCell $HotspotCell `
+                -ResultsDir $ResultsDir -MaxDrawCalls $MaxDrawCalls -MaxLoadMs $MaxLoadMs -GpuValidation:$GpuValidation -RunName $runName
+        } catch {
+            $row.code = if ($_.Exception.Data.Contains('HyperdotCode')) { $_.Exception.Data['HyperdotCode'] } else { 'unexpected-error' }
+            $row.message = $_.Exception.Message
+            if ($row.code -in $limitCodes) { $row.withinLimits = $false } else { $row.ok = $false }
+        } finally { $script:CatchStops = $false }
+        if (Test-Path -LiteralPath $row.result) {
+            $r = Get-Content -LiteralPath $row.result -Raw | ConvertFrom-Json
+            $row.p50Ms = $r.frameMs.p50; $row.p99Ms = $r.frameMs.p99; $row.maxMs = $r.frameMs.max; $row.fpsAvg = $r.fps.avg
+            $row.low1 = $r.fps.low1; $row.drawCallsAvg = $r.drawCalls.avg; $row.loadMs = $r.loadMs
+        } else { $row.result = $null }
+        # An over-limit run that then also printed engine errors is a failed run.
+        if (-not $row.ok) { $row.withinLimits = $false }
+        $rows.Add($row)
+    }
+    # The sweep's own table replaces the last run's bench object.
+    if ($script:JsonMode -and $script:JsonDoc.Contains('bench')) { $script:JsonDoc.Remove('bench') }
+    $within = @($rows | Where-Object { $_.ok -and $_.withinLimits } | ForEach-Object value)
+    $lastWithin = $null
+    foreach ($row in $rows) { if ($row.ok -and $row.withinLimits) { $lastWithin = $row.value } else { break } }
+    Set-JsonField sweep ([ordered]@{ name = $Sweep.Name; values = @($Sweep.Values); budgetMs = $BudgetMs; maxDrawCalls = $MaxDrawCalls; maxLoadMs = $MaxLoadMs
+        rows = $rows.ToArray(); withinLimits = $within; lastWithinLimits = $lastWithin })
+    $width = [math]::Max(5, (@($Sweep.Values | ForEach-Object Length) | Measure-Object -Maximum).Maximum)
+    Write-CiLog ("{0}  {1,8}  {2,8}  {3,8}  {4,10}  {5}" -f $Sweep.Name.PadRight($width), 'p99 ms', 'p50 ms', 'avg fps', 'draw calls', 'result')
+    foreach ($row in $rows) {
+        $verdict = if (-not $row.ok) { "FAILED ($($row.code))" } elseif (-not $row.withinLimits) { "over ($($row.code))" } else { 'ok' }
+        Write-CiLog ("{0}  {1,8}  {2,8}  {3,8}  {4,10}  {5}" -f "$($row.value)".PadRight($width), $row.p99Ms, $row.p50Ms, $row.fpsAvg, $row.drawCallsAvg, $verdict)
+    }
+    $failed = @($rows | Where-Object { -not $_.ok })
+    if ($failed.Count -gt 0) {
+        Stop-GodotCi "bench -Sweep: $(@($failed | ForEach-Object { "$($Sweep.Name)=$($_.value) failed ($($_.code)): $($_.message)" }) -join '; ') (see sweep.rows)" 'bench-sweep-failed'
+    }
+    $limits = if ($BudgetMs -gt 0 -or $MaxDrawCalls -gt 0 -or $MaxLoadMs -gt 0) { "; within the limits up to $($Sweep.Name)=$(if ($null -ne $lastWithin) { $lastWithin } else { 'none' })" } else { '' }
+    Write-CiLog "Swept $($Sweep.Name) over $($rows.Count) value(s)$limits"
+}
+
+# --gpu-validation turns on the graphics API's validation layers (Vulkan's Khronos layer, D3D12's debug layer), which check
+# every call the renderer makes and report misuse: what a driver forgives on one GPU and crashes on another.
+# --accurate-breadcrumbs places a barrier between the markers Godot leaves in the command stream, so a GPU reset (device
+# lost) names the command that caused it. --gpu-abort is not passed: it crashes at the first error, so a run would report
+# one error as a crash instead of listing them all, and release templates ignore it.
+function Get-GpuValidationArgs([switch]$On) {
+    if ($On) { return @('--gpu-validation', '--accurate-breadcrumbs') }
+    return @()
+}
+
+# What a run with --gpu-validation printed: the rendering driver (vulkan, opengl3, d3d12, metal; null when nothing was
+# drawn, as headless), whether the validation layer loaded (Vulkan: the loader names VK_LAYER_KHRONOS_validation, or the
+# layer says it is active; null where the log cannot tell), and the validation errors and warnings. Godot prints Vulkan's
+# messages two ways, by the extension the driver offers:
+#   ERROR: Vulkan Debug Report: object - 1895558046287548          (VK_EXT_debug_report; the message on the next line)
+#   Validation Error: [ VUID-vkCmdDispatch-format-07753 ] Object 0: ... | MessageID = 0x6714bd0c | vkCmdDispatch(): ...
+#   ERROR: VALIDATION - Message Id Number: 1729395980 | Message Id Name: VUID-vkCmdDispatch-format-07753   (VK_EXT_debug_utils)
+#   	vkCmdDispatch(): the descriptor ...
+# D3D12 uses the second form without a name. Messages matching HYPERDOT_IGNORE_ERRORS are left out. Report is the JSON's
+# gpuValidation; Lines are the ERROR lines it accounts for, so the engine error check does not count them a second time.
+function Get-GpuValidation([string[]]$Lines) {
+    $ignore = Get-IgnoredErrorsRegex
+    $driver = $null; $layerSeen = $false
+    $errors = [System.Collections.Generic.List[object]]::new()
+    $handled = [System.Collections.Generic.List[string]]::new()
+    $warnings = 0
+    $clean = @($Lines | ForEach-Object { $_ -replace "`e\[[0-9;]*m", '' })
+    for ($i = 0; $i -lt $clean.Count; $i++) {
+        $line = $clean[$i]
+        if ($null -eq $driver) {
+            if ($line -match '^Vulkan \d') { $driver = 'vulkan' }
+            elseif ($line -match '^OpenGL API ') { $driver = 'opengl3' }
+            elseif ($line -match '^D3D12 ') { $driver = 'd3d12' }
+            elseif ($line -match '^Metal ') { $driver = 'metal' }
+        }
+        # The loader's messages come before the renderer's line.
+        if ($line -match 'VK_LAYER_KHRONOS_validation|Khronos Validation Layer Active') { $layerSeen = $true }
+        $header = $null; $id = $null; $message = $null
+        if ($line -cmatch '^\s*ERROR: Vulkan Debug Report: object - ') {
+            $header = $line.Trim()
+            $message = if ($i + 1 -lt $clean.Count) { $clean[$i + 1].Trim() } else { '' }
+            $i++
+        } elseif ($line -cmatch '^\s*ERROR: (?:[A-Z_]+(?: \| )?)+ - Message Id Number: (?<num>-?\d+)(?: \| Message Id Name: (?<name>.*))?$') {
+            $header = $line.Trim()
+            $id = if ($Matches.ContainsKey('name') -and $Matches['name'].Trim()) { $Matches['name'].Trim() } else { $Matches['num'] }
+            $message = if ($i + 1 -lt $clean.Count -and $clean[$i + 1] -match '^\s') { $clean[$i + 1].Trim() } else { '' }
+            $i++
+        } elseif ($line -cmatch '^Validation Error: \[') {
+            # The layer printing on its own, with no callback of Godot's in between.
+            $message = $line.Trim()
+        } elseif ($line -cmatch '^\s*WARNING: (Vulkan Debug Report|(?:[A-Z_]+(?: \| )?)+ - Message Id Number:)|^Validation Warning: \[') {
+            # A Godot WARNING line carries its message on the next line: one warning, not two.
+            $warnings++
+            if ($line -cmatch '^\s*WARNING:') { $i++ }
+            continue
+        } else { continue }
+        if (-not $id -and $message -match '^Validation Error: \[ (?<vuid>[^\]]+?) \]') { $id = $Matches.vuid }
+        if ($header) { $handled.Add($header) }
+        if ("$header $message" -match $ignore) { Write-CiLog "Ignored GPU validation message: $message"; continue }
+        $errors.Add([ordered]@{ id = $id; message = $(if ($message.Length -gt 600) { $message.Substring(0, 600) } else { $message }) })
+    }
+    return [pscustomobject]@{
+        Report = [ordered]@{ driver = $driver; layerLoaded = $(if ($driver -eq 'vulkan') { $layerSeen } else { $null }); errorCount = $errors.Count; warningCount = $warnings; errors = @($errors | Select-Object -First 20) }
+        Lines = @($handled)
+    }
+}
+
+# Fails a run whose validation found errors, or that was not validated at all: the Compatibility renderer (OpenGL) and
+# headless runs have no validation layers, and on Vulkan the layer must be installed (Linux: vulkan-validationlayers;
+# Windows and macOS: the Vulkan SDK). D3D12 and Metal are taken on trust: their logs do not say whether the layer loaded.
+function Assert-GpuValidation($Report, [string]$What) {
+    if ($Report.errorCount -gt 0) {
+        $ids = @($Report.errors | ForEach-Object { if ($_.id) { $_.id } else { $_.message } } | Select-Object -Unique -First 5)
+        Write-Console '[hyperdot] GPU validation errors:' -ForegroundColor Red
+        foreach ($e in $Report.errors | Select-Object -First 10) { Write-Console "  $(if ($e.id) { "[$($e.id)] " })$($e.message)" }
+        Stop-GodotCi "$What made $($Report.errorCount) GPU validation error(s): $($ids -join '; ') (see gpuValidation.errors)" 'gpu-validation-errors'
+    }
+    $why = if ($null -eq $Report.driver) { 'nothing was drawn (a headless run, or Godot printed no renderer line)' }
+        elseif ($Report.driver -eq 'opengl3') { 'the project renders with OpenGL (the Compatibility renderer), which has no validation layers; Forward+ and Mobile use Vulkan' }
+        elseif ($Report.layerLoaded -eq $false) { "Vulkan's validation layer is not installed (Linux: the vulkan-validationlayers package; Windows and macOS: the Vulkan SDK)" }
+        else { $null }
+    if ($why) { Stop-GodotCi "-GpuValidation: nothing was validated, because $why" 'no-gpu-validation' }
+    Write-CiLog "GPU validation ($($Report.driver)): no errors, $($Report.warningCount) warning(s)"
 }
 
 # One row per run, so runs can be compared over time (label each one: -Label "vsync-on 1080p").
@@ -85,16 +262,16 @@ function Add-BenchCsvRow([string]$Path, $Result) {
         renderer = $Result.renderer; vsync = $Result.vsync; maxFps = $Result.maxFps; display = $Result.display
         frames = $Result.frames; fpsAvg = $Result.fps.avg; low1 = $Result.fps.low1; low01 = $Result.fps.low01
         p50Ms = $Result.frameMs.p50; p99Ms = $Result.frameMs.p99; maxMs = $Result.frameMs.max
-        over20ms = $Result.over20ms; over33ms = $Result.over33ms; hitches = @($Result.hitches).Count
+        over20ms = $Result.over20ms; over33ms = $Result.over33ms; hitches = $Result.hitchCount
         drawCallsAvg = $Result.drawCalls.avg; customMonitorDeltas = $monitors
     }
     $exists = Test-Path -LiteralPath $Path
-    [pscustomobject]$row | Export-Csv -LiteralPath $Path -Append:$exists -NoTypeInformation -Encoding utf8
+    Export-InvariantCsv @([pscustomobject]$row) $Path -Append:$exists
 }
 
 function Invoke-Shot {
     param($Info, [string[]]$Scene, [int]$Frames, [string]$Resolution, [string]$OutputDir, [string[]]$GameArgs, [string]$Baseline, [string[]]$Locale, [switch]$Pseudo,
-        [string[]]$ColorVision, [double]$MaxChangedPercent = -1, [double]$MaxOffPalettePercent = -1, [double]$PaletteTolerance = 3)
+        [string[]]$ColorVision, [double]$MaxChangedPercent = -1, [double]$MaxOffPalettePercent = -1, [double]$PaletteTolerance = 3, [switch]$GpuValidation)
     if ($MaxChangedPercent -ge 0 -and -not $Baseline) { Stop-GodotCi '-MaxChangedPercent compares with -Baseline: give the folder of the earlier screenshots' 'invalid-arguments' }
     if ($MaxChangedPercent -gt 100) { Stop-GodotCi "-MaxChangedPercent is a percentage of pixels (0 to 100), not $MaxChangedPercent" 'invalid-arguments' }
     if ($MaxOffPalettePercent -gt 100) { Stop-GodotCi "-MaxOffPalettePercent is a percentage of pixels (0 to 100), not $MaxOffPalettePercent" 'invalid-arguments' }
@@ -118,7 +295,7 @@ function Invoke-Shot {
         if ($baselineDir.TrimEnd('\', '/') -eq $dir.TrimEnd('\', '/')) { Stop-GodotCi '-Baseline must differ from -Output, or the new screenshots would replace the ones they are compared with' 'invalid-arguments' }
     }
     New-Item -ItemType Directory -Force $dir | Out-Null
-    $engine = @('--path', $Info.ProjectDir) + (Get-WindowArgs $Resolution)
+    $engine = @('--path', $Info.ProjectDir) + (Get-WindowArgs $Resolution) + @(Get-GpuValidationArgs -On:$GpuValidation)
     $scenes = @($Scene | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
     $user = @("--shot-frames=$Frames", "--shot-dir=$($dir -replace '\\', '/')") + $(if ($scenes) { "--shot-scenes=$($scenes -join ',')" }) +
         $(if ($baselineDir) { "--shot-baseline=$($baselineDir -replace '\\', '/')" }) + @(Split-GameArgs $GameArgs)
@@ -189,6 +366,9 @@ function Invoke-Shot {
             if ($p.offPalettePercent -gt 0 -and $MaxOffPalettePercent -lt 0) { Write-CiLog "  WARN: $($p.offPalettePercent)% of the picture is off the palette in docs/STYLE.md -> $($p.image)" }
         }
     }
+    # The pictures are reported first; then GPU validation, whose errors fail the run before any picture check does.
+    $validation = if ($GpuValidation) { Get-GpuValidation @(Get-Content -LiteralPath $log) } else { $null }
+    if ($validation) { Set-JsonField gpuValidation $validation.Report; Assert-GpuValidation $validation.Report 'The screenshot run' }
     $missing = @(foreach ($shot in $shots) { foreach ($kind in $kinds) { if (-not $shot.Contains('colorVision') -or -not $shot.colorVision.Contains($kind)) { "$($shot.file) has no $kind picture" } } })
     $problems += $missing
     if ($problems.Count -gt 0 -or $shots.Count -eq 0) {
@@ -220,5 +400,5 @@ function Invoke-Shot {
         }
     }
     # After reporting the pictures: a scene that printed errors while it ran still fails the run.
-    Assert-GodotLogClean $log 'The screenshot run'
+    Assert-GodotLogClean $log 'The screenshot run' -Expected $(if ($validation) { $validation.Lines } else { @() })
 }

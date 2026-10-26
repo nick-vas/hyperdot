@@ -22,6 +22,10 @@ keep its `.gdignore`: without it, the kit's `.gd` tool scripts (nine in `ci/godo
 - `solution_directory` in `project.godot` when your `.sln` lives outside the project folder;
 - `.github/workflows/hyperdot.yml`.
 
+With `-Agents` or `-Plugin` it also writes `AGENTS.md`, `CLAUDE.md` and `docs/kit-notes.md` (where the agent notes each
+time the kit got in the way). Start every Claude Code session in the game with `/game`: it reads where the game stands and
+ends with the next tasks to pick from ([plan.md](plan.md#the-gdd-status-and-game)).
+
 ### 2. Run the tests locally, and check your setup
 
 ```powershell
@@ -33,7 +37,9 @@ Get-Help ci/godot/hyperdot.ps1 -Detailed
 `doctor` catches the mistakes that break CI or ship broken builds. Examples: no `solution_directory`
 (exports would silently drop your C# code), test packages or test folders going into release builds, GUT
 files that won't run, a GDExtension with no library for a build a preset exports (picked as Godot picks it,
-[docs/addons.md](addons.md)), and a missing .NET SDK. Godot is downloaded once to `~/.hyperdot`.
+[docs/addons.md](addons.md)), and a missing .NET SDK. Godot is downloaded once to `~/.hyperdot`. Among its warnings:
+copies of one asset file, `OccluderInstance3D` nodes with occlusion culling off, and bodies moved per physics tick with
+physics interpolation off ([docs/profiling-and-builds.md](profiling-and-builds.md#kit-changes)).
 
 It also reads the instructions every agent session loads: `AGENTS.md`, `CLAUDE.md` and `CLAUDE.local.md` at the
 repository root (and in the project folder), with the files they import (`@path`, up to four hops, as Claude Code
@@ -52,12 +58,17 @@ jobs:
     permissions:
       contents: read
       pull-requests: write     # lets it comment; without this it just warns
-    uses: nick-vas/hyperdot/.github/workflows/godot.yml@main
+    uses: nick-vas/hyperdot/.github/workflows/godot.yml@v1
 ```
 The workflow runs the same script, with the same detection, on `ubuntu-latest`, the cheapest runner. On
 pull requests it keeps a single comment up to date with the results table, failures, and coverage compared
 with the base branch. You don't need the submodule for CI; the workflow brings its own copy of the script,
 pinned to the `@ref` you use.
+
+`@v1` is what `init` writes. It is a moving tag on this repository that points at the release games should run, so a
+change on the kit's `main` reaches no game until a release moves the tag, and a game moves up (to another tag, or a commit)
+on purpose, in a commit of its own. The tag is created with the first release, 0.1.0; until then `@v1` does not resolve, so
+a game set up before it uses `@main` by hand. A workflow `init` wrote earlier keeps the ref it has.
 
 ### 4. A GDScript-only game with GUT
 
@@ -80,7 +91,7 @@ on:
 jobs:
   godot:
     permissions: { contents: read, pull-requests: write }
-    uses: nick-vas/hyperdot/.github/workflows/godot.yml@main
+    uses: nick-vas/hyperdot/.github/workflows/godot.yml@v1
     with:
       # Unit tests only on PRs; every framework once merged.
       runners: ${{ github.event_name == 'pull_request' && 'dotnet' || '' }}
@@ -96,7 +107,7 @@ jobs:
   release:
     permissions:
       contents: write          # to create the release
-    uses: nick-vas/hyperdot/.github/workflows/godot.yml@main
+    uses: nick-vas/hyperdot/.github/workflows/godot.yml@v1
     with:
       exports: Windows         # a preset name from export_presets.cfg, or "all"
       run-exports: true        # launch the .exe on a Windows runner and fail on errors
@@ -149,8 +160,46 @@ jobs:
       matrix:
         project: [games/arena, games/puzzle]
     permissions: { contents: read, pull-requests: write }
-    uses: nick-vas/hyperdot/.github/workflows/godot.yml@main
+    uses: nick-vas/hyperdot/.github/workflows/godot.yml@v1
     with:
       project: ${{ matrix.project }}
 ```
-Artifacts and PR comments are per game (named after `config/name`), so they don't collide.
+Artifacts and PR comments are per game (named after `config/name`), so they don't collide. A test results artifact also
+names the `runners` input when it is set, so two jobs that test one game with different runners keep apart.
+
+### 11. GitLab CI
+
+Untested on GitLab: [`ci/gitlab/hyperdot.gitlab-ci.yml`](../ci/gitlab/hyperdot.gitlab-ci.yml) is written against GitLab's
+documented keywords and checked by `tests/Test-GitLabTemplate.ps1` (it parses the file, checks its keys, and matches its
+report paths against what the kit writes), but it has never run on a GitLab runner. Reports of a first run are welcome.
+
+```yaml
+include:
+  - remote: https://raw.githubusercontent.com/nick-vas/hyperdot/v1/ci/gitlab/hyperdot.gitlab-ci.yml
+variables:
+  HYPERDOT_PROJECT: game        # the folder with project.godot, if not found by itself
+  HYPERDOT_COVERAGE: "true"
+```
+
+It adds two jobs, the same steps as the GitHub action: `hyperdot-test` (stage `test`, every pipeline) sets up Godot and
+runs `test`; `hyperdot-export` (stage `deploy`, the default branch and tags) runs `export` and keeps `build/` as the job's
+artifact. Both run in `mcr.microsoft.com/dotnet/sdk:8.0`, which already holds .NET 8, PowerShell 7 and git; the kit
+clones itself into `/tmp/hyperdot` at `HYPERDOT_REF` (set `HYPERDOT_KIT` to a folder that holds it, such as a submodule,
+to skip the clone) and downloads Godot like anywhere else. The GitHub action's inputs are variables, upper case with
+underscores: `HYPERDOT_PROJECT`, `HYPERDOT_GODOT_VERSION`, `HYPERDOT_RUNNERS`, `HYPERDOT_FILTER`, `HYPERDOT_RETRY`,
+`HYPERDOT_COVERAGE`, `HYPERDOT_MIN_COVERAGE`, `HYPERDOT_PRESET`, `HYPERDOT_RUN_EXPORTS`, `HYPERDOT_GAME_VERSION`
+(`ci/gitlab/Invoke-Hyperdot.ps1` turns them into `hyperdot.ps1`'s parameters).
+
+- **Tests in merge requests:** `test` also writes every runner's results as JUnit into `test-results/junit/` (JUnit runners
+  copied, the TRX of `dotnet` and `gdunit4` converted, failed `-Retry` attempts left out; `junitDir` in `-Json`), which the
+  job reports through `artifacts:reports:junit`. `test-results/` is kept as an artifact, also when the tests fail.
+- **Coverage:** with `HYPERDOT_COVERAGE` or `HYPERDOT_MIN_COVERAGE`, each runner's Cobertura file
+  (`test-results/<runner>/coverage/*.cobertura.xml`) goes to `artifacts:reports:coverage_report`, and the job's `coverage`
+  regex reads the kit's `Line coverage: 85.2%` line for the badge.
+- **Caches:** Godot and NuGet packages in `.hyperdot-cache/tools` and `.hyperdot-cache/nuget` (`GODOT_TOOLS_DIR`,
+  `NUGET_PACKAGES`), export templates in `.hyperdot-cache/data` (`XDG_DATA_HOME`): inside the checkout, the only place
+  GitLab caches, with a `.gdignore` so Godot skips it. The tools cache is saved even when the job fails.
+- **Exports:** one job for every preset by default; extend `.hyperdot` with `HYPERDOT_PRESET` for one job per platform.
+  `GIT_DEPTH: "0"` lets `HYPERDOT_GAME_VERSION: auto` read the tags. Git LFS files are fetched by GitLab's runner before the job.
+- **Not covered:** the GitHub workflow's PR comment, the import cache, and the Android Gradle cache. A smaller image with
+  Godot already in it is on the roadmap.

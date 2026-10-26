@@ -1,0 +1,13 @@
+[
+  { "id": "dock", "chapter": 1, "speaker": "narrator", "text": "N_DOCK" },
+  { "id": "toll", "chapter": 1, "speaker": "stranger", "text": "N_TOLL" },
+  { "id": "launch", "chapter": 1, "speaker": "narrator", "text": "N_LAUNCH" },
+  { "id": "fog", "chapter": 2, "speaker": "narrator", "text": "N_FOG" },
+  { "id": "crossing", "chapter": 2, "speaker": "stranger", "text": "N_CROSSING" },
+  { "id": "name", "chapter": 2, "speaker": "stranger", "text": "N_NAME" },
+  { "id": "cargo", "chapter": 2, "speaker": "stranger", "text": "N_CARGO" },
+  { "id": "confession", "chapter": 2, "speaker": "narrator", "text": "N_CONFESSION" },
+  { "id": "far_bank", "chapter": 3, "speaker": "narrator", "text": "N_FAR_BANK" },
+  { "id": "end_shore", "chapter": 3, "speaker": "stranger", "text": "N_END_SHORE" },
+  { "id": "end_return", "chapter": 3, "speaker": "narrator", "text": "N_END_RETURN" }
+]
