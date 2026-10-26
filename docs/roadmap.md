@@ -124,6 +124,12 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 
 ### After 0.1.0
 
+- **A complete mid run of the staged programme** (postponed by the owner on 2026-10-26 until after the 0.1.0 release).
+  Run 44 graded 294 of 540 sessions: the plan's usage limit stopped every job after 65 minutes, and a git race ended
+  four parts early (fixed in nick-vas/hyperdot#134). Before the rerun: the `unchanged` rule must let a fix task add tests
+  to a kept test file, and the arena soak race must be fixed; then run it in fewer parallel jobs or over several usage
+  windows, priced at $67.71 (`benchmark/PLAN.md`, "The first mid run, stopped halfway"). The game-making label waits
+  for it; 0.1.0 ships the tool programme's.
 - **Opus as a model the staged programme measures.** The programme's configurations are Sonnet and Haiku, with and
   without the plugin; Opus only judges. The owner chose on 2026-10-26 to keep the first mid run to those four and measure
   Opus in a run of its own later: two more configurations in `benchmark/game-programme.json`, priced by a dry run
