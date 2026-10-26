@@ -124,6 +124,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-DocLinks.ps1` | links and quoted paths in the docs and skills | - |
 | `Test-CoverageMap.ps1` | `docs/coverage.md` has a row for every command, error code, lib file, tool, skill, subagent and workflow job; `-Check` catches missing, stale and wrong rows; records are credited to the test they name | - |
 | `Test-LibNames.ps1` | function names across `ci/godot` (unique, no alias clashes) | - |
+| `Test-PowerShellPatterns.ps1` | every tracked `.ps1` free of the anti-patterns of `docs/powershell.md` that have no use left (`continue` in a pipeline block, `$null` on the right, `Invoke-Expression`, `[IO.Path]::Combine`, `$PSBoundParameters.Name`, a lowered `$ErrorActionPreference`, relative literal paths to .NET, `-Version Latest`, Windows-only aliases, one file read and written in one pipeline), read from the syntax tree; each check fires on its file in `powershell-patterns-fixture` and not on its clean file | - |
 | `Test-OldState.ps1` | the one-time move of state from the names before Hyperdot (history, GUT stamp, tools folder, workflow, plugin entry) | - |
 | `Test-TokenBenchmark.ps1` | the token benchmark's counting, grader, retries and the copy its sessions run in (a stand-in CLI) | - |
 | `Test-HyperdotLabel.ps1` | the label: index, classes, minimum, verification, rescaling and the tool and game programmes (`label-fixture`, made-up runs) | - |

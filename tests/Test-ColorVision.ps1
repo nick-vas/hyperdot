@@ -69,6 +69,7 @@ function Get-PngPixels([string]$Path, [object[]]$Points) {
     $data = $raw.ToArray()
     $stride = $width * $channels
     $lastRow = [int](($Points | ForEach-Object { $_[1] } | Measure-Object -Maximum).Maximum)
+    if ($lastRow -ge $height) { throw "$Path is $height pixels high; row $lastRow was asked for" }
     # Undo the per-row filters (None, Sub, Up, Average, Paeth) down to the lowest row asked for.
     $prev = [byte[]]::new($stride); $rows = @{}
     for ($y = 0; $y -le $lastRow; $y++) {
