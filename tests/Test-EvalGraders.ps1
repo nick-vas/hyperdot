@@ -1,4 +1,4 @@
-#Requires -Version 7.2
+#Requires -Version 7.6
 <#
 .SYNOPSIS
 Self-test: the eval graders that need no model (regex and tool_used) against real sessions from past Evals runs.

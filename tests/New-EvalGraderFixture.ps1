@@ -1,4 +1,4 @@
-#Requires -Version 7.2
+#Requires -Version 7.6
 <#
 .SYNOPSIS
 Makes a grader fixture for tests/Test-EvalGraders.ps1 from one run of a real `claude plugin eval` result.
