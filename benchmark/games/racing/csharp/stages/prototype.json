@@ -1,0 +1,192 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "main.tscn",
+    "ui",
+    "game/PauseMenu.cs",
+    "game/ResultMenu.cs",
+    "scripts/SaveStore.cs",
+    "scripts/Controls.cs",
+    "scripts/LaunchOptions.cs",
+    "scripts/TextFormat.cs",
+    "data.json",
+    "i18n",
+    "sounds",
+    "plan",
+    "docs",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "architecture.json",
+    "assets.json",
+    "test/flows",
+    "test/CarTest.cs",
+    "test/StandingsTest.cs",
+    "test/SaveStoreTest.cs",
+    "test/ControlsTest.cs",
+    "test/LaunchOptionsTest.cs",
+    "test/GameTest.cs"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "run/main_scene=\"res://main.tscn\"",
+      "replace": "run/main_scene=\"res://game/game.tscn\""
+    },
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.1.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "[internationalization]\n\nlocale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")\n\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/Race.cs",
+      "find": "    /// <summary>\n    /// Car indices from first to last: those that took the flag in that order, then by laps done, gates passed in the lap\n    /// and the distance left to the next gate; level cars by index.\n    /// </summary>\n    public List<int> Standings()\n    {\n        var order = new List<int>();\n        for (int i = 0; i < Cars.Count; i++)\n            order.Add(i);\n        order.Sort((a, b) => a == b ? 0 : Ahead(a, b) ? -1 : 1);\n        return order;\n    }\n\n    /// <summary>1 for the leader.</summary>\n    public int PositionOf(int i) => Standings().IndexOf(i) + 1;\n\n    private bool Ahead(int a, int b)\n    {\n        int fa = FinishOrder.IndexOf(a);\n        int fb = FinishOrder.IndexOf(b);\n        if (fa >= 0 || fb >= 0)\n        {\n            if (fa < 0 || fb < 0)\n                return fa >= 0;\n            return fa < fb;\n        }\n        LapTracker ta = Trackers[a];\n        LapTracker tb = Trackers[b];\n        if (ta.Laps != tb.Laps)\n            return ta.Laps > tb.Laps;\n        int ga = ta.GatesPassed(Track);\n        int gb = tb.GatesPassed(Track);\n        if (ga != gb)\n            return ga > gb;\n        double da = ToNextGate(a);\n        double db = ToNextGate(b);\n        if (!IsEqualApprox(da, db))\n            return da < db;\n        return a < b;\n    }\n\n    /// <summary>How far car i has to go along the track to its next gate.</summary>\n    private double ToNextGate(int i)\n    {\n        Car car = Cars[i];\n        double gateAt = Track.Lengths[Track.GatePoints[Trackers[i].NextGate]];\n        return FPosMod(gateAt - Track.DistanceAlong(car.Position, car.Index), Track.Length());\n    }\n\n",
+      "replace": ""
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "a lap counts when a checkpoint was skipped: on Ashfall Oval a car that cuts straight across the grass infield from the start straight to the far straight still gets the lap and its time"
+      },
+      "edits": [
+        {
+          "file": "scripts/LapTracker.cs",
+          "find": "        if (!track.CrossesGate(NextGate, from, to))\n            return Crossing.None;\n        if (NextGate != 0)\n        {\n            NextGate = (NextGate + 1) % track.GateCount();\n            return Crossing.Gate;\n        }\n",
+          "replace": "        int gate = NextGate;\n        if (NextGate != 0)\n        {\n            // At speed a car can miss a gate by a pixel: any gate further on that it crosses counts too.\n            for (int later = NextGate; later < track.GateCount(); later++)\n            {\n                if (track.CrossesGate(later, from, to))\n                {\n                    gate = later;\n                    break;\n                }\n            }\n        }\n        if (!track.CrossesGate(gate, from, to))\n            return Crossing.None;\n        if (gate != 0)\n        {\n            NextGate = (gate + 1) % track.GateCount();\n            return Crossing.Gate;\n        }\n"
+        },
+        {
+          "file": "scripts/LapTracker.cs",
+          "find": "A gate crossed out of turn counts for nothing, so cutting across the\n/// grass past a checkpoint never shortens a lap. Lap times",
+          "replace": "Lap times"
+        }
+      ],
+      "unchanged": [
+        "test/LapTrackerTest.cs"
+      ],
+      "hidden": [
+        "hidden/HiddenCheckpointsTest.cs"
+      ],
+      "reference": "solutions/prototype/fix-bug",
+      "decoy": "solutions/prototype/fix-bug-decoy"
+    },
+    {
+      "template": "write-tests",
+      "vars": {
+        "subject": "car handling (the Car class in scripts/Car.cs: throttle, drag, braking, reverse, steering and the grass)",
+        "file": "test/CarTest.cs",
+        "rules": "throttle accelerates the car along its heading in proportion to how far it is pressed, the top speed is Accel / Drag and half throttle tops out at half of it, coasting slows the car, braking stops a moving car without taking it into reverse, holding the brake once stopped reverses up to ReverseMax, a standing car does not turn and a slow one (under TurnSpeed) turns less than at full lock, reversing turns the nose the other way, above Grip / speed radians a second the car cannot turn tighter, the grass (road false) holds the car to Accel / GrassDrag, and a straight run takes the car as far at 30 ticks a second as at 120",
+        "code": "scripts/Car.cs"
+      },
+      "unchanged": [
+        "scripts/Car.cs"
+      ],
+      "mutantTests": [
+        "test/CarTest.cs"
+      ],
+      "mutants": [
+        {
+          "name": "throttle is all or nothing",
+          "file": "scripts/Car.cs",
+          "find": "double push = throttle >= 0.0 ? Accel * throttle :",
+          "replace": "double push = throttle >= 0.0 ? Accel :"
+        },
+        {
+          "name": "braking runs on into reverse",
+          "file": "scripts/Car.cs",
+          "find": "Speed = MaxF(Speed + Brake * throttle * dt, 0.0);",
+          "replace": "Speed = Speed + Brake * throttle * dt;"
+        },
+        {
+          "name": "reverse has no limit",
+          "file": "scripts/Car.cs",
+          "find": "        Speed = MaxF(Speed, -ReverseMax);\n",
+          "replace": ""
+        },
+        {
+          "name": "a slow car turns at full lock",
+          "file": "scripts/Car.cs",
+          "find": "double rate = TurnRate * MinF(moving / TurnSpeed, 1.0);",
+          "replace": "double rate = TurnRate;"
+        },
+        {
+          "name": "reversing turns the same way",
+          "file": "scripts/Car.cs",
+          "find": "steer * rate * SignF(Speed) * dt",
+          "replace": "steer * rate * dt"
+        },
+        {
+          "name": "no grip limit at speed",
+          "file": "scripts/Car.cs",
+          "find": "        rate = MinF(rate, Grip / moving);\n",
+          "replace": ""
+        },
+        {
+          "name": "the grass is as fast as the road",
+          "file": "scripts/Car.cs",
+          "find": "double drag = road ? Drag : GrassDrag;",
+          "replace": "double drag = Drag;"
+        },
+        {
+          "name": "drag per tick, not per second",
+          "file": "scripts/Car.cs",
+          "find": "Speed /= 1.0 + drag * dt;",
+          "replace": "Speed /= 1.0 + drag / 60.0;"
+        }
+      ],
+      "reference": "solutions/prototype/write-tests"
+    },
+    {
+      "template": "add-feature",
+      "vars": {
+        "feature": "race positions: Race.Standings() returns the car indices (a List<int>) from first to last, and Race.PositionOf(i) the place of car i, 1 for the leader. Cars that have taken the flag come first, in the order they took it (Race.FinishOrder); the rest are ranked by laps completed, then by the gates passed in the lap in progress (LapTracker.GatesPassed), then by the distance still to drive along the track to their next gate (less is ahead), and cars still level by their index"
+      },
+      "hidden": [
+        "hidden/HiddenStandingsTest.cs"
+      ],
+      "reference": "solutions/prototype/add-feature"
+    },
+    {
+      "template": "explain-failure",
+      "edits": [
+        {
+          "file": "scripts/LapTracker.cs",
+          "find": "if (BestLap < 0 || time < BestLap)",
+          "replace": "if (BestLap < 0 || time > BestLap)"
+        }
+      ],
+      "unchanged": [
+        "scripts/LapTracker.cs",
+        "scripts/Race.cs",
+        "scripts/Car.cs",
+        "scripts/Track.cs",
+        "scripts/AiDriver.cs",
+        "game/Game.cs",
+        "test/LapTrackerTest.cs",
+        "test/RaceTest.cs",
+        "test/AiDriverTest.cs"
+      ],
+      "expected": {
+        "mustInclude": [
+          "The_best_lap_is_the_fastest",
+          "re:LapTrackerTest\\.cs\\D{0,40}\\b84\\b",
+          "re:(?<![\\d.])300(?!\\d)",
+          "re:(?<![\\d.])600(?!\\d)"
+        ]
+      },
+      "reference": "solutions/prototype/explain-failure"
+    }
+  ]
+}
