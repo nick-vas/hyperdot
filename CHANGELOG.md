@@ -7,6 +7,12 @@
   original line is still there in its order, line endings aside; a missing file and a changed, removed or reordered line
   still fail. Before the hidden tests, mutants and the suite run, the kept files are put back as they were, so added code
   cannot weaken the original tests (`newTests` counts the additions first). Self-tested in `tests/Test-GameBenchmark.ps1`.
+- **The GDScript arena game turns the server relay off, as the C# port already did.** `NetSession.host` left
+  `SceneMultiplayer.server_relay` on, so when a player connected the engine sent news of it to every other peer, also
+  to one whose disconnect it had received but not yet reported (its channels are closed by then): an engine error,
+  "Unable to send packet on channel 0, max channels: 0", that failed `soak` with `engine-errors` now and then (2 runs
+  in 20 on the reference of `arena.beta.gdscript.fix-performance`, whose clients leave and rejoin all the time). Players
+  only talk to the server, so nothing else changes. The base game and its `milestone-alpha` solution are fixed.
 - **The self-test runs what a change needs.** It ran 35 jobs and about 500 runner-minutes for any change, 84% of them in
   the 20 pairs of the staged programme, and every push to a pull request branch started two runs. Now a `changes` job
   (`.github/scripts/Select-Jobs.ps1`, held by `tests/Test-SelectJobs.ps1`) lists the changed files and a pull request runs
