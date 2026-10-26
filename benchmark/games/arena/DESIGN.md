@@ -291,7 +291,8 @@ Choices made in the GDScript build where the design was open. The C# port follow
   0.2 s). The GDScript server cannot catch the signal and dies with 143.
 - **No server relay.** `NetSession.Host` turns `SceneMultiplayer.ServerRelay` off: players only talk to the server, and
   with the relay on the engine sent news of each newcomer to a peer still disconnecting, an engine error on its closed
-  channels that soak counted 4 times in 120 seconds.
+  channels that soak counted 4 times in 120 seconds. The GDScript `NetSession.host` does the same
+  with `server_relay`.
 - **Sorted dictionaries on the server.** What it keeps per peer is in `SortedDictionary`s, so it broadcasts and trims
   in peer-id order on every run (the architecture runner's `nondeterministic-sim` flags iterating a `Dictionary` in
   `scripts`); in the bot run the peers join in id order anyway, so the order matches the GDScript version's.

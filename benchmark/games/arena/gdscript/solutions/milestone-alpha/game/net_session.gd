@@ -24,6 +24,9 @@ func host(port: int) -> Error:
 	var err := peer.create_server(port, MAX_CLIENTS)
 	if err != OK:
 		return err
+	# Players never talk to each other, only to the server: without the relay the engine sends nobody news of other
+	# peers, which it would also send to a peer still disconnecting (an engine error on its closed channels).
+	multiplayer.server_relay = false
 	multiplayer.multiplayer_peer = peer
 	multiplayer.peer_connected.connect(_on_peer_connected)
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
