@@ -37,7 +37,7 @@ function Invoke-Bench {
     if ($MaxDrawCalls -lt 0) { Stop-GodotCi "-MaxDrawCalls must be 0 (no limit) or more, not $MaxDrawCalls" 'invalid-arguments' }
     if ($MaxLoadMs -lt 0) { Stop-GodotCi "-MaxLoadMs must be 0 (no limit) or more, not $MaxLoadMs" 'invalid-arguments' }
     if (-not $Headless) { Assert-Display 'bench' }
-    $tool = (Join-Path $PSScriptRoot '../tools/bench.gd' | Resolve-Path).Path -replace '\\', '/'
+    $tool = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../tools/bench.gd')).Path -replace '\\', '/'
     $engine = @('--path', $Info.ProjectDir) + (Get-WindowArgs $Resolution -Uncapped:$Uncapped -MaxFps $MaxFps) + @(Get-GpuValidationArgs -On:$GpuValidation)
     if ($Headless) { $engine = @('--headless') + $engine }
     $user = @("--bench-seconds=$Seconds", "--bench-warmup=$Warmup") + $(if ($Scene) { "--bench-scene=$Scene" }) +
@@ -103,10 +103,10 @@ function ConvertFrom-BenchSweep([string[]]$Sweep) {
     if ($text -notmatch '^(?<name>[A-Za-z][A-Za-z0-9_-]*)=(?<values>.+)$') {
         Stop-GodotCi "-Sweep takes <name>=<value1>,<value2>,..., e.g. -Sweep particles=100,1000,10000 (the game gets --particles=100 and so on), not '$text'" 'invalid-arguments'
     }
-    $name = $Matches.name
+    $name = $Matches['name']; $valuesText = $Matches['values']
     if ($name -like 'bench-*') { Stop-GodotCi "-Sweep $name would clash with bench's own --bench-* flags; name the game's flag" 'invalid-arguments' }
-    $values = @($Matches.values -split ',' | ForEach-Object { $_.Trim() })
-    if (@($values | Where-Object { -not $_ -or $_ -match '\s' }).Count -gt 0) { Stop-GodotCi "-Sweep $name has an empty value or one with spaces: '$($Matches.values)'" 'invalid-arguments' }
+    $values = @($valuesText -split ',' | ForEach-Object { $_.Trim() })
+    if (@($values | Where-Object { -not $_ -or $_ -match '\s' }).Count -gt 0) { Stop-GodotCi "-Sweep $name has an empty value or one with spaces: '$valuesText'" 'invalid-arguments' }
     $twice = @($values | Group-Object | Where-Object Count -gt 1 | ForEach-Object Name)
     if ($twice) { Stop-GodotCi "-Sweep $name names $($twice -join ', ') more than once" 'invalid-arguments' }
     return [pscustomobject]@{ Name = $name; Values = $values }
@@ -286,7 +286,7 @@ function Invoke-Shot {
         if ($kind -notin 'protan', 'deutan', 'tritan') { Stop-GodotCi "-ColorVision takes protan, deutan and tritan, not '$kind'" 'invalid-arguments' }
     }
     Assert-Display 'shot'
-    $tool = (Join-Path $PSScriptRoot '../tools/shot.gd' | Resolve-Path).Path -replace '\\', '/'
+    $tool = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../tools/shot.gd')).Path -replace '\\', '/'
     $dir = [System.IO.Path]::GetFullPath($OutputDir)
     $baselineDir = $null
     if ($Baseline) {

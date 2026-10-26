@@ -15,7 +15,7 @@ function Assert-True([bool]$Condition, [string]$What) {
 }
 $temp = Join-Path ([IO.Path]::GetTempPath()) "bench-sweep-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
 function Invoke-Sweep([string]$Results, [string[]]$Arguments) {
-    $out = pwsh -NoProfile -File $kit bench -Json -Quiet -Project $fixture -Results $Results -Scene res://sweep.tscn -Headless -Warmup 0.5 -Seconds 2 @Arguments 2>$null
+    $out = pwsh -NoProfile -NonInteractive -File $kit bench -Json -Quiet -Project $fixture -Results $Results -Scene res://sweep.tscn -Headless -Warmup 0.5 -Seconds 2 @Arguments 2>$null
     return $(if ($out) { $out | ConvertFrom-Json } else { $null })
 }
 
@@ -50,7 +50,10 @@ try {
         $d = Invoke-Sweep (Join-Path $temp 'bad') @('-Sweep', $bad)
         Assert-True ($d -and $d.error.code -eq 'invalid-arguments') "-Sweep '$bad' is refused: $(if ($d) { $d.error.code })"
     }
-    $out = pwsh -NoProfile -File $kit shot -Json -Project $fixture -Sweep 'cost=1,2' 2>$null
+    # The refusal names the values as given ($Matches is overwritten by the space check in between).
+    $d = Invoke-Sweep (Join-Path $temp 'bad') @('-Sweep', 'particles=100 0,5000')
+    Assert-True ($d -and $d.error.code -eq 'invalid-arguments' -and $d.error.message -match "one with spaces: '100 0,5000'") "the refusal shows the values: $(if ($d) { $d.error.message })"
+    $out = pwsh -NoProfile -NonInteractive -File $kit shot -Json -Project $fixture -Sweep 'cost=1,2' 2>$null
     $d = if ($out) { $out | ConvertFrom-Json } else { $null }
     Assert-True ($d -and $d.error.code -eq 'invalid-arguments' -and $d.error.message -match 'for bench') "-Sweep on shot is refused: $(if ($d) { $d.error.message })"
 } finally {
