@@ -20,7 +20,7 @@ function Assert-True([bool]$Condition, [string]$What) {
 }
 function Invoke-Bench([string[]]$Arguments, [switch]$OwnWorkspace) {
     $where = if ($OwnWorkspace) { @() } else { @('-WorkDir', $root) }
-    $out = & pwsh -NoProfile -File $bench -SpecPath $spec -Claude $fake -OutputDir (Join-Path $work 'results') -Json @where @Arguments 2>$null
+    $out = & pwsh -NoProfile -NonInteractive -File $bench -SpecPath $spec -Claude $fake -OutputDir (Join-Path $work 'results') -Json @where @Arguments 2>$null
     $code = $LASTEXITCODE
     $doc = @($out | Where-Object { $_ -match '^\{' }) | Select-Object -Last 1
     return [pscustomobject]@{ Code = $code; Json = $(if ($doc) { $doc | ConvertFrom-Json }) }
@@ -120,7 +120,7 @@ try {
     $echo = Get-Content -LiteralPath $spec -Raw | ConvertFrom-Json -AsHashtable
     $echo.tasks[0].expected.mustInclude = @('please')
     $echo | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $echoSpec
-    & pwsh -NoProfile -File $bench -SpecPath $echoSpec -Claude $fake -DryRun 2>$null | Out-Null
+    & pwsh -NoProfile -NonInteractive -File $bench -SpecPath $echoSpec -Claude $fake -DryRun 2>$null | Out-Null
     Assert-True ($LASTEXITCODE -ne 0) 'a spec that requires a word its own prompt holds is refused (echoing the question would pass)'
 
     $slow = Invoke-Bench @('-TaskId', 'T-SLOW', '-ProfileId', 'P1-plain', '-Repeat', '1')

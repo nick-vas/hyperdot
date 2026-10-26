@@ -17,7 +17,7 @@ if ((@($parsed.Unparsed) -join ' | ') -ne '[soak] metric version 1.2.3 | [soak] 
 
 function Invoke-Soak([string[]]$Extra, [string]$Project = $fixture, [double]$Warmup = 2) {
     $results = Join-Path ([System.IO.Path]::GetTempPath()) "soak-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
-    $json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') soak -Project $Project -Seconds 20 -Warmup $Warmup `
+    $json = & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') soak -Project $Project -Seconds 20 -Warmup $Warmup `
         -MaxGrowthMbPerHour 200 -Results $results -Json @Extra 2>$null
     return ($json | Out-String | ConvertFrom-Json)
 }

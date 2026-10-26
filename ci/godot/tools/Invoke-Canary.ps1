@@ -70,13 +70,13 @@ function Test-Updates([string[]]$Selected) {
     $problems = @()
     # aseprite-mcp's pins: the server, installed by uvx exactly as .mcp.json runs it, must import and list its tools.
     if (@($Selected | Where-Object { $_ -in 'aseprite-mcp', 'mcp' }).Count -gt 0) { $problems += @(Test-AsepriteMcp) }
-    $skills = & pwsh -NoProfile -File (Join-Path $tools 'Test-Skills.ps1') -Root $Root -Json | ConvertFrom-Json
+    $skills = & pwsh -NoProfile -NonInteractive -File (Join-Path $tools 'Test-Skills.ps1') -Root $Root -Json | ConvertFrom-Json
     if (-not $skills.ok) { $problems += "skill validator: $(@($skills.findings | Where-Object level -eq 'error' | ForEach-Object message) -join '; ')" }
     # Pins that touch no game do not need the example projects.
     $gamePins = @($Selected | Where-Object { $_ -notin 'aseprite-mcp', 'mcp' })
     foreach ($project in @(if ($gamePins.Count -gt 0) { $Projects })) {
         $results = Join-Path ([System.IO.Path]::GetTempPath()) "canary-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
-        $out = & pwsh -NoProfile -File (Join-Path $Root 'ci/godot/hyperdot.ps1') test -Json -Quiet -Project (Join-Path $Root $project) -Results $results 2>$null
+        $out = & pwsh -NoProfile -NonInteractive -File (Join-Path $Root 'ci/godot/hyperdot.ps1') test -Json -Quiet -Project (Join-Path $Root $project) -Results $results 2>$null
         $d = try { $out | ConvertFrom-Json } catch { $null }
         if (-not $d) { $problems += "${project}: no JSON result"; continue }
         if (-not $d.ok) {

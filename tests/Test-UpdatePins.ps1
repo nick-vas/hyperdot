@@ -45,7 +45,7 @@ function New-RepoCopy([string]$Name) {
 # No example projects (-Projects @()), so each attempt is the rewrite and the skill validator. Its report is stdout.
 function Invoke-CanaryCopy([string]$Copy, [string]$Latest) {
     $errFile = Join-Path $temp "canary-$([guid]::NewGuid().ToString('n').Substring(0, 8)).err"
-    $out = & pwsh -NoProfile -Command "& '$canary' -Root '$Copy' -LatestFile '$Latest' -Projects @() -AddonSource '$script:AddonSource'" 2>$errFile
+    $out = & pwsh -NoProfile -NonInteractive -Command "& '$canary' -Root '$Copy' -LatestFile '$Latest' -Projects @() -AddonSource '$script:AddonSource'" 2>$errFile
     $code = $LASTEXITCODE
     $report = if (-not $code) { try { ($out -join "`n") | ConvertFrom-Json } catch { $null } }
     return [pscustomobject]@{ report = $report; text = "exit ${code}: $($out -join ' ') $(Get-Content -LiteralPath $errFile -Raw)" }
@@ -73,7 +73,7 @@ try {
 
     # Every pinned file present: the update applies and rewrites the one this test removes below.
     $whole = New-RepoCopy 'whole'
-    $out = & pwsh -NoProfile -File $tool -Root $whole -LatestFile $latest -Apply -Json 2>&1
+    $out = & pwsh -NoProfile -NonInteractive -File $tool -Root $whole -LatestFile $latest -Apply -Json 2>&1
     if ($LASTEXITCODE) { $failures += "with every pinned file present the update should apply: $($out -join ' ')" }
     else {
         $r = ($out -join "`n") | ConvertFrom-Json
@@ -88,21 +88,21 @@ try {
     $minor = New-RepoCopy 'minor'
     $latestAll = Join-Path $temp 'latest-all.json'
     '{"godot":"4.99.0","gut":"v9.99.0","gdUnit4.api":"9.9.9"}' | Set-Content -LiteralPath $latestAll
-    $out = & pwsh -NoProfile -File $tool -Root $minor -LatestFile $latestAll -Apply -Json 2>&1
+    $out = & pwsh -NoProfile -NonInteractive -File $tool -Root $minor -LatestFile $latestAll -Apply -Json 2>&1
     $r = if (-not $LASTEXITCODE) { try { ($out -join "`n") | ConvertFrom-Json } catch { $null } }
     if (-not $r -or @($r.updates).Count -ne 3 -or @($r.changed).Count -lt 10) { $failures += "a minor, GUT and package update together should apply: $($out -join ' ')" }
     else {
         $csproj = Get-Content -LiteralPath (Join-Path $minor 'examples/csharp/game/Example.csproj') -Raw
         if ($csproj -notmatch 'Godot\.NET\.Sdk/4\.99\.0' -or $csproj -notmatch '"gdUnit4.api" Version="9\.9\.9"') { $failures += 'the csproj pins were not updated' }
         if ((Get-Content -LiteralPath (Join-Path $minor 'ci/godot/lib/Setup.ps1') -Raw) -notmatch "'\^4\\\.99' \{ 'v9\.99\.0' \} '\^4\\\.7'") { $failures += 'the GUT mapping for the new minor is missing' }
-        & pwsh -NoProfile -File (Join-Path $root 'ci/godot/tools/Test-Skills.ps1') -Root $minor *> $null
+        & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/tools/Test-Skills.ps1') -Root $minor *> $null
         if ($LASTEXITCODE) { $failures += 'the skills no longer validate after the update' }
     }
 
     # One pinned file moved away: a loud failure that names it.
     $broken = New-RepoCopy 'broken'
     Remove-Item -LiteralPath (Join-Path $broken 'evals/fix-score-bug/prompt.md')
-    $out = & pwsh -NoProfile -File $tool -Root $broken -LatestFile $latest -Apply -Json 2>&1
+    $out = & pwsh -NoProfile -NonInteractive -File $tool -Root $broken -LatestFile $latest -Apply -Json 2>&1
     $text = $out -join ' '
     if (-not $LASTEXITCODE) { $failures += "a missing pinned file should fail the update, but it exited 0: $text" }
     elseif ($text -notmatch 'evals/fix-score-bug/prompt\.md') { $failures += "the failure should name the missing file: $text" }
@@ -115,7 +115,7 @@ try {
     @{ godot = "$newMinor.0"; gut = $gutNew; 'gdUnit4.api' = '99.0.0' } | ConvertTo-Json | Set-Content -LiteralPath $latestMinor
     $gutOnly = New-RepoCopy 'gut-only'
     $setupBefore = Get-Content -LiteralPath (Join-Path $gutOnly 'ci/godot/lib/Setup.ps1') -Raw
-    $out = & pwsh -NoProfile -File $tool -Root $gutOnly -LatestFile $latestMinor -Apply -Only gut -Json 2>&1
+    $out = & pwsh -NoProfile -NonInteractive -File $tool -Root $gutOnly -LatestFile $latestMinor -Apply -Only gut -Json 2>&1
     if ($LASTEXITCODE) { $failures += "GUT alone should exit 0: $($out -join ' ')" }
     else {
         $r = ($out -join "`n") | ConvertFrom-Json
@@ -160,7 +160,7 @@ try {
     $latestAse = Join-Path $temp 'latest-aseprite.json'
     @{ 'aseprite-mcp' = $newCommit; mcp = '1.31.0' } | ConvertTo-Json | Set-Content -LiteralPath $latestAse
     $ase = New-RepoCopy 'aseprite'
-    $out = & pwsh -NoProfile -File $tool -Root $ase -LatestFile $latestAse -Apply -Json 2>&1
+    $out = & pwsh -NoProfile -NonInteractive -File $tool -Root $ase -LatestFile $latestAse -Apply -Json 2>&1
     $r = if (-not $LASTEXITCODE) { try { ($out -join "`n") | ConvertFrom-Json } catch { $null } }
     if (-not $r -or $r.current.'aseprite-mcp' -ne $oldCommit -or $r.current.mcp -ne $oldSdk) { $failures += "the aseprite-mcp pins should be read from Init.ps1 ($oldCommit, $oldSdk): $($out -join ' ')" }
     else {
@@ -183,7 +183,7 @@ Write-Output '@@tools 123'
     @{ 'aseprite-mcp' = $newCommit; mcp = '1.99.0' } | ConvertTo-Json | Set-Content -LiteralPath $latestBreak
     $canaryAse = New-RepoCopy 'canary-aseprite'
     $errFile = Join-Path $temp 'canary-aseprite.err'
-    $out = & pwsh -NoProfile -Command "& '$canary' -Root '$canaryAse' -LatestFile '$latestBreak' -Projects @() -Uvx '$fakeUvx' -AddonSource '$script:AddonSource'" 2>$errFile
+    $out = & pwsh -NoProfile -NonInteractive -Command "& '$canary' -Root '$canaryAse' -LatestFile '$latestBreak' -Projects @() -Uvx '$fakeUvx' -AddonSource '$script:AddonSource'" 2>$errFile
     $report = if (-not $LASTEXITCODE) { try { ($out -join "`n") | ConvertFrom-Json } catch { $null } }
     $text = "exit ${LASTEXITCODE}: $($out -join ' ') $(Get-Content -LiteralPath $errFile -Raw)"
     if (-not $report) { $failures += "the canary should report on the aseprite-mcp pins: $text" }
@@ -197,7 +197,7 @@ Write-Output '@@tools 123'
     }
     # No uvx at all: the pins are not proposed untried.
     $canaryNoUvx = New-RepoCopy 'canary-no-uvx'
-    $out = & pwsh -NoProfile -Command "& '$canary' -Root '$canaryNoUvx' -LatestFile '$latestAse' -Projects @() -Uvx '$(Join-Path $temp 'no-such-uvx')' -AddonSource '$script:AddonSource'" 2>$null
+    $out = & pwsh -NoProfile -NonInteractive -Command "& '$canary' -Root '$canaryNoUvx' -LatestFile '$latestAse' -Projects @() -Uvx '$(Join-Path $temp 'no-such-uvx')' -AddonSource '$script:AddonSource'" 2>$null
     $report = if (-not $LASTEXITCODE) { try { ($out -join "`n") | ConvertFrom-Json } catch { $null } }
     if (-not $report -or @($report.passing).Count -or @($report.failing | Where-Object { $_.problem -match 'was not found' }).Count -ne 2) { $failures += "without uvx both aseprite-mcp pins should fail, saying uvx is missing: $($out -join ' ')" }
 
@@ -207,7 +207,7 @@ Write-Output '@@tools 123'
     $moved = New-AddonSource (Join-Path $temp 'addons-moved.json') @{ 'Moonzel/Godot-PerfBullets' = @{ head = 'd' * 40 } }
     $latestNone = Join-Path $temp 'latest-none.json'
     '{}' | Set-Content -LiteralPath $latestNone
-    $out = & pwsh -NoProfile -Command "& '$canary' -Root '$canaryAddons' -LatestFile '$latestNone' -Projects @() -AddonSource '$moved'" 2>$null
+    $out = & pwsh -NoProfile -NonInteractive -Command "& '$canary' -Root '$canaryAddons' -LatestFile '$latestNone' -Projects @() -AddonSource '$moved'" 2>$null
     $report = if (-not $LASTEXITCODE) { try { ($out -join "`n") | ConvertFrom-Json } catch { $null } }
     if (-not $report -or (@($report.addons.updates | ForEach-Object { "$($_.id).$($_.field)" }) -join ',') -ne 'godot-perfbullets.head' -or
         (@($report.addons.review | ForEach-Object id) -join ',') -ne 'godot-perfbullets' -or 'ci/godot/addons-status.json' -notin @($report.changed) -or

@@ -17,7 +17,7 @@ function Assert-True([bool]$Condition, [string]$What) {
 # Runs the flows whose path contains $Filter; returns ok and every case from the JUnit file (the JSON keeps the first 10).
 function Invoke-Flows([string]$Filter) {
     $results = Join-Path ([IO.Path]::GetTempPath()) "flows-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
-    $json = pwsh -NoProfile -File $kit test -Json -Project $fixture -Runners flows -Filter $Filter -Results $results 2>$null | Out-String | ConvertFrom-Json
+    $json = pwsh -NoProfile -NonInteractive -File $kit test -Json -Project $fixture -Runners flows -Filter $Filter -Results $results 2>$null | Out-String | ConvertFrom-Json
     $junit = Join-Path $results 'flows/flows.junit.xml'
     $cases = @(if (Test-Path -LiteralPath $junit) {
         foreach ($case in ([xml](Get-Content -LiteralPath $junit -Raw)).SelectNodes('//testcase')) {

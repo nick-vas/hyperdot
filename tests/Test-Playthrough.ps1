@@ -27,25 +27,25 @@ if ($none[0].Failure -notmatch 'no milestone was reached') { $failures += "nothi
 $temp = Join-Path ([System.IO.Path]::GetTempPath()) "playthrough-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
 New-Item -ItemType Directory $temp | Out-Null
 Set-Content -LiteralPath (Join-Path $temp 'playthrough.json') '{ "expect": [] }'
-$refused = & pwsh -NoProfile -Command ". '$root/ci/godot/lib/Common.ps1'; . '$root/ci/godot/lib/Playthrough.ps1'; try { Get-PlaythroughConfig '$temp' | Out-Null; 'accepted' } catch { `$_.Exception.Message }" 2>&1 | Out-String
+$refused = & pwsh -NoProfile -NonInteractive -Command ". '$root/ci/godot/lib/Common.ps1'; . '$root/ci/godot/lib/Playthrough.ps1'; try { Get-PlaythroughConfig '$temp' | Out-Null; 'accepted' } catch { `$_.Exception.Message }" 2>&1 | Out-String
 if ($refused -notmatch 'needs "expect"') { $failures += "an empty expect list should be refused: $refused" }
 # "frames": 0 would be Godot's --quit-after 0, which never quits.
 Set-Content -LiteralPath (Join-Path $temp 'playthrough.json') '{ "frames": 0, "expect": ["[Run] ending reached"] }'
-$refused = & pwsh -NoProfile -Command ". '$root/ci/godot/lib/Common.ps1'; . '$root/ci/godot/lib/Playthrough.ps1'; try { Get-PlaythroughConfig '$temp' | Out-Null; 'accepted' } catch { `$_.Exception.Message }" 2>&1 | Out-String
+$refused = & pwsh -NoProfile -NonInteractive -Command ". '$root/ci/godot/lib/Common.ps1'; . '$root/ci/godot/lib/Playthrough.ps1'; try { Get-PlaythroughConfig '$temp' | Out-Null; 'accepted' } catch { `$_.Exception.Message }" 2>&1 | Out-String
 if ($refused -notmatch '"frames" must be a whole number above 0') { $failures += "frames 0 should be refused: $refused" }
 Remove-Item -Recurse -Force $temp
 
 if (-not $NoGodot) {
     $fixture = Join-Path $PSScriptRoot 'playthrough-fixture'
     function Invoke-Playthrough([string[]]$More) {
-        $json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') test -Project $fixture -Runners playthrough -Json @More 2>$null
+        $json = & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') test -Project $fixture -Runners playthrough -Json @More 2>$null
         return ($json | Out-String | ConvertFrom-Json)
     }
     $good = Invoke-Playthrough @()
     if (-not $good.ok) { $failures += "the bot that finishes should pass: $($good | ConvertTo-Json -Depth 6 -Compress)" }
     $bad = Invoke-Playthrough @('-GameArgs', '--stuck')
     if ($bad.ok) { $failures += 'a bot stuck in level 1 should fail the playthrough' }
-    $detected = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') detect -Project $fixture -Json 2>$null | Out-String | ConvertFrom-Json
+    $detected = & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') detect -Project $fixture -Json 2>$null | Out-String | ConvertFrom-Json
     if (@($detected.runners) -notcontains 'playthrough') { $failures += "playthrough.json should select the runner: $(@($detected.runners) -join ', ')" }
 }
 

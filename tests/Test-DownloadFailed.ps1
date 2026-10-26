@@ -14,7 +14,7 @@ foreach ($name in @('GODOT_BIN', 'HYPERDOT_INSTALLED', 'GODOT_TOOLS_DIR', 'EVAL_
 }
 $env:GODOT_TOOLS_DIR = $tools
 try {
-    $json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') setup -Json -Quiet `
+    $json = & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') setup -Json -Quiet `
         -Project (Join-Path $root 'examples/gdscript') -GodotVersion 0.0.0 2>$null
     $code = $LASTEXITCODE
 } finally {

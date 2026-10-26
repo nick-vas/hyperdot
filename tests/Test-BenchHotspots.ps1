@@ -23,13 +23,13 @@ function Assert-True([bool]$Condition, [string]$What) {
 # The whole -Json document, passing or not.
 function Invoke-BenchDoc([string[]]$Arguments) {
     $results = Join-Path ([IO.Path]::GetTempPath()) "bench-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
-    $out = pwsh -NoProfile -File $kit bench -Json -Quiet -Project $fixture -Results $results @Arguments 2>$null
+    $out = pwsh -NoProfile -NonInteractive -File $kit bench -Json -Quiet -Project $fixture -Results $results @Arguments 2>$null
     return $(if ($out) { $out | ConvertFrom-Json } else { $null })
 }
 function Invoke-Bench([string[]]$Arguments) {
     $results = Join-Path ([IO.Path]::GetTempPath()) "bench-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
     $script:LastResults = $results
-    $out = pwsh -NoProfile -File $kit bench -Json -Quiet -Project $fixture -Results $results @Arguments 2>$null
+    $out = pwsh -NoProfile -NonInteractive -File $kit bench -Json -Quiet -Project $fixture -Results $results @Arguments 2>$null
     $json = if ($out) { $out | ConvertFrom-Json } else { $null }
     if (-not $json -or -not $json.ok) {
         throw "bench $($Arguments -join ' ') failed: $(if ($json) { $json.error | ConvertTo-Json -Compress } else { 'no JSON result' })"
@@ -80,7 +80,7 @@ Assert-True (@($b.hitches | Where-Object { $null -ne $_.pos }).Count -eq 0) 'hit
 
 # Under a decimal-comma culture bench.csv still writes 59.5, not "59,5", so rows from machines in other cultures agree.
 $deResults = Join-Path ([IO.Path]::GetTempPath()) "bench-de-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
-$null = pwsh -NoProfile -Command "[cultureinfo]::CurrentCulture = 'de-DE'; & '$kit' bench -Json -Quiet -Project '$fixture' -Results '$deResults' -Scene res://no_camera.tscn -Headless -Warmup 0 -Seconds 1" 2>$null
+$null = pwsh -NoProfile -NonInteractive -Command "[cultureinfo]::CurrentCulture = 'de-DE'; & '$kit' bench -Json -Quiet -Project '$fixture' -Results '$deResults' -Scene res://no_camera.tscn -Headless -Warmup 0 -Seconds 1" 2>$null
 $deRow = @(Import-Csv -LiteralPath (Join-Path $deResults 'bench.csv'))
 Assert-True ($deRow.Count -eq 1 -and $deRow[0].fpsAvg -match '^\d+\.\d+$' -and $deRow[0].p99Ms -match '^\d+(\.\d+)?$') "bench.csv under de-DE writes numbers with a point: fpsAvg '$(if ($deRow.Count) { $deRow[0].fpsAvg })', p99Ms '$(if ($deRow.Count) { $deRow[0].p99Ms })'"
 

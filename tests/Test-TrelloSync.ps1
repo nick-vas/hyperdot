@@ -112,7 +112,7 @@ function Invoke-Board([string]$Method, [string]$Resource, [hashtable]$Body) {
 $outputs = [System.Collections.Generic.List[string]]::new()
 function Invoke-PlanJson([string[]]$Arguments) {
     $errFile = Join-Path $dir 'stderr.txt'
-    $out = pwsh -NoProfile -File $ci plan -Json -Project $dir @Arguments 2>$errFile
+    $out = pwsh -NoProfile -NonInteractive -File $ci plan -Json -Project $dir @Arguments 2>$errFile
     $outputs.Add(($out -join "`n") + (Get-Content -LiteralPath $errFile -Raw -ErrorAction SilentlyContinue))
     return ($out -join "`n") | ConvertFrom-Json
 }
@@ -124,7 +124,7 @@ function Get-PlanTask([string]$Id) {
 try {
     New-Item -ItemType Directory -Force $dir | Out-Null
     Set-Content -LiteralPath (Join-Path $dir 'project.godot') -Value "config_version=5`n`n[application]`n`nconfig/name=""Sync Fixture""`n"
-    pwsh -NoProfile -File $ci plan -Do init -Project $dir 2>$null | Out-Null
+    pwsh -NoProfile -NonInteractive -File $ci plan -Do init -Project $dir 2>$null | Out-Null
 
     $board = Invoke-Board POST 'boards' @{ name = "hyperdot sync test $([datetime]::UtcNow.ToString('yyyy-MM-dd HH:mm'))"; defaultLists = $false; prefs_permissionLevel = 'private' }
     Write-Host "Board $($board.id) ($($board.shortLink))"

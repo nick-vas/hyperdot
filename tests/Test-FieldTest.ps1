@@ -24,7 +24,7 @@ function Assert-True([bool]$Condition, [string]$What) {
 }
 
 if (-not $env:GODOT_BIN -or -not (Test-Path -LiteralPath $env:GODOT_BIN) -or (-not $NoCSharp -and $env:GODOT_BIN -notmatch '_mono')) {
-    $setup = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') setup -Json -Quiet -Project (Join-Path $root 'examples/csharp/game') 2>$null
+    $setup = & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') setup -Json -Quiet -Project (Join-Path $root 'examples/csharp/game') 2>$null
     $env:GODOT_BIN = @(Get-ChildItem -LiteralPath $(if ($env:GODOT_TOOLS_DIR) { $env:GODOT_TOOLS_DIR } else { Join-Path $HOME '.hyperdot' }) -Recurse -File |
         Where-Object { $_.Name -match '^Godot_v[\d.]+-stable_mono_(linux\.x86_64|linux_x86_64|win64_console\.exe)$' } | Select-Object -First 1 | ForEach-Object FullName) | Select-Object -First 1
     Write-Host "Godot: $env:GODOT_BIN ($(@($setup).Count) line(s) from setup)"
@@ -55,7 +55,7 @@ Assert-True ((ConvertTo-FieldReason 'changed test/test_score.gd; tests fail: tes
 # One field run with the stand-in; the sessions' calls are the lines the log gained.
 function Invoke-Field([string]$Source, [string]$Mode, [string[]]$Arguments) {
     $env:FAKE_GAME_MODE = $Mode
-    $out = & pwsh -NoProfile -File $bench -GameSource $Source -Claude $fake -OutputDir (Join-Path $work "results-$Mode") -Json @Arguments 2>$null
+    $out = & pwsh -NoProfile -NonInteractive -File $bench -GameSource $Source -Claude $fake -OutputDir (Join-Path $work "results-$Mode") -Json @Arguments 2>$null
     $code = $LASTEXITCODE
     $doc = @($out | Where-Object { $_ -match '^\{' }) | Select-Object -Last 1
     $json = if ($doc) { $doc | ConvertFrom-Json }

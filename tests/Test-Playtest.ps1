@@ -16,7 +16,7 @@ $work = Join-Path ([System.IO.Path]::GetTempPath()) "playtest-$([guid]::NewGuid(
 New-Item -ItemType Directory -Force $work | Out-Null
 
 function Invoke-PlaytestCommand([string]$Project, [string[]]$Arguments = @()) {
-    $json = & pwsh -NoProfile -File $ci playtest -Project $Project -Json @Arguments 2>$null
+    $json = & pwsh -NoProfile -NonInteractive -File $ci playtest -Project $Project -Json @Arguments 2>$null
     return ($json | Out-String | ConvertFrom-Json)
 }
 

@@ -28,7 +28,7 @@ Assert-Case 'death -> shake within 100 ms' "^No 'death' event"
 $temp = Join-Path ([System.IO.Path]::GetTempPath()) "juice-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
 New-Item -ItemType Directory $temp | Out-Null
 Set-Content -LiteralPath (Join-Path $temp 'juice.json') '{ "frames": 0, "rules": [ { "event": "hit", "feedback": ["flash"] } ] }'
-$refused = & pwsh -NoProfile -Command ". '$root/ci/godot/lib/Common.ps1'; . '$root/ci/godot/lib/Juice.ps1'; try { Get-JuiceConfig '$temp' | Out-Null; 'accepted' } catch { `$_.Exception.Message }" 2>&1 | Out-String
+$refused = & pwsh -NoProfile -NonInteractive -Command ". '$root/ci/godot/lib/Common.ps1'; . '$root/ci/godot/lib/Juice.ps1'; try { Get-JuiceConfig '$temp' | Out-Null; 'accepted' } catch { `$_.Exception.Message }" 2>&1 | Out-String
 Remove-Item -Recurse -Force $temp
 if ($refused -match '"frames" must be a whole number above 0') { Write-Host 'ok       juice.json "frames": 0 is refused' }
 else { Write-Host "WRONG    juice.json ""frames"": 0 should be refused -> '$($refused.Trim())'" -ForegroundColor Red; $failed++ }

@@ -12,7 +12,7 @@ function Assert-True([bool]$Condition, [string]$Name) {
     if ($Condition) { Write-Host "ok     $Name" } else { Write-Host "FAIL   $Name"; $script:failures += $Name }
 }
 function Invoke-Kit([string[]]$KitArgs) {
-    $out = & pwsh -NoProfile -File $ci @KitArgs -Json -Project $script:dir 2>$null | Out-String
+    $out = & pwsh -NoProfile -NonInteractive -File $ci @KitArgs -Json -Project $script:dir 2>$null | Out-String
     return [pscustomobject]@{ Code = $LASTEXITCODE; Doc = ($out.Trim() ? ($out | ConvertFrom-Json) : $null) }
 }
 

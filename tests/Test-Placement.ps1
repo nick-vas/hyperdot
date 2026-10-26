@@ -24,7 +24,7 @@ Copy-Item (Join-Path $root 'ci/godot/templates/placement_check.gd') (Join-Path $
 
 function Invoke-Placement([string]$Test) {
     $results = Join-Path $game "r-$Test"
-    $json = pwsh -NoProfile -File $kit test -Json -Quiet -Project $game -Runners gut -Filter $Test -Results $results 2>$null | ConvertFrom-Json
+    $json = pwsh -NoProfile -NonInteractive -File $kit test -Json -Quiet -Project $game -Runners gut -Filter $Test -Results $results 2>$null | ConvertFrom-Json
     $runner = @($json.runnerResults | Where-Object runner -eq 'gut')[0]
     # The JSON keeps the first lines of a failure; the GUT log has the whole report and the summary of a passing run.
     $log = Get-Content -LiteralPath (Join-Path $results 'gut/gut.log') -Raw
@@ -113,7 +113,7 @@ Assert-True ($f.Lines -contains 'ai_point: 3 checked, 0 finding(s) (-1 since the
 function Invoke-PlacementKitRunner([string]$Config) {
     Set-Content -LiteralPath (Join-Path $game 'placement.json') -Value $Config
     $results = Join-Path $game "r-runner-$([guid]::NewGuid().ToString('N').Substring(0, 6))"
-    $json = pwsh -NoProfile -File $kit test -Json -Quiet -Project $game -Runners placement -Results $results 2>$null | ConvertFrom-Json
+    $json = pwsh -NoProfile -NonInteractive -File $kit test -Json -Quiet -Project $game -Runners placement -Results $results 2>$null | ConvertFrom-Json
     $runner = @($json.runnerResults | Where-Object runner -eq 'placement')[0]
     $summary = @(Get-Content -LiteralPath (Join-Path $results 'placement/placement.txt') -ErrorAction SilentlyContinue)
     return [pscustomobject]@{ Ok = $json.ok; Total = $runner.total; Failures = @($runner.failures); Summary = $summary }

@@ -16,7 +16,7 @@ Copy-Item -Recurse -LiteralPath (Join-Path $root 'examples/gdscript') -Destinati
 $failures = @()
 
 function Invoke-KitTest([string]$Results) {
-    $out = & pwsh -NoProfile -File $kit test -Project $project -Runners architecture -Results $Results -Json 2>$null
+    $out = & pwsh -NoProfile -NonInteractive -File $kit test -Project $project -Runners architecture -Results $Results -Json 2>$null
     return ($out -join "`n") | ConvertFrom-Json
 }
 

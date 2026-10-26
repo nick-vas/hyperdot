@@ -25,7 +25,7 @@ try {
     foreach ($case in $cases) {
         $arguments = $case.Arguments
         $started = Get-Date
-        $out = & pwsh -NoProfile -File $kit @arguments -Project $project -Json 2>$null
+        $out = & pwsh -NoProfile -NonInteractive -File $kit @arguments -Project $project -Json 2>$null
         $seconds = ((Get-Date) - $started).TotalSeconds
         $d = ($out -join "`n") | ConvertFrom-Json
         if ($d.ok -or $d.error.code -ne 'invalid-arguments') { $failures += "$($case.Name): should be refused with invalid-arguments, got $($d | ConvertTo-Json -Depth 3 -Compress)" }

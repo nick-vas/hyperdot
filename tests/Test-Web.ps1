@@ -16,7 +16,7 @@ $work = Join-Path ([IO.Path]::GetTempPath()) "web-fixture-$([guid]::NewGuid().To
 Copy-Item -Recurse (Join-Path $PSScriptRoot 'web-fixture') $work
 $output = Join-Path $work 'build'
 function Invoke-WebExport([string]$Preset) {
-    $json = pwsh -NoProfile -File $kit export -Json -Quiet -Project $work -Preset $Preset -Run -Browser ($Browser -join ',') -Output $output -Results (Join-Path $work 'results') 2>$null | ConvertFrom-Json
+    $json = pwsh -NoProfile -NonInteractive -File $kit export -Json -Quiet -Project $work -Preset $Preset -Run -Browser ($Browser -join ',') -Output $output -Results (Join-Path $work 'results') 2>$null | ConvertFrom-Json
     return [pscustomobject]@{ Ok = $json.ok; Code = $(if ($json.PSObject.Properties['error']) { $json.error.code } else { '' })
         Message = $(if ($json.PSObject.Properties['error']) { $json.error.message } else { '' })
         Exports = @(if ($json.PSObject.Properties['exports']) { $json.exports }); Runs = @(if ($json.PSObject.Properties['webRuns']) { $json.webRuns }) }

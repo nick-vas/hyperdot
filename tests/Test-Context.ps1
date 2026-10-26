@@ -74,7 +74,7 @@ try {
     Assert-True (@($broken | Where-Object Status -eq 'FAIL').Count -eq 0) 'instruction problems never fail doctor'
 
     # End to end: doctor shows them.
-    $json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') doctor -Project $dir -Json 2>$null | Out-String | ConvertFrom-Json
+    $json = & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') doctor -Project $dir -Json 2>$null | Out-String | ConvertFrom-Json
     $messages = @($json.checks | ForEach-Object message) -join "`n"
     Assert-True ($messages -match 'commands or flags it does not have' -and $messages -match 'name files that do not exist') 'doctor reports them'
 } finally {

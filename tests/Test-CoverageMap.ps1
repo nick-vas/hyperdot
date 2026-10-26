@@ -14,7 +14,7 @@ function Assert-True([bool]$Condition, [string]$What) {
 $temp = Join-Path ([System.IO.Path]::GetTempPath()) "coveragemap-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
 New-Item -ItemType Directory -Force $temp | Out-Null
 try {
-    $out = & pwsh -NoProfile -File $script -Check 6>&1 2>&1
+    $out = & pwsh -NoProfile -NonInteractive -File $script -Check 6>&1 2>&1
     Assert-True ($LASTEXITCODE -eq 0) "docs/coverage.md has a row for everything$(if ($LASTEXITCODE) { ': ' + ($out -join ' | ') })"
 
     # A broken copy: a command's row removed, a row for a tool that does not exist, a test that does not exist.
@@ -24,7 +24,7 @@ try {
     $text = $text -replace '(?m)^(\| `Update-Versions\.ps1` \|.*)$', "`$1`n| ``Gone.ps1`` | ``Test-Sfx.ps1`` |"
     $text = $text -replace '(?m)^(\| `sfx` \|) .*$', '$1 `Test-NoSuchTest.ps1` |'
     [System.IO.File]::WriteAllText($broken, $text)
-    $out = @(& pwsh -NoProfile -File $script -Check -Output $broken 6>&1 2>&1 | ForEach-Object { "$_" })
+    $out = @(& pwsh -NoProfile -NonInteractive -File $script -Check -Output $broken 6>&1 2>&1 | ForEach-Object { "$_" })
     Assert-True ($LASTEXITCODE -eq 1) 'a broken map fails -Check'
     foreach ($expected in 'command deck has no row', 'tool Gone.ps1 has a row but no longer exists', 'names Test-NoSuchTest.ps1, which does not exist') {
         Assert-True (@($out | Where-Object { $_.Contains($expected) }).Count -gt 0) "-Check says: $expected"
@@ -40,7 +40,7 @@ try {
     $file = Join-Path $temp 'records.json'
     $map = Join-Path $temp 'map.md'
     $before = (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'coverage-records.json')).Hash
-    & pwsh -NoProfile -File $script -From $records -RecordsFile $file -Output $map *> $null
+    & pwsh -NoProfile -NonInteractive -File $script -From $records -RecordsFile $file -Output $map *> $null
     Assert-True ($LASTEXITCODE -eq 0) 'the map is made from records'
     $saved = Get-Content -LiteralPath $file -Raw | ConvertFrom-Json -AsHashtable
     Assert-True (@($saved.tests.Keys) -join ',' -eq 'Test-Detect,Test-Sfx') "records are kept per test, the one naming none dropped ($(@($saved.tests.Keys) -join ','))"

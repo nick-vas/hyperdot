@@ -70,7 +70,7 @@ if (-not $NoGodot) {
     $fixture = Join-Path $temp 'game'
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'gpuvalidation-fixture') -Destination $fixture -Recurse
     function Invoke-Kit([string[]]$Arguments) {
-        $out = pwsh -NoProfile -File $kit @Arguments -Json -Quiet 2>$null
+        $out = pwsh -NoProfile -NonInteractive -File $kit @Arguments -Json -Quiet 2>$null
         return $(if ($out) { ($out -join "`n") | ConvertFrom-Json } else { $null })
     }
     function Get-Code($Doc) { if ($Doc -and $Doc.PSObject.Properties['error']) { $Doc.error.code } elseif ($Doc) { '(ok)' } else { '(no JSON)' } }

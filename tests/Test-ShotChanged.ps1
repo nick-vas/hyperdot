@@ -13,7 +13,7 @@ New-Item -ItemType Directory -Force $project | Out-Null
 Copy-Item -Path (Join-Path $PSScriptRoot 'colorvision-fixture/*') -Destination $project -Recurse
 function Invoke-KitShot([string[]]$More) {
     $err = Join-Path $temp 'stderr.txt'
-    $json = & pwsh -NoProfile -File $kit shot -Project $project -Scene res://swatches.tscn -Resolution 640x360 -Frames 5 -Json @More 2>$err
+    $json = & pwsh -NoProfile -NonInteractive -File $kit shot -Project $project -Scene res://swatches.tscn -Resolution 640x360 -Frames 5 -Json @More 2>$err
     try { return ($json | Out-String | ConvertFrom-Json) }
     catch { throw "shot $($More -join ' ') printed no JSON: $((Get-Content -LiteralPath $err -Raw) -replace '\s+$', '')" }
 }
@@ -37,7 +37,7 @@ foreach ($folder in 'a', 'b') {
     Copy-Item -LiteralPath $scene -Destination (Join-Path $project "$folder/swatches.tscn")
 }
 $twinErr = Join-Path $temp 'twins.stderr.txt'
-$twinJson = & pwsh -NoProfile -File $kit shot -Project $project -Scene 'res://swatches.tscn,res://a/swatches.tscn,res://b/swatches.tscn' -Resolution 640x360 -Frames 5 -Output (Join-Path $temp 'twins') -Json 2>$twinErr
+$twinJson = & pwsh -NoProfile -NonInteractive -File $kit shot -Project $project -Scene 'res://swatches.tscn,res://a/swatches.tscn,res://b/swatches.tscn' -Resolution 640x360 -Frames 5 -Output (Join-Path $temp 'twins') -Json 2>$twinErr
 $twins = $twinJson | Out-String | ConvertFrom-Json
 $twinFiles = @(@($twins.shots) | ForEach-Object { Split-Path -Leaf $_.file })
 if (-not $twins.ok -or ($twinFiles -join ',') -ne 'swatches.png,a_swatches.png,b_swatches.png') { $failures += "scenes with the same name should get their own pictures: $($twinFiles -join ', ')" }

@@ -38,7 +38,7 @@ $empty = Join-Path ([System.IO.Path]::GetTempPath()) "help-$([guid]::NewGuid().T
 New-Item -ItemType Directory -Force $empty | Out-Null
 function Invoke-Help([string[]]$HelpArgs) {
     Push-Location $empty
-    try { $out = & pwsh -NoProfile -File $ci @HelpArgs 2>$null | Out-String } finally { Pop-Location }
+    try { $out = & pwsh -NoProfile -NonInteractive -File $ci @HelpArgs 2>$null | Out-String } finally { Pop-Location }
     return [pscustomobject]@{ Code = $LASTEXITCODE; Text = $out }
 }
 try {

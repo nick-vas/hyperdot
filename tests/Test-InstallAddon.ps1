@@ -27,9 +27,9 @@ exit 0
 '@
 Set-Content -LiteralPath (Join-Path $bin 'fake-git.ps1') -Value $fake
 if ($IsWindows) {
-    Set-Content -LiteralPath (Join-Path $bin 'git.cmd') -Value "@pwsh -NoProfile -File `"%~dp0fake-git.ps1`" %*"
+    Set-Content -LiteralPath (Join-Path $bin 'git.cmd') -Value "@pwsh -NoProfile -NonInteractive -File `"%~dp0fake-git.ps1`" %*"
 } else {
-    Set-Content -LiteralPath (Join-Path $bin 'git') -Value "#!/bin/sh`nexec pwsh -NoProfile -File `"$(Join-Path $bin 'fake-git.ps1')`" `"`$@`""
+    Set-Content -LiteralPath (Join-Path $bin 'git') -Value "#!/bin/sh`nexec pwsh -NoProfile -NonInteractive -File `"$(Join-Path $bin 'fake-git.ps1')`" `"`$@`""
     chmod +x (Join-Path $bin 'git')
 }
 $env:PATH = "$bin$([IO.Path]::PathSeparator)$env:PATH"

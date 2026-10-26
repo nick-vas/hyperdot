@@ -42,7 +42,7 @@ try {
         New-Item -ItemType Directory -Force (Split-Path $file -Parent) | Out-Null
         Set-Content -LiteralPath $file -Value "[gd_resource type=`"Resource`" format=3]`n[resource]`nbroken = Vector2(`n"
     }
-    $json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') test -Project $fixture -Runners validate -Results $resultsOut -Json 2>$null
+    $json = & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') test -Project $fixture -Runners validate -Results $resultsOut -Json 2>$null
 } finally {
     foreach ($folder in 'test-results', 'TestResults') { Remove-Item -LiteralPath (Join-Path $fixture $folder) -Recurse -Force -ErrorAction SilentlyContinue }
     Remove-Item -LiteralPath $resultsOut -Recurse -Force -ErrorAction SilentlyContinue

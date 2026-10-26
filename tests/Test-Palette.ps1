@@ -157,7 +157,7 @@ if (-not $NoGodot) {
     }
     function Invoke-KitShot([string]$Name, [string[]]$More) {
         $err = Join-Path $temp "$Name.stderr.txt"
-        $json = & pwsh -NoProfile -File $kit shot -Project $project -Resolution 480x270 -Frames 5 -Json -Output (Join-Path $temp $Name) @More 2>$err
+        $json = & pwsh -NoProfile -NonInteractive -File $kit shot -Project $project -Resolution 480x270 -Frames 5 -Json -Output (Join-Path $temp $Name) @More 2>$err
         try { return ($json | Out-String | ConvertFrom-Json) }
         catch { throw "shot $Name printed no JSON: $((Get-Content -LiteralPath $err -Raw) -replace '\s+$', '')" }
     }

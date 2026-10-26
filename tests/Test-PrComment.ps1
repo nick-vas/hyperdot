@@ -92,7 +92,7 @@ function Invoke-Publish([int]$Port, [string]$ResultsDir = $results, [string]$Bas
         @('NO_PROXY', '127.0.0.1,localhost'), @('no_proxy', '127.0.0.1,localhost'))
     $saved = @(foreach ($pair in $variables) { , @($pair[0], [Environment]::GetEnvironmentVariable($pair[0])) })
     foreach ($pair in $variables) { [Environment]::SetEnvironmentVariable($pair[0], $pair[1]) }
-    try { return @(& pwsh -NoProfile -File $tool -ResultsDir $ResultsDir -Name game -ArtifactName results -PullRequest 7 2>&1) -join ' ' }
+    try { return @(& pwsh -NoProfile -NonInteractive -File $tool -ResultsDir $ResultsDir -Name game -ArtifactName results -PullRequest 7 2>&1) -join ' ' }
     finally { foreach ($pair in $saved) { [Environment]::SetEnvironmentVariable($pair[0], $pair[1]) } }
 }
 function Stop-FakeGitHub($Job, [int]$Port) {

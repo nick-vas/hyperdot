@@ -14,7 +14,7 @@ function Assert-True([bool]$Condition, [string]$What) {
     if ($Condition) { Write-Host "ok     $What" } else { Write-Host "FAILED $What" -ForegroundColor Red; $failures.Add($What) }
 }
 function Get-DoctorChecks([string]$Project) {
-    $out = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') doctor -Json -Project $Project 2>$null
+    $out = & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') doctor -Json -Project $Project 2>$null
     return @((($out -join "`n") | ConvertFrom-Json).checks | ForEach-Object { "$($_.status) $($_.message)" })
 }
 # A copy of the fixture with project.godot changed by $Edit and, optionally, a script added.

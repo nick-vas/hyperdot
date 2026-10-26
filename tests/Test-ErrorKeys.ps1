@@ -137,7 +137,7 @@ Copy-Item -Recurse (Join-Path $PSScriptRoot 'errorkeys-fixture') $game
 function Invoke-Git([string[]]$GitArgs) { & git -C $game -c user.name=test -c user.email=test@example.com @GitArgs 2>&1 | Out-Null; if ($LASTEXITCODE) { throw "git $GitArgs failed" } }
 function Invoke-Kit([string[]]$KitArgs) {
     $extra = if ($KitArgs[0] -eq 'test') { @('-Runners', 'smoke', '-Results', (Join-Path $game 'test-results')) } else { @() }
-    $out = pwsh -NoProfile -File $kit @KitArgs -Json -Quiet -Project $game @extra 2>$null
+    $out = pwsh -NoProfile -NonInteractive -File $kit @KitArgs -Json -Quiet -Project $game @extra 2>$null
     return ($out | Out-String | ConvertFrom-Json)
 }
 $wave = 'ERROR: Wave N spawned N enemies outside the arena at res://main.gd'

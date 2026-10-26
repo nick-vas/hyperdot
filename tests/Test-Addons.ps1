@@ -107,7 +107,7 @@ linux.release.x86_64 = {
     # End to end: doctor reports them and fails on the release library.
     Set-Content -LiteralPath (Join-Path $dir 'export_presets.cfg') "[preset.0]`n`nname=`"Web`"`nplatform=`"Web`"`nrunnable=true`ncustom_features=`"`"`nexport_filter=`"all_resources`"`ninclude_filter=`"`"`nexclude_filter=`"addons/gut/*`"`nexport_path=`"build/web/index.html`"`n`n[preset.0.options]`n`nvariant/thread_support=true`n"
     & git -C $dir init -q
-    $json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') doctor -Project $dir -Json 2>$null | Out-String | ConvertFrom-Json
+    $json = & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') doctor -Project $dir -Json 2>$null | Out-String | ConvertFrom-Json
     $messages = @($json.checks | ForEach-Object { "$($_.status) $($_.message)" }) -join "`n"
     Assert-True ($json.ok -eq $false -and $messages -match "FAIL res://addons/native/native\.gdextension has no library for export preset 'Web' \(release\)") "doctor fails on a release build with no library: $(($messages -split "`n" | Select-String 'gdextension|addons') -join ' | ')"
 } finally {
@@ -152,7 +152,7 @@ try {
     $sourceFile = Join-Path $known 'source.json'
     $source | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $sourceFile
     $tool = Join-Path $root 'ci/godot/tools/Update-AddonStatus.ps1'
-    $r = & pwsh -NoProfile -File $tool -Root $copyRoot -Source $sourceFile -Apply -Json | Out-String | ConvertFrom-Json
+    $r = & pwsh -NoProfile -NonInteractive -File $tool -Root $copyRoot -Source $sourceFile -Apply -Json | Out-String | ConvertFrom-Json
     $updates = @($r.updates | ForEach-Object { "$($_.id).$($_.field)" } | Sort-Object)
     Assert-True (($updates -join ',') -eq 'godot-jolt.archived,godot-perfbullets.head,godot-steam-audio.archived') "head and archived changes are found: $($updates -join ',')"
     $reviewIds = @($r.review | ForEach-Object id | Sort-Object)
@@ -161,7 +161,7 @@ try {
     $perf = @($written.addons | Where-Object id -eq 'godot-perfbullets')[0]
     $jolt = @($written.addons | Where-Object id -eq 'godot-jolt')[0]
     Assert-True ($perf.head -eq ('c' * 40) -and $jolt.archived -eq $true -and $perf.status -eq 'unsupported' -and @($r.changed) -contains 'ci/godot/addons-status.json') '-Apply writes head and archived, and leaves the status to a person'
-    $again = & pwsh -NoProfile -File $tool -Root $copyRoot -Source $sourceFile -Apply -Json | Out-String | ConvertFrom-Json
+    $again = & pwsh -NoProfile -NonInteractive -File $tool -Root $copyRoot -Source $sourceFile -Apply -Json | Out-String | ConvertFrom-Json
     Assert-True (@($again.updates).Count -eq 0 -and @($again.changed).Count -eq 0 -and (@($again.review | ForEach-Object id) -join ',') -eq 'py4godot') "a second run changes nothing; only the missing file is still reported: $(@($again.review | ForEach-Object id) -join ',')"
 } finally {
     Remove-Item -LiteralPath $known -Recurse -Force -ErrorAction SilentlyContinue

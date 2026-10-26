@@ -39,7 +39,7 @@ function Assert-True([bool]$Condition, [string]$What) {
 }
 
 if (-not $env:GODOT_BIN -or -not (Test-Path -LiteralPath $env:GODOT_BIN)) {
-    $setup = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') setup -Json -Quiet -Project (Join-Path $root 'examples/gdscript') 2>$null
+    $setup = & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') setup -Json -Quiet -Project (Join-Path $root 'examples/gdscript') 2>$null
     $env:GODOT_BIN = @(Get-ChildItem -LiteralPath $(if ($env:GODOT_TOOLS_DIR) { $env:GODOT_TOOLS_DIR } else { Join-Path $HOME '.hyperdot' }) -Recurse -File |
         Where-Object { $_.Name -match '^Godot_v[\d.]+-stable(_mono)?_linux\.x86_64$' } | Sort-Object { $_.Name -match '_mono' } |
         Select-Object -First 1 | ForEach-Object FullName) | Select-Object -First 1
@@ -67,7 +67,7 @@ $repoMode = (& stat -c '%a' $root).Trim()
 function Invoke-Run([string[]]$Arguments, [string]$Mode = 'good') {
     $env:FAKE_GAME_MODE = $Mode
     $before = @(Get-Content -LiteralPath $log).Count
-    $out = & pwsh -NoProfile -File $bench -SpecPath $programme -Claude $fake -OutputDir (Join-Path $work "results-$Mode") -Repeat 1 -Json @Arguments 2>$null
+    $out = & pwsh -NoProfile -NonInteractive -File $bench -SpecPath $programme -Claude $fake -OutputDir (Join-Path $work "results-$Mode") -Repeat 1 -Json @Arguments 2>$null
     $code = $LASTEXITCODE
     $doc = @($out | Where-Object { $_ -match '^\{' }) | Select-Object -Last 1
     $json = if ($doc) { $doc | ConvertFrom-Json }
@@ -119,7 +119,7 @@ try {
     }
     # A dry run makes no user.
     $before = @(& getent passwd | Where-Object { $_ -like 'hyperdot-s*' }).Count
-    $null = & pwsh -NoProfile -File $bench -SpecPath $programme -Claude $fake -Tier min -Isolate -DryRun 2>$null
+    $null = & pwsh -NoProfile -NonInteractive -File $bench -SpecPath $programme -Claude $fake -Tier min -Isolate -DryRun 2>$null
     Assert-True ($LASTEXITCODE -eq 0 -and @(& getent passwd | Where-Object { $_ -like 'hyperdot-s*' }).Count -eq $before) 'a dry run isolates nothing'
 } finally {
     foreach ($name in $saved.Keys) { [Environment]::SetEnvironmentVariable($name, $saved[$name]) }

@@ -16,7 +16,7 @@ function Assert-True([bool]$Condition, [string]$What) {
     if ($Condition) { Write-Host "ok     $What" } else { Write-Host "FAILED $What" -ForegroundColor Red; $failures.Add($What) }
 }
 function Invoke-Deck([string[]]$Arguments) {
-    $out = pwsh -NoProfile -File $kit deck -Json -Quiet -Project $fixture -Results (Join-Path $temp "r$([guid]::NewGuid().ToString('N').Substring(0, 6))") -Seconds 1 -Warmup 0 -Frames 5 @Arguments 2>$null
+    $out = pwsh -NoProfile -NonInteractive -File $kit deck -Json -Quiet -Project $fixture -Results (Join-Path $temp "r$([guid]::NewGuid().ToString('N').Substring(0, 6))") -Seconds 1 -Warmup 0 -Frames 5 @Arguments 2>$null
     return $(if ($out) { ($out -join "`n") | ConvertFrom-Json } else { $null })
 }
 function Get-Part($Doc, [string]$Name) { @($Doc.deck.parts | Where-Object { $_.part -eq $Name })[0] }
