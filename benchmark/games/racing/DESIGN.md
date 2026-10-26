@@ -5,8 +5,8 @@ and frame pacing. A car runs on a fixed physics step whose rates are all per sec
 tick rate (`godot-math`, `godot-determinism`); laps are counted by gates crossed in order; the best lap is kept as a
 ghost of quantised inputs that drives the lap again exactly; AI rivals follow the racing line; a chase camera eases the
 same at any frame rate; keys are rebindable while the gamepad keeps working (`godot-input`); and the save keeps best
-laps, ghosts and keys (`godot-saves`). One game, written twice: `gdscript/` (built) and `csharp/` (to come, from this
-design). Both behave the same, use the same data files, scene tree, node names and log lines, and pass the same flows.
+laps, ghosts and keys (`godot-saves`). One game, written twice: `gdscript/` and `csharp/` (ported from this design).
+Both behave the same, use the same data files, scene tree, node names and log lines, and pass the same flows.
 Only the code and the test framework differ: GUT for GDScript, gdUnit4 (run by the kit's `gdunit4` runner) for C#.
 
 Everything here is made up for the benchmark: the name, the tracks, the rivals. The cars, roads and ground are drawn in
@@ -143,7 +143,7 @@ race_start|position_gained|lap_completed <ms>` and `[juice] feedback flash|sfx|p
 
 | Part | Files |
 |---|---|
-| Tests | GDScript: `test/unit/test_*.gd` (GUT), 69 tests: the car's handling (`test_car.gd`, at 30 and 120 ticks too), the track, laps, the AI on every track, the race, standings, the ghost, saves, controls, launch options, the camera and the race scene. C#: `test/*Test.cs` (gdUnit4) |
+| Tests | GDScript: `test/unit/test_*.gd` (GUT), 69 tests: the car's handling (`test_car.gd`, at 30 and 120 ticks too), the track, laps, the AI on every track, the race, standings, the ghost, saves, controls, launch options, the camera and the race scene. C#: `test/*Test.cs` (gdUnit4), the same 69 |
 | Flows | `test/flows/start.flow.json` (menu, track select, track 1), `select.flow.json` (Back), `pause.flow.json` (pause, resume, restart), `settings.flow.json` (French and back), `controls.flow.json` (a key rebound, Escape keeping it, back to W) |
 | Data | `data/tracks.json`, `data/rivals.json`; `data.json` |
 | Bot runs | `playthrough.json`: `--autoplay --seed=1 --no-save`, the three tracks finished (track 1 in first place) and `[Run] victory` within 7800 frames (it takes about 6000). `juice.json`: 1500 frames; race_start gets flash and sfx, position_gained and lap_completed pop and sfx, each within 100 ms |
@@ -243,7 +243,7 @@ Its reference is every file of the next stage that the earlier one lacks or has 
 
 ## As built
 
-Choices made in the GDScript build where the design was open. The C# port follows them.
+Choices made in the GDScript build where the design was open. The C# port follows them; its own choices come after.
 
 - **2D from above**, cars and roads drawn in code (`CarView`, `track_view.gd`); the ground's cinders come from a fixed
   seed in the view, outside the simulation.
@@ -282,3 +282,60 @@ Choices made in the GDScript build where the design was open. The C# port follow
 - **A hidden test stops at a missing track** rather than racing on it: an empty track has no road to search, and the
   untouched games of add-content and the milestones must fail quickly, not run to the kit's time limit.
 - **Decoys:** fix-bug (all three stages), fix-playthrough and fill-translations.
+
+### C#
+
+- **The same race, to the last bit.** As in GDScript, a number is a double and a vector Godot's float `Vector2`: where
+  GDScript multiplies a vector by a number, the C# casts the number to float first, and a product of lengths is taken
+  in double. The closest point on a segment and a gate's crossing come from the engine's `Geometry2D` in both, the
+  heading's vector from `Vector2.FromAngle` and a direction's angle from `Angle()`, as `from_angle()` and `angle()` do
+  (`MathF.Sin`, `Cos` and `Atan2` in `scripts/` are the architecture runner's `nondeterministic-sim`). `Maths` holds
+  `wrapf`, `posmod`, `fposmod`, `angle_difference`, `is_equal_approx`, `snappedf`, `roundi`, `minf` and `maxf` as the
+  engine's C++ defines them: `Mathf` rounds halves to even, and `Math.Max` treats a signed zero its own way. The bot run
+  (`--autoplay --seed=1 --no-save`) prints the same 68 `[Run]` and `[juice]` lines as the GDScript one, line for line,
+  and so do runs with seeds 2, 5, 9 and 13, with 1, 7 and 11 rivals and from track 2.
+- **Names:** `Game` keeps the snake_case names the flows and the contract use: `track`, `state`, `race`, `place`,
+  `lap`, `camera`, `start_track`, `restart` and `next_track`, and `Settings` keeps `waiting` and `capture_key`, which
+  the controls flow calls. `start_track` is two overloads, `(id)` and `(id, seed)`, not a default argument, because the
+  engine calls a C# method only with all its arguments (the track 3 flow calls it with an id alone). The rest is C#'s
+  own case: `Car.Step`, `Position`, `Heading`, `Speed`, `OnRoad`, `Index`, `Car.At` and `State()` with a `CarState`
+  record for the dictionary, `Track.FromRow`, `Nearest`, `IsOnRoad`, `DistanceAlong`, `CrossesGate`, `GateEnds` (a
+  pair), `GridSlot` (a `CarState`), `SpeedProfile`, `Lookups`, `LapTracker.Update` (a `LapTracker.Crossing`),
+  `GatesPassed`, `AiDriver.Decide`, `Race.Step`, `Standings`, `PositionOf`, `FinishOrder`, `BestGhost`,
+  `Ghost.Quantize`, `Record`, `InputAt`, `Replay`, `Drive`, `ToDict`, `FromDict`, `Tracks.Row`, `DriversFor`,
+  `GridOrder`, `Controls.Rebind`, `KeyOf`, `ToDict`, `Apply`, `Reset`, `SaveStore.RecordLap`, `Main.ApplySettings` and
+  `Game.Setup`.
+- **Typed rows.** A track of `data/tracks.json` is a `TrackRow` and a rival a `RivalRow`, with the contract's defaults
+  for fields a row leaves out. `Tracks.Row` gives null for a track the data lacks, where GDScript gives `{}`, and
+  `Tracks.Track` builds such a track from the defaults, as `from_row({})` does: a grid at the origin and no road.
+- **Plain classes and C# events.** `Car`, `Track`, `LapTracker`, `AiDriver`, `Race`, `Ghost`, `Tracks`, `SaveStore`
+  and the static `Controls` are plain C# classes; Race's signals and the game's and screens' are C# events, as
+  `RaceFinished` carries a `Ghost`.
+- **Simulation code the architecture runner passes.** Nothing in `scripts/` iterates a `Dictionary`: the save's maps
+  are `SortedDictionary`, so a save is also written in the same order every time.
+- **Saves:** `SaveStore` takes a file path (Main passes `user://save.json`, globalised) and uses `System.Text.Json`, so
+  its tests use temporary files. `SaveData` holds `Unlocked`, `Best`, `Ghosts` (each a `JsonObject`, as
+  `Ghost.ToDict()` gives it), `Volume`, `Locale` and `Controls`; the file is written beside the save and moved over it,
+  and is the GDScript version's, so a save from either loads in the other.
+- **Tests:** the 69 GUT tests as gdUnit4 tests in `test/*Test.cs`, one for one, run by the kit's `dotnet` runner, and
+  `gdunit4` for the mutants. The suites that read the data or touch `Geometry2D`, the input map, the camera or the
+  scene are `[RequireGodotRuntime]`; `Car`, `LaunchOptions` and `SaveStore` are tested without the engine. The race
+  scene's tests load it with `ISceneRunner` and wait whole physics ticks; the camera's add it to the tree's root and
+  free it after.
+- **The explain-failure test** is `The_best_lap_is_the_fastest`, `test/LapTrackerTest.cs` line 84.
+- **A hidden check stops at a missing track** by an assertion, which ends a gdUnit4 test where GUT's needs
+  `fail_test` and a return.
+- **The fix-performance defect's** one-argument `Nearest` leaves `TrackTest`'s call with a hint a compile error, where
+  the GDScript test fails at its call: the visible suite fails either way, and the hidden check is what the fix must
+  pass.
+- **Stages** lay overlays of `game/Game.cs` and `game/game.tscn` (prototype; it also leaves out `TextFormat.cs`, its
+  texts being plain English) and `ui/Main.cs` (alpha, beta), where the GDScript stages edit `main.gd`; the rest is
+  edits, as in GDScript. The alpha's `Game` keeps its `_bot` field, never set, as the GDScript one keeps its variable.
+  The task references and decoys are the stage's files with the defect undone or a wrong fix made; those of data and
+  translations are the GDScript version's files. The milestone references follow the rule above, generated from the
+  built stages. Where a hidden check compiles against the C# API, the milestone's goal names it: `SaveStore.cs`'s
+  `Read` and `Write` and `SaveData`'s `Unlocked` and `Best` (prototype to alpha), `LaunchOptions.Autoplay` (alpha to
+  beta).
+- **Export:** Linux only (Godot 4.7 cannot export C# to the Web), so the planted export defect adds `data/*` to that
+  preset's `exclude_filter="test/*"`. `THIRD-PARTY-NOTICES.txt` comes from `credits` on the C# game, with the .NET
+  runtime's notices; the store art, docs, data, translations, sounds and flows are the GDScript version's files.
