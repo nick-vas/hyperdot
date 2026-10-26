@@ -26,6 +26,18 @@ concurrency:
   group: self-test-${{ github.event_name == 'pull_request' && github.head_ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# git 2.54+ runs background maintenance after a commit, which packs and deletes loose objects, and has raced tests that
+# commit and then clone or copy a repository (the staged programme's game workspaces, Test-UpdatePins.ps1's clone). Off
+# for every git call of every job.
+env:
+  GIT_CONFIG_COUNT: '3'
+  GIT_CONFIG_KEY_0: gc.auto
+  GIT_CONFIG_VALUE_0: '0'
+  GIT_CONFIG_KEY_1: gc.autoDetach
+  GIT_CONFIG_VALUE_1: 'false'
+  GIT_CONFIG_KEY_2: maintenance.auto
+  GIT_CONFIG_VALUE_2: 'false'
+
 jobs:
   lint:
     runs-on: ubuntu-latest
