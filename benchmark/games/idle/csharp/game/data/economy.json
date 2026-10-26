@@ -1,0 +1,9 @@
+[
+  { "id": "tap", "value": 1, "note": "glow for one press of Gather" },
+  { "id": "milestone_every", "value": 25, "note": "every this many of one producer doubles it" },
+  { "id": "milestone_multiplier", "value": 2, "note": "what a milestone multiplies its producer by" },
+  { "id": "dawn_base", "value": 1000000, "note": "glow earned in a run for the first ember; embers grow with its square root" },
+  { "id": "ember_bonus", "value": 0.1, "note": "production added by each ember, as a fraction" },
+  { "id": "offline_cap_seconds", "value": 28800, "note": "the most time away that is paid: 8 hours" },
+  { "id": "autosave_seconds", "value": 30, "note": "real seconds between autosaves" }
+]
