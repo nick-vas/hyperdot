@@ -67,6 +67,9 @@
   50% and 63%, mostly by picking the same position in both orders; `benchmark/PLAN.md` records it.
   Opus (runs 35 and 36) no longer depends on the order (2 flips in 31 pairs) but agrees with the owner on 53% and 69%
   of the two sets, so no judge is pinned yet.
+  The owner's blind re-judge of ten pairs (`benchmark/calibration/retest-1.json`) agreed with their earlier verdicts
+  on 6, and on 2 of 5 from the first set, judged under the old rubric. Against that, Haiku and Sonnet with the
+  rewritten rubric agree with the owner on 62% and with themselves on 84% and 74%; Opus on 71% and 94%.
 - **The staged game programme's idle genre**, Duskhive, in GDScript (`benchmark/games/idle/`). A moth hive gathers
   glow at dusk: five producers whose prices grow geometrically, Buy 1, 10 or as many as the glow pays for, upgrades,
   and a dawn that trades a run's glow for embers. Every number is in data checked by the `data` runner; glow is a
