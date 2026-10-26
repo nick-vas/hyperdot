@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- **The staged programme's CI check runs one job per genre and language**, and only for the pairs whose game
+  changed (every pair when the harness or the programme changed, or when started by hand). One job per language ran
+  every genre in turn and no longer fitted its 150 minutes with ten genres; a pull request that adds one genre now
+  checks that genre alone.
 - **Two C# test runs at once no longer take each other's results.** gdUnit4Net's adapter reaches the Godot it starts
   over a pipe with a fixed name, `gdunit4-message-pipe`, which .NET on Linux and macOS keeps as a socket in the temp
   folder. Two `dotnet test` runs that shared `TMPDIR` (two `test` runs on C# projects, two staged-programme checks)

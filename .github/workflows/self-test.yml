@@ -596,43 +596,62 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-  # The real staged programme (benchmark/game-programme.json), one job per language: every written genre's tasks must
-  # catch their defect, pass their reference and fail their decoy. It runs Godot hundreds of times (the C# arcade game
-  # alone takes about an hour and a half), so only when the programme's files changed, or when started by hand.
+  # The real staged programme (benchmark/game-programme.json): every written genre's tasks must catch their defect, pass
+  # their reference and fail their decoy. It runs Godot hundreds of times (the C# arcade game alone takes about an hour
+  # and a half), so it runs one job per genre and language, and only the pairs whose game changed: every pair when the
+  # harness or the programme changed or when started by hand.
+  programme-pairs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      pairs: ${{ steps.pairs.outputs.pairs }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Which genres and languages changed?
+        id: pairs
+        shell: pwsh
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          $spec = Get-Content -Raw benchmark/game-programme.json | ConvertFrom-Json
+          $written = @(foreach ($g in $spec.programme.genres) { foreach ($l in $g.languages) {
+              if (Test-Path "benchmark/games/$($g.id)/$l") { [ordered]@{ genre = $g.id; language = $l } } } })
+          $every = $env:GITHUB_EVENT_NAME -eq 'workflow_dispatch' -or -not $env:BASE -or $env:BASE -match '^0+$'
+          $files = @()
+          if (-not $every) {
+            git fetch -q --depth=1 origin $env:BASE 2>$null
+            $files = @(git diff --name-only $env:BASE HEAD 2>$null)
+            # Not fetched (a force push, a deleted base): check everything rather than skip.
+            $every = $LASTEXITCODE -ne 0 -or @($files | Where-Object { $_ -match '^benchmark/templates/|^benchmark/(GameProgramme\.ps1|game-programme\.json)$|^tests/Test-GameProgramme\.ps1$' }).Count -gt 0
+          }
+          # A pair changed when its language's folder did, or a file of the genre's outside both languages that is not
+          # prose (its DESIGN.md is read by people, not by the check).
+          $pairs = @(foreach ($p in $written) {
+            $mine = "^benchmark/games/$($p.genre)/($($p.language)/|(?!gdscript/|csharp/).*(?<!\.md)$)"
+            if ($every -or @($files | Where-Object { $_ -match $mine }).Count -gt 0) { $p } })
+          "pairs=$(ConvertTo-Json -InputObject $pairs -Compress)" >> $env:GITHUB_OUTPUT
+          Write-Host "::notice::The staged programme's check runs $($pairs.Count) of $($written.Count) genre and language pairs"
+
   game-programme:
+    needs: programme-pairs
+    if: needs.programme-pairs.outputs.pairs != '[]'
+    name: game-programme (${{ matrix.genre }}, ${{ matrix.language }})
     runs-on: ubuntu-latest
     timeout-minutes: 150
     strategy:
       fail-fast: false
       matrix:
-        language: [gdscript, csharp]
+        include: ${{ fromJSON(needs.programme-pairs.outputs.pairs) }}
     steps:
       - uses: actions/checkout@v7
-      - name: Did the programme change?
-        id: changed
-        shell: pwsh
-        env:
-          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
-        run: |
-          $changed = $env:GITHUB_EVENT_NAME -eq 'workflow_dispatch' -or -not $env:BASE -or $env:BASE -match '^0+$'
-          if (-not $changed) {
-            git fetch -q --depth=1 origin $env:BASE 2>$null
-            $files = @(git diff --name-only $env:BASE HEAD 2>$null)
-            # Not fetched (a force push, a deleted base): check rather than skip.
-            $changed = $LASTEXITCODE -ne 0 -or @($files | Where-Object { $_ -match '^benchmark/(games|templates)/|^benchmark/(GameProgramme\.ps1|game-programme\.json)$|^tests/Test-GameProgramme\.ps1$' }).Count -gt 0
-          }
-          "run=$($changed.ToString().ToLower())" >> $env:GITHUB_OUTPUT
-          if (-not $changed) { Write-Host '::notice::The staged programme did not change; its check is skipped' }
       - name: Godot (.NET build), for GODOT_BIN
-        if: steps.changed.outputs.run == 'true'
         shell: pwsh
         run: ./ci/godot/hyperdot.ps1 setup -Project examples/csharp/game
       # From a folder of its own, as the check exports builds and writes beside where it runs.
-      - name: Every ${{ matrix.language }} task catches its defect, passes its reference and fails its decoy
-        if: steps.changed.outputs.run == 'true'
+      - name: Every ${{ matrix.genre }} task in ${{ matrix.language }} catches its defect, passes its reference and fails its decoy
         shell: pwsh
         working-directory: ${{ runner.temp }}
-        run: '& "$env:GITHUB_WORKSPACE/tests/Test-GameProgramme.ps1" -Language ${{ matrix.language }}'
+        run: '& "$env:GITHUB_WORKSPACE/tests/Test-GameProgramme.ps1" -Genre ${{ matrix.genre }} -Language ${{ matrix.language }}'
 
   # The private field test (-GameSource) with a stand-in for the model: the mutant planter, and whole runs on copies
   # of both examples, good and bad work, numbers only in the report.

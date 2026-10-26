@@ -15,7 +15,7 @@ gives the percentages and the floors CI holds them to.
 | [Tools](#tools) | 20 | 20 |
 | [Skills](#skills) | 51 | 51 |
 | [Subagents](#subagents) | 2 | 2 |
-| [Workflow jobs, actions, hooks and the GitLab template](#workflow-jobs-actions-hooks-and-the-gitlab-template) | 27 | 26 |
+| [Workflow jobs, actions, hooks and the GitLab template](#workflow-jobs-actions-hooks-and-the-gitlab-template) | 28 | 27 |
 
 ## Commands
 
@@ -260,6 +260,7 @@ A job of `self-test.yml` is a test itself (it lists what it runs); another workf
 | self-test.yml/init | itself (on every push and pull request); runs `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Localization.ps1`, `Test-Placement.ps1`, `Test-ReportPins.ps1`, `Test-ResultsDir.ps1`, `Test-SkillShaders.ps1`, 5 step(s) of its own |
 | self-test.yml/measure | itself (on every push and pull request); runs `Test-Audio.ps1`, `Test-BenchHotspots.ps1`, `Test-BenchSweep.ps1`, `Test-Capture.ps1`, `Test-ColorVision.ps1`, `Test-Credits.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-Flows.ps1`, `Test-Layout.ps1`, `Test-MonoAudio.ps1`, `Test-Palette.ps1`, `Test-Playthrough.ps1`, `Test-ShotChanged.ps1`, `Test-Soak.ps1`, `Test-StaleTres.ps1`, `Test-TextSize.ps1`, 4 step(s) of its own |
 | self-test.yml/game-benchmark | itself (on every push and pull request); runs `Test-BenchmarkIsolation.ps1`, `Test-GameBenchmark.ps1`, `Test-GameProgramme.ps1`, 1 step(s) of its own |
+| self-test.yml/programme-pairs | itself (on every push and pull request) |
 | self-test.yml/game-programme | itself (on every push and pull request); runs `Test-GameProgramme.ps1`, 1 step(s) of its own |
 | self-test.yml/field-test | itself (on every push and pull request); runs `Test-FieldTest.ps1`, 1 step(s) of its own |
 | self-test.yml/web | itself (on every push and pull request); runs `Test-BuildSize.ps1`, `Test-GpuValidation.ps1`, `Test-Web.ps1` |
