@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- **A benchmark run can be split into parts.** `Invoke-TokenBenchmark.ps1 -Shard k/n` runs every n-th session of the
+  run from the k-th, with its own estimate and its share of the ceiling; the n parts together hold each session once
+  (`tests/Test-GameBenchmark.ps1`). The workflow's `shards` input runs each configuration as n parallel jobs: the
+  mid tier, 135 sessions a configuration at three to four minutes each, outlasts one job's 330 minutes.
 - **The staged programme's first run over all ten genres** (the min tier, token-benchmark run 43, $6.58): 66 of 80
   sessions passed and no task failed for every configuration (`benchmark/PLAN.md`). It found two faults in the kit, both
   fixed with regression tests: isolated sessions inherited no writable XDG folders, so Godot's config ended up inside a

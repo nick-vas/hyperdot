@@ -53,6 +53,10 @@ param(
     [string[]]$Language,
     # The most this run may cost (Claude Code's own figure). Default: the tier's ceiling, shared over its configurations.
     [double]$BudgetUsd = 0,
+    # One of n parts of the run ("k/n"), for runs longer than a CI job may last: its sessions, numbered in the run's
+    # order, are those whose number leaves k-1 when divided by n, so every part gets a fair mix of tasks, repetitions and
+    # milestones; its estimate and ceiling are its own sessions' share. The n parts together are the whole run.
+    [ValidatePattern('^\d+/\d+$')][string]$Shard,
     # The private field test: the game in this folder (a copy of it), the field spec's templates and configurations.
     [string]$GameSource,
     # Fixes which defects the field test plants (default: the spec's).
@@ -533,8 +537,27 @@ $configurations = if ($fieldMode -and -not $PSBoundParameters.ContainsKey('Model
     @($spec.field.configurations | ForEach-Object { [pscustomobject]@{ Model = $_.model; Plugin = [bool]$_.plugin } })
 } else { @([pscustomobject]@{ Model = $modelName; Plugin = [bool]$Plugin }) }
 $limit = if ($MaxCalls -gt 0) { $MaxCalls } else { [int]$spec.maxCalls }
+$shardIndex = 1; $shardCount = 1
+if ($Shard) {
+    $shardIndex = [int]($Shard -split '/')[0]; $shardCount = [int]($Shard -split '/')[1]
+    if ($shardCount -lt 1 -or $shardCount -gt 50 -or $shardIndex -lt 1 -or $shardIndex -gt $shardCount) { throw "-Shard $Shard`: give k/n with 1 <= k <= n <= 50" }
+}
+# Every session of the run in order (configuration, repetition, task, profile), each numbered; a shard keeps its own.
+$sessionPlan = [System.Collections.Generic.List[object]]::new()
+$sessionNumber = 0
+foreach ($c in $configurations) {
+    for ($r = 1; $r -le $repeatCount; $r++) {
+        $order = @(for ($i = 0; $i -lt $profiles.Count; $i++) { $profiles[($i + $r - 1) % $profiles.Count] })
+        foreach ($t in $tasks) {
+            foreach ($p in $order) {
+                if ($sessionNumber % $shardCount -eq $shardIndex - 1) { $sessionPlan.Add([pscustomobject]@{ Configuration = $c; Repetition = $r; Task = $t; Profile = $p }) }
+                $sessionNumber++
+            }
+        }
+    }
+}
 $calls = 0
-foreach ($p in $profiles) { foreach ($t in $tasks) { $calls += (Get-StepPrompts $p $t).Count * $repeatCount * $configurations.Count } }
+foreach ($s in $sessionPlan) { $calls += (Get-StepPrompts $s.Profile $s.Task).Count }
 # The limit holds even if every session is retried.
 $worstCase = $calls * (1 + [int]$spec.retries)
 
@@ -552,13 +575,18 @@ if ($costModel) {
     $tierEstimateUsd = 0.0
     foreach ($c in $tierConfigurations) { $tierEstimateUsd += Get-RunEstimateUsd $costModel $tasks $profiles $repeatCount $c.model ([bool]$c.plugin) $judgeModel }
     if ($tierEstimateUsd -le 0) { $tierEstimateUsd = $estimateUsd }
+    # A shard is priced by its own sessions, and its ceiling below is its share of the whole tier's.
+    if ($shardCount -gt 1) {
+        $estimateUsd = 0.0
+        foreach ($s in $sessionPlan) { $estimateUsd += Get-RunEstimateUsd $costModel @($s.Task) @($s.Profile) 1 $s.Configuration.Model $s.Configuration.Plugin $judgeModel }
+    }
 }
 if ($BudgetUsd -gt 0) { $budget = $BudgetUsd }
 elseif ($tierSpec -and $tierSpec.Contains('maxCostUsd') -and $null -ne $tierSpec.maxCostUsd -and $null -ne $estimateUsd) {
     $budget = [double]$tierSpec.maxCostUsd * $(if ($tierEstimateUsd -gt 0) { $estimateUsd / $tierEstimateUsd } else { 1 })
 } elseif ($fieldMode -and $spec.field.Contains('maxCostUsd')) { $budget = [double]$spec.field.maxCostUsd }
 
-Write-BenchLog "$($profiles.Count) profile(s), $($tasks.Count) task(s), $repeatCount run(s), $($configurations.Count) configuration(s): $calls session(s) (more with retries), $(($configurations | ForEach-Object { "$($_.Model)$(if ($_.Plugin) { ' with the plugin' })" }) -join ', ')"
+Write-BenchLog "$($profiles.Count) profile(s), $($tasks.Count) task(s), $repeatCount run(s), $($configurations.Count) configuration(s): $calls session(s) (more with retries)$(if ($shardCount -gt 1) { ", shard $shardIndex of $shardCount" }), $(($configurations | ForEach-Object { "$($_.Model)$(if ($_.Plugin) { ' with the plugin' })" }) -join ', ')"
 if ($null -ne $estimateUsd) {
     Write-BenchLog ("Estimated cost {0:N2} USD for this run{1}{2}" -f $estimateUsd,
         $(if ($tierEstimateUsd -and [math]::Abs($tierEstimateUsd - $estimateUsd) -gt 1e-9) { (', {0:N2} USD for all the tier''s configurations' -f $tierEstimateUsd) }),
@@ -574,6 +602,7 @@ if ($DryRun) {
     foreach ($t in $tasks) { Write-BenchLog "  task $($t.id)" }
     if ($Json) {
         [ordered]@{ dryRun = $true; calls = $calls; limit = $limit; tasks = @($tasks | ForEach-Object { $_.id }); configurations = $configurations.Count
+            shard = $(if ($shardCount -gt 1) { "$shardIndex/$shardCount" }); sessions = @($sessionPlan | ForEach-Object { "$($_.Task.id)#$($_.Repetition)" })
             estimateUsd = $estimateUsd; tierEstimateUsd = $tierEstimateUsd; budgetUsd = $budget; overBudget = $overBudget } | ConvertTo-Json -Compress
     }
     if ($overBudget) { Write-BenchLog $overMessage; exit 1 }
@@ -605,29 +634,23 @@ $claudeVersion = try { (Invoke-ClaudeProcess $Claude @('--version') '' 30 $WorkD
 
 $rows = [System.Collections.Generic.List[object]]::new()
 $spentUsd = 0.0; $notRun = [System.Collections.Generic.List[string]]::new()
-foreach ($configuration in $configurations) {
-    $modelName = $configuration.Model
-    $Plugin = [switch]$configuration.Plugin
-    for ($r = 1; $r -le $repeatCount; $r++) {
-        # The profile that runs first meets a cold prompt cache; rotating the order each repetition spreads that cost.
-        $order = @(for ($i = 0; $i -lt $profiles.Count; $i++) { $profiles[($i + $r - 1) % $profiles.Count] })
-        foreach ($t in $tasks) {
-            foreach ($p in $order) {
-                # Past the ceiling nothing new starts; what was not run is listed, and the run is incomplete.
-                if ($null -ne $budget -and $spentUsd -ge $budget) { $notRun.Add("$($p.id) $($t.id) #$r $modelName$(if ($Plugin) { ' + plugin' })"); continue }
-                $row = Invoke-BenchmarkCell $spec $p $t $r $modelName $responseDir
-                # The field test reports kinds of failure, never what a test or file is called.
-                if ($fieldMode) { $row.reasons = ConvertTo-FieldReason $row.reasons; $row.gameReasons = ConvertTo-FieldReason $row.gameReasons }
-                $rows.Add($row)
-                # The judge's sessions count toward the ceiling too, though not toward the configuration's tokens.
-                $spentUsd += $row.costUsd + $(if ($row.judge) { $row.judge.costUsd } else { 0 })
-                # Saved as it goes, so a run stopped from outside (a job's time limit) still leaves what it measured.
-                $rows | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $runDir 'results.json') -Encoding utf8
-                Write-BenchLog ("{0,-12} {1,-12} #{2} {3} {4,9:N0} tokens  `${5:N4}  {6} turn(s){7}" -f $p.id, $t.id, $r,
-                    $(if ($row.success) { 'pass' } else { 'FAIL' }), $row.tokensTotal, $row.costUsd, $row.turns, $(if ($row.reasons) { "  ($($row.reasons))" }))
-            }
-        }
-    }
+# The profile that runs first meets a cold prompt cache; the plan rotates the order each repetition to spread that cost.
+foreach ($session in $sessionPlan) {
+    $modelName = $session.Configuration.Model
+    $Plugin = [switch]$session.Configuration.Plugin
+    $p = $session.Profile; $t = $session.Task; $r = $session.Repetition
+    # Past the ceiling nothing new starts; what was not run is listed, and the run is incomplete.
+    if ($null -ne $budget -and $spentUsd -ge $budget) { $notRun.Add("$($p.id) $($t.id) #$r $modelName$(if ($Plugin) { ' + plugin' })"); continue }
+    $row = Invoke-BenchmarkCell $spec $p $t $r $modelName $responseDir
+    # The field test reports kinds of failure, never what a test or file is called.
+    if ($fieldMode) { $row.reasons = ConvertTo-FieldReason $row.reasons; $row.gameReasons = ConvertTo-FieldReason $row.gameReasons }
+    $rows.Add($row)
+    # The judge's sessions count toward the ceiling too, though not toward the configuration's tokens.
+    $spentUsd += $row.costUsd + $(if ($row.judge) { $row.judge.costUsd } else { 0 })
+    # Saved as it goes, so a run stopped from outside (a job's time limit) still leaves what it measured.
+    $rows | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $runDir 'results.json') -Encoding utf8
+    Write-BenchLog ("{0,-12} {1,-12} #{2} {3} {4,9:N0} tokens  `${5:N4}  {6} turn(s){7}" -f $p.id, $t.id, $r,
+        $(if ($row.success) { 'pass' } else { 'FAIL' }), $row.tokensTotal, $row.costUsd, $row.turns, $(if ($row.reasons) { "  ($($row.reasons))" }))
 }
 } finally {
     if ($ownWorkspace -and $WorkDir) { Remove-Item -LiteralPath $WorkDir -Recurse -Force -ErrorAction SilentlyContinue }
@@ -640,8 +663,11 @@ $meta = [ordered]@{ runId = $runId; spec = (Resolve-Path -LiteralPath $SpecPath)
     models = ((@($rows | ForEach-Object model | Where-Object { $_ }) | Sort-Object -Unique) -join ', '); requestedModel = (($configurations | ForEach-Object Model | Sort-Object -Unique) -join ', '); claudeVersion = $claudeVersion; plugin = [bool]$Plugin
     tier = $Tier; selection = [ordered]@{ genre = $Genre; stage = $Stage; language = $Language; task = $TaskId; profile = $ProfileId }
     estimateUsd = $estimateUsd; budgetUsd = $budget; spentUsd = [Math]::Round($spentUsd, 6); notRun = $notRun.ToArray(); isolated = [bool]$isolating
-    # Only the standard tier, unnarrowed and complete, can set a class (the label tool checks this).
-    standard = [bool]($Tier -and $Tier -eq 'mid' -and -not ($Genre -or $Stage -or $Language -or $TaskId -or $ProfileId) -and $Repeat -eq 0 -and $notRun.Count -eq 0) }
+    # Only the standard tier, unnarrowed and complete, can set a class (the label tool checks this). A shard alone is
+    # not the run: it says which part it is and whether all n parts together would be.
+    standard = $false; shard = $(if ($shardCount -gt 1) { "$shardIndex/$shardCount" }); partOfStandard = $false }
+$meetsStandard = [bool]($Tier -and $Tier -eq 'mid' -and -not ($Genre -or $Stage -or $Language -or $TaskId -or $ProfileId) -and $Repeat -eq 0 -and $notRun.Count -eq 0)
+if ($shardCount -gt 1) { $meta.partOfStandard = $meetsStandard } else { $meta.standard = $meetsStandard }
 # The field test's spec path names nothing of the game; its meta does not hold the game's folder.
 if ($fieldMode) { $meta.field = $true; $meta.standard = $false }
 $rows | Export-Csv -LiteralPath (Join-Path $runDir 'results.csv') -NoTypeInformation -Encoding utf8

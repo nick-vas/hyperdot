@@ -147,6 +147,7 @@ list; `benchmark/GameProgramme.ps1` turns what a run selects into ordinary tasks
 | `-Genre`, `-Stage`, `-Language` | narrow the tier; lists or comma-separated, wildcards allowed |
 | `-TaskId` | full ids, wildcards allowed (`*.fix-bug`, `*.milestone`) |
 | `-BudgetUsd` | the most the run may cost |
+| `-Shard k/n` | one of n parts of the run: its sessions are every n-th in the run's order from the k-th, with their own estimate and their share of the ceiling; the n parts together are the run (`meta.shard`, and `meta.partOfStandard` instead of `standard`) |
 
 **Cost.** `benchmark/cost-model.json` gives each kind of session an expected cost by model, plugin and kind (task or
 milestone). The runner estimates the run from it. The ceiling is `-BudgetUsd`, or the tier's `maxCostUsd` shared over
@@ -188,6 +189,10 @@ the page's store holds them.
 **In the workflow**, choose the `staged` programme, a tier, any selectors, and `configurations: all`. A plan job dry-runs
 each configuration (Sonnet and Haiku, with and without the plugin) and fails before anything is spent if one is over
 its share. Then one job per configuration runs in parallel.
+
+A tier that outlasts one job (the mid tier runs 135 sessions a configuration, about seven hours) takes `shards: n`:
+each configuration then runs as n parallel jobs, one per part, each with its own artifact (`-part-k`).
+
 
 ## Isolation
 

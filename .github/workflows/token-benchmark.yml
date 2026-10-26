@@ -73,6 +73,9 @@ on:
       votes:
         description: With calibrate, how many times the judge judges each order of a pair (the majority decides)
         default: '1'
+      shards:
+        description: Split each configuration into this many parallel jobs (the mid tier outlasts one job's 330 minutes)
+        default: '1'
 
 permissions:
   contents: read
@@ -104,6 +107,7 @@ jobs:
           REPEAT: ${{ inputs.repeat }}
           PROFILES: ${{ inputs.profiles }}
           TASKS: ${{ inputs.tasks }}
+          SHARDS: ${{ inputs.shards }}
         run: |
           $spec = switch ($env:PROGRAMME) { 'game' { 'benchmark/game-benchmark.json' } 'staged' { 'benchmark/game-programme.json' } default { 'benchmark/token-benchmark.json' } }
           $doc = Get-Content $spec -Raw | ConvertFrom-Json -AsHashtable
@@ -124,7 +128,10 @@ jobs:
             if ($null -ne $estimate) { $total += $estimate }
           }
           "Estimated cost of the whole run: $([math]::Round($total, 2)) USD over $($configs.Count) configuration(s)" | Add-Content $env:GITHUB_STEP_SUMMARY
-          "matrix=$(@{ include = @($configs | ForEach-Object { @{ model = $_.model; plugin = [bool]$_.plugin } }) } | ConvertTo-Json -Compress -Depth 4)" | Add-Content $env:GITHUB_OUTPUT
+          # Each configuration as one job, or as n parts (Invoke-TokenBenchmark.ps1 -Shard k/n) that together are the run.
+          $n = [Math]::Max(1, [int]"0$env:SHARDS")
+          $jobs = @(foreach ($c in $configs) { for ($k = 1; $k -le $n; $k++) { @{ model = $c.model; plugin = [bool]$c.plugin; shard = $(if ($n -gt 1) { "$k/$n" } else { '' }); part = $(if ($n -gt 1) { "$k" } else { '' }) } } })
+          "matrix=$(@{ include = $jobs } | ConvertTo-Json -Compress -Depth 4)" | Add-Content $env:GITHUB_OUTPUT
           "spec=$spec" | Add-Content $env:GITHUB_OUTPUT
 
   benchmark:
@@ -174,6 +181,7 @@ jobs:
           PROFILES: ${{ inputs.profiles }}
           TASKS: ${{ inputs.tasks }}
           ISOLATE: ${{ inputs.isolate }}
+          SHARD: ${{ matrix.shard }}
         run: |
           $params = @{ SpecPath = $env:SPEC; OutputDir = 'benchmark/results'; SaveResponses = $true; Model = $env:MODEL }
           if ($env:PLUGIN -eq 'true') { $params.Plugin = $true }
@@ -182,12 +190,13 @@ jobs:
             $value = [Environment]::GetEnvironmentVariable($pair[0]); if ($value) { $params[$pair[1]] = $value }
           }
           if ($env:REPEAT) { $params.Repeat = [int]$env:REPEAT }
+          if ($env:SHARD) { $params.Shard = $env:SHARD }
           ./benchmark/Invoke-TokenBenchmark.ps1 @params
           Get-ChildItem benchmark/results -Recurse -Filter summary.md | Get-Content -Raw | Add-Content $env:GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: token-benchmark-${{ inputs.programme }}-${{ matrix.model }}${{ matrix.plugin && '-plugin' || '' }}
+          name: token-benchmark-${{ inputs.programme }}-${{ matrix.model }}${{ matrix.plugin && '-plugin' || '' }}${{ matrix.part && format('-part-{0}', matrix.part) || '' }}
           path: benchmark/results/
           retention-days: 30
 
