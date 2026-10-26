@@ -37,8 +37,7 @@ instead of 1.0: see [Versions](#versions).
    log prefix, the `hyperdot/1` JSON schema, `.godot/hyperdot-history.jsonl`, `~/.hyperdot`, and `examples/csharp` (was
    `examples/breakout`, whose name clashed with Breakout Roguelike). No aliases; error codes keep their names. Old state
    moves once: the history file, the GUT stamp and `~/.godot-ci` on any run; a game's workflow file and plugin entry on
-   `init`. Left to the owner: renaming the repository `nick-vas/Godot_TestSuite` to `nick-vas/hyperdot` in GitHub's
-   settings when the rename pull request merges (the code already calls the new name).
+   `init`. The owner renamed the repository from `nick-vas/Godot_TestSuite` to `nick-vas/hyperdot`.
 4. **Fixes and features from the question round** (the notes below).
 5. **Benchmark.** Evals with 3 runs per arm (the first run where all four cases can run commands), the token benchmark
    (costs money: confirm first) and `bench` on the C# example. Done for the token benchmark, with the Hyperdot label
@@ -48,7 +47,8 @@ instead of 1.0: see [Versions](#versions).
 7. **Release 0.1.0**: changelog, version, tag `v0.1.0`; create and keep a moving `v1` tag (`init` and the docs already
    write `@v1`, which does not resolve until then), a
    start-here page for working on a game (first use: Breakout Roguelike, `nick-vas/BreakoutTheBreakout`, in a new chat
-   with the kit cloned beside it).
+   with the kit cloned beside it), and the GitHub Pages site (added to 0.1.0 by the owner on 2026-10-26; the owner turns
+   on Pages with GitHub Actions as its source).
 
 ### Versions
 

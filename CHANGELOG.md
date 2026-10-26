@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- **The judge's calibration applies the owner's rule over every set at once.** `Get-JudgeAgreement.ps1 -Calibration
+  benchmark/calibration` holds a judge to the owner's own agreement on a blind re-judge (6 of 10, read from
+  `calibration/retest-1.json`, whose stated result it checks against its pairs) and to 90% agreement with itself over
+  every pair of every set; it measures agreement on every set but one marked `forAgreement: false` (the first, judged
+  with the old rubric shown), with each re-judged pair's newer verdict, turned back where A and B were swapped. The
+  workflow's `calibrate` input is now a switch: it rebuilds every set's pairs from its run and tries the judges
+  `cost-model.json` prices, cheapest first, in place of one run at fixed bars of 80% and 90%. Recomputed from the saved
+  judgements, it reproduces every recorded agreement and corrects one figure: Haiku's agreement with itself in the fourth
+  calibration was 81%, not 84% (`tests/Test-ReviewPairs.ps1`).
 - **A benchmark run can be split into parts.** `Invoke-TokenBenchmark.ps1 -Shard k/n` runs every n-th session of the
   run from the k-th, with its own estimate and its share of the ceiling; the n parts together hold each session once
   (`tests/Test-GameBenchmark.ps1`). The workflow's `shards` input runs each configuration as n parallel jobs: the
@@ -95,7 +104,7 @@
   of the two sets, so no judge is pinned yet.
   The owner's blind re-judge of ten pairs (`benchmark/calibration/retest-1.json`) agreed with their earlier verdicts
   on 6, and on 2 of 5 from the first set, judged under the old rubric. Against that, Haiku and Sonnet with the
-  rewritten rubric agree with the owner on 62% and with themselves on 84% and 74%; Opus on 71% and 94%.
+  rewritten rubric agree with the owner on 62% and with themselves on 81% and 74%; Opus on 71% and 94%.
   Haiku with ten votes per order (runs 41 and 42) stays at 62% and 81%: its order bias is steady, not noise.
   **The judge is pinned: Opus** (`claude-opus-5-5`), by the owner's rule: at least the owner's own agreement with
   themselves on the re-judge (60%), and 90% with itself. `cost-model.json` prices its judgement at $0.05.

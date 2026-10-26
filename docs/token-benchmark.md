@@ -181,10 +181,16 @@ random order, with nothing naming the model, the profile or the plugin) and, apa
 plugin). The same results and seed always give the same key, so it need not be kept. `benchmark/review-page.html`,
 published as an artifact with `review-pairs.json` beside it, shows each pair and keeps the owner's verdict (A, B or
 even, and a note) in the page's own store, one document per pair under `verdicts`, which only the owner can write.
-`benchmark/Get-JudgeAgreement.ps1 -Key <review-key.json> -Verdicts <verdicts.json> -Preferences <preferences.json>`
-then says how often the judge agrees with the owner and with itself (the same work chosen in both orders); below 80% or
-90% it exits 1, and the judge's results stay out of the label. The verdicts file is a JSON array of `{id, choice}`, as
-the page's store holds them.
+`benchmark/Get-JudgeAgreement.ps1 -Calibration benchmark/calibration -Key <keys> -Preferences <preferences>` (one key
+and one preferences file per set) then applies the owner's rule of 2026-10-26 over every set at once: the judge must
+agree with the owner at least as often as the owner agreed with themselves on a blind re-judge of earlier pairs (the
+files with `pairs` and `result`, 6 of 10 so far), measured on every set's verdicts except one marked
+`"forAgreement": false` and with each re-judged pair's newer verdict, and with itself (the same work chosen in both
+orders) on at least 90% of every pair it judged. Below either it exits 1, and the judge's results stay out of the label.
+`-Verdicts <verdicts.json>` in place of `-Calibration` scores one set at fixed bars (`-MinAgreement`, 80% unless given).
+The verdicts are a JSON array of `{id, choice}`, as the page's store holds them. The workflow's `calibrate` input does
+all of it: it rebuilds every set's pairs from its run (while the run keeps its results, 30 days) and tries the judges
+`cost-model.json` prices, cheapest first.
 
 **In the workflow**, choose the `staged` programme, a tier, any selectors, and `configurations: all`. A plan job dry-runs
 each configuration (Sonnet and Haiku, with and without the plugin) and fails before anything is spent if one is over

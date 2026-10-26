@@ -1,12 +1,10 @@
 {
-  "note": "The owner's blind verdicts on the review page (benchmark/review-page.html) for the first staged pilot's pairs: A, B or even for each pair as the page showed it. The token benchmark workflow's calibrate mode rebuilds the pairs from the run with Invoke-SideBySide.ps1 -ReviewOut, checks they are the ones judged (keySha256, the SHA-256 of review-key.json), and scores each candidate judge, cheapest first, against these with Get-JudgeAgreement.ps1.",
+  "note": "The owner's blind verdicts on the review page (benchmark/review-page.html) for the first staged pilot's pairs: A, B or even for each pair as the page showed it. The token benchmark workflow's calibrate mode rebuilds the pairs from the run with Invoke-SideBySide.ps1 -ReviewOut, checks they are the ones judged (keySha256, the SHA-256 of review-key.json), and scores each candidate judge, cheapest first by cost-model.json, against every set at once with Get-JudgeAgreement.ps1 -Calibration.",
   "run": 39987737252,
   "runNumber": 29,
   "keySha256": "391d1213e1f76c991251914f07e71b568cfc84ff7c8d40b76a70e9f52b1d5005",
-  "candidates": [
-    "haiku",
-    "sonnet"
-  ],
+  "forAgreement": false,
+  "forAgreementNote": "Judged with the old rubric shown (2026-10-23); the owner's blind re-judge (retest-1.json) changed 3 of its 5 pairs, all towards the plugin's work. Its verdicts count for a judge's agreement with itself only, and a re-judged pair counts with its newer verdict (benchmark/PLAN.md, section 3, the rule of 2026-10-26).",
   "verdicts": [
     {
       "id": "p01",

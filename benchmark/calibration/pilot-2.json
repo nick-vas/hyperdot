@@ -4,10 +4,6 @@
   "runNumber": 32,
   "idPrefix": "q",
   "keySha256": "55de2073603eea9903e379fba44b5af8c20bfbbe7c452db6a7aeb7e99b541284",
-  "candidates": [
-    "haiku",
-    "sonnet"
-  ],
   "verdicts": [
     {
       "id": "q01",
