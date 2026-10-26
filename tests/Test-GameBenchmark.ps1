@@ -97,6 +97,15 @@ try {
     $over = Invoke-Programme @('-Tier', 'min', '-BudgetUsd', '0.0001', '-DryRun')
     Assert-True ($over.Code -eq 1 -and $over.Json.overBudget) 'a dry run over its ceiling fails'
     Assert-True ((Invoke-Programme @('-Tier', 'huge', '-DryRun')).Code -ne 0) 'an unknown tier is refused'
+    # A tier milestone must start from one of the tier's cells, or it would be dropped without a word.
+    $orphanSpec = Join-Path (Split-Path $programme -Parent) "orphan-$PID.json"
+    try {
+        $doc = Get-Content -LiteralPath $programme -Raw | ConvertFrom-Json -AsHashtable
+        $doc.programme.tiers['orphan'] = @{ repeat = 1; cells = @(@{ genre = 'toy'; language = 'gdscript'; stage = 'alpha' }); milestones = @(@{ genre = 'toy'; language = 'gdscript'; from = 'prototype' }) }
+        $doc | ConvertTo-Json -Depth 50 | Set-Content -LiteralPath $orphanSpec
+        Assert-True ((Invoke-Programme @('-Tier', 'orphan', '-DryRun') 'good' $orphanSpec).Code -ne 0) 'a tier milestone that starts from none of its cells is refused'
+        Assert-True ((Invoke-Programme @('-Tier', 'orphan', '-Stage', 'alpha', '-DryRun') 'good' $orphanSpec).Code -eq 0) 'narrowed by a selector, the same tier runs'
+    } finally { Remove-Item -LiteralPath $orphanSpec -Force -ErrorAction SilentlyContinue }
     Assert-True ((Invoke-Programme @('-Tier', 'min', '-DryRun') 'good' $spec).Code -ne 0) 'tiers belong to staged programmes only'
 
     $staged = Invoke-Programme @('-Tier', 'mid', '-Repeat', '1')

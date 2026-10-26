@@ -201,19 +201,33 @@ as not run, so such a run is incomplete and sets no class.
 
 | Tier | Runs (4 configurations: Sonnet and Haiku, with and without the plugin) | Ceiling | Use |
 |---|---|---:|---|
-| min | 1 genre, its 4 stages in 1 language, 2 tasks a stage, 1 repeat | $10 | a quick check after changing a skill |
-| mid | 3 genres, their 4 stages, 2 tasks a stage, 3 repeats, 1 milestone per genre | $50 | **the standard programme: the only run that sets a class** |
-| max | any selection up to every genre, stage, language, task and milestone, 5 repeats | above $50, shown before it starts | a release, wider coverage, tighter tolerances |
+| min | all 10 genres, 1 stage each, 2 tasks, 1 repeat, no milestones (every language and stage pair at least once) | $10 | a quick check after changing a skill (estimate $5.70) |
+| mid | all 10 genres, 1 stage in each language, 2 tasks a stage, 3 repeats, 5 milestones | $120 | **the standard programme: the only run that sets a class** (estimate $100.20) |
+| max | any selection up to every genre, stage, language, task and milestone, 5 repeats | above $120, shown before it starts | a release, wider coverage, tighter tolerances |
 
-**The mid tier covers both languages without doubling its cost.** Each of its genres runs two stages in GDScript and
-two in C#, in a balanced pattern (a Latin square), so every stage is measured in both languages across the three
-genres and no language always gets the harder stages:
+The tiers were widened on 2026-10-26 from one genre (min) and three (mid, then $50 with an estimate of $60) to all ten,
+once every genre was written in both languages. The estimates come from `cost-model.json`, whose milestone figures are
+still guesses (about ten times a task) until a run measures them; milestones are about two thirds of the mid estimate.
 
-| Genre | Prototype | Alpha | Beta | Release candidate |
-|---|---|---|---|---|
-| Arcade shooter | GDScript | C# | GDScript | C# |
-| Narrative | C# | GDScript | C# | GDScript |
-| Tower defence | GDScript | GDScript | C# | C# |
+**The mid tier covers both languages without doubling its cost.** Each genre runs one stage in GDScript and the stage
+two after it in C#, rotating through the genres, so every stage is measured in both languages and no language always
+gets the harder stages (2 or 3 cells for each language and stage). The milestones start from five of those cells:
+arcade from the prototype and platformer from the alpha in GDScript, puzzle from the prototype in C#, narrative from the
+beta in GDScript and the arena from the beta in C#; the runner refuses a tier milestone that starts from none of the
+tier's cells.
+
+| Genre | GDScript | C# | Milestone |
+|---|---|---|---|
+| Arcade shooter | prototype | beta | GDScript, prototype to alpha |
+| Platformer | alpha | release candidate | GDScript, alpha to beta |
+| Puzzle | beta | prototype | C#, prototype to alpha |
+| Card game | release candidate | alpha | |
+| Roguelite | prototype | beta | |
+| Tower defence | alpha | release candidate | |
+| Narrative | beta | prototype | GDScript, beta to release candidate |
+| Racing | release candidate | alpha | |
+| Multiplayer arena | prototype | beta | C#, beta to release candidate |
+| Idle | alpha | release candidate | |
 
 The milestone for each genre also rotates: prototype to alpha, alpha to beta, and beta to release candidate.
 

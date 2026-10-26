@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- **The staged programme's min and mid tiers cover all ten genres.** min runs one stage of each genre (every language
+  and stage pair at least once), 20 tasks a configuration, estimated at $5.70 for all four configurations; mid runs one
+  stage of each genre in each language, 40 tasks and 5 milestones a configuration, three times, estimated at $100.20
+  under a ceiling raised from $50 to $120. The runner now refuses a tier milestone that starts from none of the tier's
+  cells, which it used to drop without a word.
 - **The eval graders are tested against real sessions.** `tests/Test-EvalGraders.ps1` checks every regex and tool_used
   grader in `evals/` against 14 sessions from Evals runs 4 to 7 (`tests/eval-grader-fixtures/`, made from the
   workflow's artifact by `tests/New-EvalGraderFixture.ps1`). A stand-in for `claude plugin eval` first gives all 21
