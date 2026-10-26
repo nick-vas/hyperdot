@@ -61,6 +61,12 @@
       "plugin": false,
       "kind": "judge",
       "usd": 0.02
+    },
+    {
+      "model": "opus",
+      "plugin": false,
+      "kind": "judge",
+      "usd": 0.05
     }
   ]
 }

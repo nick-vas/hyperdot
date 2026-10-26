@@ -87,6 +87,8 @@
   on 6, and on 2 of 5 from the first set, judged under the old rubric. Against that, Haiku and Sonnet with the
   rewritten rubric agree with the owner on 62% and with themselves on 84% and 74%; Opus on 71% and 94%.
   Haiku with ten votes per order (runs 41 and 42) stays at 62% and 81%: its order bias is steady, not noise.
+  **The judge is pinned: Opus** (`claude-opus-5-5`), by the owner's rule: at least the owner's own agreement with
+  themselves on the re-judge (60%), and 90% with itself. `cost-model.json` prices its judgement at $0.05.
 - **The staged game programme's idle genre**, Duskhive, in GDScript (`benchmark/games/idle/`). A moth hive gathers
   glow at dusk: five producers whose prices grow geometrically, Buy 1, 10 or as many as the glow pays for, upgrades,
   and a dawn that trades a run's glow for embers. Every number is in data checked by the `data` runner; glow is a

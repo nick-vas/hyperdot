@@ -351,11 +351,11 @@
       }
     },
     "judge": {
-      "model": "haiku",
+      "model": "claude-opus-5-5",
       "runs": 3,
       "passScore": 4,
       "maxBudgetUsdPerCall": 0.5,
-      "note": "Provisional: the cheapest candidate. Stage 3's calibration keeps it only if it agrees with the owner's blind ratings at least 80% of the time and with itself at least 90%; otherwise the next candidate (sonnet) is tried. The scale pins the full model id."
+      "note": "Pinned on 2026-10-26 by the owner after stage 3's calibration (benchmark/PLAN.md): the only candidate that agreed with the owner at least as often as the owner agreed with themselves on a blind re-judge (71% against 60%) and with itself at least 90% of the time (94%). Haiku and Sonnet, with one vote or Haiku with ten, changed their answer with the order the work was shown in."
     }
   }
 }
