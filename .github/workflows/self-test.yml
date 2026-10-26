@@ -35,7 +35,8 @@ jobs:
           $issues = @(Invoke-ScriptAnalyzer -Path ci/godot -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1) +
             @(Invoke-ScriptAnalyzer -Path hooks -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1) +
             @(Invoke-ScriptAnalyzer -Path benchmark -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1) +
-            @(Invoke-ScriptAnalyzer -Path site -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1)
+            @(Invoke-ScriptAnalyzer -Path site -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1) +
+            @(Invoke-ScriptAnalyzer -Path .github/scripts -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1)
           $issues | Format-Table -AutoSize RuleName, ScriptName, Line, Message | Out-String -Width 200
           if ($issues) { exit 1 }
       - name: Skills pass their own validator, and the validator catches broken fixtures
@@ -58,6 +59,9 @@ jobs:
       - name: doctor reports agent instructions that name kit flags or files that do not exist; the kit's own calls bind
         shell: pwsh
         run: ./tests/Test-Context.ps1
+      - name: The selection of what a change runs (the sample of pairs, the pairs of a changed game, everything on main) holds
+        shell: pwsh
+        run: ./tests/Test-SelectJobs.ps1
       - name: help and /kit have an entry for every command, skill and subagent
         shell: pwsh
         run: ./tests/Test-Help.ps1
@@ -602,8 +606,9 @@ jobs:
 
   # The real staged programme (benchmark/game-programme.json): every written genre's tasks must catch their defect, pass
   # their reference and fail their decoy. It runs Godot hundreds of times (the C# arcade game alone takes about an hour
-  # and a half), so it runs one job per genre and language, and only the pairs whose game changed: every pair when the
-  # harness or the programme changed or when started by hand.
+  # and a half), so it runs one job per genre and language, and only the pairs whose game changed. A change to the check's
+  # own code (the harness, the programme, the templates) runs a sample of three pairs on a pull request; every pair runs
+  # when started by hand, on a push to main and when the base cannot be compared (.github/scripts/Select-Jobs.ps1).
   programme-pairs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -616,25 +621,7 @@ jobs:
         shell: pwsh
         env:
           BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
-        run: |
-          $spec = Get-Content -Raw benchmark/game-programme.json | ConvertFrom-Json
-          $written = @(foreach ($g in $spec.programme.genres) { foreach ($l in $g.languages) {
-              if (Test-Path "benchmark/games/$($g.id)/$l") { [ordered]@{ genre = $g.id; language = $l } } } })
-          $every = $env:GITHUB_EVENT_NAME -eq 'workflow_dispatch' -or -not $env:BASE -or $env:BASE -match '^0+$'
-          $files = @()
-          if (-not $every) {
-            git fetch -q --depth=1 origin $env:BASE 2>$null
-            $files = @(git diff --name-only $env:BASE HEAD 2>$null)
-            # Not fetched (a force push, a deleted base): check everything rather than skip.
-            $every = $LASTEXITCODE -ne 0 -or @($files | Where-Object { $_ -match '^benchmark/templates/|^benchmark/(GameProgramme\.ps1|game-programme\.json)$|^tests/Test-GameProgramme\.ps1$' }).Count -gt 0
-          }
-          # A pair changed when its language's folder did, or a file of the genre's outside both languages that is not
-          # prose (its DESIGN.md is read by people, not by the check).
-          $pairs = @(foreach ($p in $written) {
-            $mine = "^benchmark/games/$($p.genre)/($($p.language)/|(?!gdscript/|csharp/).*(?<!\.md)$)"
-            if ($every -or @($files | Where-Object { $_ -match $mine }).Count -gt 0) { $p } })
-          "pairs=$(ConvertTo-Json -InputObject $pairs -Compress)" >> $env:GITHUB_OUTPUT
-          Write-Host "::notice::The staged programme's check runs $($pairs.Count) of $($written.Count) genre and language pairs"
+        run: ./.github/scripts/Select-Jobs.ps1
 
   game-programme:
     needs: programme-pairs
