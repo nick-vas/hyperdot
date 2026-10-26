@@ -1,6 +1,7 @@
 # Contributing
 
-- PowerShell 7.6+, strict mode. See [AGENTS.md](AGENTS.md) for the conventions (array unrolling, stable error codes, `-Json`).
+- PowerShell 7.6+, strict mode. See [AGENTS.md](AGENTS.md) for the conventions (array unrolling, stable error codes, `-Json`) and
+  [docs/powershell.md](docs/powershell.md) for every PowerShell lesson behind them, with its source.
 - Before a pull request, run on both examples: `pwsh ci/godot/hyperdot.ps1 test -Project examples/csharp/game` and
   `-Project examples/gdscript`. Both must be green, with `-Json` output still valid.
 - Changing a package version or Godot version: re-run both examples on that version and update `docs/godot-pipelines.md` and

@@ -1,6 +1,18 @@
 # Changelog
 
 ## Unreleased
+- **A PowerShell guide, PSScriptAnalyzer on every script, and a check for the anti-patterns the code has dropped.**
+  `docs/powershell.md` holds 78 lessons for anyone writing PowerShell here, merged from the official PowerShell
+  documentation and the PowerShell Community blog, by theme (errors and exit codes, strict mode and the pipeline,
+  culture and encoding, native commands, paths, parameters, JSON, concurrency, performance, secrets, tooling), each with
+  why, a quoted source and whether it was run; the ten that cost most come first, then the sources' advice that does not
+  hold on 7.6 under strict mode on Linux, and what checks each lesson. AGENTS.md's "Working here" gains the most
+  consequential ones. The lint job's PSScriptAnalyzer step pins 1.25.0, scans every tracked `.ps1` (tests and the GitLab
+  run step too) with Information severity, annotates each finding and fails on any; the wider scope found two dead
+  variables in tests, now gone. `tests/Test-PowerShellPatterns.ps1` reads every script's syntax tree for ten patterns
+  with no use left (`continue` in a pipeline block, `$null` on the right, `Invoke-Expression`, `[IO.Path]::Combine`,
+  `$PSBoundParameters.Name`, a lowered `$ErrorActionPreference`, relative literal paths to .NET, `-Version Latest`,
+  Windows-only aliases, one file read and written in one pipeline), each proven on a fixture file of its own.
 - **PowerShell 7.6 or newer is required (breaking for PowerShell 7.2 to 7.5).** Every script now starts with
   `#Requires -Version 7.6`, the current LTS release: 7.2 left support on 8 November 2024, and 7.4 and 7.5 leave it on
   10 November 2026, while 7.6 is supported until 14 November 2028. GitHub's runner images already ship 7.6 (Ubuntu

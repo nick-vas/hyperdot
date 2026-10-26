@@ -31,12 +31,22 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 ## Working here
 
 - PowerShell 7.6+, strict mode 3.0, `$ErrorActionPreference = 'Stop'`. Wrap results that may be empty or single in `@(...)`
-  and iterate with `foreach`; never index a pipeline result (PowerShell unrolls one-item arrays).
+  and iterate with `foreach`; never index a pipeline result (PowerShell unrolls one-item arrays). Under strict mode `.Count` on a
+  scalar or `$null` throws, and so does dot access to a missing key or property: `@(...).Count`, `$h['k']`, `.ContainsKey()`.
 - Short helper names collide with built-in aliases (`r` is Invoke-History, `rp` is Remove-ItemProperty, `h` is Get-History): use
   Verb-Noun names. In array literals `,` binds tighter than `+`: `@(1, 2 + 3)` is `(1, 2) + 3`, three items `1, 2, 3`; write `@(1, (2 + 3))` for `1, 5`. Overwrite a zip with
   `Compress-Archive -Force` instead of deleting wildcard paths. Windows machines have no Python: keep tooling in PowerShell or GDScript.
-- Never `Write-Output` from helpers; return values are the pipeline. Logs use `Write-Host`/`Write-CiLog` (stderr in `-Json`).
-- Fail with `Stop-GodotCi "message" 'stable-code'`. Codes are API: add to `docs/json.md`, never rename.
+- Never `Write-Output` from helpers; return values are the pipeline. Logs go through `Write-CiLog`/`Write-Console` (stderr in `-Json`):
+  in a child `pwsh` every stream but Error reaches stdout, so a direct `Write-Host`, a warning or a `ConvertTo-Json` without
+  `-Depth` (it truncates at 2 and warns) breaks the JSON. Arrays go out as `-InputObject @(...)`, dictionaries as `[ordered]`.
+- Fail with `Stop-GodotCi "message" 'stable-code'`. Codes are API: add to `docs/json.md`, never rename. Never pass
+  `-ErrorAction SilentlyContinue` to the kit's own functions or lower `$ErrorActionPreference` (a `throw` is skipped),
+  and never `continue` or `break` in `ForEach-Object`/`Where-Object`/`.ForEach()`: it ends the script with exit code 0; use `return`.
+- A native program's non-zero exit code never throws: read `$LASTEXITCODE` on the next line. Pass arguments as an array,
+  quote variables (`"$v"`: Linux globs them) and start child PowerShell as `pwsh -NoProfile -NonInteractive -File`.
+- Paths from data take `-LiteralPath` (`-Path` reads `[ ]` as a wildcard and finds nothing, silently); .NET file APIs get absolute
+  paths. Machine-read numbers and dates use `[cultureinfo]::InvariantCulture`. Never read and write one file in one pipeline.
+  The rest, with sources: [docs/powershell.md](docs/powershell.md); PSScriptAnalyzer and `Test-PowerShellPatterns.ps1` hold part.
 - `$script:JsonDoc` is the `-Json` result; add fields with `Set-JsonField`. The `-Json` switch and state must not share a name
   (PowerShell variables are case-insensitive).
 - Scripts run inside Godot (`-s tools/x.gd`) cannot see the scene's `_ready` until the first frame: `await process_frame` after

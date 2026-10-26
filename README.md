@@ -369,7 +369,7 @@ Logs go to stderr. See [docs/json.md](docs/json.md).
 - [docs/gdc/README.md](docs/gdc/README.md): GDC talks and what the kit took from each
 - [docs/googleforgames.md](docs/googleforgames.md): Google for Games' open source and what the kit took
 
-**This repository**: [AGENTS.md](AGENTS.md) (working on it), [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), [CHANGELOG.md](CHANGELOG.md).
+**This repository**: [AGENTS.md](AGENTS.md) (working on it), [docs/powershell.md](docs/powershell.md) (writing PowerShell here, with sources), [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), [CHANGELOG.md](CHANGELOG.md).
 
 ## Licence
 
