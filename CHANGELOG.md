@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- **A staged-programme task's `unchanged` files may now gain lines.** The rule failed a session with `changed <file>` for
+  any difference, so every session that added regression tests to the existing test file failed (run 44's
+  `racing.alpha.csharp.fix-bug` passed 0 of 10 although they had removed nothing). A kept file now passes when every
+  original line is still there in its order, line endings aside; a missing file and a changed, removed or reordered line
+  still fail. Before the hidden tests, mutants and the suite run, the kept files are put back as they were, so added code
+  cannot weaken the original tests (`newTests` counts the additions first). Self-tested in `tests/Test-GameBenchmark.ps1`.
 - **The staged programme's CI check runs one job per genre and language**, and only for the pairs whose game
   changed (every pair when the harness or the programme changed, or when started by hand). One job per language ran
   every genre in turn and no longer fitted its 150 minutes with ten genres; a pull request that adds one genre now
