@@ -26,8 +26,8 @@
 # section. No TreatNoTestsAsError: with a filter, projects without a match would fail the run, and
 # Write-TestSummary already fails runs that report nothing. CompileProcessTimeout: gdUnit4Net rebuilds the project in
 # the editor before running, and its 20 s default runs out on a loaded machine or a cold Windows runner; the kit
-# then runs no Godot test and only the exit code says so.
-function New-RunSettings([string]$ResultsDir) {
+# then runs no Godot test and only the exit code says so. TempDir, when given, is the test host's TMPDIR (New-DotnetTempDir).
+function New-RunSettings([string]$ResultsDir, [string]$TempDir) {
     $path = Join-Path $ResultsDir 'godot.runsettings'
     Set-Content -LiteralPath $path -Encoding utf8 -Value @"
 <?xml version="1.0" encoding="utf-8"?>
@@ -36,7 +36,7 @@ function New-RunSettings([string]$ResultsDir) {
     <MaxCpuCount>1</MaxCpuCount>
     <TestSessionTimeout>1800000</TestSessionTimeout>
     <EnvironmentVariables>
-      <GODOT_BIN>$([System.Security.SecurityElement]::Escape($env:GODOT_BIN))</GODOT_BIN>
+      <GODOT_BIN>$([System.Security.SecurityElement]::Escape($env:GODOT_BIN))</GODOT_BIN>$(if ($TempDir) { "`n      <TMPDIR>$([System.Security.SecurityElement]::Escape($TempDir))</TMPDIR>" })
     </EnvironmentVariables>
   </RunConfiguration>
   <GdUnit4>
@@ -50,15 +50,36 @@ function New-RunSettings([string]$ResultsDir) {
     return $path
 }
 
+# gdUnit4Net's adapter talks to the Godot it starts over a pipe with a fixed name, gdunit4-message-pipe. On Linux and
+# macOS .NET makes that pipe a socket in the temp folder (TMPDIR/CoreFxPipe_gdunit4-message-pipe), so two test runs that
+# share TMPDIR share the socket: the second run's Godot replaces the first's, both adapters reach the second Godot, and
+# the first run reports "gdUnit4 found N tests but ran 0" although its tests were fine. Each dotnet test therefore gets a
+# temp folder of its own, given to the test host (and through it to Godot) by the run settings. A socket path holds at
+# most 103 characters on macOS (107 on Linux), so under a long TMPDIR the folder goes in /tmp. Windows names its pipes
+# globally, not in a folder: there it returns nothing and the run keeps the inherited temp folder.
+function New-DotnetTempDir {
+    if ($IsWindows) { return $null }
+    $name = "hd-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+    $dir = Join-Path ([System.IO.Path]::GetTempPath()) $name
+    if ("$dir/CoreFxPipe_gdunit4-message-pipe".Length -gt 103) { $dir = Join-Path '/tmp' $name }
+    New-Item -ItemType Directory -Force -Path $dir | Out-Null
+    return $dir
+}
+
 function Invoke-DotnetTest([string]$Target, [string]$ResultsDir, [string]$Filter, [bool]$Coverage, [string]$Prefix) {
-    $arguments = @('test', $Target, '--settings', (New-RunSettings $ResultsDir), '--results-directory', $ResultsDir,
-        '--logger', "trx;LogFilePrefix=$Prefix")
-    if ($Filter) { $arguments += '--filter', $Filter }
-    if ($Coverage) { $arguments += '--collect', 'XPlat Code Coverage' }
-    Start-LogGroup "dotnet test $Target"
-    $code = Invoke-Logged dotnet $arguments
-    Stop-LogGroup
-    return $code
+    $temp = New-DotnetTempDir
+    try {
+        $arguments = @('test', $Target, '--settings', (New-RunSettings $ResultsDir $temp), '--results-directory', $ResultsDir,
+            '--logger', "trx;LogFilePrefix=$Prefix")
+        if ($Filter) { $arguments += '--filter', $Filter }
+        if ($Coverage) { $arguments += '--collect', 'XPlat Code Coverage' }
+        Start-LogGroup "dotnet test $Target"
+        $code = Invoke-Logged dotnet $arguments
+        Stop-LogGroup
+        return $code
+    } finally {
+        if ($temp) { Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue }
+    }
 }
 
 # One case per file from tools/validate.gd's markers; errors printed between a file's markers fail it.

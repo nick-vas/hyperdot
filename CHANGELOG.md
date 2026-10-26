@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- **Two C# test runs at once no longer take each other's results.** gdUnit4Net's adapter reaches the Godot it starts
+  over a pipe with a fixed name, `gdunit4-message-pipe`, which .NET on Linux and macOS keeps as a socket in the temp
+  folder. Two `dotnet test` runs that shared `TMPDIR` (two `test` runs on C# projects, two staged-programme checks)
+  shared that socket: the second run's Godot replaced the first's, both adapters reached the second Godot, and the first
+  run failed with `gdUnit4 (tests not run)` ("found 32 tests but ran 0") although its tests were fine. The `dotnet`
+  and `gdunit4` runners now give each `dotnet test` a temp folder of its own through the `.runsettings`, in `/tmp`
+  when `TMPDIR` is too long for a socket path (which made every gdUnit4 run fail before), and remove it after the run.
+  `tests/Test-DotnetTempDir.ps1` runs two at once against a stand-in `dotnet` and Godot. Windows names its pipes
+  globally and is unchanged.
 - **The roguelite in C#.** Wickerdeep now has its C# version (`benchmark/games/roguelite/csharp/`), written from the
   language-neutral contract in its `DESIGN.md`: the same scenes, scene tree, node names, data files, flows, bot and
   juice runs and log lines, the same `--swarm=N` load, with 44 gdUnit4 tests in place of the GUT ones and a Linux
