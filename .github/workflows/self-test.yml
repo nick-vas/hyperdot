@@ -104,6 +104,9 @@ jobs:
       - name: gdUnit4 tests that were found but never ran fail the dotnet runner
         shell: pwsh
         run: ./tests/Test-TestsNotRun.ps1
+      - name: Two dotnet test runs at once under one TMPDIR each reach their own Godot
+        shell: pwsh
+        run: ./tests/Test-DotnetTempDir.ps1
       - name: doctor checks every asset has a source and a licence
         shell: pwsh
         run: ./tests/Test-AssetManifest.ps1

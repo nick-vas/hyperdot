@@ -908,6 +908,23 @@
         "Write-RunLog"
       ]
     },
+    "Test-DotnetTempDir": {
+      "commands": [
+        "test"
+      ],
+      "errors": [],
+      "functions": [
+        "Get-ProcessTimeout",
+        "Invoke-DotnetTest",
+        "Invoke-Logged",
+        "New-DotnetTempDir",
+        "New-RunSettings",
+        "Start-LogGroup",
+        "Stop-LogGroup",
+        "Write-Console",
+        "Write-RunLog"
+      ]
+    },
     "Test-DownloadFailed": {
       "commands": [
         "setup"
