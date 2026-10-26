@@ -41,6 +41,13 @@
   `calibrate`) judges each order of a pair n times in fresh sessions; the order's choice is the majority, a tie is even,
   and an order where fewer than half the votes named a choice is an error. Each pair keeps its votes in
   `preferences.json`. A cheap judge that changes its mind between runs can then be calibrated by its majority.
+- **Game copies no longer race git's background maintenance.** Since git 2.54 a commit's automatic maintenance packs
+  loose objects in a detached process ("geometric" strategy), and a beta or release game commits over a hundred: the
+  benchmark's copy of the game or its `.git`, made a moment later, lost files under it ("Could not find a part of the
+  path .git/objects/..."), which ended four parts of token-benchmark run 44 and two self-test jobs on the runners' git
+  2.55. `New-GameWorkspace` now sets `gc.auto 0`, `gc.autoDetach false` and `maintenance.auto false` before the first
+  commit, which also covers the git commands a session runs, and `tests/Test-GameProgramme.ps1` checks every workspace
+  it grades.
 - **The staged programme's CI check runs one job per genre and language**, and only for the pairs whose game
   changed (every pair when the harness or the programme changed, or when started by hand). One job per language ran
   every genre in turn and no longer fitted its 150 minutes with ten genres; a pull request that adds one genre now
