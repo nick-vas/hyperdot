@@ -1,4 +1,4 @@
-#Requires -Version 7.2
+#Requires -Version 7.6
 <#
 .SYNOPSIS
 Measures the tokens, cost and time Claude Code spends on the tasks in a benchmark spec, under each profile.

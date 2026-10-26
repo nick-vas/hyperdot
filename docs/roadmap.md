@@ -163,12 +163,6 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 
 ### Kit features not built
 
-- **A GitHub Pages site.** A project page with what Hyperdot is, the quick start, the label (tool, game-making and
-  tested classes, with the SVG labels and information sheets from `docs/label/`), the benchmark results and the docs.
-  It would be built from the repository's Markdown by a workflow, so it never drifts from them. The scope and look are
-  still to agree with the owner.
-
-
 - **Add-on status from release zips and the API.** `ci/godot/addons-status.json`'s names were confirmed from each
   repository's files and build scripts with git, because GitHub's release downloads and API answered 403 in the sandbox
   that built it; Godot Jolt's, PerfBullets' and py4godot's `archived` are still `null`. The canary's first run fills
@@ -181,7 +175,7 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 - **CI:** the GitLab template (`ci/gitlab/hyperdot.gitlab-ci.yml`) has never run on GitLab: no GitLab project or runner
   was reachable from the sandbox that wrote it. Run it once on a GitLab project (a copy of `examples/gdscript` and of
   `examples/csharp`) and fix what breaks. A container image with Godot and its templates already in it was not built: the
-  .NET 8 SDK image GitLab jobs use already has PowerShell 7, git and .NET, Godot is a cached download, and an image with
+  .NET 8 SDK image GitLab jobs use already has git and .NET, PowerShell 7.6 and Godot are cached downloads, and an image with
   the .NET build's templates would weigh about 2.1 GB more (1.9 GB of templates and 222 MB of Godot unpacked, 4.7.2) and need a
   registry and a canary job to keep it current.
   `init` writes `@v1`; the tag itself is created at the 0.1.0 release (step 7 above).

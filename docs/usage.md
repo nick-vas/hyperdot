@@ -183,7 +183,10 @@ variables:
 
 It adds two jobs, the same steps as the GitHub action: `hyperdot-test` (stage `test`, every pipeline) sets up Godot and
 runs `test`; `hyperdot-export` (stage `deploy`, the default branch and tags) runs `export` and keeps `build/` as the job's
-artifact. Both run in `mcr.microsoft.com/dotnet/sdk:8.0`, which already holds .NET 8, PowerShell 7 and git; the kit
+artifact. Both run in `mcr.microsoft.com/dotnet/sdk:8.0`, which holds .NET 8 and git. Its PowerShell is the global tool
+that follows .NET 8 (7.4), older than the kit's 7.6, and PowerShell 7.6 is built on .NET 10, so `before_script` unpacks
+PowerShell's self-contained Linux build (`HYPERDOT_PWSH_VERSION`, 7.6.9; cached in `.hyperdot-cache/pwsh/`), puts it first on
+PATH and stops the job if `pwsh` is still older than 7.6; games still build with the image's .NET 8 SDK. The kit
 clones itself into `/tmp/hyperdot` at `HYPERDOT_REF` (set `HYPERDOT_KIT` to a folder that holds it, such as a submodule,
 to skip the clone) and downloads Godot like anywhere else. The GitHub action's inputs are variables, upper case with
 underscores: `HYPERDOT_PROJECT`, `HYPERDOT_GODOT_VERSION`, `HYPERDOT_RUNNERS`, `HYPERDOT_FILTER`, `HYPERDOT_RETRY`,

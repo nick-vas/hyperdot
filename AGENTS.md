@@ -22,21 +22,34 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
   `Get-HyperdotLabel.ps1` and `label-scale.json` rate a version from its runs, like the EU energy label, one class per programme ([docs/label.md](docs/label.md)).
   Nothing outside `benchmark/`, `docs/token-benchmark.md`, `docs/label*` and their tests may name a benchmark task or profile:
   the sessions must not be able to recognise the test.
-- `.github/actions/godot`, `.github/workflows/godot.yml` composite action and reusable workflow; `ci/gitlab/` the GitLab CI
+- `.github/actions/godot`, `.github/workflows/godot.yml` composite action and reusable workflow; `.github/workflows/self-test.yml` and `.github/scripts/Select-Jobs.ps1` decide what runs for a change ([docs/ci.md](docs/ci.md)); `ci/gitlab/` the GitLab CI
   template (`hyperdot.gitlab-ci.yml`, untested on GitLab) and `Invoke-Hyperdot.ps1`, its run step.
 - `examples/csharp` (C#, every framework) and `examples/gdscript` (GUT): the integration fixtures.
 - `docs/` per-topic documentation; `docs/json.md` is the output contract; `docs/help.md` is the text of `help` and `/kit`
   (a new command, skill or subagent needs an entry there).
+- `site/` the GitHub Pages site: `Build-Site.ps1` builds it from `README.md`, `CHANGELOG.md` and `docs/**/*.md` (Markdig, as in
+  `ConvertFrom-Markdown`, with GitHub's extensions) into `_site` (ignored) with `template.html`, `site.css` and `site.js`;
+  `.github/workflows/pages.yml` publishes it ([docs/site.md](docs/site.md)).
 
 ## Working here
 
-- PowerShell 7.2+, strict mode 3.0, `$ErrorActionPreference = 'Stop'`. Wrap results that may be empty or single in `@(...)`
-  and iterate with `foreach`; never index a pipeline result (PowerShell unrolls one-item arrays).
+- PowerShell 7.6+, strict mode 3.0, `$ErrorActionPreference = 'Stop'`. Wrap results that may be empty or single in `@(...)`
+  and iterate with `foreach`; never index a pipeline result (PowerShell unrolls one-item arrays). Under strict mode `.Count` on a
+  scalar or `$null` throws, and so does dot access to a missing key or property: `@(...).Count`, `$h['k']`, `.ContainsKey()`.
 - Short helper names collide with built-in aliases (`r` is Invoke-History, `rp` is Remove-ItemProperty, `h` is Get-History): use
   Verb-Noun names. In array literals `,` binds tighter than `+`: `@(1, 2 + 3)` is `(1, 2) + 3`, three items `1, 2, 3`; write `@(1, (2 + 3))` for `1, 5`. Overwrite a zip with
   `Compress-Archive -Force` instead of deleting wildcard paths. Windows machines have no Python: keep tooling in PowerShell or GDScript.
-- Never `Write-Output` from helpers; return values are the pipeline. Logs use `Write-Host`/`Write-CiLog` (stderr in `-Json`).
-- Fail with `Stop-GodotCi "message" 'stable-code'`. Codes are API: add to `docs/json.md`, never rename.
+- Never `Write-Output` from helpers; return values are the pipeline. Logs go through `Write-CiLog`/`Write-Console` (stderr in `-Json`):
+  in a child `pwsh` every stream but Error reaches stdout, so a direct `Write-Host`, a warning or a `ConvertTo-Json` without
+  `-Depth` (it truncates at 2 and warns) breaks the JSON. Arrays go out as `-InputObject @(...)`, dictionaries as `[ordered]`.
+- Fail with `Stop-GodotCi "message" 'stable-code'`. Codes are API: add to `docs/json.md`, never rename. Never pass
+  `-ErrorAction SilentlyContinue` to the kit's own functions or lower `$ErrorActionPreference` (a `throw` is skipped),
+  and never `continue` or `break` in `ForEach-Object`/`Where-Object`/`.ForEach()`: it ends the script with exit code 0; use `return`.
+- A native program's non-zero exit code never throws: read `$LASTEXITCODE` on the next line. Pass arguments as an array,
+  quote variables (`"$v"`: Linux globs them) and start child PowerShell as `pwsh -NoProfile -NonInteractive -File`.
+- Paths from data take `-LiteralPath` (`-Path` reads `[ ]` as a wildcard and finds nothing, silently); .NET file APIs get absolute
+  paths. Machine-read numbers and dates use `[cultureinfo]::InvariantCulture`. Never read and write one file in one pipeline.
+  The rest, with sources: [docs/powershell.md](docs/powershell.md); PSScriptAnalyzer and `Test-PowerShellPatterns.ps1` hold part.
 - `$script:JsonDoc` is the `-Json` result; add fields with `Set-JsonField`. The `-Json` switch and state must not share a name
   (PowerShell variables are case-insensitive).
 - Scripts run inside Godot (`-s tools/x.gd`) cannot see the scene's `_ready` until the first frame: `await process_frame` after
@@ -122,8 +135,10 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-PrComment.ps1` | the PR comment's paging, ignoring others' marker comments, the push-only coverage baseline (a stand-in GitHub API on 127.0.0.1) | - |
 | `Test-SkillShaders.ps1` | shaders quoted in skills compile | Godot |
 | `Test-DocLinks.ps1` | links and quoted paths in the docs and skills | - |
+| `Test-Site.ps1` | the GitHub Pages site: a page for every Markdown source, every internal link, anchor and repository link resolving, no `.md` links left, one h1, a title, lang and the viewport meta on every page, nothing fetched from another host, the label SVGs shown, the colours at WCAG 2.2 AA in light and dark; a made-up repository with a broken link and anchor, and the builder's fixes where Markdig differs from GitHub (`-Site` checks a built site) | - |
 | `Test-CoverageMap.ps1` | `docs/coverage.md` has a row for every command, error code, lib file, tool, skill, subagent and workflow job; `-Check` catches missing, stale and wrong rows; records are credited to the test they name | - |
 | `Test-LibNames.ps1` | function names across `ci/godot` (unique, no alias clashes) | - |
+| `Test-PowerShellPatterns.ps1` | every tracked `.ps1` free of the anti-patterns of `docs/powershell.md` that have no use left (`continue` in a pipeline block, `$null` on the right, `Invoke-Expression`, `[IO.Path]::Combine`, `$PSBoundParameters.Name`, a lowered `$ErrorActionPreference`, relative literal paths to .NET, `-Version Latest`, Windows-only aliases, one file read and written in one pipeline), read from the syntax tree; each check fires on its file in `powershell-patterns-fixture` and not on its clean file | - |
 | `Test-OldState.ps1` | the one-time move of state from the names before Hyperdot (history, GUT stamp, tools folder, workflow, plugin entry) | - |
 | `Test-TokenBenchmark.ps1` | the token benchmark's counting, grader, retries and the copy its sessions run in (a stand-in CLI) | - |
 | `Test-HyperdotLabel.ps1` | the label: index, classes, minimum, verification, rescaling and the tool and game programmes (`label-fixture`, made-up runs) | - |
@@ -132,6 +147,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-GameBenchmark.ps1` | the game programme (`benchmark/game-benchmark.json`): a copy of the game per session, grading by the kit's tests, hidden tests and mutants (`game-benchmark`, a stand-in CLI doing each task well and badly) | Godot |
 | `Test-BenchmarkIsolation.ps1` | `-Isolate`: sessions as a user made for the run cannot read the benchmark, a hidden test or the checkout and are still graded; credentials pass and nothing else; leftover processes, links and git settings die with the session; `runuser` and `sudo` | Godot; Linux with root or passwordless sudo (elsewhere it passes with a note) |
 | `Test-FieldTest.ps1` | the field test (`-GameSource`): the mutant planter, runs on copies of both examples with good and bad work, `doctor-green`, a report of numbers only | Godot (.NET build); `-NoCSharp` skips the C# game |
+| `Test-SelectJobs.ps1` | `.github/scripts/Select-Jobs.ps1`, what a change runs in `self-test.yml`: the sample of staged-programme pairs for the check's own code, the pair of a changed game, everything on main, schedule and dispatch, and when the base cannot be fetched (a temporary repository for the git part) | - |
 | `Test-GameProgramme.ps1` | every task of a staged game programme, without a model: the untouched game fails its grading, the task's reference solution passes, its decoy fails (`-SpecPath` for another programme; the self-test runs it on `game-benchmark/programme`) | Godot |
 | `Test-ErrorCodes.ps1` | every documented error code no other self-test raises, raised and checked in the JSON; `invalid-arguments` for an unknown command or flag, a value outside its set and a word too many | Godot, display, ffmpeg; `-NoGodot` for plan, init, detect, doctor, audio and the arguments |
 | `Test-Detect.ps1` | the solution `detect` picks, in and out of git, past unrelated and empty solutions and scenes | - |
@@ -148,5 +164,5 @@ a kit run names the `Test-*.ps1` that started it). Run it after adding any of th
 
 ## Targets
 
-Godot 4.7.2 mono, .NET 8, PowerShell 7.2+. gdUnit4.api 5.0.0, gdUnit4.test.adapter 3.0.0, Chickensoft.GoDotTest 2.0.49,
+Godot 4.7.2 mono, .NET 8, PowerShell 7.6+. gdUnit4.api 5.0.0, gdUnit4.test.adapter 3.0.0, Chickensoft.GoDotTest 2.0.49,
 GUT v9.7.1, coverlet.collector 10.1.0.

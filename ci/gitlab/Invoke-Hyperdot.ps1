@@ -1,4 +1,4 @@
-#Requires -Version 7.2
+#Requires -Version 7.6
 <#
 .SYNOPSIS
     The run step of hyperdot.gitlab-ci.yml: reads the job's HYPERDOT_* variables, the GitLab counterparts of the GitHub

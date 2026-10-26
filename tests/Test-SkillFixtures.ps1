@@ -1,4 +1,4 @@
-#Requires -Version 7.2
+#Requires -Version 7.6
 # Self-test for Test-Skills.ps1: every deliberately broken fixture must trigger its rule, and the real skills must pass.
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot

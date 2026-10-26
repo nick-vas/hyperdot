@@ -41,6 +41,50 @@
   `calibrate`) judges each order of a pair n times in fresh sessions; the order's choice is the majority, a tie is even,
   and an order where fewer than half the votes named a choice is an error. Each pair keeps its votes in
   `preferences.json`. A cheap judge that changes its mind between runs can then be calibrated by its majority.
+- **A PowerShell guide, PSScriptAnalyzer on every script, and a check for the anti-patterns the code has dropped.**
+  `docs/powershell.md` holds 78 lessons for anyone writing PowerShell here, merged from the official PowerShell
+  documentation and the PowerShell Community blog, by theme (errors and exit codes, strict mode and the pipeline,
+  culture and encoding, native commands, paths, parameters, JSON, concurrency, performance, secrets, tooling), each with
+  why, a quoted source and whether it was run; the ten that cost most come first, then the sources' advice that does not
+  hold on 7.6 under strict mode on Linux, and what checks each lesson. AGENTS.md's "Working here" gains the most
+  consequential ones. The lint job's PSScriptAnalyzer step pins 1.25.0, scans every tracked `.ps1` (tests and the GitLab
+  run step too) with Information severity, annotates each finding and fails on any; the wider scope found two dead
+  variables in tests, now gone. `tests/Test-PowerShellPatterns.ps1` reads every script's syntax tree for ten patterns
+  with no use left (`continue` in a pipeline block, `$null` on the right, `Invoke-Expression`, `[IO.Path]::Combine`,
+  `$PSBoundParameters.Name`, a lowered `$ErrorActionPreference`, relative literal paths to .NET, `-Version Latest`,
+  Windows-only aliases, one file read and written in one pipeline), each proven on a fixture file of its own.
+- **PowerShell 7.6 or newer is required (breaking for PowerShell 7.2 to 7.5).** Every script now starts with
+  `#Requires -Version 7.6`, the current LTS release: 7.2 left support on 8 November 2024, and 7.4 and 7.5 leave it on
+  10 November 2026, while 7.6 is supported until 14 November 2028. GitHub's runner images already ship 7.6 (Ubuntu
+  22.04 and 24.04, Windows Server 2022 and 2025, macOS 15), so the action and the workflow need nothing; on an older
+  PowerShell the kit stops at once with PowerShell's own "#requires" message. To upgrade: `winget install
+  Microsoft.PowerShell` (or `winget upgrade`) on Windows, `brew upgrade --cask powershell` on macOS, and Microsoft's package
+  repository (`apt install powershell`) or the release tarball on Linux; self-hosted runners need the same. The GitLab
+  template's .NET 8 SDK image carries PowerShell 7.4 (the global tool follows .NET 8, and 7.6 is built on .NET 10), so
+  its `before_script` now unpacks PowerShell 7.6.9's self-contained Linux build into `.hyperdot-cache/pwsh/` (cached),
+  puts it first on PATH and stops the job if `pwsh` is still older; games still build with the image's .NET 8 SDK.
+  `tests/Test-GitLabTemplate.ps1` holds the template to the floor of `hyperdot.ps1`.
+- **A staged-programme task's `unchanged` files may now gain lines.** The rule failed a session with `changed <file>` for
+  any difference, so every session that added regression tests to the existing test file failed (run 44's
+  `racing.alpha.csharp.fix-bug` passed 0 of 10 although they had removed nothing). A kept file now passes when every
+  original line is still there in its order, line endings aside; a missing file and a changed, removed or reordered line
+  still fail. Before the hidden tests, mutants and the suite run, the kept files are put back as they were, so added code
+  cannot weaken the original tests (`newTests` counts the additions first). Self-tested in `tests/Test-GameBenchmark.ps1`.
+- **The GDScript arena game turns the server relay off, as the C# port already did.** `NetSession.host` left
+  `SceneMultiplayer.server_relay` on, so when a player connected the engine sent news of it to every other peer, also
+  to one whose disconnect it had received but not yet reported (its channels are closed by then): an engine error,
+  "Unable to send packet on channel 0, max channels: 0", that failed `soak` with `engine-errors` now and then (2 runs
+  in 20 on the reference of `arena.beta.gdscript.fix-performance`, whose clients leave and rejoin all the time). Players
+  only talk to the server, so nothing else changes. The base game and its `milestone-alpha` solution are fixed.
+- **The self-test runs what a change needs.** It ran 35 jobs and about 500 runner-minutes for any change, 84% of them in
+  the 20 pairs of the staged programme, and every push to a pull request branch started two runs. Now a `changes` job
+  (`.github/scripts/Select-Jobs.ps1`, held by `tests/Test-SelectJobs.ps1`) lists the changed files and a pull request runs
+  lint alone for documentation, the jobs that exercise the changed libs, tools and tests otherwise, one pair for a changed
+  game and a sample of three pairs for the programme's own code; a push to `main`, the nightly run (02:23 UTC) and a
+  manual run still run everything, and keep a few slow steps that have never failed for the full runs only. Branches are
+  tested through their pull request, not on push, and the coverage floors are enforced on the full runs. Git's background
+  maintenance is off in CI. [docs/ci.md](docs/ci.md) has the rules, the measured cost and the failure record of the last
+  100 runs; faster game jobs were measured and not shipped (no gain beyond noise).
 - **Game copies no longer race git's background maintenance.** Since git 2.54 a commit's automatic maintenance packs
   loose objects in a detached process ("geometric" strategy), and a beta or release game commits over a hundred: the
   benchmark's copy of the game or its `.git`, made a moment later, lost files under it ("Could not find a part of the
@@ -48,6 +92,16 @@
   2.55. `New-GameWorkspace` now sets `gc.auto 0`, `gc.autoDetach false` and `maintenance.auto false` before the first
   commit, which also covers the git commands a session runs, and `tests/Test-GameProgramme.ps1` checks every workspace
   it grades.
+- **A website, built from the docs.** `site/Build-Site.ps1` turns `README.md`, `CHANGELOG.md` and every
+  `docs/**/*.md` into a GitHub Pages site (https://nick-vas.github.io/hyperdot/): the home page, the quick start, the
+  label page with the labels and information sheets in `docs/label/`, a benchmark page with the reference runs, a docs
+  index with each doc's first sentence and a search over titles and headings, and the changelog. It uses Markdig, the
+  engine `ConvertFrom-Markdown` loads, with GitHub's extensions only, so heading ids, carets and escaped pipes in tables
+  come out as on GitHub; links to other repository files go to GitHub at the built commit. No framework and nothing
+  from another host; light and dark colours at WCAG 2.2 AA; readable at 360 px. `.github/workflows/pages.yml` builds,
+  checks and publishes it on every push to `main` that changes the docs; `tests/Test-Site.ps1` checks every page, link,
+  anchor and label, and proves the check fails on a broken link and anchor. `pwsh site/Build-Site.ps1 -Serve` previews
+  it; [docs/site.md](docs/site.md) has the one owner step (Settings, Pages, Source: GitHub Actions).
 - **The staged programme's CI check runs one job per genre and language**, and only for the pairs whose game
   changed (every pair when the harness or the programme changed, or when started by hand). One job per language ran
   every genre in turn and no longer fitted its 150 minutes with ten genres; a pull request that adds one genre now

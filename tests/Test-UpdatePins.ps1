@@ -27,6 +27,11 @@ function New-RepoCopy([string]$Name) {
             Copy-Item -LiteralPath $source -Destination $target
         }
         & git -C $base init -q
+        # Since git 2.54 a commit starts maintenance in the background, which packs the loose objects and deletes them
+        # while the clone below reads them ("could not clone"): none here.
+        & git -C $base config gc.auto 0
+        & git -C $base config gc.autoDetach false
+        & git -C $base config maintenance.auto false
         & git -C $base add -A
         & git -C $base -c user.name=test -c user.email=test@example.com commit -qm base
         if ($LASTEXITCODE) { throw "could not commit the copy in $base" }

@@ -18,7 +18,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-Apache--2.0-blue" alt="Licence: Apache-2.0"></a>
   <img src="https://img.shields.io/badge/Godot-4.7.2-478cbf" alt="Godot 4.7.2">
   <img src="https://img.shields.io/badge/.NET-8-512bd4" alt=".NET 8">
-  <img src="https://img.shields.io/badge/PowerShell-7.2%2B-5391fe" alt="PowerShell 7.2+">
+  <img src="https://img.shields.io/badge/PowerShell-7.6%2B-5391fe" alt="PowerShell 7.6+">
 </p>
 
 <p align="center">
@@ -79,7 +79,7 @@ separate, headless tool.
 
 ## Prerequisites
 
-- [PowerShell 7.2+](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-windows) (`winget install Microsoft.PowerShell`) and Git.
+- [PowerShell 7.6+](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-windows) (`winget install Microsoft.PowerShell`) and Git.
 - Godot: the kit downloads the version your project needs into `~/.hyperdot` on the first run. Set `GODOT_BIN` to use your own.
 - For C# projects, the [.NET 8 SDK](https://dotnet.microsoft.com/download).
 
@@ -322,11 +322,15 @@ Logs go to stderr. See [docs/json.md](docs/json.md).
 
 ## Documentation
 
+Also as a website: [nick-vas.github.io/hyperdot](https://nick-vas.github.io/hyperdot/), the repository's default github.io
+address, built from these files on every change ([docs/site.md](docs/site.md)).
+
 **Using the kit**
 - [docs/usage.md](docs/usage.md): usage scenarios, from adding the kit to a game to several games in one repository
 - [docs/reference.md](docs/reference.md): parameters, config files, workflow inputs and secrets, cost
 - [docs/json.md](docs/json.md): the `-Json` contract and error codes
 - [docs/coverage.md](docs/coverage.md): which self-test covers each command, error code, kit file, tool, skill, subagent and workflow job, and the gaps
+- [docs/ci.md](docs/ci.md): what the kit's own CI runs when, what it costs, and which tests ever caught anything
 - [docs/godot-pipelines.md](docs/godot-pipelines.md): test frameworks, versions, release-safe packaging
 - [docs/self-hosted-runners.md](docs/self-hosted-runners.md): the workflow on your own machines
 - [docs/plan.md](docs/plan.md): the A-to-Z plan, tasks and Trello sync
@@ -369,7 +373,7 @@ Logs go to stderr. See [docs/json.md](docs/json.md).
 - [docs/gdc/README.md](docs/gdc/README.md): GDC talks and what the kit took from each
 - [docs/googleforgames.md](docs/googleforgames.md): Google for Games' open source and what the kit took
 
-**This repository**: [AGENTS.md](AGENTS.md) (working on it), [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), [CHANGELOG.md](CHANGELOG.md).
+**This repository**: [AGENTS.md](AGENTS.md) (working on it), [docs/powershell.md](docs/powershell.md) (writing PowerShell here, with sources), [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), [CHANGELOG.md](CHANGELOG.md).
 
 ## Licence
 

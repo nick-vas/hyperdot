@@ -1,4 +1,4 @@
-#Requires -Version 7.2
+#Requires -Version 7.6
 <#
 .SYNOPSIS
     The weekly canary: finds newer Godot, test-framework and GUT releases, tries them against both example projects, and

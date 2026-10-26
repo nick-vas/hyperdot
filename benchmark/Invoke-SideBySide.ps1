@@ -1,4 +1,4 @@
-#Requires -Version 7.2
+#Requires -Version 7.6
 <#
 .SYNOPSIS
 Layer 4 of the game programme's grading (benchmark/PLAN.md): a judge model compares each session of a model with the

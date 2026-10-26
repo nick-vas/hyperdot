@@ -1,4 +1,4 @@
-#Requires -Version 7.2
+#Requires -Version 7.6
 <#
 .SYNOPSIS
 Checks every task of a staged game programme (benchmark/PLAN.md) without a model: its grading must catch the planted

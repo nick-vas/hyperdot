@@ -119,7 +119,7 @@ try {
     }
     # A dry run makes no user.
     $before = @(& getent passwd | Where-Object { $_ -like 'hyperdot-s*' }).Count
-    $dry = & pwsh -NoProfile -File $bench -SpecPath $programme -Claude $fake -Tier min -Isolate -DryRun 2>$null
+    $null = & pwsh -NoProfile -File $bench -SpecPath $programme -Claude $fake -Tier min -Isolate -DryRun 2>$null
     Assert-True ($LASTEXITCODE -eq 0 -and @(& getent passwd | Where-Object { $_ -like 'hyperdot-s*' }).Count -eq $before) 'a dry run isolates nothing'
 } finally {
     foreach ($name in $saved.Keys) { [Environment]::SetEnvironmentVariable($name, $saved[$name]) }

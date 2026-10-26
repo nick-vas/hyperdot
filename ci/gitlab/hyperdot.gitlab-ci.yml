@@ -12,8 +12,11 @@
 #     HYPERDOT_PROJECT: game          # the folder with project.godot, if not the only one
 #
 # hyperdot-test runs in the test stage on every pipeline; hyperdot-export in the deploy stage on the default branch and on
-# tags. Both run in Microsoft's .NET 8 SDK image, which already has PowerShell 7 and git; the kit downloads Godot (the .NET
-# build for C# projects) and, for exports, its templates, cached in .hyperdot-cache/. Test results reach merge requests as
+# tags. Both run in Microsoft's .NET 8 SDK image, which has git and PowerShell, but the PowerShell global tool that follows
+# .NET 8 (7.4.x), older than the kit's 7.6 floor. PowerShell 7.6 is built on .NET 10, so its global tool would not run on
+# the image's .NET 8 runtime; before_script unpacks PowerShell's self-contained Linux build instead (it carries its own
+# runtime) and puts it first on PATH, and games still build with the image's .NET 8 SDK. The kit downloads Godot (the .NET
+# build for C# projects) and, for exports, its templates; all of it is cached in .hyperdot-cache/. Test results reach merge requests as
 # JUnit (every runner's, dotnet's TRX converted: test-results/junit/) and coverage as Cobertura. Extend .hyperdot for jobs
 # of your own, such as one export per preset. docs/usage.md, "GitLab CI", has the details.
 
@@ -22,6 +25,8 @@ variables:
   HYPERDOT_REPO: "https://github.com/nick-vas/hyperdot.git"
   HYPERDOT_REF: "v1"
   HYPERDOT_KIT: "/tmp/hyperdot"
+  # The PowerShell before_script unpacks when the image's is older than 7.6, the kit's floor (cached in .hyperdot-cache/pwsh/).
+  HYPERDOT_PWSH_VERSION: "7.6.9"
   # The GitHub action's inputs, as variables (empty: detected). See ci/gitlab/Invoke-Hyperdot.ps1.
   HYPERDOT_PROJECT: ""
   HYPERDOT_GODOT_VERSION: ""
@@ -45,12 +50,18 @@ variables:
   image: "mcr.microsoft.com/dotnet/sdk:8.0"
   before_script:
     - mkdir -p "$CI_PROJECT_DIR/.hyperdot-cache" && touch "$CI_PROJECT_DIR/.hyperdot-cache/.gdignore"
+    # PowerShell 7.6 when the image's is older: unpacked once into the cache (whole or not at all) and put first on
+    # PATH. GitLab runs before_script and script in one shell, so the export reaches the script lines; the next line fails the
+    # job at once if it did not work.
+    - pwsh -NoProfile -NonInteractive -Command 'exit [int]($PSVersionTable.PSVersion -lt [version]"7.6")' || { dir="$CI_PROJECT_DIR/.hyperdot-cache/pwsh/$HYPERDOT_PWSH_VERSION"; test -x "$dir/pwsh" || { rm -rf "$dir.part" && mkdir -p "$dir.part" && curl -fsSL "https://github.com/PowerShell/PowerShell/releases/download/v$HYPERDOT_PWSH_VERSION/powershell-$HYPERDOT_PWSH_VERSION-linux-$(uname -m | sed -e s/x86_64/x64/ -e s/aarch64/arm64/).tar.gz" | tar -xz -C "$dir.part" && chmod +x "$dir.part/pwsh" && mv "$dir.part" "$dir"; }; export PATH="$dir:$PATH"; }
+    - pwsh -NoProfile -NonInteractive -Command 'if ($PSVersionTable.PSVersion -lt [version]"7.6") { throw "PowerShell $($PSVersionTable.PSVersion) is older than 7.6, the kit floor" }; "PowerShell $($PSVersionTable.PSVersion)"'
     - test -f "$HYPERDOT_KIT/ci/godot/hyperdot.ps1" || git clone --depth 1 --branch "$HYPERDOT_REF" "$HYPERDOT_REPO" "$HYPERDOT_KIT"
   cache:
     - key: "hyperdot-tools"
       paths:
         - ".hyperdot-cache/tools/"
         - ".hyperdot-cache/nuget/"
+        - ".hyperdot-cache/pwsh/"
       # Saved even when the tests fail, as the action does: a red branch would otherwise download Godot every time. The
       # kit unpacks Godot beside its final folder and renames it into place, so a cancelled job caches no half install.
       when: "always"
@@ -87,6 +98,7 @@ hyperdot-export:
       paths:
         - ".hyperdot-cache/tools/"
         - ".hyperdot-cache/nuget/"
+        - ".hyperdot-cache/pwsh/"
       when: "always"
     - key: "hyperdot-templates"
       paths:

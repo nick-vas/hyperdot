@@ -1,4 +1,4 @@
-#Requires -Version 7.2
+#Requires -Version 7.6
 # Self-test of status's test duration (Get-TestDuration), on a synthetic history: the median of the last 10 passing full runs
 # of the usual scope, the 10 before them, and what does not count (failed runs, -Filter runs, other scopes, other commands).
 # Also the run status's testedAndPassing reads (Get-LastFullTestRun): the newest with every runner and no -Filter.

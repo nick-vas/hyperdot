@@ -74,6 +74,34 @@ try {
     $diag = Get-Row $bad 'GAME-DIAG-001'
     Assert-True ($diag -and -not $diag.reasons.Contains('missing')) 'a right answer with a forbidden edit fails on the edit alone'
 
+    # Kept files (`unchanged`): lines may be added between the originals, nothing else; the additions are discarded for grading.
+    . (Join-Path $root 'benchmark/GameProgramme.ps1')
+    $keptOriginal = "extends GutTest`n`nfunc test_one():`n`tassert_eq(1, 1)`n`nfunc test_two():`n`tassert_eq(2, 2)`n"
+    $keptCases = [ordered]@{
+        'lines added'       = @{ Text = $keptOriginal + "`nfunc test_three():`n`treturn`n"; Pass = $true }
+        'lines inserted'    = @{ Text = $keptOriginal.Replace("func test_two", "func test_mid():`n`tpass`n`nfunc test_two"); Pass = $true }
+        'CRLF endings'      = @{ Text = ($keptOriginal -replace "`n", "`r`n") + "# more`r`n"; Pass = $true }
+        'a line removed'    = @{ Text = $keptOriginal.Replace("`tassert_eq(2, 2)`n", ''); Pass = $false }
+        'a line changed'    = @{ Text = $keptOriginal.Replace('assert_eq(2, 2)', 'assert_eq(2, 3)'); Pass = $false }
+        'lines reordered'   = @{ Text = "extends GutTest`n`nfunc test_two():`n`tassert_eq(2, 2)`n`nfunc test_one():`n`tassert_eq(1, 1)`n"; Pass = $false }
+        'the file missing'  = @{ Text = $null; Pass = $false }
+    }
+    foreach ($name in $keptCases.Keys) {
+        $keptDir = Join-Path $privateTemp "kept-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+        New-Item -ItemType Directory -Force (Join-Path $keptDir 'test') | Out-Null
+        if ($null -ne $keptCases[$name].Text) { [IO.File]::WriteAllText((Join-Path $keptDir 'test/test_kept.gd'), $keptCases[$name].Text) }
+        $keptGame = [pscustomobject]@{ Dir = $keptDir; Kept = @{ 'test/test_kept.gd' = $keptOriginal }; Tests = 2; TestFiles = @() }
+        $keptSpec = @{ game = @{ unchanged = @('test/test_kept.gd'); newTests = if ($keptCases[$name].Pass) { 1 } else { 0 } } }
+        $why = @(Test-GameResult $keptSpec $keptGame)
+        $changed = @($why | Where-Object { $_ -eq 'changed test/test_kept.gd' }).Count
+        Assert-True (($changed -eq 0) -eq $keptCases[$name].Pass) "a kept file with $name $(if ($keptCases[$name].Pass) { 'passes' } else { 'fails as changed' }) (reasons: $($why -join '; '))"
+        if ($name -eq 'lines added') {
+            Assert-True ($why.Count -eq 0) 'the session''s added tests count towards newTests (counted before the restore)'
+            Assert-True ([IO.File]::ReadAllText((Join-Path $keptDir 'test/test_kept.gd')) -ceq $keptOriginal) 'added code in a kept file is discarded before grading, so it cannot weaken the original tests'
+        }
+        Remove-Item -LiteralPath $keptDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
     # The staged programme (benchmark/PLAN.md), on a one-genre, two-stage test programme.
     $programme = Join-Path $PSScriptRoot 'game-benchmark/programme/programme.json'
     function Invoke-Programme([string[]]$Arguments, [string]$Mode = 'good', [string]$Spec = $programme) {

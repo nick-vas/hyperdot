@@ -76,7 +76,7 @@ function Read-WorkflowJobs([string]$Path) {
     foreach ($line in [System.IO.File]::ReadAllLines($Path)) {
         if ($line -match '^jobs:\s*$') { $inJobs = $true; continue }
         if ($inJobs -and $line -match '^\S') { $inJobs = $false }
-        if (-not $inJobs) { continue }
+        if (-not $inJobs -or $line -match '^  #') { continue }   # a comment above a job belongs to that job
         if ($line -match '^  (?<n>[A-Za-z0-9_-]+):\s*$') {
             if ($name) { $jobs[$name] = $body.ToString() }
             $name = $Matches.n; $body = [System.Text.StringBuilder]::new()
@@ -297,7 +297,7 @@ foreach ($wf in $workflows.Keys) {
         if ($wf -eq 'self-test.yml') {
             $ran = @($probes | Where-Object { $_.Jobs.Contains($job) } | ForEach-Object Name)
             $jobRuns[$item] = $ran
-            Add-Cover jobs $item 'itself (on every push and pull request)'
+            Add-Cover jobs $item $(if ($text -match '(?m)^    if:.*needs\.changes\.outputs') { 'itself (on a pull request when the files it exercises change; always on pushes to main and in the nightly run)' } else { 'itself (on every pull request, push to main and nightly run)' })
             continue
         }
         # A job that runs only when an input is set (if: inputs.release) is covered by the callers that set it.
@@ -346,6 +346,7 @@ $notes = @{
     'jobs/token-benchmark.yml/plan'                = 'plans the matrix for the benchmark job; started by hand'
     'jobs/trello-sync.yml/live'                    = 'runs `Test-TrelloSync.ps1 -Live` against the real Trello; needs `TRELLO_KEY` and `TRELLO_TOKEN`'
     'jobs/canary.yml/canary'                       = 'weekly against new releases; `Test-UpdatePins.ps1` checks its exit checks and pairing'
+    'jobs/pages.yml/deploy'                        = 'publishes the site the build job made and `Test-Site.ps1` checked; runs on main only'
 }
 
 # --- The map -------------------------------------------------------------------------------------------------------------
