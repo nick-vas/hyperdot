@@ -51,3 +51,5 @@ $null = Test-Path -LiteralPath "$PSScriptRoot/a.txt"
 $null = @(Get-ChildItem -Path "$PSScriptRoot/*.ps1")
 Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.nothing' | Remove-Item -Force
 $null = ConvertTo-Json -InputObject @(1, 2) -Depth 3 -Compress
+$null = Get-Command -Name 'Get-Content'
+$null = Get-HostOs

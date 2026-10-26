@@ -9,6 +9,7 @@ Set-StrictMode -Version 3.0
 $root = Split-Path $PSScriptRoot
 $fixtureDir = Join-Path $PSScriptRoot 'powershell-patterns-fixture'
 $failures = @()
+$script:RepositoryFunctions = $null
 function Assert-True([bool]$Condition, [string]$Name) {
     if ($Condition) { Write-Host "ok     $Name" } else { Write-Host "FAIL   $Name" -ForegroundColor Red; $script:failures += $Name }
 }
@@ -30,6 +31,7 @@ $rules = [ordered]@{
     'json-depth'            = 'ConvertTo-Json without -Depth stops at depth 2: nested data is cut to its type name and a warning reaches stdout; pass -Depth'
     'path-wildcard'         = 'a path cmdlet without -LiteralPath reads [ ] in a path from data as a wildcard and finds nothing, silently (a deliberate * or ? in the path is allowed)'
     'duplicate-parameter'   = 'a parameter given twice in one command fails to bind at run time, which no parse error shows'
+    'undefined-command'     = 'a Verb-Noun command that is neither a function defined in the repository nor a cmdlet of this PowerShell fails only when that line runs (a test that needs a missing helper fails only on a machine without GODOT_BIN)'
     'same-file-pipeline'   = 'Get-Content X piped into Set-Content, Add-Content or Out-File X: on Linux it truncates the file without an error or never ends; read it whole in parentheses first'
 }
 
@@ -77,6 +79,22 @@ function Get-PathArgument([System.Management.Automation.Language.CommandAst]$Com
     return $null
 }
 
+# The functions the repository defines, found once.
+function Get-RepositoryFunctions {
+    if ($null -eq $script:RepositoryFunctions) {
+        $names = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+        $all = @(& git -C $root ls-files --cached --others --exclude-standard -- '*.ps1' 2>$null)
+        if ($LASTEXITCODE -ne 0 -or $all.Count -eq 0) { $all = @(Get-ChildItem -LiteralPath $root -Recurse -File -Filter '*.ps1' | ForEach-Object { [System.IO.Path]::GetRelativePath($root, $_.FullName) }) }
+        foreach ($relative in $all) {
+            if ($relative -like 'tests/powershell-patterns-fixture/*') { continue }
+            $tree = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $root $relative), [ref]$null, [ref]$null)
+            foreach ($definition in $tree.FindAll({ $args[0] -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $true)) { $null = $names.Add($definition.Name) }
+        }
+        $script:RepositoryFunctions = $names
+    }
+    return $script:RepositoryFunctions
+}
+
 function Get-PatternFindings([string]$File) {
     $errors = $null
     $ast = [System.Management.Automation.Language.Parser]::ParseFile($File, [ref]$null, [ref]$errors)
@@ -101,6 +119,7 @@ function Get-PatternFindings([string]$File) {
         } elseif ($n -is [System.Management.Automation.Language.CommandAst]) {
             $name = $n.GetCommandName()
             if (-not $name) { continue }
+            if ($name -cmatch '^[A-Z][A-Za-z]+-[A-Za-z]' -and -not (Get-RepositoryFunctions).Contains($name) -and -not (Get-Command -Name $name -ErrorAction Ignore)) { & $add 'undefined-command' $n $name }
             if ($name -in 'Invoke-Expression', 'iex') { & $add 'invoke-expression' $n $name }
             if ($name -in $windowsAliases -and $n.InvocationOperator -ne 'Ampersand') { & $add 'windows-alias' $n $name }
             if ($name -eq 'Set-StrictMode' -and @($n.CommandElements | Where-Object { $_ -is [System.Management.Automation.Language.StringConstantExpressionAst] -and $_.Value -eq 'Latest' }).Count) {
