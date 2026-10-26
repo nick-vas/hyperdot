@@ -83,7 +83,7 @@ function Invoke-TextSizeRunner($Info, [string]$ResultsDir) {
         if (-not $main.Success) { Stop-GodotCi 'textsize runner: no scenes to measure (set a main scene, or "scenes" in textsize.json)' 'invalid-arguments' }
         $scenes = @($main.Groups[1].Value)
     }
-    $tool = (Join-Path $PSScriptRoot '../tools/textsize.gd' | Resolve-Path).Path -replace '\\', '/'
+    $tool = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../tools/textsize.gd')).Path -replace '\\', '/'
     $log = Join-Path $ResultsDir 'textsize.log'
     Start-LogGroup "Text size at $(@($config.resolutions) -join ', ')"
     $code = Invoke-Logged $env:GODOT_BIN @('--headless', '--path', $Info.ProjectDir, '-s', $tool, '--',

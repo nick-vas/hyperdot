@@ -210,7 +210,7 @@ function Invoke-TestRunner {
         }
         'validate' {
             $log = Join-Path $ResultsDir 'validate.log'
-            $tool = (Join-Path $PSScriptRoot '../tools/validate.gd' | Resolve-Path).Path -replace '\\', '/'
+            $tool = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../tools/validate.gd')).Path -replace '\\', '/'
             Start-LogGroup 'Validate scripts, scenes and resources'
             $code = Invoke-Logged $godot @('--headless', '--path', $project, '-s', $tool) $log
             Stop-LogGroup
@@ -220,7 +220,7 @@ function Invoke-TestRunner {
         }
         'flows' {
             $log = Join-Path $ResultsDir 'flows.log'
-            $tool = (Join-Path $PSScriptRoot '../tools/flows.gd' | Resolve-Path).Path -replace '\\', '/'
+            $tool = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../tools/flows.gd')).Path -replace '\\', '/'
             Start-LogGroup 'UI flows'
             $code = Invoke-Logged $godot @('--headless', '--path', $project, '-s', $tool, '--', $Filter) $log
             Stop-LogGroup

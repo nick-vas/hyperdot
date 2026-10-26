@@ -67,7 +67,7 @@ function Invoke-LayoutRunner($Info, [string]$ResultsDir) {
         if (-not $main.Success) { Stop-GodotCi 'layout runner: no scenes to lay out (set a main scene, or "scenes" in layout.json)' 'invalid-arguments' }
         $scenes = @($main.Groups[1].Value)
     }
-    $tool = (Join-Path $PSScriptRoot '../tools/layout.gd' | Resolve-Path).Path -replace '\\', '/'
+    $tool = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../tools/layout.gd')).Path -replace '\\', '/'
     $log = Join-Path $ResultsDir 'layout.log'
     Start-LogGroup "Layout on $(@($config.profiles) -join ', ')"
     $code = Invoke-Logged $env:GODOT_BIN @('--headless', '--path', $Info.ProjectDir, '-s', $tool, '--',

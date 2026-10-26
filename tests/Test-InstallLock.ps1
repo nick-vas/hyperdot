@@ -29,7 +29,7 @@ Use-InstallLock '$Lock' {
 "@
     $file = Join-Path $dir "$Name.ps1"
     Set-Content -LiteralPath $file -Value $script
-    return Start-Process -FilePath $pwshPath -ArgumentList @('-NoProfile', '-File', $file) -PassThru `
+    return Start-Process -FilePath $pwshPath -ArgumentList @('-NoProfile', '-File', "`"$file`"") -PassThru `
         -RedirectStandardError (Join-Path $dir "$Name.err") -RedirectStandardOutput (Join-Path $dir "$Name.out")
 }
 

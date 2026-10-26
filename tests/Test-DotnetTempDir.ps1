@@ -40,7 +40,7 @@ $testhost = Join-Path $dir 'testhost.ps1'
 Set-Content -LiteralPath $testhost -Encoding utf8 -Value @'
 param([string]$Name, [string]$Results, [string]$Server)
 $ready = Join-Path $Results "server-ready.txt"
-$godot = Start-Process -FilePath (Get-Process -Id $PID).Path -ArgumentList @("-NoProfile", "-File", $Server, $Name, $ready) -PassThru
+$godot = Start-Process -FilePath (Get-Process -Id $PID).Path -ArgumentList @("-NoProfile", "-File", "`"$Server`"", $Name, "`"$ready`"") -PassThru
 $clock = [Diagnostics.Stopwatch]::StartNew()
 while (-not (Test-Path -LiteralPath $ready) -and $clock.ElapsedMilliseconds -lt 20000) { Start-Sleep -Milliseconds 100 }
 Set-Content -LiteralPath (Join-Path $env:HYPERDOT_TEST_BARRIER $Name) -Value "up"
@@ -85,7 +85,7 @@ function Invoke-TwoRuns([string]$Label, [string]$SharedTemp) {
             New-Item -ItemType Directory -Force -Path $results | Out-Null
             $command = "foreach (`$lib in 'Common', 'Report', 'Runners') { . (Join-Path '$root' `"ci/godot/lib/`$lib.ps1`") }; " +
                 "Start-KitCoverage 'test'; exit (Invoke-DotnetTest '$name' '$results' '' `$false 'dotnet')"
-            $process = Start-Process -FilePath $pwshPath -ArgumentList @('-NoProfile', '-Command', $command) -PassThru `
+            $process = Start-Process -FilePath $pwshPath -ArgumentList @('-NoProfile', '-EncodedCommand', [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))) -PassThru `
                 -RedirectStandardOutput (Join-Path $dir "$Label-$name.out") -RedirectStandardError (Join-Path $dir "$Label-$name.err")
             [pscustomobject]@{ Name = $name; Results = $results; Process = $process }
         })

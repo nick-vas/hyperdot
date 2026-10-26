@@ -477,8 +477,8 @@ function Invoke-Export {
             # appends +<commit> to the InformationalVersion by itself.
             $originalProject = [System.IO.File]::ReadAllText($projectFile)
             $line = "config/version=`"$numbers`""
-            $patched = if ($originalProject -match '(?m)^config/version=') { $originalProject -replace '(?m)^config/version=[^\r\n]*', $line }
-                else { $originalProject -replace '(?m)^\[application\]\s*$', "[application]`n`n$line" }
+            $patched = if ($originalProject -match '(?m)^config/version=') { $originalProject -replace '(?m)^config/version=[^\r\n]*', { $line } }   # a script block: a string would read $0, $1 and $& as groups
+                else { $originalProject -replace '(?m)^\[application\]\s*$', { "[application]`n`n$line" } }
             [System.IO.File]::WriteAllText($projectFile, $patched)
             $env:Version = $numbers; $env:InformationalVersion = $full
             Write-CiLog "Version $numbers ($full)"

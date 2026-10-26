@@ -35,7 +35,7 @@ function Get-InstructionFiles([string[]]$Folders, [string]$Root) {
         $files[$Path] = $text
         if ($Depth -ge 4) { return }
         foreach ($import in @(Get-InstructionImports $text)) {
-            $expanded = $import -replace '^~(?=/)', $HOME
+            $expanded = $import -replace '^~(?=/)', { $HOME }
             $target = if ([System.IO.Path]::IsPathRooted($expanded)) { $expanded } else { Join-Path (Split-Path $Path) $expanded }
             if (Test-Path -LiteralPath $target -PathType Leaf) { & $visit ([System.IO.Path]::GetFullPath($target)) ($Depth + 1) }
             else { $broken.Add("$([System.IO.Path]::GetRelativePath($Root, $Path) -replace '\\', '/'): @$import") }

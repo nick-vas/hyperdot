@@ -563,7 +563,7 @@ function Invoke-GlyphCheck([string]$ProjectDir, [string]$ResultsDir) {
     $charsFile = Join-Path $ResultsDir 'glyphs-chars.txt'
     Set-Content -LiteralPath $charsFile -Value @(foreach ($code in $codes) { "$code" }) -Encoding utf8
     $themes = @(Get-ThemeFiles $ProjectDir)
-    $tool = (Join-Path $PSScriptRoot '../tools/glyphs.gd' | Resolve-Path).Path -replace '\\', '/'
+    $tool = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../tools/glyphs.gd')).Path -replace '\\', '/'
     $log = Join-Path $ResultsDir 'glyphs.log'
     Start-LogGroup "Glyphs: $($codes.Count) characters in $($characters.Count) locale(s) against the fonts"
     $exit = Invoke-Logged $env:GODOT_BIN @('--headless', '--path', $ProjectDir, '-s', $tool, '--', "--glyph-chars=$charsFile", "--glyph-themes=$($themes -join ',')") $log
