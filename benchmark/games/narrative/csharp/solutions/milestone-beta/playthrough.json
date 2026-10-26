@@ -1,0 +1,5 @@
+{
+  "frames": 7200,
+  "args": ["--autoplay", "--no-save"],
+  "expect": ["[Story] ending shore", "[Story] ending return", "[Story] ending bell", "[Run] every ending"]
+}

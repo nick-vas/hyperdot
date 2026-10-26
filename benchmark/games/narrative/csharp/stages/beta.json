@@ -1,0 +1,164 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/Credits.cs"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.9.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\")"
+    },
+    {
+      "file": "main.tscn",
+      "find": "[node name=\"CreditsButton\" type=\"Button\" parent=\"Menu\"]\ncustom_minimum_size = Vector2(0, 88)\ntheme_override_font_sizes/font_size = 28\ntext = \"Credits\"\n\n",
+      "replace": ""
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-playthrough",
+      "vars": {
+        "report": "the bot that plays the story to every ending (playthrough.json) never reaches the ending on the far shore, and no player has found it either"
+      },
+      "edits": [
+        {
+          "file": "data/choices.json",
+          "find": "{ \"id\": \"fog_steady\", \"from\": \"fog\", \"to\": \"crossing\", \"text\": \"C_FOG_STEADY\", \"clear\": [\"afraid\"] },",
+          "replace": "{ \"id\": \"fog_steady\", \"from\": \"fog\", \"to\": \"crossing\", \"text\": \"C_FOG_STEADY\" },"
+        }
+      ],
+      "hidden": [
+        "hidden/HiddenShoreTest.cs"
+      ],
+      "reference": "solutions/beta/fix-playthrough",
+      "decoy": "solutions/beta/fix-playthrough-decoy"
+    },
+    {
+      "template": "add-feedback",
+      "vars": {
+        "report": "they cannot tell when the stranger starts to trust them"
+      },
+      "edits": [
+        {
+          "file": "story/StoryScene.cs",
+          "find": "            Feedback(\"glow\");\n            Play(_sfxTrust);\n",
+          "replace": "            Feedback(\"glow\");\n"
+        }
+      ],
+      "reference": "solutions/beta/add-feedback"
+    },
+    {
+      "template": "fill-translations",
+      "vars": {
+        "locale": "French and English",
+        "report": "the code N_BELL_TOWER in place of the line under the drowned tower"
+      },
+      "edits": [
+        {
+          "file": "i18n/strings.csv",
+          "find": "N_BELL_TOWER,Under the tower the water hums. The stranger leans over the side and listens.,\"Sous la tour, l'eau bourdonne. L'inconnue se penche par-dessus bord et écoute.\",170,1\n",
+          "replace": ""
+        }
+      ],
+      "unchanged": [
+        "data/nodes.json",
+        "story/StoryScene.cs",
+        "scripts/StoryGraph.cs"
+      ],
+      "reference": "solutions/beta/fill-translations",
+      "decoy": "solutions/beta/fill-translations-decoy"
+    },
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "in French, the dishonest answer to the stranger's question about the toll is far too long for its button: it runs over several lines, crowds the honest answer and does not read as a quick reply"
+      },
+      "edits": [
+        {
+          "file": "i18n/strings.csv",
+          "find": "C_TOLL_LIE,Three coppers. The river is high tonight.,Trois cuivres. Le fleuve est haut ce soir.,52,1\n",
+          "replace": "C_TOLL_LIE,Three coppers. The river is high tonight.,\"Trois pièces de cuivre, parce que le fleuve est très haut ce soir et que le courant est bien trop fort.\",52,1\n"
+        }
+      ],
+      "unchanged": [
+        "story/StoryScene.cs",
+        "story/story.tscn"
+      ],
+      "hidden": [
+        "hidden/HiddenChoiceFitTest.cs"
+      ],
+      "reference": "solutions/beta/fix-bug",
+      "decoy": "solutions/beta/fix-bug-decoy"
+    },
+    {
+      "template": "fix-performance",
+      "vars": {
+        "situation": "the player reads the choices and takes their time before picking one"
+      },
+      "edits": [
+        {
+          "file": "story/StoryScene.cs",
+          "find": "        _ticks += 1;\n        UpdateEffects((float)delta);\n",
+          "replace": "        _ticks += 1;\n        UpdateEffects((float)delta);\n        if (state == \"choosing\")\n            ShowChoices();\n"
+        },
+        {
+          "file": "story/StoryScene.cs",
+          "find": "    /// <summary>One button per choice the story offers, Choice0 first, worked out once per line.</summary>",
+          "replace": "    /// <summary>One button per choice the story offers, Choice0 first, always up to date with the story.</summary>"
+        }
+      ],
+      "hidden": [
+        "hidden/HiddenChoiceChecksTest.cs"
+      ],
+      "reference": "solutions/beta/fix-performance"
+    },
+    {
+      "template": "fix-flow",
+      "vars": {
+        "report": "the Close button of the history panel does nothing, so players who open the history cannot get back to the story"
+      },
+      "edits": [
+        {
+          "file": "story/History.cs",
+          "find": "        _close.Pressed += Close;\n",
+          "replace": ""
+        }
+      ],
+      "reference": "solutions/beta/fix-flow"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "a third ending, the drowned bell: at the crossing a once-only question, ask_bell, leads to a node bell_tale where the stranger tells of the bell of Old Hensmouth still ringing under the water, sets a new flag knows_bell and lets the player row back to the crossing; at the far bank a choice to_tower, offered only with knows_bell, leads to a node bell_tower, whose choice ring_bell ends the story at a node end_bell, the ending bell in data/endings.json with its title under ENDING_BELL (from bell_tower the player can also row back to the far bank); a bot: with --autoplay (after --) the game plays from the main scene, starting a new story for each ending in turn and taking the choices that lead to it, printing [Story] ending <id> when it reaches an ending and [Run] every ending once all three are found, then quits, with nothing saved under --no-save; juice: print [juice] event choice_made <ms> when a choice is taken, [juice] event trust_gained <ms> when the stranger's trust grows and [juice] event ending_reached <ms> at an ending, in game time (ms), each answered within 100 ms by [juice] feedback sfx <ms> for a sound, and also [juice] feedback glow <ms> for trust_gained and [juice] feedback flash <ms> for ending_reached, for the lantern glowing and a flash of the screen; and French: every visible text through Tr() with an fr column in the translation table, the story's lines, choices and endings included, and a settings screen (Menu/SettingsButton opens a child of Main named Settings with a button Box/Languages/<Locale>Button per language, FrButton and EnButton, and Box/BackButton back to the menu)"
+    },
+    "hidden": [
+      {
+        "from": "game/playthrough.json",
+        "to": "playthrough.json"
+      },
+      {
+        "from": "game/juice.json",
+        "to": "juice.json"
+      },
+      {
+        "from": "game/test/flows/settings.flow.json",
+        "to": "test/flows/settings.flow.json"
+      },
+      "hidden/HiddenFrenchTest.cs",
+      "hidden/HiddenThreeEndingsTest.cs"
+    ],
+    "reference": "solutions/milestone-beta"
+  }
+}

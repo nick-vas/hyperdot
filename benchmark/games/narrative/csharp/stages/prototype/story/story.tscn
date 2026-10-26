@@ -1,0 +1,87 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://story/StoryScene.cs" id="1_story"]
+[ext_resource type="Script" path="res://story/Backdrop.cs" id="2_backdrop"]
+
+[node name="Story" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_story")
+
+[node name="Backdrop" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_backdrop")
+
+[node name="Panel" type="ColorRect" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -500.0
+offset_top = -250.0
+offset_right = 20.0
+offset_bottom = 280.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.04, 0.06, 0.09, 0.82)
+
+[node name="Speaker" type="Label" parent="Panel"]
+offset_left = 24.0
+offset_top = 16.0
+offset_right = 496.0
+offset_bottom = 50.0
+theme_override_colors/font_color = Color(1, 0.82, 0.48, 1)
+theme_override_font_sizes/font_size = 22
+text = "The river"
+
+[node name="Text" type="Label" parent="Panel"]
+offset_left = 24.0
+offset_top = 60.0
+offset_right = 496.0
+offset_bottom = 510.0
+theme_override_font_sizes/font_size = 24
+text = "Line"
+autowrap_mode = 3
+
+[node name="Choices" type="VBoxContainer" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 40.0
+offset_top = -250.0
+offset_right = 500.0
+offset_bottom = 280.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 10
+
+[node name="HUD" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ChapterLabel" type="Label" parent="HUD"]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -500.0
+offset_top = 36.0
+offset_right = 120.0
+offset_bottom = 72.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 26
+text = "Chapter 1: The Landing"

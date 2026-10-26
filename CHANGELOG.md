@@ -44,6 +44,13 @@
   and credits. Its four stages carry 17 tasks and three milestones, each with hidden checks and a reference solution,
   most with a decoy; all pass `tests/Test-GameProgramme.ps1 -Genre arena -Language gdscript`. `DESIGN.md` holds the
   language-neutral contract for the C# port, which is still to come.
+- **The narrative game in C#.** Saltmere Crossing now has its C# version (`benchmark/games/narrative/csharp/`), written
+  from the language-neutral contract in its `DESIGN.md`: the same scenes, scene tree, node names, story data,
+  translations, flows, bot and juice runs, with 53 gdUnit4 tests in place of the GUT ones and a Linux export only. The
+  story check searches in the same order, so the bot takes the same ways and its run prints the same log lines, line for
+  line. Its four stages carry the same 17 tasks and three milestones as the GDScript version, each with hidden checks in
+  C# and a reference solution, most with a decoy; all pass `tests/Test-GameProgramme.ps1 -Genre narrative -Language
+  csharp`. `DESIGN.md`'s "As built" records the port's choices.
 - **Bug reports pinned on their level.** `ci/godot/templates/addons/hyperdot_report_pins/`, an add-on a game copies:
   `bug_report.gd` saves the feedback key's report (`user://reports/<time>.json`: the line typed, the scene, the
   player's position and the camera's view in 2D or 3D, the seed, the commit, a screenshot), and the editor plugin pins
@@ -68,7 +75,7 @@
   The release candidate has 53 GUT tests, five flows, a bot that plans its way to every ending, juice, store art
   rendered from the game and credits. Its four stages carry 17 tasks and three milestones, each with hidden checks and
   a reference solution, most with a decoy; all pass `tests/Test-GameProgramme.ps1 -Genre narrative -Language
-  gdscript`. `DESIGN.md` holds the language-neutral contract for the C# port, which is still to come.
+  gdscript`. `DESIGN.md` holds the language-neutral contract for the C# port.
 - **The staged game programme's fifth genre: a top-down roguelite**, Wickerdeep, in GDScript
   (`benchmark/games/roguelite/`). A candle-bearer goes down four floors of a crypt, each generated from the run's seed
   (rooms joined by a spanning tree of corridors, every cell reachable, checked over sweeps of seeds), while shades, cinder

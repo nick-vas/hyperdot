@@ -1,0 +1,19 @@
+{
+  "name": "Two choices at the landing take the story onto the river, and the chapter changes in the fog",
+  "scene": "res://story/story.tscn",
+  "seed": 1,
+  "steps": [
+    { "wait_until": { "node": ".", "prop": "state", "equals": "choosing" }, "timeout": 300 },
+    { "assert": { "node": ".", "prop": "node", "equals": "dock" } },
+    { "press": "Choices/Choice0" },
+    { "wait_until": { "node": ".", "prop": "node", "equals": "toll" }, "timeout": 60 },
+    { "assert": { "node": "Panel/Speaker", "prop": "text", "equals": "The stranger" } },
+    { "wait_until": { "node": ".", "prop": "state", "equals": "choosing" }, "timeout": 300 },
+    { "press": "Choices/Choice1" },
+    { "wait_until": { "node": ".", "prop": "node", "equals": "launch" }, "timeout": 60 },
+    { "wait_until": { "node": ".", "prop": "state", "equals": "choosing" }, "timeout": 300 },
+    { "press": "Choices/Choice0" },
+    { "wait_until": { "node": ".", "prop": "node", "equals": "fog" }, "timeout": 60 },
+    { "assert": { "node": "HUD/ChapterLabel", "prop": "text", "equals": "Chapter 2: The Crossing" } }
+  ]
+}
