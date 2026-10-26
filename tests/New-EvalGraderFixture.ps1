@@ -48,12 +48,12 @@ if ($Trace) {
     $tools = [System.Collections.Generic.List[object]]::new()
     foreach ($line in [System.IO.File]::ReadLines((Resolve-Path -LiteralPath $Trace))) {
         if (-not $line.Trim()) { continue }
-        $event = $line | ConvertFrom-Json -Depth 50
-        if ($event.type -eq 'assistant') {
-            foreach ($block in @($event.message.content)) {
+        $entry = $line | ConvertFrom-Json -Depth 50
+        if ($entry.type -eq 'assistant') {
+            foreach ($block in @($entry.message.content)) {
                 if ($block.type -eq 'tool_use') { $tools.Add([ordered]@{ name = $block.name; input = $block.input }) }
             }
-        } elseif ($event.type -eq 'result' -and $event.PSObject.Properties['result']) { $lastMessage = [string]$event.result }
+        } elseif ($entry.type -eq 'result' -and $entry.PSObject.Properties['result']) { $lastMessage = [string]$entry.result }
     }
 } else {
     # A model grader's evidence is the session's whole last message (the same text as the transcript's result).
