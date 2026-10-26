@@ -45,7 +45,7 @@ if ($sources.Csv.Count -ne 8 -or $sources.Po.Count -ne 2) { $failures += "detect
 # A plain "zh" column is one table for Simplified and Traditional readers alike: a warning naming that column, not zh_TW.
 $zh = @(Get-TranslationWarnings $fixture)
 if ($zh.Count -ne 1 -or $zh[0].rule -ne 'chinese-without-script' -or $zh[0].message -notlike "res://locale/chinese.csv: column 'zh' *") {
-    $failures += "one chinese-without-script warning for chinese.csv's zh column expected, got: $($zh | ConvertTo-Json -Compress)"
+    $failures += "one chinese-without-script warning for chinese.csv's zh column expected, got: $($zh | ConvertTo-Json -Depth 10 -Compress)"
 }
 if (@(Get-TranslationWarnings (Join-Path $fixture 'clean')).Count) { $failures += 'the clean project has no Chinese column, yet warned' }
 
@@ -126,7 +126,7 @@ try {
     $noTool = @{}
     foreach ($case in Get-TranslationCases $voice) { if ($case.Name -eq 'localized audio') { $noTool = $case } }
 } finally { $env:PATH = $savedPath }
-if ($noTool['Failure'] -or $noTool['Skipped'] -notmatch 'ffmpeg') { $failures += "without ffmpeg, localized audio should be skipped: $($noTool | ConvertTo-Json -Compress)" }
+if ($noTool['Failure'] -or $noTool['Skipped'] -notmatch 'ffmpeg') { $failures += "without ffmpeg, localized audio should be skipped: $($noTool | ConvertTo-Json -Depth 10 -Compress)" }
 Remove-Item -Recurse -Force $voice
 # A project with remaps and no translation table still gets the runner.
 $detected = (& pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') detect -Json -Project (Join-Path $fixture 'voice') 2>$null) -join "`n" | ConvertFrom-Json
@@ -136,8 +136,8 @@ if ('l10n' -notin @($detected.runners)) { $failures += "detect did not pick l10n
 $glyphs = Join-Path $fixture 'glyphs'
 $texts = @(Get-TranslationTexts $glyphs)
 $title = @($texts | Where-Object { $_.Locale -eq 'ja' -and $_.Key -eq 'TITLE' })
-if ($title.Count -ne 1 -or $title[0].Text -ne 'ゲーム開始' -or $title[0].File -ne 'res://locale/text.csv') { $failures += "Get-TranslationTexts should give ja TITLE from text.csv: $($title | ConvertTo-Json -Compress)" }
-if (@($texts | Where-Object { $_.Locale -eq 'de' -and $_.Key -eq 'Close' -and $_.Text -eq 'Schließen' }).Count -ne 1) { $failures += "the .po's German text was not read: $($texts | ConvertTo-Json -Compress)" }
+if ($title.Count -ne 1 -or $title[0].Text -ne 'ゲーム開始' -or $title[0].File -ne 'res://locale/text.csv') { $failures += "Get-TranslationTexts should give ja TITLE from text.csv: $($title | ConvertTo-Json -Depth 10 -Compress)" }
+if (@($texts | Where-Object { $_.Locale -eq 'de' -and $_.Key -eq 'Close' -and $_.Text -eq 'Schließen' }).Count -ne 1) { $failures += "the .po's German text was not read: $($texts | ConvertTo-Json -Depth 10 -Compress)" }
 if (@($texts | Where-Object { $_.Locale -like '_*' }).Count) { $failures += 'a _notes column was read as a locale' }
 $points = @(Get-GlyphCodePoints "Score: {0} %d {name} [b]x[/b]$([char]0x200D) é`t$([char]0xFE0F)😀")
 $expected = @([int][char]'S', [int][char]'c', [int][char]'o', [int][char]'r', [int][char]'e', [int][char]':', [int][char]'x', 0xE9, 0x1F600)
@@ -152,7 +152,7 @@ $parsed = ConvertFrom-GlyphLog @('@@glyphs-font 0|res://fonts/latin.tres|default
 $line = 'ja: res://fonts/latin.tres (default font) has no 始 U+59CB, 開 U+958B'
 if (@($parsed.Failures).Count -ne 1 -or -not $parsed.Failures[0].StartsWith($line) -or $parsed.Failures[0] -notmatch "'TITLE'") { $failures += "one failure for ja expected, '$line ... (in 'TITLE')', got: $($parsed.Failures -join ' | ')" }
 if (@($parsed.Warnings).Count -ne 1 -or $parsed.Warnings[0].rule -ne 'system-font' -or $parsed.Warnings[0].file -ne 'res://fonts/system.tres' -or $parsed.Warnings[0].message -notmatch '^ja: .*Noto Sans CJK JP') {
-    $failures += "one system-font warning for ja expected: $($parsed.Warnings | ConvertTo-Json -Compress)"
+    $failures += "one system-font warning for ja expected: $($parsed.Warnings | ConvertTo-Json -Depth 10 -Compress)"
 }
 if (@($parsed.Report.fonts | Where-Object { $_['ignored'] }).Count -ne 1) { $failures += 'glyphIgnoreFonts should mark the digits font ignored' }
 
@@ -169,11 +169,11 @@ if ($NoGodot) {
     else {
         $glyphFailures = @($l10n[0].failures | Where-Object { $_.name -like '*missing glyphs' })
         $details = "$(@($glyphFailures | ForEach-Object { $_.details }) -join "`n")"
-        if ($glyphFailures.Count -ne 1 -or -not ($details -split "`n" | Where-Object { $_.StartsWith($line) })) { $failures += "missing glyphs should report: $line`n  got: $($glyphFailures | ConvertTo-Json -Compress)" }
+        if ($glyphFailures.Count -ne 1 -or -not ($details -split "`n" | Where-Object { $_.StartsWith($line) })) { $failures += "missing glyphs should report: $line`n  got: $($glyphFailures | ConvertTo-Json -Depth 10 -Compress)" }
         if ($details -match '(?m)^(en|fr|de):' -or $details -match 'digits') { $failures += "covered locales or the ignored font were reported: $details" }
         if (@($l10n[0].failures | Where-Object { $_.name -notlike '*missing glyphs' }).Count) { $failures += "only missing glyphs should fail: $(@($l10n[0].failures | ForEach-Object name) -join ', ')" }
         $system = @($l10n[0].warnings | Where-Object { $_.rule -eq 'system-font' -and $_.file -eq 'res://fonts/system.tres' })
-        if ($system.Count -ne 4) { $failures += "one system-font warning per locale (de, en, fr, ja) for the SystemFont expected: $($l10n[0].warnings | ConvertTo-Json -Compress)" }
+        if ($system.Count -ne 4) { $failures += "one system-font warning per locale (de, en, fr, ja) for the SystemFont expected: $($l10n[0].warnings | ConvertTo-Json -Depth 10 -Compress)" }
         $report = $l10n[0].glyphs
         $ja = @($report.missing | Where-Object { $_.locale -eq 'ja' })
         if (-not $report -or $report.checked -lt 1 -or $ja.Count -ne 1 -or ($ja[0].codePoints -join ',') -ne 'U+59CB,U+958B' -or $ja[0].font -ne 'res://fonts/latin.tres') {

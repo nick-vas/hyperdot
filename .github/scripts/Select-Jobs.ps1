@@ -154,7 +154,7 @@ if ($Json) { $result | ConvertTo-Json -Depth 4; return }
 
 if ($env:GITHUB_OUTPUT) {
     foreach ($key in $result.Keys) {
-        $value = if ($key -eq 'pairs') { ConvertTo-Json -InputObject $pairs -Compress } else { "$($result[$key])".ToLowerInvariant() }
+        $value = if ($key -eq 'pairs') { ConvertTo-Json -Depth 10 -InputObject $pairs -Compress } else { "$($result[$key])".ToLowerInvariant() }
         "$key=$value" >> $env:GITHUB_OUTPUT
     }
 }

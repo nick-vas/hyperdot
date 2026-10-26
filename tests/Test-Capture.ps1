@@ -43,7 +43,7 @@ try {
     if ($normal.Probe) {
         $p = $normal.Probe
         Assert-True ($p.hud_visible -and $p.prompt_visible -and -not $p.music_muted -and -not $p.mouse_hidden -and -not $p.paused -and $p.time_scale -eq 1) `
-            "without --capture nothing changes: $($p | ConvertTo-Json -Compress)"
+            "without --capture nothing changes: $($p | ConvertTo-Json -Depth 10 -Compress)"
     }
 
     $clean = Invoke-CaptureShot 'clean' '--capture=nohud+nomusic+nocursor' 'normal'

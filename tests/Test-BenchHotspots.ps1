@@ -32,7 +32,7 @@ function Invoke-Bench([string[]]$Arguments) {
     $out = pwsh -NoProfile -NonInteractive -File $kit bench -Json -Quiet -Project $fixture -Results $results @Arguments 2>$null
     $json = if ($out) { $out | ConvertFrom-Json } else { $null }
     if (-not $json -or -not $json.ok) {
-        throw "bench $($Arguments -join ' ') failed: $(if ($json) { $json.error | ConvertTo-Json -Compress } else { 'no JSON result' })"
+        throw "bench $($Arguments -join ' ') failed: $(if ($json) { $json.error | ConvertTo-Json -Depth 10 -Compress } else { 'no JSON result' })"
     }
     return $json.bench
 }
@@ -90,7 +90,7 @@ $heavy = @('-Scene', 'res://heavy.tscn', '-Warmup', '0', '-Seconds', '1')
 $d = Invoke-BenchDoc ($heavy + @('-MaxDrawCalls', '100', '-MaxLoadMs', '10000'))
 Assert-True ($d -and $d.ok) "limits the scene stays under pass: $(if ($d -and -not $d.ok) { $d.error.code })"
 $b = $d.bench
-Assert-True ($b.loadMs -ge 300 -and $b.loadBreakdownMs.firstFrame + $b.loadBreakdownMs.instantiate + $b.loadBreakdownMs.resource -le $b.loadMs + 0.5) "loadMs includes the 300 ms _ready, and its parts add up to it: $($b.loadMs) ms ($($b.loadBreakdownMs | ConvertTo-Json -Compress))"
+Assert-True ($b.loadMs -ge 300 -and $b.loadBreakdownMs.firstFrame + $b.loadBreakdownMs.instantiate + $b.loadBreakdownMs.resource -le $b.loadMs + 0.5) "loadMs includes the 300 ms _ready, and its parts add up to it: $($b.loadMs) ms ($($b.loadBreakdownMs | ConvertTo-Json -Depth 10 -Compress))"
 Assert-True ($b.drawCalls.avg -ge 24) "24 boxes are at least 24 draw calls a frame: $($b.drawCalls.avg)"
 $buckets = @($b.frameHistogram)
 $sum = ($buckets | Measure-Object frames -Sum).Sum

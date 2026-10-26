@@ -82,9 +82,9 @@ $onTime = Get-ReleaseTimeline ([pscustomobject]@{ date = '2027-03-15'; steamFeeP
         buildSubmitted = $null; nextFest = '2027-02-22'; demoSubmitted = '2027-01-25'; pressPreview = $false }) ([datetime]'2027-01-04')
 $t = $onTime.timeline
 Assert-True ($onTime.warnings.Count -eq 0) "a timeline that keeps every rule has no warnings: $($onTime.warnings -join ' | ')"
-Assert-True ($t.date -eq '2027-03-15' -and $t.daysLeft -eq 70 -and $t.businessDaysLeft -eq 50 -and -not $t.dateLocked) "days and business days left: $($t | ConvertTo-Json -Compress)"
+Assert-True ($t.date -eq '2027-03-15' -and $t.daysLeft -eq 70 -and $t.businessDaysLeft -eq 50 -and -not $t.dateLocked) "days and business days left: $($t | ConvertTo-Json -Depth 10 -Compress)"
 Assert-True ($t.deadlines.steamFee -eq '2027-02-22' -and $t.deadlines.comingSoon -eq '2027-03-01' -and $t.deadlines.buildReview -eq '2027-03-04' -and
-    $t.deadlines.storePageReview -eq '2026-11-20' -and $t.deadlines.dateLock -eq '2027-03-01' -and $t.deadlines.demoReview -eq '2027-02-01') "deadlines: $($t.deadlines | ConvertTo-Json -Compress)"
+    $t.deadlines.storePageReview -eq '2026-11-20' -and $t.deadlines.dateLock -eq '2027-03-01' -and $t.deadlines.demoReview -eq '2027-02-01') "deadlines: $($t.deadlines | ConvertTo-Json -Depth 10 -Compress)"
 
 $late = Get-ReleaseTimeline ([pscustomobject]@{ date = '2027-03-15'; steamFeePaid = '2027-03-01'; comingSoon = '2027-03-05'; storePageSubmitted = '2027-03-01'
         nextFest = '2027-02-22'; demoSubmitted = '2027-02-10' }) ([datetime]'2027-03-08')
@@ -215,7 +215,7 @@ try {
     $plan.release.date = [datetime]::UtcNow.Date.AddDays(5).ToString('yyyy-MM-dd', [cultureinfo]::InvariantCulture)
     $plan | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $planPath -Encoding utf8
     $d = Invoke-PlanJson @()
-    Assert-True ($d.ok -and $d.release.daysLeft -eq 5 -and $d.release.dateLocked -eq $true -and $d.release.deadlines.steamFee) "plan -Json reports the release: $($d.release | ConvertTo-Json -Compress)"
+    Assert-True ($d.ok -and $d.release.daysLeft -eq 5 -and $d.release.dateLocked -eq $true -and $d.release.deadlines.steamFee) "plan -Json reports the release: $($d.release | ConvertTo-Json -Depth 10 -Compress)"
     Assert-True (@($d.warnings | Where-Object { $_ -match 'release\.steamFeePaid is not set' }).Count -eq 1) "plan warns that the app fee is not recorded five days before release: $($d.warnings -join ' | ')"
 
     # The tests gate and doctor's test check count test frameworks only: data tables and flows are checks, not tests.
@@ -273,7 +273,7 @@ try {
     Assert-True ($sum -ge 2 -and $sum -le 9) "the jam itself (all but the last phase) fits a 2- to 9-day jam: $sum days"
     $d = pwsh -NoProfile -NonInteractive -File $ci plan -Json -Project $jam 2>$null | ConvertFrom-Json
     $ids = @($d.nextActions | ForEach-Object id)
-    Assert-True ($d.ok -and $d.currentPhase.id -eq 'jam-concept' -and $d.currentPhase.timeboxDays -eq 1 -and $null -ne $d.currentPhase.elapsedDays) "the jam starts in jam-concept, 1 day: $(if ($d.ok) { $d.currentPhase | ConvertTo-Json -Compress } else { $d.error.message })"
+    Assert-True ($d.ok -and $d.currentPhase.id -eq 'jam-concept' -and $d.currentPhase.timeboxDays -eq 1 -and $null -ne $d.currentPhase.elapsedDays) "the jam starts in jam-concept, 1 day: $(if ($d.ok) { $d.currentPhase | ConvertTo-Json -Depth 10 -Compress } else { $d.error.message })"
     Assert-True ($ids.Count -gt 0 -and $ids[0] -eq 'jam.platform' -and 'jam.gdd' -in $ids) "'browser build?' comes first, then the jam GDD: $($ids -join ', ')"
     Assert-True ((Get-Content -LiteralPath (Join-Path $jam 'plan/PLAN.md') -Raw) -match '## Theme and core feel \(current, 1 day\)') 'PLAN.md sizes the phase in days'
     $jamPlan.phases[0].startedAt = [datetime]::UtcNow.AddDays(-2).ToString('o')

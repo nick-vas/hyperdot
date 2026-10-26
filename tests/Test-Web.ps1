@@ -27,7 +27,7 @@ try {
     Assert-True ($web.Ok -and $web.Runs.Count -eq $Browser.Count -and @($web.Runs | Where-Object { -not $_.ok }).Count -eq 0) "the single-threaded build starts in $($Browser -join ', '): $($web.Message)"
     Assert-True ($web.Runs.Count -gt 0 -and $web.Runs[0].crossOriginIsolated -eq $false) 'it runs without cross-origin isolation headers, as on itch.io or GitHub Pages'
     $size = if ($web.Exports.Count) { $web.Exports[0].web } else { $null }
-    Assert-True ($null -ne $size -and $size.rawMb -gt 30 -and $size.gzipMb -gt 5 -and $size.gzipMb -lt $size.rawMb / 2) "the download size is reported raw and gzipped: $($size | ConvertTo-Json -Compress)"
+    Assert-True ($null -ne $size -and $size.rawMb -gt 30 -and $size.gzipMb -gt 5 -and $size.gzipMb -lt $size.rawMb / 2) "the download size is reported raw and gzipped: $($size | ConvertTo-Json -Depth 10 -Compress)"
     Assert-True (Test-Path -LiteralPath (Join-Path $output '.gdignore')) 'an output folder inside the project gets a .gdignore'
     Assert-True (@(Get-ChildItem -LiteralPath (Join-Path $output 'Web') -Filter '*.png' | Where-Object Name -like 'screenshot-*').Count -eq 0) 'screenshots stay out of the release folder'
 

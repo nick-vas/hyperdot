@@ -197,7 +197,7 @@ function Install-GodotTools {
                 $tmp = Join-Path ([IO.Path]::GetTempPath()) "godot-templates-$([guid]::NewGuid())"
                 Expand-Zip $tpz $tmp
                 New-Item -ItemType Directory -Force $paths.TemplatesDir | Out-Null
-                Copy-Item -Recurse -Force (Join-Path $tmp 'templates/*') $paths.TemplatesDir
+                Copy-Item -Recurse -Force -Destination $paths.TemplatesDir -LiteralPath @(Get-ChildItem -LiteralPath (Join-Path $tmp 'templates') -Force | ForEach-Object FullName)
                 Remove-Item -Recurse -Force -LiteralPath $tmp, $tpz
             }
         }

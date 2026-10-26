@@ -88,7 +88,7 @@ if (Test-Path -LiteralPath $summaryMd) {
 }
 $body.Add('')
 $body.Add("[Run details]($runUrl)")
-$payload = @{ body = ($body -join "`n") } | ConvertTo-Json
+$payload = @{ body = ($body -join "`n") } | ConvertTo-Json -Depth 10
 
 try {
     # Every page of comments, not only the first 100: on a busy pull request the summary would otherwise be missed and a

@@ -24,14 +24,14 @@ try {
     # because the budget is held to p99, which a busy machine stretches.
     $results = Join-Path $temp 'ok'
     $d = Invoke-Sweep $results @('-Sweep', 'cost=0,10,60', '-BudgetMs', '40', '-Label', 'fixture')
-    Assert-True ($d -and $d.ok) "a sweep whose last value is over the budget still passes: $(if ($d -and -not $d.ok) { $d.error | ConvertTo-Json -Compress })"
+    Assert-True ($d -and $d.ok) "a sweep whose last value is over the budget still passes: $(if ($d -and -not $d.ok) { $d.error | ConvertTo-Json -Depth 10 -Compress })"
     $s = $d.sweep
     Assert-True ($s.name -eq 'cost' -and (@($s.values) -join ',') -eq '0,10,60' -and @($s.rows).Count -eq 3) "one row per value: $(@($s.rows | ForEach-Object value) -join ',')"
     # The median follows the value; p99 is only held to the slowest one, since a busy machine stretches the tail of any run.
     $p50 = @($s.rows | ForEach-Object p50Ms); $p99 = @($s.rows | ForEach-Object p99Ms)
     Assert-True ($p50[0] -lt $p50[1] -and $p50[1] -lt $p50[2] -and $p50[1] -ge 10 -and $p50[2] -ge 25 -and $p99[2] -ge 25) "the frame time follows the value: p50 $($p50 -join ', '), p99 $($p99 -join ', ') ms"
     $last = @($s.rows)[2]
-    Assert-True ($last.ok -and -not $last.withinLimits -and $last.code -eq 'bench-over-budget') "the value over the budget is marked: $($last | ConvertTo-Json -Compress)"
+    Assert-True ($last.ok -and -not $last.withinLimits -and $last.code -eq 'bench-over-budget') "the value over the budget is marked: $($last | ConvertTo-Json -Depth 10 -Compress)"
     Assert-True ((@($s.withinLimits) -join ',') -eq '0,10' -and "$($s.lastWithinLimits)" -eq '10' -and $s.budgetMs -eq 40) "withinLimits and lastWithinLimits: $(@($s.withinLimits) -join ','), $($s.lastWithinLimits)"
     Assert-True (-not $d.PSObject.Properties['bench']) 'the sweep replaces the single run''s bench object'
     $rows = @(Import-Csv -LiteralPath (Join-Path $results 'bench.csv'))
@@ -40,7 +40,7 @@ try {
 
     # A value whose run prints an engine error: the sweep runs every value, then fails naming it.
     $d = Invoke-Sweep (Join-Path $temp 'error') @('-Sweep', 'cost=0,error,5')
-    Assert-True ($d -and $d.error.code -eq 'bench-sweep-failed' -and $d.error.message -match 'cost=error failed \(engine-errors\)') "an engine error fails the sweep: $(if ($d) { $d.error | ConvertTo-Json -Compress })"
+    Assert-True ($d -and $d.error.code -eq 'bench-sweep-failed' -and $d.error.message -match 'cost=error failed \(engine-errors\)') "an engine error fails the sweep: $(if ($d) { $d.error | ConvertTo-Json -Depth 10 -Compress })"
     $rows = @($d.sweep.rows)
     Assert-True ($rows.Count -eq 3 -and $rows[0].ok -and -not $rows[1].ok -and $rows[2].ok -and $null -ne $rows[2].p99Ms) "the values after it still ran: $(@($rows | ForEach-Object { "$($_.value)=$($_.ok)" }) -join ', ')"
     Assert-True ($null -eq $d.sweep.lastWithinLimits -or "$($d.sweep.lastWithinLimits)" -eq '0') "lastWithinLimits stops at the failed value: $($d.sweep.lastWithinLimits)"

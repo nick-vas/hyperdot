@@ -72,7 +72,7 @@ try {
     $votes = @(
         @{ id = 'p01'; choice = (& $pick 'p01' 'plugin') }, @{ id = 'p02'; choice = (& $pick 'p02' 'plugin') },
         @{ id = 'p03'; choice = (& $pick 'p03' 'other') }, @{ id = 'p04'; choice = (& $pick 'p04' 'plugin') })
-    $votesFile = Join-Path $dir 'verdicts.json'; ConvertTo-Json -InputObject $votes | Set-Content -LiteralPath $votesFile
+    $votesFile = Join-Path $dir 'verdicts.json'; ConvertTo-Json -Depth 10 -InputObject $votes | Set-Content -LiteralPath $votesFile
     $agreementScript = Join-Path $root 'benchmark/Get-JudgeAgreement.ps1'
     $out = & (Get-Process -Id $PID).Path -NoProfile -File $agreementScript -Key (Join-Path $review 'review-key.json') -Verdicts $votesFile -Preferences $prefsFile -Json
     $code = $LASTEXITCODE; $d = ($out -join "`n") | ConvertFrom-Json
@@ -89,7 +89,7 @@ try {
 
     # The side-by-side itself: a judge whose replies name no choice fails the run, and its pairs stay out of the win rate.
     $stand = Join-Path $dir 'stand-in-judge.ps1'
-    Set-Content -LiteralPath $stand -Value "Write-Output (@{ type = 'result'; subtype = 'success'; is_error = `$false; result = 'I cannot decide.'; total_cost_usd = 0 } | ConvertTo-Json -Compress)"
+    Set-Content -LiteralPath $stand -Value "Write-Output (@{ type = 'result'; subtype = 'success'; is_error = `$false; result = 'I cannot decide.'; total_cost_usd = 0 } | ConvertTo-Json -Depth 10 -Compress)"
     $judged = Join-Path $dir 'judged'
     & (Get-Process -Id $PID).Path -NoProfile -File (Join-Path $root 'benchmark/Invoke-SideBySide.ps1') -Results ($runs -join ',') -Model judge-x -OutDir $judged -Claude $stand | Out-Null
     $code = $LASTEXITCODE
@@ -106,7 +106,7 @@ try {
 `$n = if (Test-Path -LiteralPath '$counter') { [int](Get-Content -LiteralPath '$counter') } else { 0 }
 Set-Content -LiteralPath '$counter' -Value (`$n + 1)
 `$reply = '{"better": "' + `$cycle[`$n % `$cycle.Count] + '", "why": "stand-in"}'
-Write-Output (@{ type = 'result'; subtype = 'success'; is_error = `$false; result = `$reply; total_cost_usd = 0.001 } | ConvertTo-Json -Compress)
+Write-Output (@{ type = 'result'; subtype = 'success'; is_error = `$false; result = `$reply; total_cost_usd = 0.001 } | ConvertTo-Json -Depth 10 -Compress)
 "@
         $out = Join-Path $dir "voted-$($case.votes)"
         & (Get-Process -Id $PID).Path -NoProfile -File (Join-Path $root 'benchmark/Invoke-SideBySide.ps1') -Results ($runs -join ',') -Model judge-v -OutDir $out -Claude $voter -Votes $case.votes | Out-Null

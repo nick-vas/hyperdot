@@ -108,3 +108,10 @@ function Set-AndroidVersionCode([string]$Text, [int]$Code) {
     }
     return $out -join $newline
 }
+
+# project.godot's text with its config/version line set to $Line (added under [application] when there is none). The
+# replacements are script blocks: a string would read $0, $1 and $& in the line as groups of the match.
+function Set-ProjectVersionLine([string]$Content, [string]$Line) {
+    if ($Content -match '(?m)^config/version=') { return $Content -replace '(?m)^config/version=[^\r\n]*', { $Line } }
+    return $Content -replace '(?m)^\[application\]\s*$', { "[application]`n`n$Line" }
+}

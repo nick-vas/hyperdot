@@ -32,7 +32,7 @@ $report = @(
     '   at: _debug_report_callback (drivers/vulkan/rendering_context_driver_vulkan.cpp:676)')
 $r = Get-GpuValidation $report
 Assert-True ($r.Report.driver -eq 'vulkan' -and $r.Report.layerLoaded -eq $true) "the driver and the loaded layer are read: $($r.Report.driver), $($r.Report.layerLoaded)"
-Assert-True ($r.Report.errorCount -eq 1 -and $r.Report.errors[0].id -eq 'VUID-vkCmdDispatch-format-07753' -and $r.Report.errors[0].message -match 'UINT') "a debug-report error gives its VUID and message: $($r.Report.errors | ConvertTo-Json -Compress)"
+Assert-True ($r.Report.errorCount -eq 1 -and $r.Report.errors[0].id -eq 'VUID-vkCmdDispatch-format-07753' -and $r.Report.errors[0].message -match 'UINT') "a debug-report error gives its VUID and message: $($r.Report.errors | ConvertTo-Json -Depth 10 -Compress)"
 Assert-True ($r.Report.warningCount -eq 1) "the warning is counted once, not as an error: $($r.Report.warningCount)"
 Assert-True (@($r.Lines) -contains 'ERROR: Vulkan Debug Report: object - 1895558046287548') 'the ERROR line is handed over, so the engine error check does not count it again'
 
@@ -45,11 +45,11 @@ $utils = @($loader, $vulkan,
     'WARNING: PERFORMANCE - Message Id Number: 7 | Message Id Name: BestPractices-x',
     "`tslow")
 $r = Get-GpuValidation $utils
-Assert-True ($r.Report.errorCount -eq 2 -and $r.Report.errors[0].id -eq 'VUID-vkCmdDraw-None-08600' -and $r.Report.errors[0].message -match '^vkCmdDraw\(\)' -and $r.Report.errors[1].id -eq '-42') "debug-utils errors: the name, or the number without one, and the message line: $($r.Report.errors | ConvertTo-Json -Compress)"
+Assert-True ($r.Report.errorCount -eq 2 -and $r.Report.errors[0].id -eq 'VUID-vkCmdDraw-None-08600' -and $r.Report.errors[0].message -match '^vkCmdDraw\(\)' -and $r.Report.errors[1].id -eq '-42') "debug-utils errors: the name, or the number without one, and the message line: $($r.Report.errors | ConvertTo-Json -Depth 10 -Compress)"
 Assert-True ($r.Report.warningCount -eq 1) "a debug-utils warning is counted: $($r.Report.warningCount)"
 
 $r = Get-GpuValidation @($loader, $vulkan, 'Validation Error: [ VUID-vkQueueSubmit-x ] printed by the layer itself')
-Assert-True ($r.Report.errorCount -eq 1 -and $r.Report.errors[0].id -eq 'VUID-vkQueueSubmit-x') "the layer's own line counts: $($r.Report.errors | ConvertTo-Json -Compress)"
+Assert-True ($r.Report.errorCount -eq 1 -and $r.Report.errors[0].id -eq 'VUID-vkQueueSubmit-x') "the layer's own line counts: $($r.Report.errors | ConvertTo-Json -Depth 10 -Compress)"
 
 $env:HYPERDOT_IGNORE_ERRORS = 'format-07753'
 try { $r = Get-GpuValidation $report } finally { Remove-Item Env:HYPERDOT_IGNORE_ERRORS }
@@ -76,7 +76,7 @@ if (-not $NoGodot) {
     function Get-Code($Doc) { if ($Doc -and $Doc.PSObject.Properties['error']) { $Doc.error.code } elseif ($Doc) { '(ok)' } else { '(no JSON)' } }
     try {
         $d = Invoke-Kit @('shot', '-GpuValidation', '-Project', $fixture, '-Frames', '5', '-Output', (Join-Path $temp 'shots'))
-        Assert-True ($d -and $d.ok -and $d.gpuValidation.driver -eq 'vulkan' -and $d.gpuValidation.layerLoaded -and $d.gpuValidation.errorCount -eq 0) "shot of a clean Forward+ scene passes, validated: $(Get-Code $d), $($d.gpuValidation | ConvertTo-Json -Compress)"
+        Assert-True ($d -and $d.ok -and $d.gpuValidation.driver -eq 'vulkan' -and $d.gpuValidation.layerLoaded -and $d.gpuValidation.errorCount -eq 0) "shot of a clean Forward+ scene passes, validated: $(Get-Code $d), $($d.gpuValidation | ConvertTo-Json -Depth 10 -Compress)"
 
         $bench = @('bench', '-Project', $fixture, '-Scene', 'res://misuse.tscn', '-Seconds', '1', '-Warmup', '0', '-Results', (Join-Path $temp 'bench'))
         $d = Invoke-Kit ($bench + '-GpuValidation')

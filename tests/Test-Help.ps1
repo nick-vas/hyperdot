@@ -53,9 +53,9 @@ try {
     Assert-True ($r.Code -eq 0 -and $absent.Count -eq 0) "help prints one line per entry$(if ($absent) { ": missing $($absent -join ', ')" })"
 
     $d = (Invoke-Help @('help', 'shot', '-Json')).Text | ConvertFrom-Json
-    Assert-True ($d.ok -and $d.entry.kind -eq 'command' -and $d.entry.page -match 'hyperdot\.ps1 shot ') "help shot returns the command's page: $($d.entry | ConvertTo-Json -Compress)"
+    Assert-True ($d.ok -and $d.entry.kind -eq 'command' -and $d.entry.page -match 'hyperdot\.ps1 shot ') "help shot returns the command's page: $($d.entry | ConvertTo-Json -Depth 10 -Compress)"
     $d = (Invoke-Help @('help', '/game', '-Json')).Text | ConvertFrom-Json
-    Assert-True ($d.ok -and $d.entry.kind -eq 'skill' -and $d.entry.when -match '^Use when' -and $d.entry.start -match '/game' -and $d.entry.file -eq '.agents/skills/game/SKILL.md') "help /game adds when and how to start it: $($d.entry | ConvertTo-Json -Compress)"
+    Assert-True ($d.ok -and $d.entry.kind -eq 'skill' -and $d.entry.when -match '^Use when' -and $d.entry.start -match '/game' -and $d.entry.file -eq '.agents/skills/game/SKILL.md') "help /game adds when and how to start it: $($d.entry | ConvertTo-Json -Depth 10 -Compress)"
     $d = (Invoke-Help @('help', 'godot-verifier', '-Json')).Text | ConvertFrom-Json
     Assert-True ($d.ok -and $d.entry.kind -eq 'subagent' -and $d.entry.when) 'help godot-verifier returns the subagent page'
     $r = Invoke-Help @('help', 'game')

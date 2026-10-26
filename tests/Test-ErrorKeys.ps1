@@ -97,7 +97,7 @@ try {
 
 # --- status: grouped by key -------------------------------------------------------------------------------------------
 function New-Line([string]$Time, [string]$Command, [bool]$Ok, [string]$Commit, [string[]]$Keys) {
-    [ordered]@{ time = $Time; command = $Command; ok = $Ok; commit = $Commit; errorKeys = @($Keys) } | ConvertTo-Json -Compress | ConvertFrom-Json
+    [ordered]@{ time = $Time; command = $Command; ok = $Ok; commit = $Commit; errorKeys = @($Keys) } | ConvertTo-Json -Depth 10 -Compress | ConvertFrom-Json
 }
 $history = @(
     ('{"time":"2026-10-01T09:00:00Z","command":"test","ok":false}' | ConvertFrom-Json),

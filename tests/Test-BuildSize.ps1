@@ -100,7 +100,7 @@ try {
         Set-Content -LiteralPath (Join-Path $game 'export_presets.cfg') ((& $preset 0 'Linux' 'false') + (& $preset 1 'Embedded' 'true'))
         $out = Join-Path $work 'out'
         $json = (& pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') export -Json -Runners none -Project $game -Output $out 2>$null) -join "`n" | ConvertFrom-Json
-        Assert-True ($json.ok) "the export passes: $(if (-not $json.ok) { $json.error | ConvertTo-Json -Compress })"
+        Assert-True ($json.ok) "the export passes: $(if (-not $json.ok) { $json.error | ConvertTo-Json -Depth 10 -Compress })"
         if ($json.ok) {
             $linux = @($json.exports | Where-Object preset -eq 'Linux')[0].size
             Assert-True ($linux.bytes -gt 1MB -and @($linux.items | ForEach-Object name) -contains 'game.pck' -and $linux.pack.file -eq 'game.pck' -and $linux.pack.engine -eq '4.7.2') "exports[].size has the folder and its pack: $($linux | ConvertTo-Json -Compress -Depth 4)"

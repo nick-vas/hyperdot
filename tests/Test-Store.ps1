@@ -122,7 +122,7 @@ try {
             -c:v mpeg4 -c:a mp2 -shortest (Join-Path $clips 'trailer_old.avi') 2>&1 | Out-Null
         $r = Test-SteamTrailers $clips
         $goodClip = @($r.trailers | Where-Object { $_.file -eq 'trailer.mp4' })
-        Assert-True ($goodClip.Count -eq 1 -and $goodClip[0].videoCodec -eq 'h264' -and $goodClip[0].width -eq 1920 -and $goodClip[0].fps -eq 30 -and $goodClip[0].audioCodec -eq 'aac' -and $goodClip[0].sampleRate -eq 48000) "the H.264 trailer is read: $($goodClip | ConvertTo-Json -Compress)"
+        Assert-True ($goodClip.Count -eq 1 -and $goodClip[0].videoCodec -eq 'h264' -and $goodClip[0].width -eq 1920 -and $goodClip[0].fps -eq 30 -and $goodClip[0].audioCodec -eq 'aac' -and $goodClip[0].sampleRate -eq 48000) "the H.264 trailer is read: $($goodClip | ConvertTo-Json -Depth 10 -Compress)"
         $codes = @($r.problems | ForEach-Object { "$($_.code) $($_.asset)" })
         foreach ($expected in 'trailer-codec trailer_old.avi', 'trailer-fps trailer_old.avi', 'trailer-size trailer_old.avi') {
             Assert-True ($codes -contains $expected) "trailer check names $expected"

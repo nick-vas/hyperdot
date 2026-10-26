@@ -269,8 +269,8 @@ if ($Command -eq 'detect') {
         'godot-version'   = $info.GodotVersion
         'runners'         = $info.Runners -join ','
         'godottest-scene' = $info.GoDotTestScene
-        'presets'         = ConvertTo-Json -Compress -InputObject @($presets)
-        'preset-platforms' = ConvertTo-Json -Compress -InputObject $platforms
+        'presets'         = ConvertTo-Json -Depth 10 -Compress -InputObject @($presets)
+        'preset-platforms' = ConvertTo-Json -Depth 10 -Compress -InputObject $platforms
     }
     if ($Json) {
         $details = Get-ExportPresetDetails $info.ProjectDir
@@ -477,8 +477,7 @@ function Invoke-Export {
             # appends +<commit> to the InformationalVersion by itself.
             $originalProject = [System.IO.File]::ReadAllText($projectFile)
             $line = "config/version=`"$numbers`""
-            $patched = if ($originalProject -match '(?m)^config/version=') { $originalProject -replace '(?m)^config/version=[^\r\n]*', { $line } }   # a script block: a string would read $0, $1 and $& as groups
-                else { $originalProject -replace '(?m)^\[application\]\s*$', { "[application]`n`n$line" } }
+            $patched = Set-ProjectVersionLine $originalProject $line
             [System.IO.File]::WriteAllText($projectFile, $patched)
             $env:Version = $numbers; $env:InformationalVersion = $full
             Write-CiLog "Version $numbers ($full)"

@@ -603,7 +603,7 @@ if ($DryRun) {
     if ($Json) {
         [ordered]@{ dryRun = $true; calls = $calls; limit = $limit; tasks = @($tasks | ForEach-Object { $_.id }); configurations = $configurations.Count
             shard = $(if ($shardCount -gt 1) { "$shardIndex/$shardCount" }); sessions = @($sessionPlan | ForEach-Object { "$($_.Task.id)#$($_.Repetition)" })
-            estimateUsd = $estimateUsd; tierEstimateUsd = $tierEstimateUsd; budgetUsd = $budget; overBudget = $overBudget } | ConvertTo-Json -Compress
+            estimateUsd = $estimateUsd; tierEstimateUsd = $tierEstimateUsd; budgetUsd = $budget; overBudget = $overBudget } | ConvertTo-Json -Depth 10 -Compress
     }
     if ($overBudget) { Write-BenchLog $overMessage; exit 1 }
     exit 0

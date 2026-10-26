@@ -27,12 +27,16 @@ $rules = [ordered]@{
     'start-process-arglist' = 'Start-Process -ArgumentList joins its elements with spaces and quotes none: wrap a path or any value that may hold a space in escaped quotes, or use -EncodedCommand'
     'replace-interpolated'  = 'a variable or interpolated string as the replacement of -replace reads $0, $1 and $& in the data as group references; double the dollars with .Replace(''$'', ''$$'') or use a script block'
     'pwsh-interactive'      = 'a child pwsh started with -File or -Command and no -NonInteractive hangs on a prompt instead of failing'
+    'json-depth'            = 'ConvertTo-Json without -Depth stops at depth 2: nested data is cut to its type name and a warning reaches stdout; pass -Depth'
+    'path-wildcard'         = 'a path cmdlet without -LiteralPath reads [ ] in a path from data as a wildcard and finds nothing, silently (a deliberate * or ? in the path is allowed)'
+    'duplicate-parameter'   = 'a parameter given twice in one command fails to bind at run time, which no parse error shows'
     'same-file-pipeline'   = 'Get-Content X piped into Set-Content, Add-Content or Out-File X: on Linux it truncates the file without an error or never ends; read it whole in parentheses first'
 }
 
 $windowsAliases = @('cat', 'clear', 'compare', 'cp', 'diff', 'kill', 'ls', 'man', 'mount', 'mv', 'ps', 'rm', 'rmdir', 'sleep', 'sort', 'start', 'tee', 'write')
 $pipelineCommands = @('ForEach-Object', 'Where-Object', '%', '?', 'foreach', 'where')
 $boundAllowed = @('ContainsKey', 'Keys', 'Values', 'Count', 'Remove', 'Add', 'GetEnumerator', 'TryGetValue', 'Clear')
+$pathCmdlets = @('Test-Path', 'Get-Item', 'Get-ChildItem', 'Remove-Item', 'Copy-Item', 'Move-Item', 'Get-Content', 'Set-Content', 'Add-Content', 'Rename-Item', 'Get-FileHash', 'Compress-Archive', 'Expand-Archive', 'Select-String', 'Clear-Content')
 $writers = @('Set-Content', 'Add-Content', 'Out-File', 'sc', 'ac')
 
 # Where a continue or break goes: $null when a loop, switch or trap of its own takes it, else why it escapes.
@@ -101,6 +105,14 @@ function Get-PatternFindings([string]$File) {
             if ($name -in $windowsAliases -and $n.InvocationOperator -ne 'Ampersand') { & $add 'windows-alias' $n $name }
             if ($name -eq 'Set-StrictMode' -and @($n.CommandElements | Where-Object { $_ -is [System.Management.Automation.Language.StringConstantExpressionAst] -and $_.Value -eq 'Latest' }).Count) {
                 & $add 'strictmode-latest' $n $n.Extent.Text
+            }
+            $seen = @($n.CommandElements | Where-Object { $_ -is [System.Management.Automation.Language.CommandParameterAst] } | ForEach-Object { $_.ParameterName.ToLowerInvariant() })
+            if ($name -cmatch '^[A-Z][A-Za-z]+-[A-Z]' -and @($seen | Group-Object | Where-Object Count -gt 1).Count) { & $add 'duplicate-parameter' $n $n.Extent.Text }
+            if ($name -eq 'ConvertTo-Json' -and @($n.CommandElements | Where-Object { $_ -is [System.Management.Automation.Language.CommandParameterAst] -and $_.ParameterName -match '^De(p(th?)?)?$' }).Count -eq 0) { & $add 'json-depth' $n $n.Extent.Text }
+            if ($name -in $pathCmdlets -and ($File -notmatch '[\\/]tests[\\/]' -or $File -match 'patterns-fixture[\\/](path-wildcard|clean)\.ps1')) {
+                $literal = @($n.CommandElements | Where-Object { $_ -is [System.Management.Automation.Language.CommandParameterAst] -and $_.ParameterName -match '^(L|Li|Lit|Lite|Liter|Litera|Literal|LiteralP|LiteralPa|LiteralPat|LiteralPath|LP|PSPath)$' }).Count
+                $target = Get-PathArgument $n
+                if (-not $literal -and $target -and $target -notmatch '^\$env:|^Env:' -and $target -notmatch '[*?]') { & $add 'path-wildcard' $n $n.Extent.Text }
             }
             if ($name -in 'Resolve-Path', 'rvpa') {
                 $has = @($n.CommandElements | Where-Object { $_ -is [System.Management.Automation.Language.CommandParameterAst] -and $_.ParameterName -match '^(L|Li|Lit|Lite|Liter|Litera|Literal|LiteralP|LiteralPa|LiteralPat|LiteralPath|LP|PSPath)$' }).Count

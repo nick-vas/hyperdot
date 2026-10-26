@@ -69,7 +69,7 @@ try {
     $parts = $current -split '\.'
     $next = "$($parts[0]).$($parts[1]).$([int]$parts[2] + 1)"
     $latest = Join-Path $temp 'latest.json'
-    @{ godot = $next } | ConvertTo-Json | Set-Content -LiteralPath $latest
+    @{ godot = $next } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $latest
 
     # Every pinned file present: the update applies and rewrites the one this test removes below.
     $whole = New-RepoCopy 'whole'
@@ -112,7 +112,7 @@ try {
     $newMinor = "$($minorParts[0]).$([int]$minorParts[1] + 1)"
     $gutNew = "v9.$([int]$minorParts[1] + 1).0"
     $latestMinor = Join-Path $temp 'latest-minor.json'
-    @{ godot = "$newMinor.0"; gut = $gutNew; 'gdUnit4.api' = '99.0.0' } | ConvertTo-Json | Set-Content -LiteralPath $latestMinor
+    @{ godot = "$newMinor.0"; gut = $gutNew; 'gdUnit4.api' = '99.0.0' } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $latestMinor
     $gutOnly = New-RepoCopy 'gut-only'
     $setupBefore = Get-Content -LiteralPath (Join-Path $gutOnly 'ci/godot/lib/Setup.ps1') -Raw
     $out = & pwsh -NoProfile -NonInteractive -File $tool -Root $gutOnly -LatestFile $latestMinor -Apply -Only gut -Json 2>&1
@@ -158,7 +158,7 @@ try {
     $oldSdk = [regex]::Match($initBefore, "'mcp\[cli\]==(?<v>[\d.]+)'").Groups['v'].Value
     $newCommit = 'b' * 40
     $latestAse = Join-Path $temp 'latest-aseprite.json'
-    @{ 'aseprite-mcp' = $newCommit; mcp = '1.31.0' } | ConvertTo-Json | Set-Content -LiteralPath $latestAse
+    @{ 'aseprite-mcp' = $newCommit; mcp = '1.31.0' } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $latestAse
     $ase = New-RepoCopy 'aseprite'
     $out = & pwsh -NoProfile -NonInteractive -File $tool -Root $ase -LatestFile $latestAse -Apply -Json 2>&1
     $r = if (-not $LASTEXITCODE) { try { ($out -join "`n") | ConvertFrom-Json } catch { $null } }
@@ -180,7 +180,7 @@ if ($joined -match 'mcp\[cli\]==1\.99\.0') { "ImportError: cannot import name 'F
 Write-Output '@@tools 123'
 '@
     $latestBreak = Join-Path $temp 'latest-aseprite-break.json'
-    @{ 'aseprite-mcp' = $newCommit; mcp = '1.99.0' } | ConvertTo-Json | Set-Content -LiteralPath $latestBreak
+    @{ 'aseprite-mcp' = $newCommit; mcp = '1.99.0' } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $latestBreak
     $canaryAse = New-RepoCopy 'canary-aseprite'
     $errFile = Join-Path $temp 'canary-aseprite.err'
     $out = & pwsh -NoProfile -NonInteractive -Command "& '$canary' -Root '$canaryAse' -LatestFile '$latestBreak' -Projects @() -Uvx '$fakeUvx' -AddonSource '$script:AddonSource'" 2>$errFile
