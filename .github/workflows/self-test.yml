@@ -257,6 +257,8 @@ jobs:
   # No inputs at all: detects the shallowest project (examples/gdscript), installs GUT, runs validate,
   # gut and smoke.
   zero-config:
+    needs: changes
+    if: needs.changes.outputs.zero-config == 'true'
     permissions:
       contents: read
       pull-requests: write
@@ -268,6 +270,8 @@ jobs:
   # runner, and a release dry run on branches. Never on a tag: a release there would publish the example game as the
   # kit's own release (or add its zips to it), so the job also gets no write access to contents.
   csharp:
+    needs: changes
+    if: needs.changes.outputs.csharp == 'true'
     permissions:
       contents: read
       pull-requests: write
@@ -283,6 +287,8 @@ jobs:
 
   # Runners picked by hand.
   explicit-runners:
+    needs: changes
+    if: needs.changes.outputs.explicit-runners == 'true'
     uses: ./.github/workflows/godot.yml
     with:
       project: examples/csharp/game
@@ -293,6 +299,8 @@ jobs:
 
   # init on a bare game (no tests, no CI), then doctor and a full test run of what it generated.
   init:
+    needs: changes
+    if: needs.changes.outputs.init == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -434,6 +442,8 @@ jobs:
   # bench, shot and -GameArgs. A virtual display stands in for a screen; rendering is software OpenGL, so the numbers only
   # prove the commands work, not how fast anything is.
   measure:
+    needs: changes
+    if: needs.changes.outputs.measure == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -573,6 +583,8 @@ jobs:
   # programme, and benchmark/game-programme.json's written genres). Its own job: it runs Godot for every task several
   # times, and the staged programme grows with each genre. The .NET build of Godot runs the GDScript games too.
   game-benchmark:
+    needs: changes
+    if: needs.changes.outputs.game-benchmark == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -604,35 +616,50 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-  # The real staged programme (benchmark/game-programme.json): every written genre's tasks must catch their defect, pass
+  # What this change needs, from .github/scripts/Select-Jobs.ps1 (held to its rules by tests/Test-SelectJobs.ps1): which of
+  # the jobs below that can be skipped run, and which pairs of the staged programme. Everything runs on a push to main, on
+  # the nightly schedule, when started by hand and when the base cannot be compared. On a pull request a job runs when the
+  # files it exercises changed (or the shared core, or the workflow); a change to documentation alone runs lint alone.
+  # The staged programme (benchmark/game-programme.json): every written genre's tasks must catch their defect, pass
   # their reference and fail their decoy. It runs Godot hundreds of times (the C# arcade game alone takes about an hour
-  # and a half), so it runs one job per genre and language, and only the pairs whose game changed. A change to the check's
-  # own code (the harness, the programme, the templates) runs a sample of three pairs on a pull request; every pair runs
-  # when started by hand, on a push to main and when the base cannot be compared (.github/scripts/Select-Jobs.ps1).
-  programme-pairs:
+  # and a half), so it runs one job per genre and language, and on a pull request only the pairs whose game changed; a
+  # change to the check's own code (the harness, the programme, the templates) runs a sample of three pairs.
+  changes:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
-      pairs: ${{ steps.pairs.outputs.pairs }}
+      zero-config: ${{ steps.select.outputs.zero-config }}
+      csharp: ${{ steps.select.outputs.csharp }}
+      explicit-runners: ${{ steps.select.outputs.explicit-runners }}
+      action: ${{ steps.select.outputs.action }}
+      local-windows: ${{ steps.select.outputs.local-windows }}
+      init: ${{ steps.select.outputs.init }}
+      measure: ${{ steps.select.outputs.measure }}
+      game-benchmark: ${{ steps.select.outputs.game-benchmark }}
+      field-test: ${{ steps.select.outputs.field-test }}
+      web: ${{ steps.select.outputs.web }}
+      full: ${{ steps.select.outputs.full }}
+      all: ${{ steps.select.outputs.all }}
+      pairs: ${{ steps.select.outputs.pairs }}
     steps:
       - uses: actions/checkout@v7
-      - name: Which genres and languages changed?
-        id: pairs
+      - name: Which jobs and which genre and language pairs does this change need?
+        id: select
         shell: pwsh
         env:
           BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         run: ./.github/scripts/Select-Jobs.ps1
 
   game-programme:
-    needs: programme-pairs
-    if: needs.programme-pairs.outputs.pairs != '[]'
+    needs: changes
+    if: needs.changes.outputs.pairs != '[]'
     name: game-programme (${{ matrix.genre }}, ${{ matrix.language }})
     runs-on: ubuntu-latest
     timeout-minutes: 150
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(needs.programme-pairs.outputs.pairs) }}
+        include: ${{ fromJSON(needs.changes.outputs.pairs) }}
     steps:
       - uses: actions/checkout@v7
       - name: Godot (.NET build), for GODOT_BIN
@@ -647,6 +674,8 @@ jobs:
   # The private field test (-GameSource) with a stand-in for the model: the mutant planter, and whole runs on copies
   # of both examples, good and bad work, numbers only in the report.
   field-test:
+    needs: changes
+    if: needs.changes.outputs.field-test == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -671,6 +700,8 @@ jobs:
 
   # Web exports opened in real browsers (export -Run -Browser): Playwright's Chromium and Firefox, and the runner's Edge.
   web:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -734,6 +765,8 @@ jobs:
 
   # The composite action inside a custom workflow.
   action:
+    needs: changes
+    if: needs.changes.outputs.action == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -759,6 +792,8 @@ jobs:
 
   # The script on Windows, as on a developer machine: no workflow, no action.
   local-windows:
+    needs: changes
+    if: needs.changes.outputs.local-windows == 'true'
     runs-on: windows-latest
     timeout-minutes: 45
     steps:
@@ -837,9 +872,11 @@ jobs:
           retention-days: 14
 
   # What the self-tests reach, from every job's records: commands, functions, documented error codes. A drop below the
-  # floors fails the run, so coverage cannot fall unnoticed.
+  # floors fails the run, so coverage cannot fall unnoticed. The floors are for the whole suite: when the change filter
+  # skipped a job (a pull request that touches little), the records of that job are missing by design, so the run only
+  # reports what was reached. Pushes to main and the nightly run skip nothing and enforce the floors.
   coverage:
-    needs: [lint, zero-config, csharp, explicit-runners, init, measure, game-benchmark, field-test, web, action, local-windows]
+    needs: [changes, lint, zero-config, csharp, explicit-runners, init, measure, game-benchmark, field-test, web, action, local-windows]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -851,10 +888,23 @@ jobs:
           path: ${{ runner.temp }}/coverage
       - name: Coverage of the kit by the self-tests
         shell: pwsh
+        env:
+          # No needed job was skipped: every job that records the kit ran, so the floors hold.
+          WHOLE_SUITE: ${{ !contains(needs.*.result, 'skipped') }}
         run: |
-          ./tests/Get-KitCoverage.ps1 -From "$env:RUNNER_TEMP/coverage" -Json > "$env:RUNNER_TEMP/coverage.json"
-          $report = ./tests/Get-KitCoverage.ps1 -From "$env:RUNNER_TEMP/coverage" -MinFunctions 85 -MinErrorCodes 80 -MinCommands 100 6>&1
-          $code = $LASTEXITCODE
+          $whole = $env:WHOLE_SUITE -eq 'true'
+          $floors = if ($whole) { @{ MinFunctions = 85; MinErrorCodes = 80; MinCommands = 100 } } else { @{} }
+          if (-not $whole) { Write-Host '::notice::Jobs were skipped for this change, so coverage is reported but its floors are enforced only by pushes to main and the nightly run' }
+          try {
+            ./tests/Get-KitCoverage.ps1 -From "$env:RUNNER_TEMP/coverage" -Json > "$env:RUNNER_TEMP/coverage.json"
+            $report = ./tests/Get-KitCoverage.ps1 -From "$env:RUNNER_TEMP/coverage" @floors 6>&1
+            $code = $LASTEXITCODE
+          } catch {
+            # Without records there is nothing to report; on the whole suite that is itself the failure.
+            if ($whole) { throw }
+            Write-Host "::warning::No coverage records to report: $($_.Exception.Message)"
+            exit 0
+          }
           $report | Out-String | Tee-Object -Variable text | Write-Host
           "``````text`n$text`n``````" | Add-Content $env:GITHUB_STEP_SUMMARY
           exit $code

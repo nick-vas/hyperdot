@@ -18,11 +18,71 @@ function Get-Selection([string]$EventName = 'pull_request', [string[]]$Files = @
     if ($LASTEXITCODE) { throw "Select-Jobs failed: $text" }
     return $text | ConvertFrom-Json
 }
+$gated = 'zero-config', 'csharp', 'explicit-runners', 'action', 'local-windows', 'init', 'measure', 'game-benchmark', 'field-test', 'web'
+function Get-JobNames($Selection) { return @($gated | Where-Object { $Selection.$_ }) }
 function Get-PairNames($Selection) { return @($Selection.pairs | ForEach-Object { "$($_.genre)/$($_.language)" }) }
 
 $spec = Get-Content -Raw (Join-Path $root 'benchmark/game-programme.json') | ConvertFrom-Json
 $written = @(foreach ($g in $spec.programme.genres) { foreach ($l in $g.languages) { if (Test-Path (Join-Path $root "benchmark/games/$($g.id)/$l")) { "$($g.id)/$l" } } })
 Assert-True ($written.Count -ge 20) "the programme has its written pairs ($($written.Count))"
+
+# The jobs. Documentation and unrelated files run lint alone (it always runs): no gated job, no pair.
+foreach ($file in 'docs/ci.md', 'README.md', 'CHANGELOG.md', 'AGENTS.md', 'site/Build-Site.ps1', 'site/site.css', 'benchmark/PLAN.md', 'benchmark/games/arena/DESIGN.md', 'evals/scaffold-gdscript.sh', '.gitignore', 'tests/doctor-fixture/project.godot', 'tests/Get-CoverageMap.ps1', '.github/workflows/pages.yml') {
+    $s = Get-Selection -Files $file
+    Assert-True (@(Get-JobNames $s).Count -eq 0 -and @($s.pairs).Count -eq 0 -and -not $s.all) "$file runs lint alone ($(@(Get-JobNames $s) -join ', '))"
+}
+# docs/json.md is a table the error-code test reads; a skill, a subagent or a template ships to games.
+$s = Get-Selection -Files 'docs/json.md'
+Assert-True (((Get-JobNames $s) -join ',') -eq 'measure') "docs/json.md runs the error-code test's job ($((Get-JobNames $s) -join ', '))"
+$s = Get-Selection -Files '.agents/skills/godot-testing/SKILL.md', 'agents/godot-verifier.md'
+Assert-True (((Get-JobNames $s) -join ',') -eq 'init') "a skill and a subagent run init ($((Get-JobNames $s) -join ', '))"
+
+# The shared core runs every job.
+foreach ($file in '.github/workflows/self-test.yml', '.github/actions/apt/action.yml', '.github/scripts/Select-Jobs.ps1', 'ci/godot/hyperdot.ps1', 'ci/godot/lib/Common.ps1', 'ci/godot/lib/Runners.ps1', 'ci/godot/lib/Setup.ps1', 'ci/godot/tools/validate.gd', 'examples/csharp/game/Main.cs') {
+    $s = Get-Selection -Files $file
+    Assert-True ($s.all -and @(Get-JobNames $s).Count -eq $gated.Count) "$file runs every job"
+}
+# What a job exercises runs that job and not a heavy one that does not.
+$cases = @(
+    @{ File = 'ci/godot/lib/Measure.ps1'; Runs = 'measure', 'web', 'init'; Not = @() }
+    @{ File = 'ci/godot/tools/bench.gd'; Runs = 'measure', 'web', 'init'; Not = 'field-test', 'game-benchmark' }
+    @{ File = 'ci/godot/lib/Web.ps1'; Runs = 'web'; Not = 'measure', 'field-test', 'game-benchmark' }
+    @{ File = 'ci/godot/lib/Sfx.ps1'; Runs = 'init', 'zero-config'; Not = 'measure', 'web', 'field-test', 'game-benchmark' }
+    @{ File = 'benchmark/FieldTest.ps1'; Runs = 'field-test', 'game-benchmark'; Not = 'measure', 'web', 'init', 'csharp', 'local-windows' }
+    @{ File = 'benchmark/Isolation.ps1'; Runs = 'game-benchmark'; Not = 'measure', 'web', 'init' }
+    @{ File = 'benchmark/games/arena/gdscript/main.gd'; Runs = @(); Not = $gated }
+    @{ File = 'tests/Test-Web.ps1'; Runs = 'web'; Not = 'measure', 'init', 'field-test' }
+    @{ File = 'tests/web-fixture/project.godot'; Runs = 'web'; Not = 'init', 'field-test', 'game-benchmark' }
+    @{ File = 'tests/Test-ProcessTimeout.ps1'; Runs = 'local-windows'; Not = 'measure', 'web', 'field-test' }
+    @{ File = 'tests/Test-GameProgramme.ps1'; Runs = 'game-benchmark'; Not = 'measure', 'web', 'init' }
+    @{ File = 'tests/Test-FieldTest.ps1'; Runs = 'field-test'; Not = 'game-benchmark', 'measure', 'web' }
+    @{ File = 'hooks/stop-gate.ps1'; Runs = 'init'; Not = 'measure', 'web', 'field-test' }
+    @{ File = "tests/unnamed-$([guid]::NewGuid().ToString('N')).json"; Runs = $gated; Not = @() }
+)
+foreach ($case in $cases) {
+    $names = @(Get-JobNames (Get-Selection -Files $case.File))
+    $missing = @($case.Runs | Where-Object { $_ -notin $names }); $extra = @($case.Not | Where-Object { $_ -in $names })
+    Assert-True ($missing.Count -eq 0 -and $extra.Count -eq 0) "$($case.File) runs $($case.Runs -join ', ') and not $($case.Not -join ', ') (ran: $($names -join ', '))"
+}
+# Several files: the union.
+$names = @(Get-JobNames (Get-Selection -Files 'ci/godot/lib/Web.ps1', 'benchmark/FieldTest.ps1', 'docs/ci.md'))
+$want = @('web', 'field-test', 'game-benchmark', 'zero-config', 'csharp', 'explicit-runners', 'action', 'local-windows', 'init') | Sort-Object
+Assert-True ((($names | Sort-Object) -join ',') -eq ($want -join ',') ) "the jobs of several files add up ($($names -join ', '))"
+
+# Whatever the workflow runs in a skippable job selects that job when that test script alone changes, so a test added to a
+# job cannot be left out of its filter.
+$text = Get-Content -Raw (Join-Path $root '.github/workflows/self-test.yml')
+$text = (($text -split "`n") | Where-Object { $_ -notmatch '^\s*#' }) -join "`n"
+$jobs = [regex]::Split($text.Substring($text.IndexOf("`njobs:")), '(?m)^  (?=[a-z][a-z0-9-]*:\s*$)')
+foreach ($block in $jobs) {
+    $job = ($block -split ':', 2)[0]
+    if ($job -notin $gated) { continue }
+    foreach ($test in [regex]::Matches($block, 'tests/(Test-[\w-]+\.ps1)') | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique) {
+        $names = @(Get-JobNames (Get-Selection -Files "tests/$test"))
+        Assert-True ($job -in $names) "tests/$test, run by $job, selects it"
+    }
+}
+foreach ($job in $gated) { Assert-True ($text -match "(?m)^  $job`:\s*$") "the workflow has the job $job" }
 
 # Docs and unrelated files: no pair.
 $s = Get-Selection -Files 'docs/ci.md', 'README.md', 'benchmark/games/arena/DESIGN.md'
@@ -57,7 +117,7 @@ Assert-True ($s.full) 'no base runs every pair'
 $temp = Join-Path ([IO.Path]::GetTempPath()) "select-jobs-$PID"
 try {
     New-Item -ItemType Directory $temp | Out-Null
-    foreach ($file in 'benchmark/game-programme.json') { New-Item -ItemType Directory -Force (Join-Path $temp (Split-Path $file)) | Out-Null; Copy-Item (Join-Path $root $file) (Join-Path $temp $file) }
+    foreach ($file in 'benchmark/game-programme.json', '.github/workflows/self-test.yml') { New-Item -ItemType Directory -Force (Join-Path $temp (Split-Path $file)) | Out-Null; Copy-Item (Join-Path $root $file) (Join-Path $temp $file) }
     New-Item -ItemType Directory -Force (Join-Path $temp 'benchmark/games/arena/gdscript'), (Join-Path $temp 'benchmark/games/platformer/csharp') | Out-Null
     Set-Content (Join-Path $temp 'benchmark/games/arena/gdscript/main.gd') 'extends Node'
     Set-Content (Join-Path $temp 'benchmark/games/platformer/csharp/Game.cs') 'class A {}'
