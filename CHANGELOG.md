@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- **Game copies no longer race git's background maintenance.** Since git 2.54 a commit's automatic maintenance packs
+  loose objects in a detached process ("geometric" strategy), and a beta or release game commits over a hundred: the
+  benchmark's copy of the game or its `.git`, made a moment later, lost files under it ("Could not find a part of the
+  path .git/objects/..."), which ended four parts of token-benchmark run 44 and two self-test jobs on the runners' git
+  2.55. `New-GameWorkspace` now sets `gc.auto 0`, `gc.autoDetach false` and `maintenance.auto false` before the first
+  commit, which also covers the git commands a session runs, and `tests/Test-GameProgramme.ps1` checks every workspace
+  it grades.
 - **A website, built from the docs.** `site/Build-Site.ps1` turns `README.md`, `CHANGELOG.md` and every
   `docs/**/*.md` into a GitHub Pages site (https://nick-vas.github.io/hyperdot/): the home page, the quick start, the
   label page with the labels and information sheets in `docs/label/`, a benchmark page with the reference runs, a docs
