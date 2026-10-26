@@ -61,6 +61,9 @@ if ($widest.Count) {
 function Test-Variant($TaskSpec, [string]$Overlay) {
     $game = New-GameWorkspace $spec $TaskSpec $root
     try {
+        # A background gc in the game once broke the copies made of it (run 44): the workspace must start none.
+        $gc = @(& git -C $game.Dir config --get gc.auto) + @(& git -C $game.Dir config --get maintenance.auto)
+        if (($gc -join ',') -ne '0,false') { throw "The game workspace lets git start a background gc or maintenance (gc.auto, maintenance.auto: $($gc -join ', '))" }
         if ($Overlay) { Copy-FolderOver $Overlay $game.Dir @('answer.md') }
         return @(Test-GameResult $TaskSpec $game)
     } finally { Remove-GameWorkspace $game.Dir }

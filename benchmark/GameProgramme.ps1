@@ -141,6 +141,14 @@ function New-GameWorkspace($Spec, $TaskSpec, [string]$RepoRoot) {
         if (-not (Set-GameEdit $dir $edit)) { throw "Task '$($TaskSpec.id)': '$($edit.find)' is not in $($edit.file) exactly once" }
     }
     [void](Invoke-GameGit $dir @('init', '-q'))
+    # No git command in the game, the kit's or a session's, may start a gc or maintenance in the background. Since git
+    # 2.54 a commit's automatic maintenance packs loose objects ("geometric" strategy; a beta or release game commits
+    # over a hundred) in a detached process, and one that deletes them while the game or its .git is being copied breaks
+    # the copy ("Could not find a part of the path .git/objects/..."): four parts of token-benchmark run 44 and two
+    # self-test jobs on git 2.55. Set before the first commit, which starts one itself.
+    foreach ($setting in @(@('gc.auto', '0'), @('gc.autoDetach', 'false'), @('maintenance.auto', 'false'))) {
+        [void](Invoke-GameGit $dir @('config', $setting[0], $setting[1]))
+    }
     [void](Invoke-GameGit $dir @('add', '-A'))
     [void](Invoke-GameGit $dir @('commit', '-qm', 'The game'))
     $kept = @{}

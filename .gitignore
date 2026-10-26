@@ -16,3 +16,4 @@ benchmark/results/
 
 # Made from translation CSVs by the import; CI checks a fresh checkout copes without them.
 tests/**/*.translation
+_site/
