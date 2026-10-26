@@ -37,10 +37,12 @@ Assert-True (((Get-JobNames $s) -join ',') -eq 'measure') "docs/json.md runs the
 $s = Get-Selection -Files '.agents/skills/godot-testing/SKILL.md', 'agents/godot-verifier.md'
 Assert-True (((Get-JobNames $s) -join ',') -eq 'init') "a skill and a subagent run init ($((Get-JobNames $s) -join ', '))"
 
-# The shared core runs every job.
+# The shared core runs every job, but the field test only for the workflow and its scripts.
 foreach ($file in '.github/workflows/self-test.yml', '.github/actions/apt/action.yml', '.github/scripts/Select-Jobs.ps1', 'ci/godot/hyperdot.ps1', 'ci/godot/lib/Common.ps1', 'ci/godot/lib/Runners.ps1', 'ci/godot/lib/Setup.ps1', 'ci/godot/tools/validate.gd', 'examples/csharp/game/Main.cs') {
     $s = Get-Selection -Files $file
-    Assert-True ($s.all -and @(Get-JobNames $s).Count -eq $gated.Count) "$file runs every job"
+    $names = @(Get-JobNames $s)
+    $every = if ($file -match '^\.github/(workflows/self-test\.yml|scripts/)') { $gated } else { @($gated | Where-Object { $_ -ne 'field-test' }) }
+    Assert-True (@($every | Where-Object { $_ -notin $names }).Count -eq 0 -and ($file -match '^\.github/(workflows/self-test\.yml|scripts/)' -or 'field-test' -notin $names)) "$file runs every job$(if ($every.Count -lt $gated.Count) { ' but the field test' })"
 }
 # What a job exercises runs that job and not a heavy one that does not.
 $cases = @(
@@ -48,6 +50,8 @@ $cases = @(
     @{ File = 'ci/godot/tools/bench.gd'; Runs = 'measure', 'web', 'init'; Not = 'field-test', 'game-benchmark' }
     @{ File = 'ci/godot/lib/Web.ps1'; Runs = 'web'; Not = 'measure', 'field-test', 'game-benchmark' }
     @{ File = 'ci/godot/lib/Sfx.ps1'; Runs = 'init', 'zero-config'; Not = 'measure', 'web', 'field-test', 'game-benchmark' }
+    @{ File = 'ci/godot/lib/Doctor.ps1'; Runs = 'game-benchmark'; Not = 'field-test' }
+    @{ File = 'ci/godot/lib/Common.ps1'; Runs = $gated | Where-Object { $_ -ne 'field-test' }; Not = 'field-test' }
     @{ File = 'benchmark/FieldTest.ps1'; Runs = 'field-test', 'game-benchmark'; Not = 'measure', 'web', 'init', 'csharp', 'local-windows' }
     @{ File = 'benchmark/Isolation.ps1'; Runs = 'game-benchmark'; Not = 'measure', 'web', 'init' }
     @{ File = 'benchmark/games/arena/gdscript/main.gd'; Runs = @(); Not = $gated }

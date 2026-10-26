@@ -135,7 +135,10 @@ jobs:
       - name: State from before the Hyperdot rename moves once (history, GUT stamp, tools folder, workflow, plugin entry)
         shell: pwsh
         run: ./tests/Test-OldState.ps1
+      # Nightly and on main only: it has not failed in the sampled runs (docs/ci.md), takes about 3 minutes, and only
+      # plan -Do sync reaches this code.
       - name: plan -Do sync against a stand-in Trello (cards, moves, archived cards, list names, credentials kept out of output)
+        if: github.event_name != 'pull_request'
         shell: pwsh
         run: ./tests/Test-TrelloSync.ps1
       - name: doctor's GDExtension, Steam package and Steamworks file checks (rich presence, achievements, build scripts), and Steam detection
@@ -608,7 +611,10 @@ jobs:
       - name: The game benchmark grades good and bad game work by the game's tests, and judges it
         shell: pwsh
         run: ./tests/Test-GameBenchmark.ps1
+      # Nightly and on main only: the staged programme's own pairs (the game-programme jobs) check the same thing on the
+      # real games, and the step above runs this programme through the runner; it has not failed in the sampled runs.
       - name: Every task of a test programme catches its defect, passes its reference and fails its decoy
+        if: github.event_name != 'pull_request'
         shell: pwsh
         run: ./tests/Test-GameProgramme.ps1 -SpecPath tests/game-benchmark/programme/programme.json
       # The runner has passwordless sudo, so this checks the sudo launcher with a real separate user.
@@ -880,9 +886,9 @@ jobs:
           retention-days: 14
 
   # What the self-tests reach, from every job's records: commands, functions, documented error codes. A drop below the
-  # floors fails the run, so coverage cannot fall unnoticed. The floors are for the whole suite: when the change filter
-  # skipped a job (a pull request that touches little), the records of that job are missing by design, so the run only
-  # reports what was reached. Pushes to main and the nightly run skip nothing and enforce the floors.
+  # floors fails the run, so coverage cannot fall unnoticed. The floors are for the whole suite: a pull request may skip
+  # jobs (the change filter) and steps (kept for main and the nightly run), whose records are then missing by design, so
+  # it only reports what was reached. Pushes to main, the nightly run and manual runs enforce the floors.
   coverage:
     needs: [changes, lint, zero-config, csharp, explicit-runners, init, measure, game-benchmark, field-test, web, action, local-windows]
     if: always()
@@ -897,12 +903,13 @@ jobs:
       - name: Coverage of the kit by the self-tests
         shell: pwsh
         env:
-          # No needed job was skipped: every job that records the kit ran, so the floors hold.
-          WHOLE_SUITE: ${{ !contains(needs.*.result, 'skipped') }}
+          # Pushes to main, the nightly run and manual runs skip no job and no step, so the floors hold; a pull request
+          # may skip jobs and steps, whose records are then missing by design.
+          WHOLE_SUITE: ${{ github.event_name != 'pull_request' }}
         run: |
           $whole = $env:WHOLE_SUITE -eq 'true'
           $floors = if ($whole) { @{ MinFunctions = 85; MinErrorCodes = 80; MinCommands = 100 } } else { @{} }
-          if (-not $whole) { Write-Host '::notice::Jobs were skipped for this change, so coverage is reported but its floors are enforced only by pushes to main and the nightly run' }
+          if (-not $whole) { Write-Host '::notice::A pull request may skip jobs and steps, so coverage is reported but its floors are enforced only by pushes to main, the nightly run and manual runs' }
           try {
             ./tests/Get-KitCoverage.ps1 -From "$env:RUNNER_TEMP/coverage" -Json > "$env:RUNNER_TEMP/coverage.json"
             $report = ./tests/Get-KitCoverage.ps1 -From "$env:RUNNER_TEMP/coverage" @floors 6>&1

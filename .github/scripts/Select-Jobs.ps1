@@ -10,7 +10,8 @@
 #   docs only   (docs/ except docs/json.md, Markdown outside the skills, subagents and templates, site/, the licence files)
 #               runs nothing else.
 #   shared core (the workflow, its actions and scripts, hyperdot.ps1, Common, Runners, Setup, Detect and Report, validate
-#               and flows, the examples) runs every job.
+#               and flows, the examples) runs every job but the field test, which follows the benchmark's code, its own
+#               tests and the workflow (the nightly run checks it against the rest).
 #   otherwise   each job runs for the files it exercises (the patterns below), for the tests it runs (read from the
 #               workflow: tests/Test-X.ps1 for a job that names it, and a fixture folder or helper for the jobs of the
 #               tests that name it; a file no test names runs every job), and for nothing else.
@@ -51,7 +52,7 @@ $patterns = @{
     'init'        = '^ci/godot/', '^hooks/', '^agents/', '^\.agents/', '^\.claude-plugin/'
     'measure'     = $measureLibs, '^ci/godot/tools/(bench|shot|textsize|layout|notices|glyphs|Palette)\.(gd|cs)$', '^docs/json\.md$'
     'web'         = (Get-LibPattern 'Web', 'BuildSize', 'Measure', 'Platforms'), '^ci/godot/tools/(web-smoke\.mjs|bench\.gd|shot\.gd)$'
-    'field-test'  = '^benchmark/(?!games/)', $gameLibs
+    'field-test'  = '^benchmark/(?!games/)'
     'game-benchmark' = '^benchmark/(?!games/)', $gameLibs
 }
 $patterns['csharp'] = $patterns['zero-config']; $patterns['explicit-runners'] = $patterns['zero-config']
@@ -122,8 +123,11 @@ foreach ($job in $gated) { $run[$job] = $full }
 if (-not $full) {
     $code = @($changed | Where-Object { -not (Test-Documentation $_) })
     $everything = @($code | Where-Object { $f = $_; @($core | Where-Object { $f -match $_ }).Count -gt 0 }).Count -gt 0
+    # The field test (about 17 minutes, no failure in the sampled runs, docs/ci.md) follows the benchmark's code and its own
+    # tests, and the workflow and scripts that run it; the nightly run checks it against the rest of the kit.
+    $everythingForFieldTest = @($code | Where-Object { $_ -match '^\.github/(workflows/self-test\.yml|scripts/)' }).Count -gt 0
     foreach ($job in $gated) {
-        if ($everything) { $run[$job] = $true; continue }
+        if ($everything -and ($job -ne 'field-test' -or $everythingForFieldTest)) { $run[$job] = $true; continue }
         foreach ($file in $code) {
             if (@($patterns[$job] | Where-Object { $file -match $_ }).Count -gt 0) { $run[$job] = $true; break }
             if ($file -match '^tests/') {

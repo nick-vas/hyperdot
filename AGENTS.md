@@ -22,7 +22,7 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
   `Get-HyperdotLabel.ps1` and `label-scale.json` rate a version from its runs, like the EU energy label, one class per programme ([docs/label.md](docs/label.md)).
   Nothing outside `benchmark/`, `docs/token-benchmark.md`, `docs/label*` and their tests may name a benchmark task or profile:
   the sessions must not be able to recognise the test.
-- `.github/actions/godot`, `.github/workflows/godot.yml` composite action and reusable workflow; `ci/gitlab/` the GitLab CI
+- `.github/actions/godot`, `.github/workflows/godot.yml` composite action and reusable workflow; `.github/workflows/self-test.yml` and `.github/scripts/Select-Jobs.ps1` decide what runs for a change ([docs/ci.md](docs/ci.md)); `ci/gitlab/` the GitLab CI
   template (`hyperdot.gitlab-ci.yml`, untested on GitLab) and `Invoke-Hyperdot.ps1`, its run step.
 - `examples/csharp` (C#, every framework) and `examples/gdscript` (GUT): the integration fixtures.
 - `docs/` per-topic documentation; `docs/json.md` is the output contract; `docs/help.md` is the text of `help` and `/kit`

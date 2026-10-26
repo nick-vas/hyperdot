@@ -123,7 +123,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Data.ps1` | 0/19 | `Test-Data.ps1` |
 | `Deck.ps1` | 3/3 | `Test-Deck.ps1` |
 | `Detect.ps1` | 11/12 | `Test-Addons.ps1`, `Test-Steam.ps1`, `Test-Detect.ps1`, `Test-Platforms.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-BuildSize.ps1` and 37 more |
-| `Doctor.ps1` | 13/13 | `Test-Addons.ps1`, `Test-Steam.ps1`, `Test-DoctorFixture.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1` and 4 more |
+| `Doctor.ps1` | 13/13 | `Test-Addons.ps1`, `Test-Steam.ps1`, `Test-SelectJobs.ps1`, `Test-DoctorFixture.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-ErrorCodes.ps1` and 5 more |
 | `Help.ps1` | 5/6 | `Test-Help.ps1`, `Test-ErrorCodes.ps1` |
 | `Init.ps1` | 10/12 | `Test-UpdatePins.ps1`, `Test-ErrorCodes.ps1`, `Test-OldState.ps1`, `Test-Plan.ps1` |
 | `Juice.ps1` | 1/3 | `Test-JuiceLog.ps1`, `Test-AssetManifest.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Handoffs.ps1`, `Test-Plan.ps1` |
