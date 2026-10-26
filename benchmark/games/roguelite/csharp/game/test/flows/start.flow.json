@@ -1,0 +1,15 @@
+{
+  "name": "Descend on the menu starts a run on the first floor",
+  "scene": "res://main.tscn",
+  "seed": 1,
+  "steps": [
+    { "assert": { "node": "Menu", "prop": "visible", "equals": true } },
+    { "press": "Menu/StartButton" },
+    { "wait": 2 },
+    { "assert": { "node": "Game", "exists": true } },
+    { "assert": { "node": "Menu", "prop": "visible", "equals": false } },
+    { "assert": { "node": "Game", "prop": "floor_number", "equals": 1 } },
+    { "assert": { "node": "Game/HUD/FloorLabel", "prop": "text", "equals": "Floor 1: The Wax Cellar" } },
+    { "assert": { "node": "Game/HUD/HpLabel", "prop": "text", "equals": "Wick: 5 / 5" } }
+  ]
+}

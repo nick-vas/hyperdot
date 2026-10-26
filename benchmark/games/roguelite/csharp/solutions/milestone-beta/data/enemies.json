@@ -1,0 +1,5 @@
+[
+  { "id": "shade", "name": "ENEMY_SHADE", "hp": 2, "damage": 1, "move_ticks": 12, "attack_ticks": 45, "sight": 6, "embers": 1 },
+  { "id": "bat", "name": "ENEMY_BAT", "hp": 1, "damage": 1, "move_ticks": 8, "attack_ticks": 40, "sight": 5, "embers": 1 },
+  { "id": "brute", "name": "ENEMY_BRUTE", "hp": 3, "damage": 2, "move_ticks": 18, "attack_ticks": 70, "sight": 5, "embers": 3 }
+]

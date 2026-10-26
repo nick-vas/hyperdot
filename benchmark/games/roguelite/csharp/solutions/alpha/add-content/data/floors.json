@@ -1,0 +1,5 @@
+[
+  { "id": 1, "name": "FLOOR_1", "width": 40, "height": 24, "rooms": [5, 6], "room_size": [4, 7], "enemies": ["shade"], "per_room": [1, 2] },
+  { "id": 2, "name": "FLOOR_2", "width": 42, "height": 24, "rooms": [6, 7], "room_size": [4, 7], "enemies": ["shade", "bat"], "per_room": [2, 3] },
+  { "id": 3, "name": "FLOOR_3", "width": 44, "height": 26, "rooms": [6, 8], "room_size": [4, 8], "enemies": ["shade", "bat", "brute"], "per_room": [1, 2] }
+]

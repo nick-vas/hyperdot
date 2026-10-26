@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- **The roguelite in C#.** Wickerdeep now has its C# version (`benchmark/games/roguelite/csharp/`), written from the
+  language-neutral contract in its `DESIGN.md`: the same scenes, scene tree, node names, data files, flows, bot and
+  juice runs and log lines, the same `--swarm=N` load, with 44 gdUnit4 tests in place of the GUT ones and a Linux
+  export only. Both versions generate with the engine's seeded generator, its draws in the same order, so a seed gives
+  the same floor and the enemies the same paths: the floors of seeds 1-20 and the bot's play of each match, and the bot
+  run prints the same log lines, line for line. Its four stages carry the same 17 tasks and three milestones as the
+  GDScript version, each with hidden checks in C# and a reference solution, most with a decoy; all pass
+  `tests/Test-GameProgramme.ps1 -Genre roguelite -Language csharp`. `DESIGN.md`'s "As built" records the port's
+  choices.
 - **The judge's calibration runs in CI.** `token-benchmark.yml` with `calibrate: <run id>` rebuilds the blind pairs
   of that run, checks they are the ones the owner judged (`benchmark/calibration/pilot-1.json` holds the verdicts and
   the answer key's hash), and has the candidate judges, cheapest first, judge them both ways until one agrees with the

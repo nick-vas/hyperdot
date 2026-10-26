@@ -5,7 +5,7 @@ AI, saves and performance with many entities. Every floor is generated from a se
 (`godot-procgen`), the enemies wander and hunt by a small state machine over one shared distance field
 (`godot-game-ai`), a swarm of hundreds is one flag away for `bench` (`godot-performance`), meta progress outlasts the
 runs in a versioned save (`godot-saves`), and nothing in the simulation reads the clock or the global generator
-(`godot-determinism`). One game, written twice: `gdscript/` (built) and `csharp/` (to come, from this design). Both
+(`godot-determinism`). One game, written twice: `gdscript/` and `csharp/` (ported from this design). Both
 behave the same, use the same data files, scene tree, node names and log lines, and pass the same flows. Only the code
 and the test framework differ: GUT for GDScript, gdUnit4 (run by the kit's `gdunit4` runner) for C#.
 
@@ -257,7 +257,7 @@ Its reference is every file of the next stage that the earlier one lacks or has 
 
 ## As built
 
-Choices made in the GDScript build where the design was open. The C# port follows them.
+Choices made in the GDScript build where the design was open. The C# port follows them; its own choices come after.
 
 - **A grid, stepped in ticks.** The wick and the enemies move a whole cell at a time on cooldowns counted in physics
   ticks and are drawn sliding between cells. Collisions, sight and paths are then integer questions about cells, the
@@ -291,3 +291,52 @@ Choices made in the GDScript build where the design was open. The C# port follow
 - **Decoys:** fix-bug (prototype, alpha, beta), fix-playthrough and fill-translations. The beta fix-bug decoy, seeding
   the global generator, is deterministic: it fails because it moves the pinned seed, disturbs the global generator and
   still calls it (the architecture runner's error).
+
+### C#
+
+- **Same floors, same paths, checked against each other.** `Dungeon.Generate` holds the engine's
+  `RandomNumberGenerator` (the seed's bits as its `ulong`) and draws in the contract's order, and `World` keeps its own
+  stream seeded with `floor_seed * 31 + 7`, so the 80 floors of seeds 1-20 give the same `ToText()` in both languages,
+  and the bot's play of each (result, ticks, hp, embers, searches, where every enemy stands) is the same too. The bot
+  run (`--autoplay --seed=1 --no-save`) prints the same 195 `[Run]` and `[juice]` lines, line for line.
+  `DungeonTest` pins seed 7 to the same floor.
+- **Names:** `Game` keeps the snake_case names the flows and the contract use: `run`, `world`, `state`,
+  `floor_number`, `hp`, `enemies_left`, `wick_cell`, `start_run`, `start_floor` and `resume`. `start_run` is two
+  overloads, `()` and `(seed)`, not a default argument, because the engine calls a C# method only with all its arguments
+  (the play flow calls it with a seed, the run-over panel without). The rest is C#'s own case: `Dungeon.Generate`,
+  `DistanceField`, `LineClear`, `UnreachableCells`, `ToText`, `FromText` (`params string[]`), `World.Create`, `Step`,
+  `AddSwarm`, `HurtWick`, `PlayOut`, `Sees`, `Adjacent`, `EnemyAt`, `EnemyBeside`, `PathSearches`, `Bot.Choose` (a
+  `BotChoice` record rather than a dictionary), `Meta.Bank`, `BuyVigor`, `MaxHp`, `Run.FloorSeed`, `Game.Setup`.
+- **Typed rows.** A floor of `data/floors.json` is a `FloorSpec` and an enemy a `EnemyStats`, with `Actor.from_kind`'s
+  defaults for fields a row leaves out (a test's own kinds give only hp, damage and embers). `Floors.Spec` and
+  `Floors.Kind` give null for what the data lacks, where GDScript gives `{}`, and `start_floor` refuses a floor the data
+  lacks with an error instead of failing inside the generator.
+- **One method the GDScript tests do without.** `World.Place(actor, cell)` puts a creature on a cell with its
+  occupancy, which the GDScript game test does by reaching into `_occupied`.
+- **Plain classes and C# events.** `Dungeon`, `World`, `Actor`, `Bot`, `Run`, `Floors`, `Meta` and `SaveStore` are plain
+  C# classes; World's signals and the game's and screens' are C# events, as `Checkpoint` carries a `JsonObject`.
+- **Simulation code the architecture runner passes.** Nothing in `scripts/` iterates a `Dictionary` (the kind letters
+  are an array of pairs, `_occupied` is only looked up), and the enemies think in list order by index, not over a copy
+  each tick, since nothing is snuffed while they think.
+- **Saves:** `SaveStore` takes a file path (Main passes `user://save.json`, globalised) and uses `System.Text.Json`, so
+  its tests use temporary files. `SaveData` holds `Meta` (a `MetaProgress`: `Embers`, `Vigor`, `BestFloor`, `Runs`),
+  `Run` (a `JsonObject`, as `Run.ToDict()` gives it), `Volume` and `Locale`; the file is the GDScript version's, so a
+  save from either loads in the other.
+- **Tests:** 44 gdUnit4 tests in `test/*Test.cs`, the GUT tests one for one, run by the kit's `dotnet` runner, and
+  `gdunit4` for the mutants. The suites that generate floors or load the scene are `[RequireGodotRuntime]`; the game
+  scene's tests load it with `ISceneRunner` and wait whole physics ticks. `Meta`, `SaveStore` and `LaunchOptions` are
+  tested without the engine. The milestone's Continue check adds the game to the tree itself, since `Setup` must come
+  before the scene is ready and the scene runner loads it at once.
+- **The explain-failure test** is `Snuffed_enemies_leave_their_embers`, `test/WorldTest.cs` line 49.
+- **The beta fix-bug defect** draws a room's width from `GD.RandRange`, the global generator, and its decoy seeds that
+  generator with `GD.Seed` first: deterministic, but the pinned seed 7 moves, the global generator is disturbed, and
+  the architecture runner flags `GD.RandRange` in `scripts`.
+- **Stages** lay overlays of `game/Game.cs` and `game/game.tscn` (prototype; it also leaves out `TextFormat.cs`, its
+  text being plain English) and `ui/Main.cs` (alpha, beta), as the GDScript stages do with `game.gd` and `main.gd`; the
+  rest is edits. The alpha's `Game` keeps its `_bot` field, never set, as the GDScript one keeps its variable. The task
+  references and decoys are the stage's files with the defect undone or a wrong fix made; those of data and
+  translations are the GDScript version's files. The milestone references follow the rule above, generated from the
+  built stages.
+- **Export:** Linux only (Godot 4.7 cannot export C# to the Web), so the planted export defect adds `data/*` to that
+  preset's `exclude_filter="test/*"`. `THIRD-PARTY-NOTICES.txt` comes from `credits` on the C# game, with the .NET
+  runtime's notices; the store art, docs, data, translations, sounds and flows are the GDScript version's files.
