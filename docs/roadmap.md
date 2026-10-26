@@ -67,7 +67,6 @@ Notes from the question round still open, each to be fixed, built or written dow
 | # | Note | What to do |
 |---|---|---|
 | 6 | An eval grader was wrong for three runs before anyone looked | Test graders against real transcripts when they are written |
-| 11 | No quick way to see why CI and the owner's PC disagree | Later: compare the two runs' JSON results |
 
 ### Trello
 
@@ -124,6 +123,12 @@ a removed task's card, which only the mock has seen.
 
 What was left open by the research passes (`docs/studio-lessons.md`, `docs/valve.md`, `docs/art.md`, `docs/audio.md`
 and the other topic pages), grouped by what it waits for. Done items are in `CHANGELOG.md`.
+
+### After 0.1.0
+
+- **Why CI and the owner's PC disagree** (question round note 11). No quick way to see why a run passes on one and
+  fails on the other; the idea is to compare the two runs' `-Json` results side by side. Postponed by the owner on
+  2026-10-26 until after the 0.1.0 release.
 
 ### From the label and the adversarial review (2026-10-23)
 
