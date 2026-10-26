@@ -105,6 +105,45 @@ each, one run per task and configuration, 80 sessions for $6.58 (the runner esti
   `cost-model.json` now uses them, which prices this run at $6.66 and the mid tier at $105.96 under its $120 ceiling,
   with the milestones still unmeasured.
 
+## The first mid run, stopped halfway
+
+Token-benchmark run 44 (2026-10-26, commit 5b299aa, sessions isolated): the mid tier as 20 jobs, four configurations in
+five parts each. 294 of its 540 sessions were graded, for $34.53 (the whole run was estimated at $105.96). It stopped
+for two reasons:
+
+- **The plan's usage limit.** At 13:48 UTC, 65 minutes in, every session began to fail at once with no tokens spent.
+  The 20 jobs run on the owner's subscription (`CLAUDE_CODE_OAUTH_TOKEN`) and used up its allowance for the current
+  window, which also stopped the owner's own work. 154 sessions did not run and 12 were cut off midway.
+- **A fault in the kit.** Four parts ended at their second to sixth session: since git 2.54, a commit's automatic
+  maintenance packs loose objects in the background, and the copy of a freshly committed game lost files under it.
+  92 sessions never started. Fixed on `bugfix/game-copy-gc` (nick-vas/hyperdot#134).
+
+| Graded | Sonnet | Sonnet + plugin | Haiku | Haiku + plugin |
+|---|---:|---:|---:|---:|
+| Tasks passed | 75 of 104 | 59 of 68 | 30 of 39 | 43 of 49 |
+| Milestones passed | 7 of 11 | 2 of 5 | 0 of 3 | 2 of 3 |
+| Failed on the word limit alone | 12 | 3 | 5 | 1 |
+| Mean cost of a task | $0.108 | $0.154 | $0.016 | $0.022 |
+| Mean cost of a milestone | $0.387 | $0.450 | $0.520 | $0.456 |
+
+Each configuration completed a different part of the run, so the rows are not comparable as they stand. On the 38
+sessions all four completed, the plugin lifted both models from 27 to 32 of 36 tasks (milestones: 0, 1, 1 and 0 of 2),
+for $4.29 against $6.21 with Sonnet and $1.19 against $1.30 with Haiku.
+
+- **A task every configuration failed, because of its grading.** `racing.alpha.csharp.fix-bug` passed 0 of 10: every
+  session added regression tests for the frame rate to `test/CameraTest.cs`, removing nothing, and the task's
+  `unchanged` rule fails any change to that file. Of the 14 sessions failed for changing a test file, 12 only added
+  tests (10 with no other fault). The rule should keep a test from being weakened, not from being extended: a proposal
+  for the owner is to let fix tasks add to a kept test file, put the original back before the tests run, and still fail
+  a session that changes or removes a line of it.
+- **Costs.** Task sessions cost what `cost-model.json` predicts or less ($0.108, $0.154, $0.016 and $0.022 against
+  $0.11, $0.175, $0.022 and $0.026). Milestones cost far less than the guess of ten Sonnet tasks: about $0.40 to $0.50
+  in every configuration, Haiku's from only three sessions each. `cost-model.json` now uses these means, rounded up,
+  which prices the mid tier at $67.71 ($19.20, $27.75, $10.14 and $10.62).
+- **What a complete mid run needs.** The fix in #134, the owner's decision on the `unchanged` rule, and a schedule that
+  fits the plan: twenty parallel jobs spend a usage window in about an hour, so the rest has to run in fewer jobs, over
+  several windows, or when the owner is not working.
+
 ## Decisions
 
 | Question | Decision |

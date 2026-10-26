@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- **The first mid run of the staged programme, stopped halfway** (token-benchmark run 44, $34.53, 294 of 540 sessions
+  graded; `benchmark/PLAN.md`). The owner's plan ran out of usage after 65 minutes of twenty parallel jobs, and a git
+  race ended four parts early (fixed in nick-vas/hyperdot#134). Milestones cost about $0.40 to $0.50, not the guessed
+  ten Sonnet tasks: `cost-model.json` now uses the measured means, and the mid tier is priced at $67.71. It also found
+  a grading fault to decide on: the `unchanged` rule fails sessions that only add tests to a kept test file.
 - **The judge's calibration applies the owner's rule over every set at once.** `Get-JudgeAgreement.ps1 -Calibration
   benchmark/calibration` holds a judge to the owner's own agreement on a blind re-judge (6 of 10, read from
   `calibration/retest-1.json`, whose stated result it checks against its pairs) and to 90% agreement with itself over
