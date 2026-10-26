@@ -1,0 +1,5 @@
+[
+  { "id": 1, "color": "#e4572e", "pace": 0.95, "line": -18 },
+  { "id": 2, "color": "#4c9f70", "pace": 0.92, "line": 16 },
+  { "id": 3, "color": "#7b6ccf", "pace": 0.89, "line": 0 }
+]

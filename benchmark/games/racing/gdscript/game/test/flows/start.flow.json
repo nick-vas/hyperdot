@@ -1,0 +1,18 @@
+{
+  "name": "Race on the menu opens the track select, and the first track starts a race there",
+  "scene": "res://main.tscn",
+  "seed": 1,
+  "steps": [
+    { "assert": { "node": "Menu", "prop": "visible", "equals": true } },
+    { "press": "Menu/StartButton" },
+    { "assert": { "node": "TrackSelect", "exists": true } },
+    { "assert": { "node": "TrackSelect/Box/Grid/Track1Button", "prop": "disabled", "equals": false } },
+    { "press": "TrackSelect/Box/Grid/Track1Button" },
+    { "wait": 2 },
+    { "assert": { "node": "Game", "exists": true } },
+    { "assert": { "node": "TrackSelect", "exists": false } },
+    { "assert": { "node": "Game", "prop": "track", "equals": 1 } },
+    { "assert": { "node": "Game", "prop": "state", "equals": "countdown" } },
+    { "assert": { "node": "Game/HUD/TrackLabel", "prop": "text", "equals": "Ashfall Oval" } }
+  ]
+}
