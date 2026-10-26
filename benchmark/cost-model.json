@@ -1,54 +1,54 @@
 {
-  "note": "What one session is expected to cost (Claude Code's own figure), for the runner's estimate and the tiers' ceilings. Task sessions: the staged programme's min-tier pilot (2026-10-23, benchmark/PLAN.md) measured median costs of $0.077, $0.121, $0.011 and $0.017 (Sonnet, Sonnet with the plugin, Haiku, Haiku with the plugin); these are those plus a quarter. Milestones are still about ten times a Sonnet task, until a run measures them.",
+  "note": "What one session is expected to cost (Claude Code's own figure), for the runner's estimate and the tiers' ceilings. Task sessions: the mean cost per session of the staged programme's min tier over all ten genres (2026-10-26, token-benchmark run 43, 20 tasks a configuration: $0.109, $0.173, $0.022 and $0.025 for Sonnet, Sonnet with the plugin, Haiku and Haiku with the plugin), rounded up; the arcade-only pilot's medians plus a quarter, used before, came out 15% under that run. Milestones: the mean cost of the milestone sessions token-benchmark run 44 completed (2026-10-26, the mid tier stopped by the plans usage limit: .387 for Sonnet over 11, .450 with the plugin over 5, .520 and .456 for Haiku without and with it over 3 each), rounded up; Haikus rest on six sessions and should be measured again. Judges: Opus as measured in its calibration.",
   "fallbackUsd": 0.5,
   "sessions": [
     {
       "model": "sonnet",
       "plugin": false,
       "kind": "task",
-      "usd": 0.1
+      "usd": 0.11
     },
     {
       "model": "sonnet",
       "plugin": true,
       "kind": "task",
-      "usd": 0.15
+      "usd": 0.175
     },
     {
       "model": "haiku",
       "plugin": false,
       "kind": "task",
-      "usd": 0.015
+      "usd": 0.022
     },
     {
       "model": "haiku",
       "plugin": true,
       "kind": "task",
-      "usd": 0.02
+      "usd": 0.026
     },
     {
       "model": "sonnet",
       "plugin": false,
       "kind": "milestone",
-      "usd": 1.5
+      "usd": 0.4
     },
     {
       "model": "sonnet",
       "plugin": true,
       "kind": "milestone",
-      "usd": 2.5
+      "usd": 0.45
     },
     {
       "model": "haiku",
       "plugin": false,
       "kind": "milestone",
-      "usd": 0.15
+      "usd": 0.5
     },
     {
       "model": "haiku",
       "plugin": true,
       "kind": "milestone",
-      "usd": 0.25
+      "usd": 0.5
     },
     {
       "model": "haiku",
@@ -61,6 +61,12 @@
       "plugin": false,
       "kind": "judge",
       "usd": 0.02
+    },
+    {
+      "model": "opus",
+      "plugin": false,
+      "kind": "judge",
+      "usd": 0.05
     }
   ]
 }

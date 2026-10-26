@@ -1,6 +1,46 @@
 # Changelog
 
 ## Unreleased
+- **The first mid run of the staged programme, stopped halfway** (token-benchmark run 44, $34.53, 294 of 540 sessions
+  graded; `benchmark/PLAN.md`). The owner's plan ran out of usage after 65 minutes of twenty parallel jobs, and a git
+  race ended four parts early (fixed in nick-vas/hyperdot#134). Milestones cost about $0.40 to $0.50, not the guessed
+  ten Sonnet tasks: `cost-model.json` now uses the measured means, and the mid tier is priced at $67.71. It also found
+  a grading fault to decide on: the `unchanged` rule fails sessions that only add tests to a kept test file.
+- **The judge's calibration applies the owner's rule over every set at once.** `Get-JudgeAgreement.ps1 -Calibration
+  benchmark/calibration` holds a judge to the owner's own agreement on a blind re-judge (6 of 10, read from
+  `calibration/retest-1.json`, whose stated result it checks against its pairs) and to 90% agreement with itself over
+  every pair of every set; it measures agreement on every set but one marked `forAgreement: false` (the first, judged
+  with the old rubric shown), with each re-judged pair's newer verdict, turned back where A and B were swapped. The
+  workflow's `calibrate` input is now a switch: it rebuilds every set's pairs from its run and tries the judges
+  `cost-model.json` prices, cheapest first, in place of one run at fixed bars of 80% and 90%. Recomputed from the saved
+  judgements, it reproduces every recorded agreement and corrects one figure: Haiku's agreement with itself in the fourth
+  calibration was 81%, not 84% (`tests/Test-ReviewPairs.ps1`).
+- **A benchmark run can be split into parts.** `Invoke-TokenBenchmark.ps1 -Shard k/n` runs every n-th session of the
+  run from the k-th, with its own estimate and its share of the ceiling; the n parts together hold each session once
+  (`tests/Test-GameBenchmark.ps1`). The workflow's `shards` input runs each configuration as n parallel jobs: the
+  mid tier, 135 sessions a configuration at three to four minutes each, outlasts one job's 330 minutes.
+- **The staged programme's first run over all ten genres** (the min tier, token-benchmark run 43, $6.58): 66 of 80
+  sessions passed and no task failed for every configuration (`benchmark/PLAN.md`). It found two faults in the kit, both
+  fixed with regression tests: isolated sessions inherited no writable XDG folders, so Godot's config ended up inside a
+  game (`Isolation.ps1` now gives each session its own, checked in `tests/Test-BenchmarkIsolation.ps1`), and the
+  `validate` runner read `.tres` files in `test-results/` and `TestResults/`, which it now skips like the kit's file
+  search (`tests/Test-StaleTres.ps1`). `cost-model.json`'s task prices are this run's mean costs.
+- **The staged programme's min and mid tiers cover all ten genres.** min runs one stage of each genre (every language
+  and stage pair at least once), 20 tasks a configuration, estimated at $5.70 for all four configurations; mid runs one
+  stage of each genre in each language, 40 tasks and 5 milestones a configuration, three times, estimated at $100.20
+  under a ceiling raised from $50 to $120. The runner now refuses a tier milestone that starts from none of the tier's
+  cells, which it used to drop without a word.
+- **The eval graders are tested against real sessions.** `tests/Test-EvalGraders.ps1` checks every regex and tool_used
+  grader in `evals/` against 14 sessions from Evals runs 4 to 7 (`tests/eval-grader-fixtures/`, made from the
+  workflow's artifact by `tests/New-EvalGraderFixture.ps1`). A stand-in for `claude plugin eval` first gives all 21
+  verdicts the runs recorded; then each grader as it is now must agree with a person's reading of each session, and
+  each needs a real session to pass and one to fail, or a reason in `gaps.json`. It found `explain-failure`'s `location`
+  grader failing three right answers that put a number between the file and "line 7" (runs 5 and 6); its pattern now
+  allows that. Model graders are not checked: they need a model.
+- **The side-by-side judge can vote.** `Invoke-SideBySide.ps1 -Votes <n>` (and the token benchmark's `votes` input with
+  `calibrate`) judges each order of a pair n times in fresh sessions; the order's choice is the majority, a tie is even,
+  and an order where fewer than half the votes named a choice is an error. Each pair keeps its votes in
+  `preferences.json`. A cheap judge that changes its mind between runs can then be calibrated by its majority.
 - **A PowerShell guide, PSScriptAnalyzer on every script, and a check for the anti-patterns the code has dropped.**
   `docs/powershell.md` holds 78 lessons for anyone writing PowerShell here, merged from the official PowerShell
   documentation and the PowerShell Community blog, by theme (errors and exit codes, strict mode and the pipeline,
@@ -128,6 +168,12 @@
   50% and 63%, mostly by picking the same position in both orders; `benchmark/PLAN.md` records it.
   Opus (runs 35 and 36) no longer depends on the order (2 flips in 31 pairs) but agrees with the owner on 53% and 69%
   of the two sets, so no judge is pinned yet.
+  The owner's blind re-judge of ten pairs (`benchmark/calibration/retest-1.json`) agreed with their earlier verdicts
+  on 6, and on 2 of 5 from the first set, judged under the old rubric. Against that, Haiku and Sonnet with the
+  rewritten rubric agree with the owner on 62% and with themselves on 81% and 74%; Opus on 71% and 94%.
+  Haiku with ten votes per order (runs 41 and 42) stays at 62% and 81%: its order bias is steady, not noise.
+  **The judge is pinned: Opus** (`claude-opus-5-5`), by the owner's rule: at least the owner's own agreement with
+  themselves on the re-judge (60%), and 90% with itself. `cost-model.json` prices its judgement at $0.05.
 - **The staged game programme's idle genre**, Duskhive, in GDScript (`benchmark/games/idle/`). A moth hive gathers
   glow at dusk: five producers whose prices grow geometrically, Buy 1, 10 or as many as the glow pays for, upgrades,
   and a dawn that trades a run's glow for embers. Every number is in data checked by the `data` runner; glow is a

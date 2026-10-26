@@ -160,6 +160,12 @@ function Get-SessionStart([string[]]$Arguments, [string]$Directory) {
     $environment = Get-SessionEnvironment
     $path = @(if ($iso.GodotBin) { Split-Path $iso.GodotBin }) + @(if ($iso.DotnetRoot) { $iso.DotnetRoot }) + @($env:PATH -split ':' | Where-Object { $_ }) -join ':'
     $set = @("PATH=$path", "HOME=$($iso.Home)", "USER=$($iso.User)", "LOGNAME=$($iso.User)", "TMPDIR=$(Join-Path $iso.Home 'tmp')")
+    # Godot keeps its editor settings and user data where XDG_CONFIG_HOME and XDG_DATA_HOME say, before HOME. A runner
+    # sets them to its own home (GitHub's: /home/runner/.config), which the session user cannot write: a session then
+    # pointed them into its game, and the kit's validate runner failed the game on Godot's own editor settings.
+    $set += foreach ($pair in @(@('XDG_CONFIG_HOME', '.config'), @('XDG_DATA_HOME', '.local/share'), @('XDG_CACHE_HOME', '.cache'), @('XDG_STATE_HOME', '.local/state'))) {
+        "$($pair[0])=$(Join-Path $iso.Home $pair[1])"
+    }
     if ($iso.GodotBin) { $set += "GODOT_BIN=$($iso.GodotBin)" }
     if ($iso.DotnetRoot) { $set += "DOTNET_ROOT=$($iso.DotnetRoot)" }
     $command = @('/usr/bin/env', "--chdir=$Directory") + $set + @($iso.Program) + @($Arguments)

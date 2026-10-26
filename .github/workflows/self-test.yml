@@ -148,6 +148,9 @@ jobs:
       - name: Two dotnet test runs at once under one TMPDIR each reach their own Godot
         shell: pwsh
         run: ./tests/Test-DotnetTempDir.ps1
+      - name: The eval graders that need no model agree with real sessions from past Evals runs
+        shell: pwsh
+        run: ./tests/Test-EvalGraders.ps1
       - name: doctor checks every asset has a source and a licence
         shell: pwsh
         run: ./tests/Test-AssetManifest.ps1

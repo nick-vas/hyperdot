@@ -1,0 +1,29 @@
+{
+  "schema": "hyperdot-eval-grader-fixture/1",
+  "case": "explain-failure",
+  "arm": "without",
+  "run": 1,
+  "source": "Evals run 5 (Actions run 39836208730, 2026-10-22), from result.json: the run kept no transcript",
+  "note": "Names test_score.gd and then \"That's line 7\" after the assert_eq line: right, and failed in the run by the location pattern.",
+  "rename": {},
+  "expect": {
+    "explain-failure/location": true
+  },
+  "recorded": [
+    {
+      "grader": "location",
+      "type": "regex",
+      "config": {
+        "target": "last_message",
+        "pattern": "test_score\\.gd\\D{0,40}7\\b",
+        "flags": "",
+        "match": "contains"
+      },
+      "passed": false,
+      "explanation": "pattern not found in last_message"
+    }
+  ],
+  "lastMessage": "I couldn't run the tests, so I haven't confirmed which one fails. Every write in this sandbox fails with \"Read-only file system\", including to the project directory and `$TMPDIR`. GUT needs `godot --headless --import` to build the `.godot` class cache, and that import can't write its cache. Without it, GUT stops with \"Some GUT class_names have not been imported\". I didn't try to get around the sandbox. If you can make the project directory writable, or run the import once yourself, I can run the suite and confirm.\n\nFrom reading `test/test_score.gd` and `score.gd`, one test should fail:\n\n- **Test:** `test_every_fifth_hit_raises_the_multiplier`, in `test/test_score.gd`, on the `assert_eq(score.hit(10), 25)` line. That's line 7 by my count, and I didn't check the number against the file.\n- **Expected:** 25.\n- **Got:** 20. On the 5th hit `combo` is 5, so the code computes `10 * (1 + 5/5)`, which is `10 * 2`. `/` on ints is integer division, so the multiplier is 2, not 2.5.\n- **Which is wrong:** the test. `score.gd` does what the test name says: the multiplier goes up on every 5th hit, from 1 to 2. The value 25 would need a 2.5× multiplier, which neither the test name nor the code suggests. The expected value should be 20.\n\nThe other two tests look fine from reading. `test_miss_resets_combo` should pass. `test_main_scene_scores_on_ready` should also pass, because `main.gd` runs 12 hits in `_ready`. I didn't check that `main.tscn` attaches `main.gd`, so that one isn't certain.",
+  "tools": null,
+  "files": {}
+}

@@ -5,7 +5,9 @@
 extends SceneTree
 
 const EXTENSIONS := ["gd", "tscn", "scn", "tres", "res", "gdshader"]
-const SKIP_DIRS := ["res://addons", "res://.godot"]
+# The kit's default results folders (as Find-ProjectFiles prunes them): a run or a tool may leave files there without a
+# .gdignore, such as Godot's own editor settings when its config folder was pointed inside the project.
+const SKIP_DIRS := ["res://addons", "res://.godot", "res://test-results", "res://TestResults"]
 
 
 func _initialize() -> void:

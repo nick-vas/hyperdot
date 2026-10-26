@@ -159,13 +159,58 @@
           {
             "genre": "arcade",
             "language": "gdscript",
-            "stage": "*"
+            "stage": "prototype"
+          },
+          {
+            "genre": "platformer",
+            "language": "csharp",
+            "stage": "alpha"
+          },
+          {
+            "genre": "puzzle",
+            "language": "gdscript",
+            "stage": "beta"
+          },
+          {
+            "genre": "cards",
+            "language": "csharp",
+            "stage": "release"
+          },
+          {
+            "genre": "roguelite",
+            "language": "csharp",
+            "stage": "prototype"
+          },
+          {
+            "genre": "towerdefence",
+            "language": "gdscript",
+            "stage": "alpha"
+          },
+          {
+            "genre": "narrative",
+            "language": "csharp",
+            "stage": "beta"
+          },
+          {
+            "genre": "racing",
+            "language": "gdscript",
+            "stage": "release"
+          },
+          {
+            "genre": "arena",
+            "language": "gdscript",
+            "stage": "prototype"
+          },
+          {
+            "genre": "idle",
+            "language": "csharp",
+            "stage": "alpha"
           }
         ],
         "milestones": []
       },
       "mid": {
-        "maxCostUsd": 50,
+        "maxCostUsd": 120,
         "repeat": 3,
         "tasksPerStage": 2,
         "cells": [
@@ -177,17 +222,62 @@
           {
             "genre": "arcade",
             "language": "csharp",
+            "stage": "beta"
+          },
+          {
+            "genre": "platformer",
+            "language": "gdscript",
             "stage": "alpha"
           },
           {
-            "genre": "arcade",
+            "genre": "platformer",
+            "language": "csharp",
+            "stage": "release"
+          },
+          {
+            "genre": "puzzle",
             "language": "gdscript",
             "stage": "beta"
           },
           {
-            "genre": "arcade",
+            "genre": "puzzle",
+            "language": "csharp",
+            "stage": "prototype"
+          },
+          {
+            "genre": "cards",
+            "language": "gdscript",
+            "stage": "release"
+          },
+          {
+            "genre": "cards",
+            "language": "csharp",
+            "stage": "alpha"
+          },
+          {
+            "genre": "roguelite",
+            "language": "gdscript",
+            "stage": "prototype"
+          },
+          {
+            "genre": "roguelite",
+            "language": "csharp",
+            "stage": "beta"
+          },
+          {
+            "genre": "towerdefence",
+            "language": "gdscript",
+            "stage": "alpha"
+          },
+          {
+            "genre": "towerdefence",
             "language": "csharp",
             "stage": "release"
+          },
+          {
+            "genre": "narrative",
+            "language": "gdscript",
+            "stage": "beta"
           },
           {
             "genre": "narrative",
@@ -195,37 +285,32 @@
             "stage": "prototype"
           },
           {
-            "genre": "narrative",
-            "language": "gdscript",
-            "stage": "alpha"
-          },
-          {
-            "genre": "narrative",
-            "language": "csharp",
-            "stage": "beta"
-          },
-          {
-            "genre": "narrative",
+            "genre": "racing",
             "language": "gdscript",
             "stage": "release"
           },
           {
-            "genre": "towerdefence",
+            "genre": "racing",
+            "language": "csharp",
+            "stage": "alpha"
+          },
+          {
+            "genre": "arena",
             "language": "gdscript",
             "stage": "prototype"
           },
           {
-            "genre": "towerdefence",
-            "language": "gdscript",
-            "stage": "alpha"
-          },
-          {
-            "genre": "towerdefence",
+            "genre": "arena",
             "language": "csharp",
             "stage": "beta"
           },
           {
-            "genre": "towerdefence",
+            "genre": "idle",
+            "language": "gdscript",
+            "stage": "alpha"
+          },
+          {
+            "genre": "idle",
             "language": "csharp",
             "stage": "release"
           }
@@ -237,12 +322,22 @@
             "from": "prototype"
           },
           {
-            "genre": "narrative",
+            "genre": "platformer",
             "language": "gdscript",
             "from": "alpha"
           },
           {
-            "genre": "towerdefence",
+            "genre": "puzzle",
+            "language": "csharp",
+            "from": "prototype"
+          },
+          {
+            "genre": "narrative",
+            "language": "gdscript",
+            "from": "beta"
+          },
+          {
+            "genre": "arena",
             "language": "csharp",
             "from": "beta"
           }
@@ -256,11 +351,11 @@
       }
     },
     "judge": {
-      "model": "haiku",
+      "model": "claude-opus-5-5",
       "runs": 3,
       "passScore": 4,
       "maxBudgetUsdPerCall": 0.5,
-      "note": "Provisional: the cheapest candidate. Stage 3's calibration keeps it only if it agrees with the owner's blind ratings at least 80% of the time and with itself at least 90%; otherwise the next candidate (sonnet) is tried. The scale pins the full model id."
+      "note": "Pinned on 2026-10-26 by the owner after stage 3's calibration (benchmark/PLAN.md): the only candidate that agreed with the owner at least as often as the owner agreed with themselves on a blind re-judge (71% against 60%) and with itself at least 90% of the time (94%). Haiku and Sonnet, with one vote or Haiku with ten, changed their answer with the order the work was shown in."
     }
   }
 }

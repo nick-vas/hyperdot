@@ -1,0 +1,88 @@
+{
+  "note": "The owner's blind re-judge of ten earlier pairs (five from each pilot), shown again on a page of their own (benchmark/review-page.html) reshuffled, renumbered r01-r10, with A and B swapped where 'swapped' is true and no rubric. It measures how often the owner agrees with their own earlier verdict, the ceiling a judge's agreement is held against.",
+  "keySha256": "31e78f951a3df05707952a5b10b11a60cfb6055c2edf1a050562b403aa699cf2",
+  "pairs": [
+    {
+      "id": "r01",
+      "set": "set2",
+      "original": "q14",
+      "swapped": true,
+      "choice": "A"
+    },
+    {
+      "id": "r02",
+      "set": "set2",
+      "original": "q02",
+      "swapped": false,
+      "choice": "A"
+    },
+    {
+      "id": "r03",
+      "set": "set1",
+      "original": "p08",
+      "swapped": true,
+      "choice": "A"
+    },
+    {
+      "id": "r04",
+      "set": "set1",
+      "original": "p05",
+      "swapped": false,
+      "choice": "A"
+    },
+    {
+      "id": "r05",
+      "set": "set2",
+      "original": "q09",
+      "swapped": false,
+      "choice": "B"
+    },
+    {
+      "id": "r06",
+      "set": "set1",
+      "original": "p10",
+      "swapped": false,
+      "choice": "B"
+    },
+    {
+      "id": "r07",
+      "set": "set1",
+      "original": "p07",
+      "swapped": true,
+      "choice": "A"
+    },
+    {
+      "id": "r08",
+      "set": "set2",
+      "original": "q08",
+      "swapped": false,
+      "choice": "B"
+    },
+    {
+      "id": "r09",
+      "set": "set1",
+      "original": "p03",
+      "swapped": true,
+      "choice": "A"
+    },
+    {
+      "id": "r10",
+      "set": "set2",
+      "original": "q01",
+      "swapped": true,
+      "choice": "A"
+    }
+  ],
+  "result": {
+    "sameAsBefore": 6,
+    "compared": 10,
+    "firstPilot": {
+      "same": 2,
+      "compared": 5
+    },
+    "secondPilot": {
+      "same": 4,
+      "compared": 5
+    }
+  }
+}

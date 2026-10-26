@@ -1,0 +1,85 @@
+{
+  "schema": "hyperdot-eval-grader-fixture/1",
+  "case": "explain-failure",
+  "arm": "without",
+  "run": 2,
+  "source": "Evals run 6 (Actions run 39853578546, 2026-10-22)",
+  "note": "Names test/test_score.gd:7.",
+  "rename": {},
+  "expect": {
+    "explain-failure/location": true,
+    "explain-failure/unchanged": true
+  },
+  "recorded": [
+    {
+      "grader": "location",
+      "type": "regex",
+      "config": {
+        "target": "last_message",
+        "pattern": "test_score\\.gd\\D{0,40}7\\b",
+        "flags": "",
+        "match": "contains"
+      },
+      "passed": true,
+      "explanation": "matched test_score\\.gd\\D{0,40}7\\b"
+    },
+    {
+      "grader": "unchanged",
+      "type": "tool_used",
+      "config": {
+        "tool": "Edit",
+        "min": 0,
+        "max": 0,
+        "arm": "both"
+      },
+      "passed": true,
+      "explanation": "Edit called 0x (expected 0..0)"
+    }
+  ],
+  "lastMessage": "I couldn't run the tests, so what follows comes from reading the code, not from a test run.\n\n**Why it didn't run:** the sandbox is read-only for the project directory, `$HOME` and `$TMPDIR`. GUT needs `godot --headless --import` first, to write `.godot/` and its class-name cache. That write fails with `Read-only file system`, and `gut_cmdln.gd` then aborts with \"Some GUT class_names have not been imported\". I didn't try to get around the sandbox. If you allow writes to the project directory, or run the import yourself, I can do the real run.\n\n**Test that fails, by my reading:** `test_every_fifth_hit_raises_the_multiplier` at `test/test_score.gd:7`: `assert_eq(score.hit(10), 25)`.\n- **Expected:** 25.\n- **Got:** 20. On the 5th hit `combo` is 5, so `score.gd` computes `10 * (1 + 5/5)`, which is `10 * 2`, giving 20. The integer division `combo / 5` gives a whole-number multiplier.\n- **Who is wrong:** most likely the test. A whole-number multiplier on a hit worth 10 can only give 10, 20, 30 and so on, so 25 would need a 2.5× multiplier. The game code matches its own description of \"every fifth hit raises the multiplier\". I can't be certain, though, because no spec says what the intended number is. If 2.5× was intended, the game would be the one at fault.\n\nThe other two tests (`test_miss_resets_combo` and `test_main_scene_scores_on_ready`) look like they pass. Combo goes to 0 after a miss, and `main.gd` makes 12 hits in `_ready`, so `points` is above 0.\n\nI haven't edited any files.",
+  "tools": [
+    {
+      "name": "Bash",
+      "input": {
+        "command": "ls -a && git ls-files | head -50"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "ls addons addons/*; cat test/test_score.gd score.gd"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "\"$EVAL_GODOT_BIN\" --headless -s addons/gut/gut_cmdln.gd -gdir=res://test -gexit 2>&1 | tail -40"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "cat main.gd"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "export XDG_DATA_HOME=$TMPDIR/xdg; \"$EVAL_GODOT_BIN\" --headless --import >/dev/null 2>&1; \"$EVAL_GODOT_BIN\" --headless -s addons/gut/gut_cmdln.gd -gdir=res://test -gexit 2>&1 | tail -40"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "export XDG_DATA_HOME=/tmp/claude-eval-LrbWh5/home/xdg; mkdir -p $XDG_DATA_HOME; \"$EVAL_GODOT_BIN\" --headless --import 2>&1 | tail -5; \"$EVAL_GODOT_BIN\" --headless -s addons/gut/gut_cmdln.gd -gdir=res://test -gexit 2>&1 | tail -40; git status --short"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "pwd; touch ./x_probe && echo cwd-ok && rm x_probe; ls -d .godot 2>&1; echo $TMPDIR $HOME"
+      }
+    }
+  ],
+  "files": {}
+}

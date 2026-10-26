@@ -474,6 +474,13 @@ function Expand-GameProgramme($Spec, [string]$RepoRoot, [string]$Tier, [string[]
     # Milestones: from a stage to the next one, graded by the next stage's acceptance files.
     $milestones = if ($selection.Tier -and $selection.Tier.Contains('milestones')) { $selection.Tier.milestones } elseif (-not $Tier) { '*' } else { @() }
     $stages = @($prog.stages)
+    # A tier's milestone starts from one of the tier's own cells; one that names no cell would be dropped without a word.
+    if ($milestones -ne '*' -and -not ($Genre -or $Stage -or $Language)) {
+        foreach ($m in @($milestones)) {
+            $onCell = @($selection.Cells | Where-Object { (Test-Selected @($m['genre']) $_.Genre.id) -and (Test-Selected @($m['language']) $_.Language) -and $_.Stage -eq $m['from'] }).Count -gt 0
+            if (-not $onCell) { throw "Tier '$Tier' has a milestone from $($m['genre']) $($m['language']) $($m['from']), which is not one of the tier's cells" }
+        }
+    }
     foreach ($cell in $selection.Cells) {
         $i = [Array]::IndexOf($stages, $cell.Stage)
         if ($i -lt 0 -or $i -ge $stages.Count - 1) { continue }

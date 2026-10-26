@@ -26,6 +26,7 @@ $pluginAt = [Array]::IndexOf($arguments, '--plugin-dir')
 [ordered]@{ prompt = $prompt; cwd = (Get-Location).Path; seesGame = (Test-Path -LiteralPath 'project.godot')
     seesKit = (Test-Path -LiteralPath 'AGENTS.md') -or (Test-Path -LiteralPath 'benchmark'); args = $arguments
     user = [Environment]::UserName; uid = $(if ($IsLinux) { "$(& id -u)" }); home = $HOME
+    xdgConfig = $env:XDG_CONFIG_HOME; xdgData = $env:XDG_DATA_HOME
     godotVersion = $(if ($env:FAKE_RUN_GODOT) { "$(& $env:GODOT_BIN --headless --version 2>$null)".Trim() }); probes = $probes; godotBin = $env:GODOT_BIN
     pluginReadable = $(if ($pluginAt -ge 0) { Test-Readable (Join-Path $arguments[$pluginAt + 1] 'AGENTS.md') } else { $null })
     pluginHasBenchmark = $(if ($pluginAt -ge 0) { Test-Path -LiteralPath (Join-Path $arguments[$pluginAt + 1] 'benchmark') } else { $null })

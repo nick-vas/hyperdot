@@ -15,10 +15,14 @@
 # parallel jobs; the plan job checks the whole run's estimate against the tier's ceiling first, so nothing is spent on a
 # run that is over it.
 #
-# `calibrate: <run id>` runs no benchmark: it calibrates the judge (benchmark/PLAN.md, section 3). It takes that staged
-# run's results, rebuilds the blind pairs the owner judged on the review page (benchmark/calibration/*.json holds the
-# verdicts and the answer key's hash), and has each candidate judge, cheapest first (or the `model` input), judge them
-# both ways; the first that agrees with the owner on 80% and with itself on 90% is the judge, and the job stops there.
+# `calibrate` runs no benchmark: it calibrates the judge (benchmark/PLAN.md, section 3). For every set of the owner's
+# blind verdicts in benchmark/calibration it downloads that staged run's results and rebuilds the pairs judged on the
+# review page (checked against the answer key's hash); each candidate judge, cheapest first by cost-model.json (or the
+# `model` input), judges every set's pairs both ways (`votes` times in each order, the majority deciding). The first
+# that meets the owner's rule of 2026-10-26 over the pooled sets is the judge, and the job stops there: it agrees with
+# the owner at least as often as the owner agreed with themselves on a blind re-judge (the re-judge files there), and
+# with itself on at least 90% of the pairs (benchmark/Get-JudgeAgreement.ps1 -Calibration). A set's run keeps its
+# results for 30 days; after that the set can no longer be judged again.
 name: Token benchmark
 
 on:
@@ -67,15 +71,22 @@ on:
         type: boolean
         default: true
       calibrate:
-        description: Calibrate the judge instead, on this staged run's pairs (a run id with verdicts in benchmark/calibration)
-        default: ''
+        description: Calibrate the judge instead, on every set of the owner's verdicts in benchmark/calibration
+        type: boolean
+        default: false
+      votes:
+        description: With calibrate, how many times the judge judges each order of a pair (the majority decides)
+        default: '1'
+      shards:
+        description: Split each configuration into this many parallel jobs (the mid tier outlasts one job's 330 minutes)
+        default: '1'
 
 permissions:
   contents: read
 
 jobs:
   plan:
-    if: inputs.calibrate == ''
+    if: ${{ !inputs.calibrate }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -100,6 +111,7 @@ jobs:
           REPEAT: ${{ inputs.repeat }}
           PROFILES: ${{ inputs.profiles }}
           TASKS: ${{ inputs.tasks }}
+          SHARDS: ${{ inputs.shards }}
         run: |
           $spec = switch ($env:PROGRAMME) { 'game' { 'benchmark/game-benchmark.json' } 'staged' { 'benchmark/game-programme.json' } default { 'benchmark/token-benchmark.json' } }
           $doc = Get-Content $spec -Raw | ConvertFrom-Json -AsHashtable
@@ -120,7 +132,10 @@ jobs:
             if ($null -ne $estimate) { $total += $estimate }
           }
           "Estimated cost of the whole run: $([math]::Round($total, 2)) USD over $($configs.Count) configuration(s)" | Add-Content $env:GITHUB_STEP_SUMMARY
-          "matrix=$(@{ include = @($configs | ForEach-Object { @{ model = $_.model; plugin = [bool]$_.plugin } }) } | ConvertTo-Json -Compress -Depth 4)" | Add-Content $env:GITHUB_OUTPUT
+          # Each configuration as one job, or as n parts (Invoke-TokenBenchmark.ps1 -Shard k/n) that together are the run.
+          $n = [Math]::Max(1, [int]"0$env:SHARDS")
+          $jobs = @(foreach ($c in $configs) { for ($k = 1; $k -le $n; $k++) { @{ model = $c.model; plugin = [bool]$c.plugin; shard = $(if ($n -gt 1) { "$k/$n" } else { '' }); part = $(if ($n -gt 1) { "$k" } else { '' }) } } })
+          "matrix=$(@{ include = $jobs } | ConvertTo-Json -Compress -Depth 4)" | Add-Content $env:GITHUB_OUTPUT
           "spec=$spec" | Add-Content $env:GITHUB_OUTPUT
 
   benchmark:
@@ -170,6 +185,7 @@ jobs:
           PROFILES: ${{ inputs.profiles }}
           TASKS: ${{ inputs.tasks }}
           ISOLATE: ${{ inputs.isolate }}
+          SHARD: ${{ matrix.shard }}
         run: |
           $params = @{ SpecPath = $env:SPEC; OutputDir = 'benchmark/results'; SaveResponses = $true; Model = $env:MODEL }
           if ($env:PLUGIN -eq 'true') { $params.Plugin = $true }
@@ -178,22 +194,23 @@ jobs:
             $value = [Environment]::GetEnvironmentVariable($pair[0]); if ($value) { $params[$pair[1]] = $value }
           }
           if ($env:REPEAT) { $params.Repeat = [int]$env:REPEAT }
+          if ($env:SHARD) { $params.Shard = $env:SHARD }
           ./benchmark/Invoke-TokenBenchmark.ps1 @params
           Get-ChildItem benchmark/results -Recurse -Filter summary.md | Get-Content -Raw | Add-Content $env:GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: token-benchmark-${{ inputs.programme }}-${{ matrix.model }}${{ matrix.plugin && '-plugin' || '' }}
+          name: token-benchmark-${{ inputs.programme }}-${{ matrix.model }}${{ matrix.plugin && '-plugin' || '' }}${{ matrix.part && format('-part-{0}', matrix.part) || '' }}
           path: benchmark/results/
           retention-days: 30
 
   calibrate:
-    if: inputs.calibrate != ''
+    if: ${{ inputs.calibrate }}
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 180
     permissions:
       contents: read
-      actions: read   # the judged run's artifacts
+      actions: read   # the judged runs' artifacts
     env:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
     steps:
@@ -205,42 +222,54 @@ jobs:
           npm install -g @anthropic-ai/claude-code
           $out = claude -p 'Reply with the single word OK.' --max-turns 1 --output-format json 2>&1
           if ($LASTEXITCODE) { throw "Claude Code rejected CLAUDE_CODE_OAUTH_TOKEN; run claude setup-token again and replace the secret: $out" }
-      - uses: actions/download-artifact@v7
-        with:
-          run-id: ${{ inputs.calibrate }}
-          github-token: ${{ github.token }}
-          pattern: token-benchmark-staged-*
-          path: judged-run
-      - name: The judge against the owner's verdicts
+      # Each set's pairs, rebuilt from its run and checked against the key the owner's page was made from.
+      - name: The owner's pairs
         shell: pwsh
         env:
-          RUN: ${{ inputs.calibrate }}
-          JUDGES: ${{ inputs.model }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          $cal = @(Get-ChildItem benchmark/calibration -Filter *.json | ForEach-Object { Get-Content $_.FullName -Raw | ConvertFrom-Json } | Where-Object { "$($_.run)" -eq $env:RUN })
-          if ($cal.Count -eq 0) { throw "No file in benchmark/calibration holds verdicts for run $env:RUN" }
-          $cal = $cal[0]
-          $results = @(Get-ChildItem judged-run -Directory | ForEach-Object FullName) -join ','
-          $prefix = if ($cal.PSObject.Properties['idPrefix']) { $cal.idPrefix } else { 'p' }
-          ./benchmark/Invoke-SideBySide.ps1 -Results $results -ReviewOut review -ReviewIdPrefix $prefix | Out-Null
-          $hash = (Get-FileHash review/review-key.json -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($hash -ne $cal.keySha256) { throw "The pairs rebuilt from run $env:RUN are not the ones judged on the review page (key $hash, expected $($cal.keySha256))" }
-          ConvertTo-Json -InputObject @($cal.verdicts) | Set-Content verdicts.json
-          $candidates = if ($env:JUDGES) { @($env:JUDGES -split ',' | ForEach-Object Trim) } else { @($cal.candidates) }
+          $sets = @(foreach ($file in @(Get-ChildItem benchmark/calibration -Filter *.json | Sort-Object Name)) {
+              $cal = Get-Content $file.FullName -Raw | ConvertFrom-Json
+              if (-not $cal.PSObject.Properties['verdicts']) { continue }
+              $run = "$($cal.run)"
+              gh run download $run -R $env:GITHUB_REPOSITORY -p 'token-benchmark-staged-*' -D "judged-run/$run" | Out-Host
+              if ($LASTEXITCODE) { throw "The results of run $run ($($file.Name)) are gone: a run keeps them for 30 days" }
+              $results = @(Get-ChildItem "judged-run/$run" -Directory | ForEach-Object FullName) -join ','
+              $prefix = if ($cal.PSObject.Properties['idPrefix']) { $cal.idPrefix } else { 'p' }
+              ./benchmark/Invoke-SideBySide.ps1 -Results $results -ReviewOut "review/$run" -ReviewIdPrefix $prefix | Out-Null
+              $hash = (Get-FileHash "review/$run/review-key.json" -Algorithm SHA256).Hash.ToLowerInvariant()
+              if ($hash -ne $cal.keySha256) { throw "The pairs rebuilt from run $run are not the ones judged on the review page (key $hash, expected $($cal.keySha256))" }
+              [ordered]@{ run = $run; results = $results; key = "review/$run/review-key.json" }
+            })
+          if ($sets.Count -eq 0) { throw 'No set of verdicts in benchmark/calibration' }
+          ConvertTo-Json -InputObject $sets | Set-Content sets.json
+      - name: The judge against the owner's rule
+        shell: pwsh
+        env:
+          JUDGES: ${{ inputs.model }}
+          VOTES: ${{ inputs.votes }}
+        run: |
+          $sets = @(Get-Content sets.json -Raw | ConvertFrom-Json)
+          # Cheapest first: the judges cost-model.json prices, by their price per judgement.
+          $candidates = if ($env:JUDGES) { @($env:JUDGES -split ',' | ForEach-Object Trim) } else {
+              @((Get-Content benchmark/cost-model.json -Raw | ConvertFrom-Json).sessions | Where-Object kind -eq 'judge' | Sort-Object usd | ForEach-Object model) }
           $judge = $null
           "| Judge | Agrees with the owner | Agrees with itself | Calibrated |`n|---|---|---|---|" | Add-Content $env:GITHUB_STEP_SUMMARY
           foreach ($model in $candidates) {
-            ./benchmark/Invoke-SideBySide.ps1 -Results $results -Model $model -OutDir "judged/$model" | Out-Null
-            if ($LASTEXITCODE) { throw "The $model judge did not finish its judgements" }
-            $out = ./benchmark/Get-JudgeAgreement.ps1 -Key review/review-key.json -Verdicts verdicts.json -Preferences "judged/$model/preferences.json" -Json
+            $prefs = @(foreach ($set in $sets) {
+                ./benchmark/Invoke-SideBySide.ps1 -Results $set.results -Model $model -OutDir "judged/$model/$($set.run)" -Votes ([Math]::Max(1, [int]"0$env:VOTES")) | Out-Null
+                if ($LASTEXITCODE) { throw "The $model judge did not finish its judgements of run $($set.run)" }
+                "judged/$model/$($set.run)/preferences.json"
+              })
+            $out = ./benchmark/Get-JudgeAgreement.ps1 -Calibration benchmark/calibration -Key @($sets | ForEach-Object key) -Preferences $prefs -Json
             $passed = $LASTEXITCODE -eq 0
             ($out -join "`n") | Set-Content "judged/$model/agreement.json"
             $d = ($out -join "`n") | ConvertFrom-Json
-            "| $($d.judgeModel) | $([math]::Round(100 * $d.agreement))% of $($d.compared) | $([math]::Round(100 * $d.consistency))% | $(if ($passed) { 'yes' } else { 'no' }) |" | Add-Content $env:GITHUB_STEP_SUMMARY
+            "| $($d.judgeModel) | $([math]::Round(100 * $d.agreement))% of $($d.compared) (needs $([math]::Round(100 * $d.minAgreement))%) | $([math]::Round(100 * $d.consistency))% of $($d.pairsJudged) (needs $([math]::Round(100 * $d.minConsistency))%) | $(if ($passed) { 'yes' } else { 'no' }) |" | Add-Content $env:GITHUB_STEP_SUMMARY
             if ($passed) { $judge = $d.judgeModel; break }
           }
-          if (-not $judge) { throw "No candidate judge ($($candidates -join ', ')) met the bars of 80% agreement and 90% consistency" }
-          "The judge: $judge" | Add-Content $env:GITHUB_STEP_SUMMARY
+          if (-not $judge) { throw "No candidate judge ($($candidates -join ', ')) met the owner's rule (see the table)" }
+          "The judge: $judge (the bar: $($d.minAgreementSource))" | Add-Content $env:GITHUB_STEP_SUMMARY
           exit 0
       - uses: actions/upload-artifact@v7
         if: always()

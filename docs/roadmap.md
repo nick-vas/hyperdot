@@ -37,8 +37,7 @@ instead of 1.0: see [Versions](#versions).
    log prefix, the `hyperdot/1` JSON schema, `.godot/hyperdot-history.jsonl`, `~/.hyperdot`, and `examples/csharp` (was
    `examples/breakout`, whose name clashed with Breakout Roguelike). No aliases; error codes keep their names. Old state
    moves once: the history file, the GUT stamp and `~/.godot-ci` on any run; a game's workflow file and plugin entry on
-   `init`. Left to the owner: renaming the repository `nick-vas/Godot_TestSuite` to `nick-vas/hyperdot` in GitHub's
-   settings when the rename pull request merges (the code already calls the new name).
+   `init`. The owner renamed the repository from `nick-vas/Godot_TestSuite` to `nick-vas/hyperdot`.
 4. **Fixes and features from the question round** (the notes below).
 5. **Benchmark.** Evals with 3 runs per arm (the first run where all four cases can run commands), the token benchmark
    (costs money: confirm first) and `bench` on the C# example. Done for the token benchmark, with the Hyperdot label
@@ -48,7 +47,8 @@ instead of 1.0: see [Versions](#versions).
 7. **Release 0.1.0**: changelog, version, tag `v0.1.0`; create and keep a moving `v1` tag (`init` and the docs already
    write `@v1`, which does not resolve until then), a
    start-here page for working on a game (first use: Breakout Roguelike, `nick-vas/BreakoutTheBreakout`, in a new chat
-   with the kit cloned beside it).
+   with the kit cloned beside it), and the GitHub Pages site (added to 0.1.0 by the owner on 2026-10-26; the owner turns
+   on Pages with GitHub Actions as its source).
 
 ### Versions
 
@@ -62,12 +62,9 @@ instead of 1.0: see [Versions](#versions).
   Trello run passes; the evals pass three runs in a row.
 - **1.0.0**: from then on a breaking change needs 2.0.
 
-Notes from the question round still open, each to be fixed, built or written down before 0.1.0 (numbers as first agreed):
-
-| # | Note | What to do |
-|---|---|---|
-| 6 | An eval grader was wrong for three runs before anyone looked | Test graders against real transcripts when they are written |
-| 11 | No quick way to see why CI and the owner's PC disagree | Later: compare the two runs' JSON results |
+Notes from the question round: none left for 0.1.0. Note 6 (an eval grader was wrong for three runs before anyone
+looked) is `tests/Test-EvalGraders.ps1` for the graders that need no model; note 11 waits until after 0.1.0 (To do).
+Checking the model graders the same way needs a model call per check, and is not built.
 
 ### Trello
 
@@ -124,6 +121,22 @@ a removed task's card, which only the mock has seen.
 
 What was left open by the research passes (`docs/studio-lessons.md`, `docs/valve.md`, `docs/art.md`, `docs/audio.md`
 and the other topic pages), grouped by what it waits for. Done items are in `CHANGELOG.md`.
+
+### After 0.1.0
+
+- **A complete mid run of the staged programme** (postponed by the owner on 2026-10-26 until after the 0.1.0 release).
+  Run 44 graded 294 of 540 sessions: the plan's usage limit stopped every job after 65 minutes, and a git race ended
+  four parts early (fixed in nick-vas/hyperdot#134). Before the rerun: the `unchanged` rule must let a fix task add tests
+  to a kept test file, and the arena soak race must be fixed; then run it in fewer parallel jobs or over several usage
+  windows, priced at $67.71 (`benchmark/PLAN.md`, "The first mid run, stopped halfway"). The game-making label waits
+  for it; 0.1.0 ships the tool programme's.
+- **Opus as a model the staged programme measures.** The programme's configurations are Sonnet and Haiku, with and
+  without the plugin; Opus only judges. The owner chose on 2026-10-26 to keep the first mid run to those four and measure
+  Opus in a run of its own later: two more configurations in `benchmark/game-programme.json`, priced by a dry run
+  (about $190 more on the mid tier at 2.2 times Sonnet's cost, from the judge's calibration, until a session is measured).
+- **Why CI and the owner's PC disagree** (question round note 11). No quick way to see why a run passes on one and
+  fails on the other; the idea is to compare the two runs' `-Json` results side by side. Postponed by the owner on
+  2026-10-26 until after the 0.1.0 release.
 
 ### From the label and the adversarial review (2026-10-23)
 

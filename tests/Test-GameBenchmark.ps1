@@ -125,6 +125,26 @@ try {
     $over = Invoke-Programme @('-Tier', 'min', '-BudgetUsd', '0.0001', '-DryRun')
     Assert-True ($over.Code -eq 1 -and $over.Json.overBudget) 'a dry run over its ceiling fails'
     Assert-True ((Invoke-Programme @('-Tier', 'huge', '-DryRun')).Code -ne 0) 'an unknown tier is refused'
+    # A tier milestone must start from one of the tier's cells, or it would be dropped without a word.
+    $orphanSpec = Join-Path (Split-Path $programme -Parent) "orphan-$PID.json"
+    try {
+        $doc = Get-Content -LiteralPath $programme -Raw | ConvertFrom-Json -AsHashtable
+        $doc.programme.tiers['orphan'] = @{ repeat = 1; cells = @(@{ genre = 'toy'; language = 'gdscript'; stage = 'alpha' }); milestones = @(@{ genre = 'toy'; language = 'gdscript'; from = 'prototype' }) }
+        $doc | ConvertTo-Json -Depth 50 | Set-Content -LiteralPath $orphanSpec
+        Assert-True ((Invoke-Programme @('-Tier', 'orphan', '-DryRun') 'good' $orphanSpec).Code -ne 0) 'a tier milestone that starts from none of its cells is refused'
+        Assert-True ((Invoke-Programme @('-Tier', 'orphan', '-Stage', 'alpha', '-DryRun') 'good' $orphanSpec).Code -eq 0) 'narrowed by a selector, the same tier runs'
+    } finally { Remove-Item -LiteralPath $orphanSpec -Force -ErrorAction SilentlyContinue }
+    # -Shard k/n: the parts of a run together hold each of its sessions once, and share its estimate and ceiling.
+    $whole = Invoke-Programme @('-Tier', 'mid', '-DryRun')
+    $parts = @(foreach ($k in 1, 2) { Invoke-Programme @('-Tier', 'mid', '-Shard', "$k/2", '-DryRun') })
+    $sessions = @($parts | ForEach-Object { @($_.Json.sessions) })
+    Assert-True ($sessions.Count -eq $whole.Json.calls -and @($sessions | Sort-Object -Unique).Count -eq $sessions.Count -and @($parts | Where-Object { $_.Json.shard -match '^\d/2$' }).Count -eq 2) "two shards hold each of the run's $($whole.Json.calls) sessions once ($($sessions -join ', '))"
+    $estimates = ($parts | ForEach-Object { $_.Json.estimateUsd } | Measure-Object -Sum).Sum
+    $ceilings = ($parts | ForEach-Object { $_.Json.budgetUsd } | Measure-Object -Sum).Sum
+    Assert-True ([math]::Abs($estimates - $whole.Json.estimateUsd) -lt 1e-9 -and [math]::Abs($ceilings - $whole.Json.budgetUsd) -lt 1e-9) "their estimates and ceilings add up to the run's ($estimates of $($whole.Json.estimateUsd), $ceilings of $($whole.Json.budgetUsd))"
+    Assert-True ((Invoke-Programme @('-Tier', 'mid', '-Shard', '3/2', '-DryRun')).Code -ne 0) 'a shard past its count is refused'
+    $part = Invoke-Programme @('-Tier', 'mid', '-Shard', '1/2')
+    Assert-True ($part.Json -and $part.Json.meta.shard -eq '1/2' -and $part.Json.meta.partOfStandard -and -not $part.Json.meta.standard -and @($parts[0].Json.sessions).Count -eq @(Get-Content -LiteralPath (Join-Path $part.Json.folder 'results.json') -Raw | ConvertFrom-Json).Count) "a shard runs its own sessions and is part of the standard run, not the run ($(if ($part.Json) { "$($part.Json.meta.shard), part $($part.Json.meta.partOfStandard), standard $($part.Json.meta.standard)" }))"
     Assert-True ((Invoke-Programme @('-Tier', 'min', '-DryRun') 'good' $spec).Code -ne 0) 'tiers belong to staged programmes only'
 
     $staged = Invoke-Programme @('-Tier', 'mid', '-Repeat', '1')

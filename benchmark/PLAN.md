@@ -83,6 +83,67 @@ configuration, the first run with every session isolated as its own user on GitH
 - **Isolation.** The fix that lets a runner that is not root start sessions through sudo (the session user enters its
   game folder itself) held for all 32 sessions; the run before it (31) had failed on that before any session started.
 
+## The min tier over all ten genres
+
+Token-benchmark run 43 (2026-10-26, commit b890348, sessions isolated): one stage of each of the ten genres, two tasks
+each, one run per task and configuration, 80 sessions for $6.58 (the runner estimated $5.70).
+
+| | Sonnet | Sonnet + plugin | Haiku | Haiku + plugin |
+|---|---:|---:|---:|---:|
+| Passed (of 20) | 12 | 19 | 16 | 19 |
+| Failed on the word limit alone | 6 | 0 | 2 | 0 |
+| Cost | $2.18 | $3.45 | $0.43 | $0.51 |
+
+- **No task failed for every configuration**: each of the ten genres has tasks a session can pass, so none is broken.
+- **Sonnet without the plugin** lost six of its eight failures to answers over the 220-word limit, the same habit the
+  tool programme showed (`docs/roadmap.md`); its game work passed 18 of 20.
+- **Sonnet with the plugin** failed one task on the kit, not the work: Godot could not write its settings in the session
+  user's HOME, so the session pointed `XDG_CONFIG_HOME` into the game's `test-results/`, and the `validate` runner then
+  failed the game on Godot's own `editor_settings-4.7.tres` there. Isolated sessions now get their XDG folders inside
+  their own HOME (`Isolation.ps1`), and `validate` skips `test-results/` and `TestResults/` as the kit's file search does.
+- **Cost**: every configuration's sessions cost more than the arcade pilot's (means of $0.109, $0.173, $0.022 and $0.025);
+  `cost-model.json` now uses them, which prices this run at $6.66 and the mid tier at $105.96 under its $120 ceiling,
+  with the milestones still unmeasured.
+
+## The first mid run, stopped halfway
+
+Token-benchmark run 44 (2026-10-26, commit 5b299aa, sessions isolated): the mid tier as 20 jobs, four configurations in
+five parts each. 294 of its 540 sessions were graded, for $34.53 (the whole run was estimated at $105.96). It stopped
+for two reasons:
+
+- **The plan's usage limit.** At 13:48 UTC, 65 minutes in, every session began to fail at once with no tokens spent.
+  The 20 jobs run on the owner's subscription (`CLAUDE_CODE_OAUTH_TOKEN`) and used up its allowance for the current
+  window, which also stopped the owner's own work. 154 sessions did not run and 12 were cut off midway.
+- **A fault in the kit.** Four parts ended at their second to sixth session: since git 2.54, a commit's automatic
+  maintenance packs loose objects in the background, and the copy of a freshly committed game lost files under it.
+  92 sessions never started. Fixed on `bugfix/game-copy-gc` (nick-vas/hyperdot#134).
+
+| Graded | Sonnet | Sonnet + plugin | Haiku | Haiku + plugin |
+|---|---:|---:|---:|---:|
+| Tasks passed | 75 of 104 | 59 of 68 | 30 of 39 | 43 of 49 |
+| Milestones passed | 7 of 11 | 2 of 5 | 0 of 3 | 2 of 3 |
+| Failed on the word limit alone | 12 | 3 | 5 | 1 |
+| Mean cost of a task | $0.108 | $0.154 | $0.016 | $0.022 |
+| Mean cost of a milestone | $0.387 | $0.450 | $0.520 | $0.456 |
+
+Each configuration completed a different part of the run, so the rows are not comparable as they stand. On the 38
+sessions all four completed, the plugin lifted both models from 27 to 32 of 36 tasks (milestones: 0, 1, 1 and 0 of 2),
+for $4.29 against $6.21 with Sonnet and $1.19 against $1.30 with Haiku.
+
+- **A task every configuration failed, because of its grading.** `racing.alpha.csharp.fix-bug` passed 0 of 10: every
+  session added regression tests for the frame rate to `test/CameraTest.cs`, removing nothing, and the task's
+  `unchanged` rule fails any change to that file. Of the 14 sessions failed for changing a test file, 12 only added
+  tests (10 with no other fault). The rule should keep a test from being weakened, not from being extended: a proposal
+  for the owner is to let fix tasks add to a kept test file, put the original back before the tests run, and still fail
+  a session that changes or removes a line of it.
+- **Costs.** Task sessions cost what `cost-model.json` predicts or less ($0.108, $0.154, $0.016 and $0.022 against
+  $0.11, $0.175, $0.022 and $0.026). Milestones cost far less than the guess of ten Sonnet tasks: about $0.40 to $0.50
+  in every configuration, Haiku's from only three sessions each. `cost-model.json` now uses these means, rounded up,
+  which prices the mid tier at $67.71 ($19.20, $27.75, $10.14 and $10.62).
+- **What a complete mid run needs.** The fix in #134, the owner's decision on the `unchanged` rule, and a schedule that
+  fits the plan: twenty parallel jobs spend a usage window in about an hour, so the rest has to run in fewer jobs, over
+  several windows, or when the owner is not working.
+
 ## Decisions
 
 | Question | Decision |
@@ -173,10 +234,11 @@ index 20% lower, and one never preferred gets 33% higher.
 
 **Choosing the judge: the best value for money.** Stage 3 runs every candidate (Haiku 5.5 and Sonnet 5.5 first, a
 larger model only if both fail) over the same pilot results that you also rated blind. The judge is the cheapest
-candidate that:
+candidate that (the rule the owner set on 2026-10-26, after the calibrations in section 7; at first the bars were 80%
+and 90%):
 
-- agrees with you on at least 80% of them;
-- gives the same pass or fail on at least 90% of repeated judgings of one result.
+- agrees with you at least as often as you agree with yourself on a blind re-judge of earlier pairs (60% so far);
+- picks the same work, or even, in both orders on at least 90% of the pairs it judges.
 
 It is pinned in the scale by its full model id.
 
@@ -184,8 +246,9 @@ It is pinned in the scale by its full model id.
 
 - The judge model and its rubrics are part of the scale; changing either is a new scale, as the EU rescales.
 - The judge never sees which configuration made what. The order is randomised and the pair judged both ways.
-- **Judge calibration** (human): about 10 judged results per run go to you blind. If you and the judge agree less than
-  80% of the time, the class is printed as *unconfirmed* until the rubric is fixed.
+- **Judge calibration** (human): about 10 judged results per run go to you blind. If you and the judge agree less often than
+  the calibration bar above (your own agreement on a re-judge), the class is printed as *unconfirmed* until the rubric
+  is fixed.
 - **Blind review page** (human): after a run, an artifact page shows the unlabelled pairs (screenshots, store text,
   short clips). You pick the better one or score 1-5, in about 5 minutes. The page keeps the ratings, and the label tool
   reads them as layer 5 and as calibration.
@@ -201,19 +264,33 @@ as not run, so such a run is incomplete and sets no class.
 
 | Tier | Runs (4 configurations: Sonnet and Haiku, with and without the plugin) | Ceiling | Use |
 |---|---|---:|---|
-| min | 1 genre, its 4 stages in 1 language, 2 tasks a stage, 1 repeat | $10 | a quick check after changing a skill |
-| mid | 3 genres, their 4 stages, 2 tasks a stage, 3 repeats, 1 milestone per genre | $50 | **the standard programme: the only run that sets a class** |
-| max | any selection up to every genre, stage, language, task and milestone, 5 repeats | above $50, shown before it starts | a release, wider coverage, tighter tolerances |
+| min | all 10 genres, 1 stage each, 2 tasks, 1 repeat, no milestones (every language and stage pair at least once) | $10 | a quick check after changing a skill (estimate $5.70) |
+| mid | all 10 genres, 1 stage in each language, 2 tasks a stage, 3 repeats, 5 milestones | $120 | **the standard programme: the only run that sets a class** (estimate $100.20) |
+| max | any selection up to every genre, stage, language, task and milestone, 5 repeats | above $120, shown before it starts | a release, wider coverage, tighter tolerances |
 
-**The mid tier covers both languages without doubling its cost.** Each of its genres runs two stages in GDScript and
-two in C#, in a balanced pattern (a Latin square), so every stage is measured in both languages across the three
-genres and no language always gets the harder stages:
+The tiers were widened on 2026-10-26 from one genre (min) and three (mid, then $50 with an estimate of $60) to all ten,
+once every genre was written in both languages. The estimates come from `cost-model.json`, whose milestone figures are
+still guesses (about ten times a task) until a run measures them; milestones are about two thirds of the mid estimate.
 
-| Genre | Prototype | Alpha | Beta | Release candidate |
-|---|---|---|---|---|
-| Arcade shooter | GDScript | C# | GDScript | C# |
-| Narrative | C# | GDScript | C# | GDScript |
-| Tower defence | GDScript | GDScript | C# | C# |
+**The mid tier covers both languages without doubling its cost.** Each genre runs one stage in GDScript and the stage
+two after it in C#, rotating through the genres, so every stage is measured in both languages and no language always
+gets the harder stages (2 or 3 cells for each language and stage). The milestones start from five of those cells:
+arcade from the prototype and platformer from the alpha in GDScript, puzzle from the prototype in C#, narrative from the
+beta in GDScript and the arena from the beta in C#; the runner refuses a tier milestone that starts from none of the
+tier's cells.
+
+| Genre | GDScript | C# | Milestone |
+|---|---|---|---|
+| Arcade shooter | prototype | beta | GDScript, prototype to alpha |
+| Platformer | alpha | release candidate | GDScript, alpha to beta |
+| Puzzle | beta | prototype | C#, prototype to alpha |
+| Card game | release candidate | alpha | |
+| Roguelite | prototype | beta | |
+| Tower defence | alpha | release candidate | |
+| Narrative | beta | prototype | GDScript, beta to release candidate |
+| Racing | release candidate | alpha | |
+| Multiplayer arena | prototype | beta | C#, beta to release candidate |
+| Idle | alpha | release candidate | |
 
 The milestone for each genre also rotates: prototype to alpha, alpha to beta, and beta to release candidate.
 
@@ -251,7 +328,7 @@ The workflow does this with `useradd` and file modes; the field test does the sa
 |---|---|---|
 | 1 | Runner: programmes made of fixtures x templates; tiers and selectors; cost estimate, ceiling and stop; a matrix of jobs in the workflow; per-session saves. **Done**: `GameProgramme.ps1`, `cost-model.json`, the workflow's `staged` programme; the label tool reading several jobs' results is stage 7 | `-DryRun` lists a mid run; the self-test covers selectors, tiers, the ceiling and milestones |
 | 2 | `tests/Test-GameProgramme.ps1` (done): every task's untouched game fails, its reference passes, its decoy fails, no model needed. First genre (arcade shooter) in both languages; stage manifests; the generator; every template on it; a pilot run to measure difficulty and cost | each template passes its good stand-in and fails its bad one; the pilot keeps or drops each task by the difficulty rule |
-| 3 | Grading layers 2-4; pinned judge; rubrics; the blind review page; calibration. **Done**: layer 3 (`judge` on a task, in the runner), layer 4 (`Invoke-SideBySide.ps1`), the quality factor in the label tool. **Since**: the review page (`benchmark/review-page.html`, fed by `Invoke-SideBySide.ps1 -ReviewOut` with the first pilot's 15 pairs) and `Get-JudgeAgreement.ps1`. **Since**: the owner's 15 blind verdicts (`calibration/pilot-1.json`: the plugin's work preferred in 5, the other in 7, 3 even) and the calibration job (`token-benchmark.yml`, `calibrate`). **First calibration** (token-benchmark run 33, $0.77): Haiku agreed with the owner on 53% and with itself on 73%, Sonnet on 53% and 87%; neither passes. Both disagree on nearly the same pairs and the same way, favouring the plugin's work where the owner preferred the other or called it even, so the gap is the rubric, not the model: the owner's notes reward an explanation of the change and its context, which the rubric's "length is not quality" and "as small as the task allows" discount, and call a pair even when each side did a different part. **Since**: the rubric rewritten from those notes (`rubrics/side-by-side.md`), and the owner's blind verdicts on the second pilot's 16 pairs, judged without the rubric shown (`calibration/pilot-2.json`: the plugin's work preferred in 11, the other in 5). **Second calibration** (token-benchmark run 34, $0.76, the rewritten rubric on the second set): Haiku agreed with the owner on 56% and with itself on 81%, Sonnet on 50% and 63%; neither passes. The misses are now mostly the order the work is shown in: a judge picking the same position in both orders counts as even, which Sonnet did on 6 pairs and Haiku on 3, and where Sonnet's two orders agreed it matched the owner on 8 of 10. Only two pairs (q01 and q08) are firm disagreements both judges share, each preferring the other work where the owner preferred the plugin's. The owner confirmed the second set's verdicts are their own judgement. **Third calibration** (token-benchmark runs 35 and 36, $3.12, Opus with the rewritten rubric on both sets): Opus agreed with the owner on 53% of the first set and with itself on 100%, and on 69% and 88% of the second; it does not pass. Order no longer decides (2 flips in 31 pairs, against Sonnet's 6 in 16), so what is left is a steady difference of judgement: on the first set 6 of its 7 disagreements prefer the plugin's work where the owner preferred the other or called it even, and it never answers even although the rubric allows it. The judge reads the same work the owner read (no piece of work in either set reaches the 12,000-character cut). **Left**: the owner's own consistency, by judging about ten pairs of both sets again blind and reshuffled, so the 80% bar is set against what a person agrees with themselves on; then either a rubric that names when work is even, or Opus pinned with its measured agreement shown beside every judged result | the label tool reads judged and human results; the self-test fakes a judge |
+| 3 | Grading layers 2-4; pinned judge; rubrics; the blind review page; calibration. **Done**: layer 3 (`judge` on a task, in the runner), layer 4 (`Invoke-SideBySide.ps1`), the quality factor in the label tool. **Since**: the review page (`benchmark/review-page.html`, fed by `Invoke-SideBySide.ps1 -ReviewOut` with the first pilot's 15 pairs) and `Get-JudgeAgreement.ps1`. **Since**: the owner's 15 blind verdicts (`calibration/pilot-1.json`: the plugin's work preferred in 5, the other in 7, 3 even) and the calibration job (`token-benchmark.yml`, `calibrate`). **First calibration** (token-benchmark run 33, $0.77): Haiku agreed with the owner on 53% and with itself on 73%, Sonnet on 53% and 87%; neither passes. Both disagree on nearly the same pairs and the same way, favouring the plugin's work where the owner preferred the other or called it even, so the gap is the rubric, not the model: the owner's notes reward an explanation of the change and its context, which the rubric's "length is not quality" and "as small as the task allows" discount, and call a pair even when each side did a different part. **Since**: the rubric rewritten from those notes (`rubrics/side-by-side.md`), and the owner's blind verdicts on the second pilot's 16 pairs, judged without the rubric shown (`calibration/pilot-2.json`: the plugin's work preferred in 11, the other in 5). **Second calibration** (token-benchmark run 34, $0.76, the rewritten rubric on the second set): Haiku agreed with the owner on 56% and with itself on 81%, Sonnet on 50% and 63%; neither passes. The misses are now mostly the order the work is shown in: a judge picking the same position in both orders counts as even, which Sonnet did on 6 pairs and Haiku on 3, and where Sonnet's two orders agreed it matched the owner on 8 of 10. Only two pairs (q01 and q08) are firm disagreements both judges share, each preferring the other work where the owner preferred the plugin's. The owner confirmed the second set's verdicts are their own judgement. **Third calibration** (token-benchmark runs 35 and 36, $3.12, Opus with the rewritten rubric on both sets): Opus agreed with the owner on 53% of the first set and with itself on 100%, and on 69% and 88% of the second; it does not pass. Order no longer decides (2 flips in 31 pairs, against Sonnet's 6 in 16), so what is left is a steady difference of judgement: on the first set 6 of its 7 disagreements prefer the plugin's work where the owner preferred the other or called it even, and it never answers even although the rubric allows it. The judge reads the same work the owner read (no piece of work in either set reaches the 12,000-character cut). **The owner's re-judge** (`calibration/retest-1.json`): ten earlier pairs again, blind, reshuffled and with A and B swapped in half: 6 of 10 the same. From the first set 2 of 5 (judged with the old rubric shown; all three changes moved to the plugin's work, as Opus had judged them), from the second 4 of 5. So the first set's verdicts carry the old rubric and count only for a judge's agreement with itself; a judge is measured against the second set's verdicts, with the re-judged pairs' newer verdicts (21 pairs). **Fourth calibration** (token-benchmark runs 37-40, $1.54, Haiku and Sonnet with the rewritten rubric on both sets): on the 21 pairs Haiku agrees with the owner on 62% (57% on a second run), Sonnet 62% (57%), Opus 71%; with itself over all 31 pairs Haiku 81% (84% first written here, a miscount found when `Get-JudgeAgreement.ps1 -Calibration` recomputed it), Sonnet 74%, Opus 94%. Haiku and Sonnet gave the same outcome on only 10 of 16 pairs from one run of the second set to the next. Per judgement Haiku costs $0.0013, Sonnet $0.023, Opus $0.050. Held to the owner's own agreement with themselves (60%) and 90% with itself, only Opus passes. **Fifth calibration** (token-benchmark runs 41 and 42, $0.25, Haiku with ten votes per order, `Invoke-SideBySide.ps1 -Votes 10`): 62% with the owner on the 21 pairs and 81% with itself on the 31, no better than one vote. Its majorities are firm (51 of 62 orders had 8 or more of 10 votes the same, 2 were ties) and it chose the second position 353 times to the first's 246: the order changes its answer the same way every time, which a vote cannot average out, as it can noise. **The rule, set by the owner on 2026-10-26**: a judge is calibrated when it agrees with the owner at least as often as the owner agrees with themselves on a blind re-judge (60% from `calibration/retest-1.json`), on the second set's verdicts with the re-judged pairs' newer ones, and with itself at least 90% of the time over every pair it judged. **Pinned**: Opus (`claude-opus-5-5`, `game-programme.json`'s `programme.judge`), at about $0.05 a judgement (`cost-model.json`). **Since**: the calibrate job applies this rule over every set at once (`Get-JudgeAgreement.ps1 -Calibration`, the bar read from the re-judge, the first set marked `forAgreement: false` in `calibration/pilot-1.json`); recomputed from the saved judgements it gives the agreements above for every judge and run, and Opus's 94% with itself | the label tool reads judged and human results; the self-test fakes a judge |
 | 4 | Milestone runs | prototype to alpha graded by the alpha gate, in both languages |
 | 5 | Isolation as separate users. **Done**: `-Isolate` (`Isolation.ps1`), on in the workflow; `tests/Test-BenchmarkIsolation.ps1` | a test session cannot read a hidden test |
 | 6 | Genres 2-10, written in parallel by agents, one genre each, reviewed against the first. **Platformer** (Glowmoss Ridge, `games/platformer/DESIGN.md`): done in both languages, the C# port from the design's language-neutral contract. **Puzzle** (Frostmote, `games/puzzle/DESIGN.md`): GDScript and C# done, every task checked in both. **Card game** (Lanternfen, `games/cards/DESIGN.md`): done in both languages, the C# port from the design's language-neutral contract. **Narrative game** (Saltmere Crossing, `games/narrative/DESIGN.md`): done in both languages, the C# port from the design's language-neutral contract. **Roguelite** (Wickerdeep, `games/roguelite/DESIGN.md`): done in both languages, the C# port from the design's language-neutral contract, its floors and bot run checked against the GDScript version's. **Tower defence** (Bramblegate, `games/towerdefence/DESIGN.md`): done in both languages, the C# port from the design's language-neutral contract. **Idle game** (Duskhive, `games/idle/DESIGN.md`): done in both languages, the C# port from the design's language-neutral contract. **Racing** (Cinderloop, `games/racing/DESIGN.md`): done in both languages, the C# port from the design's language-neutral contract. **Multiplayer arena** (Glimmerpit, `games/arena/DESIGN.md`): done in both languages, the C# port from the design's language-neutral contract. | each passes its stage checks in both languages |
