@@ -1,0 +1,21 @@
+{
+  "name": "A key button in Settings waits for a key and shows the new one; Escape keeps the old",
+  "scene": "res://main.tscn",
+  "seed": 1,
+  "steps": [
+    { "press": "Menu/SettingsButton" },
+    { "assert": { "node": "Settings/Box/Controls/AccelerateButton", "prop": "text", "equals": "W" } },
+    { "press": "Settings/Box/Controls/AccelerateButton" },
+    { "assert": { "node": "Settings/Box/Controls/AccelerateButton", "prop": "text", "equals": "Press a key" } },
+    { "call": "Settings", "method": "capture_key", "args": [74] },
+    { "assert": { "node": "Settings/Box/Controls/AccelerateButton", "prop": "text", "equals": "J" } },
+    { "press": "Settings/Box/Controls/AccelerateButton" },
+    { "call": "Settings", "method": "capture_key", "args": [4194305] },
+    { "assert": { "node": "Settings/Box/Controls/AccelerateButton", "prop": "text", "equals": "J" } },
+    { "press": "Settings/Box/Controls/AccelerateButton" },
+    { "call": "Settings", "method": "capture_key", "args": [87] },
+    { "assert": { "node": "Settings/Box/Controls/AccelerateButton", "prop": "text", "equals": "W" } },
+    { "press": "Settings/Box/BackButton" },
+    { "assert": { "node": "Menu", "prop": "visible", "equals": true } }
+  ]
+}
