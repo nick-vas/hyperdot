@@ -11,6 +11,8 @@
   context the next developer needs now counts for the work, "as small as the task allows" is gone, and work that
   does different parts of a task is even. A second blind set (`Invoke-SideBySide.ps1 -ReviewIdPrefix q`, shown
   without the rubric) checks it on pairs it was not written from.
+  On it (run 34) neither judge passes either: Haiku agreed with the owner on 56% and with itself on 81%, Sonnet on
+  50% and 63%, mostly by picking the same position in both orders; `benchmark/PLAN.md` records it.
 - **The staged game programme's idle genre**, Duskhive, in GDScript (`benchmark/games/idle/`). A moth hive gathers
   glow at dusk: five producers whose prices grow geometrically, Buy 1, 10 or as many as the glow pays for, upgrades,
   and a dawn that trades a run's glow for embers. Every number is in data checked by the `data` runner; glow is a
