@@ -1,0 +1,113 @@
+{
+  "tasks": [
+    {
+      "template": "fix-export",
+      "vars": {
+        "report": "the exported Linux game logs errors at start and the hive is empty: no producers, and Gather gives nothing"
+      },
+      "edits": [
+        {
+          "file": "export_presets.cfg",
+          "find": "exclude_filter=\"test/*\"\nexport_path=\"../build/linux/Duskhive.x86_64\"",
+          "replace": "exclude_filter=\"test/*, data/*\"\nexport_path=\"../build/linux/Duskhive.x86_64\""
+        }
+      ],
+      "kit": [
+        {
+          "command": "export",
+          "args": [
+            "-Preset",
+            "Linux",
+            "-Run"
+          ]
+        }
+      ],
+      "reference": "solutions/release/fix-export",
+      "decoy": "solutions/release/fix-export-decoy"
+    },
+    {
+      "template": "fix-store",
+      "vars": {
+        "report": "the credits cannot be built from assets.json, and the Steam store art in store/steam must be at the sizes Steam asks for"
+      },
+      "edits": [
+        {
+          "file": "assets.json",
+          "find": "\"source\": \"own: drawn as simple shapes by a script for this game\", \"licence\": \"proprietary\"",
+          "replace": "\"source\": \"own: drawn as simple shapes by a script for this game\""
+        },
+        {
+          "file": "store/steam/library_capsule.png",
+          "copy": "defects/library_capsule_600x800.png"
+        }
+      ],
+      "kit": [
+        {
+          "command": "doctor"
+        },
+        {
+          "command": "credits"
+        }
+      ],
+      "hidden": [
+        "hidden/HiddenCapsuleTest.cs"
+      ],
+      "reference": "solutions/release/fix-store",
+      "decoy": "solutions/release/fix-store-decoy"
+    },
+    {
+      "template": "cut-version",
+      "vars": {
+        "version": "1.1.0",
+        "details": "the version in the project settings, an entry for it at the top of CHANGELOG.md, and the version shown on the settings screen"
+      },
+      "match": [
+        {
+          "file": "project.godot",
+          "pattern": "(?m)^config/version=\"1\\.1\\.0\""
+        },
+        {
+          "file": "CHANGELOG.md",
+          "pattern": "(?m)^##.*1\\.1\\.0"
+        }
+      ],
+      "hidden": [
+        {
+          "from": "hidden/version.flow.json",
+          "to": "test/flows/version.flow.json"
+        }
+      ],
+      "reference": "solutions/release/cut-version",
+      "decoy": "solutions/release/cut-version-decoy"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "export presets for Linux and Android (the Android one with the project settings it needs, an icon and ETC2/ASTC textures, and the .NET 9 target framework Godot 4.7's prebuilt Android template needs) whose Linux build starts without errors (export -Preset Linux -Run), Steam store art in store/steam at the sizes the kit's doctor checks with five screenshots, a short description and a privacy policy, credits and third-party notices built from assets.json by the kit's credits command and shown from a Credits button on the settings screen (Settings/Safe/Box/CreditsButton opens a child of Main named Credits whose Safe/Box/Text lists them, and Safe/Box/BackButton returns to the settings), French as a third language, and version 1.0.0 in the project settings with a CHANGELOG.md"
+    },
+    "kit": [
+      {
+        "command": "doctor"
+      },
+      {
+        "command": "export",
+        "args": [
+          "-Preset",
+          "Linux",
+          "-Run"
+        ]
+      },
+      {
+        "command": "credits"
+      }
+    ],
+    "hidden": [
+      {
+        "from": "game/test/flows/credits.flow.json",
+        "to": "test/flows/credits.flow.json"
+      }
+    ],
+    "reference": "solutions/milestone-release",
+    "decoy": "solutions/milestone-release-decoy"
+  }
+}

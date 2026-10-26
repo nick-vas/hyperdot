@@ -1,0 +1,16 @@
+{
+  "name": "Credits open from the settings and Back returns there",
+  "scene": "res://main.tscn",
+  "seed": 1,
+  "steps": [
+    { "press": "Game/Safe/Column/Bar/SettingsButton" },
+    { "press": "Settings/Safe/Box/CreditsButton" },
+    { "assert": { "node": "Credits", "exists": true } },
+    { "assert": { "node": "Credits/Safe/Box/Text", "prop": "text", "contains": "Godot" } },
+    { "press": "Credits/Safe/Box/BackButton" },
+    { "assert": { "node": "Credits", "exists": false } },
+    { "assert": { "node": "Settings", "exists": true } },
+    { "press": "Settings/Safe/Box/BackButton" },
+    { "assert": { "node": "Game", "prop": "visible", "equals": true } }
+  ]
+}

@@ -1,0 +1,305 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/Credits.cs",
+    "ui/credits.tscn",
+    "test/flows/credits.flow.json",
+    "scripts/Bot.cs",
+    "test/BotTest.cs",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "test/flows/settings.flow.json"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.5.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.de.translation\", \"res://i18n/strings.fr.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\")"
+    },
+    {
+      "file": "scripts/SaveStore.cs",
+      "find": "/// Version 3 is current. Version 2 (the 0.x releases) kept the dawn's embers and count at the top level, beside the\n/// economy, and players still have such files.\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/SaveStore.cs",
+      "find": "/// <summary>Any version's data as the current version.</summary>",
+      "replace": "/// <summary>The saved data, with defaults for anything missing.</summary>"
+    },
+    {
+      "file": "scripts/SaveStore.cs",
+      "find": "        int version = JsonData.Int(raw[\"version\"], 2);\n        if (version < 3)\n        {\n            // Version 2 kept the dawn's embers and count beside the economy, not in it.\n            data.Economy[\"prestige\"] = new JsonObject\n            {\n                [\"embers\"] = JsonData.Number(raw[\"embers\"], 0.0),\n                [\"dawns\"] = JsonData.Int(raw[\"dawns\"], 0),\n            };\n        }\n",
+      "replace": ""
+    },
+    {
+      "file": "test/SaveStoreTest.cs",
+      "find": "    [TestCase]\n    public void A_version_2_save_keeps_its_embers()\n    {\n        File.WriteAllText(_path, \"\"\"{\"version\": 2, \"economy\": {\"glow\": 50.0, \"owned\": {\"wick_moth\": 3}}, \"embers\": 4.0, \"dawns\": 2, \"saved_at\": 100.0}\"\"\");\n        Economy back = Economy.FromDict(Catalog.FromFiles(), new SaveStore(_path).Read().Economy);\n        AssertThat(back.Embers).IsEqual(4.0);\n        AssertThat(back.Dawns).IsEqual(2);\n        AssertThat(back.Count(\"wick_moth\")).IsEqual(3);\n    }\n\n",
+      "replace": ""
+    },
+    {
+      "file": "test/SaveStoreTest.cs",
+      "find": "/// <summary>SaveStore: reading, writing and the move from version 2.</summary>",
+      "replace": "/// <summary>SaveStore: reading and writing.</summary>"
+    },
+    {
+      "file": "scripts/LaunchOptions.cs",
+      "find": "/// <summary>The game's own flags, after \"--\" on the command line: --autoplay, --no-save, --speed=N.</summary>",
+      "replace": "/// <summary>The game's own flags, after \"--\" on the command line: --no-save, --speed=N.</summary>"
+    },
+    {
+      "file": "scripts/LaunchOptions.cs",
+      "find": "    public bool Autoplay { get; private set; }\n\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/LaunchOptions.cs",
+      "find": "            if (arg == \"--autoplay\")\n                options.Autoplay = true;\n            else if (arg == \"--no-save\")",
+      "replace": "            if (arg == \"--no-save\")"
+    },
+    {
+      "file": "scripts/LaunchOptions.cs",
+      "find": "/// <summary>Seconds of play per second of game time: a bot run plays hours in minutes (1 to 600).</summary>",
+      "replace": "/// <summary>Seconds of play per second of game time (1 to 600).</summary>"
+    },
+    {
+      "file": "test/LaunchOptionsTest.cs",
+      "find": "LaunchOptions.Parse(new[] { \"--autoplay\", \"--no-save\", \"--speed=60\" });\n        AssertThat(options.Autoplay).IsTrue();\n",
+      "replace": "LaunchOptions.Parse(new[] { \"--no-save\", \"--speed=60\" });\n"
+    },
+    {
+      "file": "test/LaunchOptionsTest.cs",
+      "find": "        AssertThat(options.Autoplay).IsFalse();\n",
+      "replace": ""
+    },
+    {
+      "file": "test/LaunchOptionsTest.cs",
+      "find": "/// <summary>LaunchOptions: the flags bot runs and tests pass after \"--\".</summary>",
+      "replace": "/// <summary>LaunchOptions: the flags runs and tests pass after \"--\".</summary>"
+    },
+    {
+      "file": "game/Game.cs",
+      "find": "/// gives each event its feedback and, with --autoplay, lets the bot play.\n",
+      "replace": "/// and gives each event its feedback.\n"
+    },
+    {
+      "file": "game/Game.cs",
+      "find": "    /// <summary>The bot's goal: this much glow earned over all runs.</summary>\n    public const double GoalGlow = 1e9;\n",
+      "replace": ""
+    },
+    {
+      "file": "game/Game.cs",
+      "find": "\n    /// <summary>The bot reached its goal (--autoplay).</summary>\n    public event Action? Finished;\n",
+      "replace": ""
+    },
+    {
+      "file": "game/Game.cs",
+      "find": "\n    public bool GoalReached { get; private set; }\n",
+      "replace": ""
+    },
+    {
+      "file": "game/Game.cs",
+      "find": "        if (Options.Autoplay)\n            PlayBot();\n",
+      "replace": ""
+    },
+    {
+      "file": "game/Game.cs",
+      "find": "    private void PlayBot()\n    {\n        BotAction action = Bot.Act(economy);\n        if (action.Kind == \"gather\")\n        {\n            Event(\"gathered\");\n            Play(_sfxGather);\n            Pop(_gather);\n        }\n        if (!GoalReached && economy.TotalEarned >= GoalGlow)\n        {\n            GoalReached = true;\n            GD.Print($\"[Run] goal: {Numbers.Format(economy.TotalEarned)} glow after {economy.Dawns} dawns\");\n            Finished?.Invoke();\n        }\n    }\n\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "        game.Finished += OnFinished;\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "        if (Options.Autoplay)\n            return;\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "\n    private void OnFinished()\n    {\n        if (Options.Autoplay)\n        {\n            // A bot run ends here; free the game first so nothing is left in use when the engine exits.\n            Callable.From(EndRun).CallDeferred();\n        }\n    }\n\n    private async void EndRun()\n    {\n        CloseScreen();\n        // Stop the game and let its sounds end before freeing it, or their playbacks outlive the engine.\n        game.ProcessMode = ProcessModeEnum.Disabled;\n        game.StopSounds();\n        for (int i = 0; i < 10; i++)\n            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);\n        RemoveChild(game);\n        game.QueueFree();\n        for (int i = 0; i < 3; i++)\n            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);\n        GetTree().Quit();\n    }\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "    private PackedScene _creditsScene = null!;\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "        _creditsScene = GD.Load<PackedScene>(\"res://ui/credits.tscn\");\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "        settings.CreditsRequested += ShowCredits;\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "    public void ShowCredits()\n    {\n        var credits = _creditsScene.Instantiate<Credits>();\n        credits.Name = \"Credits\";\n        credits.Closed += ShowSettings;\n        ShowScreen(credits);\n    }\n\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "/// The holder of the hive and of the screen over it (settings, credits), and",
+      "replace": "/// The holder of the hive and of the screen over it (settings), and"
+    },
+    {
+      "file": "ui/Settings.cs",
+      "find": "/// <summary>Volume and language, and the way to the credits. Changes",
+      "replace": "/// <summary>Volume and language. Changes"
+    },
+    {
+      "file": "ui/Settings.cs",
+      "find": "\n    public event Action? CreditsRequested;\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Settings.cs",
+      "find": "    private Button _credits = null!;\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Settings.cs",
+      "find": "        _credits = GetNode<Button>(\"Safe/Box/CreditsButton\");\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Settings.cs",
+      "find": "        _credits.Pressed += () => CreditsRequested?.Invoke();\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Settings.cs",
+      "find": "        _credits.Text = Tr(\"SETTINGS_CREDITS\");\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/settings.tscn",
+      "find": "[node name=\"CreditsButton\" type=\"Button\" parent=\"Safe/Box\"]\ncustom_minimum_size = Vector2(0, 96)\nlayout_mode = 2\ntheme_override_font_sizes/font_size = 28\ntext = \"Credits\"\n\n",
+      "replace": ""
+    }
+  ],
+  "tasks": [
+    {
+      "template": "add-content",
+      "vars": {
+        "content": "a fifth producer, the Star Loom (id star_loom, its name \"Star Loom\" under the key PRODUCER_STAR_LOOM in i18n/strings.csv), in data/producers.json right after the Moon Lily: its first one costs between 200,000 and 500,000 glow, its price grows by a factor between 1.10 and 1.15 for each one owned, and it pays its price back (cost divided by rate) more slowly than the Moon Lily but in less than twice the Moon Lily's time; and its upgrade, Star Thread (id star_thread, \"Star Thread\" under UPGRADE_STAR_THREAD), in data/upgrades.json, which doubles the Star Loom once 10 are owned and costs between 2 and 10 million glow"
+      },
+      "hidden": [
+        "hidden/HiddenStarLoomTest.cs",
+        {
+          "from": "hidden/star_loom.flow.json",
+          "to": "test/flows/star_loom.flow.json"
+        }
+      ],
+      "reference": "solutions/alpha/add-content",
+      "decoy": "solutions/alpha/add-content-decoy"
+    },
+    {
+      "template": "fix-architecture",
+      "vars": {
+        "problem": "the architecture runner fails with errors in game/ProducerRow.cs (parent-path and per-frame-lookup)"
+      },
+      "edits": [
+        {
+          "file": "game/Game.cs",
+          "find": "        foreach (ProducerData producer in Catalog.Producers)\n            _rows[producer.Id].Refresh(economy, buy_mode);\n",
+          "replace": ""
+        },
+        {
+          "file": "game/ProducerRow.cs",
+          "find": "Game refreshes it; it never reads the economy on its own.",
+          "replace": "It keeps itself up to date from the game."
+        },
+        {
+          "file": "game/ProducerRow.cs",
+          "find": "    public Button BuyButton() => _buy;\n",
+          "replace": "    public override void _Process(double delta)\n    {\n        var game = GetNode<Game>(\"../../../../..\");\n        Refresh(game.economy, game.buy_mode);\n    }\n\n    public Button BuyButton() => _buy;\n"
+        }
+      ],
+      "hidden": [
+        "hidden/HiddenRowsFollowTest.cs"
+      ],
+      "reference": "solutions/alpha/fix-architecture",
+      "decoy": "solutions/alpha/fix-architecture-decoy"
+    },
+    {
+      "template": "migrate-save",
+      "vars": {
+        "report": "the embers from the dawns they had greeted are gone, and the production they gave with them. The previous version saved user://save.json as {\"version\": 2, \"economy\": {...}, \"embers\": <embers>, \"dawns\": <dawns>, \"saved_at\": <Unix seconds>, \"settings\": {...}}: the embers and the count of dawns beside the economy, where the current version keeps them in the economy's \"prestige\""
+      },
+      "hidden": [
+        "hidden/HiddenSaveMigrationTest.cs"
+      ],
+      "reference": "solutions/alpha/migrate-save",
+      "decoy": "solutions/alpha/migrate-save-decoy"
+    },
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "a player who set their phone's clock back a day and opened the game found eight hours of glow waiting for them, and when they put the clock right the next morning the game paid them for the night again"
+      },
+      "edits": [
+        {
+          "file": "scripts/Offline.cs",
+          "find": "return Math.Clamp(now - savedAt, 0.0, cap);",
+          "replace": "return Math.Min(Math.Abs(now - savedAt), cap);"
+        },
+        {
+          "file": "scripts/Offline.cs",
+          "find": "return Math.Max(savedAt, now);",
+          "replace": "return now;"
+        }
+      ],
+      "unchanged": [
+        "test/OfflineTest.cs"
+      ],
+      "hidden": [
+        "hidden/HiddenOfflineClockTest.cs"
+      ],
+      "reference": "solutions/alpha/fix-bug",
+      "decoy": "solutions/alpha/fix-bug-decoy"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "the main scene res://main.tscn (root Main, ui/Main.cs) holds the hive (game/game.tscn) as its child Game; a fourth producer, the Moon Lily (moon_lily: costs 20,000, grows by 1.13, makes 220 a second); a third buy mode, Buy max, with Economy.MaxAffordable(id) and Economy.BuyMax(id); upgrades in data/upgrades.json ({ id, name, target: a producer id, \"tap\" or \"all\", multiplier, cost, needs: how many of the target must be owned }), bought with Economy.BuyUpgrade(id), shown on a second page that the bar at the bottom of the hive switches to (Safe/Column/Bar/ProducersTab and UpgradesTab, pages Safe/Column/ProducerPage and UpgradePage, one row per upgrade named after its id in PascalCase plus Row, such as WarmHandsRow, shown once its target is owned often enough); the dawn: Economy.DawnGain() is the square root of the glow earned since the last dawn divided by 1,000,000, rounded down, Economy.Dawn() (when the gain is at least 1) adds it to Embers, counts Dawns and empties Glow, producers (Economy.Owned) and upgrades, each ember adds 10% to all production, and Safe/Column/Bar/DawnButton opens a DawnPanel whose Box/ConfirmButton greets the dawn and Box/CancelButton closes it, with the embers shown in Safe/Column/Top/EmbersLabel as \"Embers: N (+P% glow)\"; a save by a SaveStore class in user://save.json, with Main writing the economy (Economy.ToDict() and Economy.FromDict(catalog, data), the embers and dawns kept in its \"prestige\") with the time it was saved; on start Main pays the time since the save at the saved rate, at most 8 hours (28,800 seconds), nothing for a clock set back, and shows it in a WelcomePanel; Main reads the clock through its public field clock (a Func<double> returning Unix seconds) and saves to its public field save_path, both set before it enters the tree, and saves with save_now(), with the hive as its property game; a settings screen (Safe/Column/Bar/SettingsButton adds a child of Main named Settings with a volume slider and Safe/Box/BackButton back to the hive); and a data.json for the kit's data runner"
+    },
+    "hidden": [
+      {
+        "from": "game/test/flows/gather.flow.json",
+        "to": "test/flows/gather.flow.json"
+      },
+      {
+        "from": "game/test/flows/pages.flow.json",
+        "to": "test/flows/pages.flow.json"
+      },
+      {
+        "from": "game/test/flows/dawn.flow.json",
+        "to": "test/flows/dawn.flow.json"
+      },
+      "hidden/HiddenAlphaTest.cs",
+      {
+        "from": "game/data.json",
+        "to": "data.json"
+      }
+    ],
+    "reference": "solutions/milestone-alpha",
+    "decoy": "solutions/milestone-alpha-decoy"
+  }
+}

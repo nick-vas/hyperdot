@@ -23,6 +23,15 @@
   counts and starting tracks. Its four stages carry the same 17 tasks and three milestones as the GDScript version,
   each with hidden checks in C# and a reference solution, five with a decoy; all pass
   `tests/Test-GameProgramme.ps1 -Genre racing -Language csharp`. `DESIGN.md`'s "As built" records the port's choices.
+- **The idle game in C#.** Duskhive now has its C# version (`benchmark/games/idle/csharp/`), written from the
+  language-neutral contract in its `DESIGN.md`: the same scenes, scene tree, node names, data files, flows, portrait
+  layout, bot and juice runs and log lines, with 62 gdUnit4 tests in place of the GUT ones and Linux and Android
+  exports. Glow is a double in both, worked out with the same operations in the same order and no `Math.Pow` or
+  `Math.Log` in the simulation, and every number is written with the invariant culture, so the bot run prints the same
+  3,487 lines as the GDScript version, game times included, on a machine set to German too. Its four stages carry the
+  same 17 tasks and three milestones as the GDScript version, each with hidden checks in C#, a reference solution and
+  a decoy; all pass `tests/Test-GameProgramme.ps1 -Genre idle -Language csharp`. `DESIGN.md`'s "As built" records the
+  port's choices.
 - **The roguelite in C#.** Wickerdeep now has its C# version (`benchmark/games/roguelite/csharp/`), written from the
   language-neutral contract in its `DESIGN.md`: the same scenes, scene tree, node names, data files, flows, bot and
   juice runs and log lines, the same `--swarm=N` load, with 44 gdUnit4 tests in place of the GUT ones and a Linux

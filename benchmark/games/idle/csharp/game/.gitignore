@@ -1,0 +1,9 @@
+.godot/
+bin/
+obj/
+build/
+test-results/
+gdunit4_testadapter*/
+*.translation
+*.import
+*.uid

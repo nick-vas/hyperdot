@@ -1,0 +1,14 @@
+{
+  "name": "The Star Loom has a row of its own and can be bought",
+  "scene": "res://game/game.tscn",
+  "seed": 1,
+  "steps": [
+    { "wait": 1 },
+    { "assert": { "node": "Safe/Column/ProducerPage/List/StarLoomRow/Box/Info/NameLabel", "prop": "text", "equals": "Star Loom" } },
+    { "assert": { "node": "Safe/Column/ProducerPage/List/StarLoomRow/Box/BuyButton", "prop": "disabled", "equals": true } },
+    { "call": ".", "method": "add_glow", "args": [500000] },
+    { "press": "Safe/Column/ProducerPage/List/StarLoomRow/Box/BuyButton" },
+    { "wait": 1 },
+    { "assert": { "node": "Safe/Column/ProducerPage/List/StarLoomRow/Box/Info/DetailLabel", "prop": "text", "contains": "1 owned" } }
+  ]
+}

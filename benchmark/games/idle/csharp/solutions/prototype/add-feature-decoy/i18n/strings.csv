@@ -1,0 +1,14 @@
+keys,en
+HUD_GLOW,%s glow
+HUD_RATE,The hive makes %s
+GATHER,Gather +%s
+PAGE_PRODUCERS,Producers
+MODE_ONE,Buy 1
+MODE_TEN,Buy 10
+MODE_MAX,Buy max
+ROW_DETAIL,%d owned · %s
+ROW_BUY,"Buy %d
+%s"
+PRODUCER_WICK_MOTH,Wick Moth
+PRODUCER_GLOW_SNAIL,Glow Snail
+PRODUCER_FIREFLY_CHOIR,Firefly Choir

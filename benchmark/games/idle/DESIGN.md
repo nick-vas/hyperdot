@@ -6,7 +6,7 @@ that grow geometrically and the numbers are JSON checked by the `data` runner (`
 grows past 2^53 and is printed readably (`godot-math`), time away is paid from the saved clock and a clock set back pays
 nothing (`godot-saves`), saves of the previous version keep their prestige, and the screens fit a notched portrait
 phone, a tablet and a desktop browser in every language (`godot-mobile-web`, `godot-localization`). One game, written
-twice: `gdscript/` (built) and `csharp/` (to come, from this design). Both behave the same, use the same data files,
+twice: `gdscript/` and `csharp/` (ported from this design), both built. Both behave the same, use the same data files,
 scene tree, node names and log lines, and pass the same flows. Only the code and the test framework differ: GUT for
 GDScript, gdUnit4 (run by the kit's `gdunit4` runner) for C#.
 
@@ -134,7 +134,7 @@ in all runs reaches 1e9 (`GOAL_GLOW`); for `juice`, in game time (ticks / 60, no
 
 | Part | Files |
 |---|---|
-| Tests | GDScript: `test/unit/test_*.gd` (GUT), 62 tests: numbers and their formatting past 2^53 and 1e36, prices and purchases, Buy max at exact boundaries, upgrades, the dawn, time away, saves and version 2, the bot's choices, the data's balance, the launch options, the game scene and Main with a test clock. C#: `test/*Test.cs` (gdUnit4) |
+| Tests | GDScript: `test/unit/test_*.gd` (GUT), 62 tests: numbers and their formatting past 2^53 and 1e36, prices and purchases, Buy max at exact boundaries, upgrades, the dawn, time away, saves and version 2, the bot's choices, the data's balance, the launch options, the game scene and Main with a test clock. C#: `test/*Test.cs` (gdUnit4), the same 62 |
 | Flows | `test/flows/gather.flow.json` (Gather, the first wick moth, its production), `pages.flow.json` (the bar's pages), `dawn.flow.json` (the Dawn button, its panel, an ember), `settings.flow.json` (German and back, Back), `credits.flow.json` |
 | Data | `data/producers.json`, `data/upgrades.json`, `data/economy.json`; `data.json` (ranges, name key patterns) |
 | Bot runs | `playthrough.json`: `--autoplay --speed=60 --no-save`, `[Run] dawn 1,` to `[Run] dawn 3,` and `[Run] goal` within 10,800 frames (it takes about 6,700: six dawns). `juice.json`: 1,500 frames; gathered and bought and upgraded get sfx and pop, the dawn flash, shake and sfx, each within 100 ms |
@@ -237,7 +237,7 @@ Its reference is every file of the next stage that the earlier one lacks or has 
 
 ## As built
 
-Choices made in the GDScript build where the design was open. The C# port follows them.
+Choices made in the GDScript build where the design was open. The C# port follows them; its own choices come after.
 
 - **The economy lives in Economy, not in nodes.** The game node ticks it in `_physics_process` and shows it; the tests,
   the bot's balance checks and the hidden tests play hours of it in a loop without a scene.
@@ -267,3 +267,65 @@ Choices made in the GDScript build where the design was open. The C# port follow
   caption, and the capsules from the sky, the icon and the title. The 600x800 capsule of the fix-store defect is a crop.
 - **Saves are written on focus loss too**, which is how a browser tab that is closed gets its last save; the Web export
   calls `JavaScriptBridge.force_fs_sync()` after each write.
+
+### C#
+
+- **The same numbers, checked line for line.** Every amount is a double in both languages, and the simulation code
+  does the same operations in the same order: a rate is `rate * owned * multiplier * ember_multiplier`, a price is
+  multiplied out by squaring, and besides minimum, maximum and clamp its only library calls are `Math.Sqrt` and
+  `Math.Floor`; the thousands are parsed from their decimal text with the invariant culture. So the bot run
+  (`--autoplay --speed=60 --no-save`) prints the same 3,487 `[Run]` and `[juice]` lines as the GDScript version, game
+  times included: six dawns and the goal after 111.4 s of game time. Nothing in `scripts/` calls `Math.Pow`,
+  `Math.Log` or their float variants, which the architecture runner's `nondeterministic-sim` rule flags in C# too.
+- **Culture-proof text.** C# formats a double with the machine's culture, so `Numbers` and `TextFormat` (which fills the
+  translation table's `%s`, `%d`, `%02d` and `%%`) write every number with `CultureInfo.InvariantCulture`, and every
+  parse names it, as do the juice log's times: on a machine set to German the game prints `1.50aa`, not `1,50aa`,
+  and its bot run is the same, line for line.
+- **Names:** `Game` keeps the snake_case names the flows and the contract use: `economy`, `buy_mode`, `page`,
+  `restore`, `gather`, `buy`, `buy_upgrade`, `next_mode`, `show_page`, `ask_dawn`, `confirm_dawn`, `show_welcome` and
+  `add_glow` (the flows call it with a whole number, which the engine passes to its `double`); `Main` keeps
+  `save_path`, `clock` (a `Func<double>`), `game`, `seen_at` and `save_now`, which tests set or call before and after
+  it enters the tree. The rest is C#'s own case: `Numbers.Format`, `FormatRate`, `Suffix`, `GroupOf`, `Thousand`,
+  `Power`, `Close`, `Max` and `Tolerance`; `Economy.Cost`, `MaxAffordable`, `Buy`, `BuyMax`, `CanBuy`,
+  `UpgradeUnlocked`, `CanUpgrade`, `BuyUpgrade`, `Multiplier`, `EmberMultiplier`, `Rate`, `ProducerRate`,
+  `UnitRate`, `TapValue`, `Tap`, `Tick`, `Earn`, `DawnGain`, `CanDawn`, `Dawn`, `ToDict` and `FromDict`;
+  `Offline.SecondsAway`, `SeenAt` and `Apply` (a `TimeAway` record); `Bot.NextAction` and `Act` (a `BotAction` record
+  rather than a dictionary); `Game.Setup`.
+- **One method the GDScript tests do without.** `Economy.SetCount(id, count)` sets how many of a producer are owned and
+  marks the rate to be worked out again, where the GDScript tests write `owned[id]` and `_dirty` directly; `Owned` is
+  read-only. `Upgrades` is a `HashSet<string>` the tests add to, as they add to the GDScript dictionary.
+  `Game.Refresh` is internal, so that the fix-bug hidden test can call it as `test_hidden_bulk_cost.gd` calls `_refresh`.
+- **Typed rows and C# events.** A producer is a `ProducerData` record and an upgrade an `UpgradeData`; `Catalog.Producer`
+  and `Catalog.Upgrade` give null for an id the data lacks, where GDScript gives `{}`. `Economy`'s signals and the
+  game's and screens' are C# events; `SafeArea.Changed` is a Godot signal, as the kit's layout runner and
+  `SafeMargins` expect.
+- **Simulation code the architecture runner passes.** Nothing in `scripts/` iterates a `Dictionary` or `HashSet`: the
+  "all" upgrade counts the catalog's producers, `ToDict` writes `owned` and `upgrades` in data order (so the same
+  economy always writes the same file), and the game refreshes its rows in data order too.
+- **Saves:** `SaveStore` takes a file path (Main globalises `save_path`) and uses `System.Text.Json`, which writes a
+  double's shortest round-trip text, so glow past 2^53 comes back as the same double; its tests use temporary files.
+  `SaveData` holds `Economy` (a `JsonObject`, as `ToDict()` gives it), `SavedAt`, `Volume` and `Locale`; the file is
+  the GDScript version's, so a save from either loads in the other. There is no Web build to sync to IndexedDB.
+- **Tests:** 62 gdUnit4 tests in `test/*Test.cs`, the GUT tests one for one, run by the kit's `dotnet` runner, and
+  `gdunit4` for the mutants. The suites that read `res://` or load a scene are `[RequireGodotRuntime]`; `Numbers` and
+  `LaunchOptions` are tested without the engine. The game scene's tests load it with `ISceneRunner` and wait whole
+  physics ticks; the tests of Main, and the hidden bar check (which resizes the window first), add the scene to the
+  tree themselves, since Main's `save_path` and `clock` must be set before it is ready and the scene runner adds a scene
+  at once.
+- **Hidden checks that differ.** C# has no engine error count, so the fix-architecture check of a row alone reads its
+  buy button as well as its count; the architecture runner is what catches the lookup. `SaveStore.Read` gives a
+  `SaveData`, which has no version of its own, so the migration check reads the version back from the written file.
+- **The explain-failure test** is `Past_decillions_letters_take_over`, `test/NumbersTest.cs` line 47; gdUnit4 stops at
+  its first failed assertion, so lines 48 and 49 are not reported.
+- **Stages** lay overlays of `game/Game.cs`, `game/game.tscn`, `scripts/Economy.cs` and `test/GameTest.cs` (prototype),
+  as the GDScript stage does with its scripts; the data, translations and plans are the GDScript version's files, and
+  the rest, the alpha's and beta's removals from Main, Game, Settings, SaveStore and LaunchOptions included, is edits.
+  The task references and decoys are the stage's files with the defect undone or a wrong fix made; those of data and
+  translations are the GDScript version's files. The milestone references follow the rule above, generated from the
+  built stages.
+- **Export:** Linux and Android (Godot 4.7 cannot export C# to the Web). The Android preset builds without Gradle, so
+  the project targets `net9.0` when `GodotTargetPlatform` is `android`, as `doctor` asks; the planted export defect
+  adds `data/*` to the Linux preset's `exclude_filter="test/*"`. `THIRD-PARTY-NOTICES.txt` comes from `credits` on the
+  C# game, with the .NET runtime's notices; the store art, docs, data, translations, sounds and flows are the GDScript
+  version's files, and `CHANGELOG.md` names the builds this version has. `doctor` wants the .NET build of Godot in
+  `GODOT_BIN` for a C# project, as the self-test workflow sets it.
