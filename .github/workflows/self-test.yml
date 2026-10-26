@@ -1,22 +1,42 @@
-# Exercises the kit on every change: the reusable workflow on Linux runners, and the script on Windows
-# exactly as it runs on a developer machine.
+# Exercises the kit on every pull request (what the change needs), on every merge to main and every night (everything):
+# the reusable workflow on Linux runners, and the script on Windows exactly as it runs on a developer machine.
+# docs/ci.md says what runs when.
 name: Self-test
 
 on:
+  # A pull request runs what its changes need (the `changes` job). Main runs everything after each merge, and so does the
+  # nightly schedule, which also catches what a pull request's filter let past (it runs on the default branch).
+  # Branches without a pull request are not tested: the pull request does that, so a push to its branch starts one run,
+  # not two.
   push:
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: '23 2 * * *'
 
 permissions:
   contents: read
 
-# A push to a branch with an open pull request starts this twice (push and pull_request); both share the branch's group,
-# so the later one cancels the earlier, as a new push cancels a run of an older commit. Not on main, where every merge
-# keeps its own run.
+# A new push to a pull request's branch cancels the run of the older commit. Everything else keeps its own run: every
+# merge to main, each nightly run and each run started by hand has a group of its own (the run id), since a group lets only
+# one run wait and would drop the one in between.
 concurrency:
-  group: self-test-${{ github.head_ref || github.ref_name }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  group: self-test-${{ github.event_name == 'pull_request' && github.head_ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# git 2.54+ runs background maintenance after a commit, which packs and deletes loose objects, and has raced tests that
+# commit and then clone or copy a repository (the staged programme's game workspaces, Test-UpdatePins.ps1's clone). Off
+# for every git call of every job.
+env:
+  GIT_CONFIG_COUNT: '3'
+  GIT_CONFIG_KEY_0: gc.auto
+  GIT_CONFIG_VALUE_0: '0'
+  GIT_CONFIG_KEY_1: gc.autoDetach
+  GIT_CONFIG_VALUE_1: 'false'
+  GIT_CONFIG_KEY_2: maintenance.auto
+  GIT_CONFIG_VALUE_2: 'false'
 
 jobs:
   lint:
@@ -35,7 +55,8 @@ jobs:
           $issues = @(Invoke-ScriptAnalyzer -Path ci/godot -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1) +
             @(Invoke-ScriptAnalyzer -Path hooks -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1) +
             @(Invoke-ScriptAnalyzer -Path benchmark -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1) +
-            @(Invoke-ScriptAnalyzer -Path site -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1)
+            @(Invoke-ScriptAnalyzer -Path site -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1) +
+            @(Invoke-ScriptAnalyzer -Path .github/scripts -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1)
           $issues | Format-Table -AutoSize RuleName, ScriptName, Line, Message | Out-String -Width 200
           if ($issues) { exit 1 }
       - name: Skills pass their own validator, and the validator catches broken fixtures
@@ -58,6 +79,9 @@ jobs:
       - name: doctor reports agent instructions that name kit flags or files that do not exist; the kit's own calls bind
         shell: pwsh
         run: ./tests/Test-Context.ps1
+      - name: The selection of what a change runs (the sample of pairs, the pairs of a changed game, everything on main) holds
+        shell: pwsh
+        run: ./tests/Test-SelectJobs.ps1
       - name: help and /kit have an entry for every command, skill and subagent
         shell: pwsh
         run: ./tests/Test-Help.ps1
@@ -123,7 +147,10 @@ jobs:
       - name: State from before the Hyperdot rename moves once (history, GUT stamp, tools folder, workflow, plugin entry)
         shell: pwsh
         run: ./tests/Test-OldState.ps1
+      # Nightly and on main only: it has not failed in the sampled runs (docs/ci.md), takes about 3 minutes, and only
+      # plan -Do sync reaches this code.
       - name: plan -Do sync against a stand-in Trello (cards, moves, archived cards, list names, credentials kept out of output)
+        if: github.event_name != 'pull_request'
         shell: pwsh
         run: ./tests/Test-TrelloSync.ps1
       - name: doctor's GDExtension, Steam package and Steamworks file checks (rich presence, achievements, build scripts), and Steam detection
@@ -253,6 +280,8 @@ jobs:
   # No inputs at all: detects the shallowest project (examples/gdscript), installs GUT, runs validate,
   # gut and smoke.
   zero-config:
+    needs: changes
+    if: needs.changes.outputs.zero-config == 'true'
     permissions:
       contents: read
       pull-requests: write
@@ -264,6 +293,8 @@ jobs:
   # runner, and a release dry run on branches. Never on a tag: a release there would publish the example game as the
   # kit's own release (or add its zips to it), so the job also gets no write access to contents.
   csharp:
+    needs: changes
+    if: needs.changes.outputs.csharp == 'true'
     permissions:
       contents: read
       pull-requests: write
@@ -279,6 +310,8 @@ jobs:
 
   # Runners picked by hand.
   explicit-runners:
+    needs: changes
+    if: needs.changes.outputs.explicit-runners == 'true'
     uses: ./.github/workflows/godot.yml
     with:
       project: examples/csharp/game
@@ -289,6 +322,8 @@ jobs:
 
   # init on a bare game (no tests, no CI), then doctor and a full test run of what it generated.
   init:
+    needs: changes
+    if: needs.changes.outputs.init == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -430,6 +465,8 @@ jobs:
   # bench, shot and -GameArgs. A virtual display stands in for a screen; rendering is software OpenGL, so the numbers only
   # prove the commands work, not how fast anything is.
   measure:
+    needs: changes
+    if: needs.changes.outputs.measure == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -569,6 +606,8 @@ jobs:
   # programme, and benchmark/game-programme.json's written genres). Its own job: it runs Godot for every task several
   # times, and the staged programme grows with each genre. The .NET build of Godot runs the GDScript games too.
   game-benchmark:
+    needs: changes
+    if: needs.changes.outputs.game-benchmark == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -584,7 +623,10 @@ jobs:
       - name: The game benchmark grades good and bad game work by the game's tests, and judges it
         shell: pwsh
         run: ./tests/Test-GameBenchmark.ps1
+      # Nightly and on main only: the staged programme's own pairs (the game-programme jobs) check the same thing on the
+      # real games, and the step above runs this programme through the runner; it has not failed in the sampled runs.
       - name: Every task of a test programme catches its defect, passes its reference and fails its decoy
+        if: github.event_name != 'pull_request'
         shell: pwsh
         run: ./tests/Test-GameProgramme.ps1 -SpecPath tests/game-benchmark/programme/programme.json
       # The runner has passwordless sudo, so this checks the sudo launcher with a real separate user.
@@ -600,52 +642,50 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-  # The real staged programme (benchmark/game-programme.json): every written genre's tasks must catch their defect, pass
+  # What this change needs, from .github/scripts/Select-Jobs.ps1 (held to its rules by tests/Test-SelectJobs.ps1): which of
+  # the jobs below that can be skipped run, and which pairs of the staged programme. Everything runs on a push to main, on
+  # the nightly schedule, when started by hand and when the base cannot be compared. On a pull request a job runs when the
+  # files it exercises changed (or the shared core, or the workflow); a change to documentation alone runs lint alone.
+  # The staged programme (benchmark/game-programme.json): every written genre's tasks must catch their defect, pass
   # their reference and fail their decoy. It runs Godot hundreds of times (the C# arcade game alone takes about an hour
-  # and a half), so it runs one job per genre and language, and only the pairs whose game changed: every pair when the
-  # harness or the programme changed or when started by hand.
-  programme-pairs:
+  # and a half), so it runs one job per genre and language, and on a pull request only the pairs whose game changed; a
+  # change to the check's own code (the harness, the programme, the templates) runs a sample of three pairs.
+  changes:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
-      pairs: ${{ steps.pairs.outputs.pairs }}
+      zero-config: ${{ steps.select.outputs.zero-config }}
+      csharp: ${{ steps.select.outputs.csharp }}
+      explicit-runners: ${{ steps.select.outputs.explicit-runners }}
+      action: ${{ steps.select.outputs.action }}
+      local-windows: ${{ steps.select.outputs.local-windows }}
+      init: ${{ steps.select.outputs.init }}
+      measure: ${{ steps.select.outputs.measure }}
+      game-benchmark: ${{ steps.select.outputs.game-benchmark }}
+      field-test: ${{ steps.select.outputs.field-test }}
+      web: ${{ steps.select.outputs.web }}
+      full: ${{ steps.select.outputs.full }}
+      all: ${{ steps.select.outputs.all }}
+      pairs: ${{ steps.select.outputs.pairs }}
     steps:
       - uses: actions/checkout@v7
-      - name: Which genres and languages changed?
-        id: pairs
+      - name: Which jobs and which genre and language pairs does this change need?
+        id: select
         shell: pwsh
         env:
           BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
-        run: |
-          $spec = Get-Content -Raw benchmark/game-programme.json | ConvertFrom-Json
-          $written = @(foreach ($g in $spec.programme.genres) { foreach ($l in $g.languages) {
-              if (Test-Path "benchmark/games/$($g.id)/$l") { [ordered]@{ genre = $g.id; language = $l } } } })
-          $every = $env:GITHUB_EVENT_NAME -eq 'workflow_dispatch' -or -not $env:BASE -or $env:BASE -match '^0+$'
-          $files = @()
-          if (-not $every) {
-            git fetch -q --depth=1 origin $env:BASE 2>$null
-            $files = @(git diff --name-only $env:BASE HEAD 2>$null)
-            # Not fetched (a force push, a deleted base): check everything rather than skip.
-            $every = $LASTEXITCODE -ne 0 -or @($files | Where-Object { $_ -match '^benchmark/templates/|^benchmark/(GameProgramme\.ps1|game-programme\.json)$|^tests/Test-GameProgramme\.ps1$' }).Count -gt 0
-          }
-          # A pair changed when its language's folder did, or a file of the genre's outside both languages that is not
-          # prose (its DESIGN.md is read by people, not by the check).
-          $pairs = @(foreach ($p in $written) {
-            $mine = "^benchmark/games/$($p.genre)/($($p.language)/|(?!gdscript/|csharp/).*(?<!\.md)$)"
-            if ($every -or @($files | Where-Object { $_ -match $mine }).Count -gt 0) { $p } })
-          "pairs=$(ConvertTo-Json -InputObject $pairs -Compress)" >> $env:GITHUB_OUTPUT
-          Write-Host "::notice::The staged programme's check runs $($pairs.Count) of $($written.Count) genre and language pairs"
+        run: ./.github/scripts/Select-Jobs.ps1
 
   game-programme:
-    needs: programme-pairs
-    if: needs.programme-pairs.outputs.pairs != '[]'
+    needs: changes
+    if: needs.changes.outputs.pairs != '[]'
     name: game-programme (${{ matrix.genre }}, ${{ matrix.language }})
     runs-on: ubuntu-latest
     timeout-minutes: 150
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(needs.programme-pairs.outputs.pairs) }}
+        include: ${{ fromJSON(needs.changes.outputs.pairs) }}
     steps:
       - uses: actions/checkout@v7
       - name: Godot (.NET build), for GODOT_BIN
@@ -660,6 +700,8 @@ jobs:
   # The private field test (-GameSource) with a stand-in for the model: the mutant planter, and whole runs on copies
   # of both examples, good and bad work, numbers only in the report.
   field-test:
+    needs: changes
+    if: needs.changes.outputs.field-test == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -684,6 +726,8 @@ jobs:
 
   # Web exports opened in real browsers (export -Run -Browser): Playwright's Chromium and Firefox, and the runner's Edge.
   web:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -747,6 +791,8 @@ jobs:
 
   # The composite action inside a custom workflow.
   action:
+    needs: changes
+    if: needs.changes.outputs.action == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -772,6 +818,8 @@ jobs:
 
   # The script on Windows, as on a developer machine: no workflow, no action.
   local-windows:
+    needs: changes
+    if: needs.changes.outputs.local-windows == 'true'
     runs-on: windows-latest
     timeout-minutes: 45
     steps:
@@ -850,9 +898,11 @@ jobs:
           retention-days: 14
 
   # What the self-tests reach, from every job's records: commands, functions, documented error codes. A drop below the
-  # floors fails the run, so coverage cannot fall unnoticed.
+  # floors fails the run, so coverage cannot fall unnoticed. The floors are for the whole suite: a pull request may skip
+  # jobs (the change filter) and steps (kept for main and the nightly run), whose records are then missing by design, so
+  # it only reports what was reached. Pushes to main, the nightly run and manual runs enforce the floors.
   coverage:
-    needs: [lint, zero-config, csharp, explicit-runners, init, measure, game-benchmark, field-test, web, action, local-windows]
+    needs: [changes, lint, zero-config, csharp, explicit-runners, init, measure, game-benchmark, field-test, web, action, local-windows]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -864,10 +914,24 @@ jobs:
           path: ${{ runner.temp }}/coverage
       - name: Coverage of the kit by the self-tests
         shell: pwsh
+        env:
+          # Pushes to main, the nightly run and manual runs skip no job and no step, so the floors hold; a pull request
+          # may skip jobs and steps, whose records are then missing by design.
+          WHOLE_SUITE: ${{ github.event_name != 'pull_request' }}
         run: |
-          ./tests/Get-KitCoverage.ps1 -From "$env:RUNNER_TEMP/coverage" -Json > "$env:RUNNER_TEMP/coverage.json"
-          $report = ./tests/Get-KitCoverage.ps1 -From "$env:RUNNER_TEMP/coverage" -MinFunctions 85 -MinErrorCodes 80 -MinCommands 100 6>&1
-          $code = $LASTEXITCODE
+          $whole = $env:WHOLE_SUITE -eq 'true'
+          $floors = if ($whole) { @{ MinFunctions = 85; MinErrorCodes = 80; MinCommands = 100 } } else { @{} }
+          if (-not $whole) { Write-Host '::notice::A pull request may skip jobs and steps, so coverage is reported but its floors are enforced only by pushes to main, the nightly run and manual runs' }
+          try {
+            ./tests/Get-KitCoverage.ps1 -From "$env:RUNNER_TEMP/coverage" -Json > "$env:RUNNER_TEMP/coverage.json"
+            $report = ./tests/Get-KitCoverage.ps1 -From "$env:RUNNER_TEMP/coverage" @floors 6>&1
+            $code = $LASTEXITCODE
+          } catch {
+            # Without records there is nothing to report; on the whole suite that is itself the failure.
+            if ($whole) { throw }
+            Write-Host "::warning::No coverage records to report: $($_.Exception.Message)"
+            exit 0
+          }
           $report | Out-String | Tee-Object -Variable text | Write-Host
           "``````text`n$text`n``````" | Add-Content $env:GITHUB_STEP_SUMMARY
           exit $code

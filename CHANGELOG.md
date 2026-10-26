@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- **The self-test runs what a change needs.** It ran 35 jobs and about 500 runner-minutes for any change, 84% of them in
+  the 20 pairs of the staged programme, and every push to a pull request branch started two runs. Now a `changes` job
+  (`.github/scripts/Select-Jobs.ps1`, held by `tests/Test-SelectJobs.ps1`) lists the changed files and a pull request runs
+  lint alone for documentation, the jobs that exercise the changed libs, tools and tests otherwise, one pair for a changed
+  game and a sample of three pairs for the programme's own code; a push to `main`, the nightly run (02:23 UTC) and a
+  manual run still run everything, and keep a few slow steps that have never failed for the full runs only. Branches are
+  tested through their pull request, not on push, and the coverage floors are enforced on the full runs. Git's background
+  maintenance is off in CI. [docs/ci.md](docs/ci.md) has the rules, the measured cost and the failure record of the last
+  100 runs; faster game jobs were measured and not shipped (no gain beyond noise).
 - **Game copies no longer race git's background maintenance.** Since git 2.54 a commit's automatic maintenance packs
   loose objects in a detached process ("geometric" strategy), and a beta or release game commits over a hundred: the
   benchmark's copy of the game or its `.git`, made a moment later, lost files under it ("Could not find a part of the
