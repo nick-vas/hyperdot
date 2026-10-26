@@ -34,7 +34,8 @@ jobs:
         run: |
           $issues = @(Invoke-ScriptAnalyzer -Path ci/godot -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1) +
             @(Invoke-ScriptAnalyzer -Path hooks -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1) +
-            @(Invoke-ScriptAnalyzer -Path benchmark -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1)
+            @(Invoke-ScriptAnalyzer -Path benchmark -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1) +
+            @(Invoke-ScriptAnalyzer -Path site -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1)
           $issues | Format-Table -AutoSize RuleName, ScriptName, Line, Message | Out-String -Width 200
           if ($issues) { exit 1 }
       - name: Skills pass their own validator, and the validator catches broken fixtures
@@ -45,6 +46,9 @@ jobs:
       - name: Every link and quoted path in the docs and skills leads somewhere
         shell: pwsh
         run: ./tests/Test-DocLinks.ps1
+      - name: The GitHub Pages site builds from the Markdown, and every page, link, anchor and label in it checks out
+        shell: pwsh
+        run: ./tests/Test-Site.ps1
       - name: Every command, error code, lib file, tool, skill, subagent and workflow job has a row in docs/coverage.md
         shell: pwsh
         run: ./tests/Test-CoverageMap.ps1

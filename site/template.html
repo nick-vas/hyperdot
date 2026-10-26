@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{TITLE}}</title>
+<meta name="description" content="{{DESCRIPTION}}">
+<link rel="stylesheet" href="{{ROOT}}static/site.css">
+{{ICON}}
+<script src="{{ROOT}}static/site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+<nav class="site-nav" aria-label="Site">
+<a class="brand" href="{{HOME}}">Hyperdot</a>
+<ul>{{NAV}}</ul>
+</nav>
+</header>
+<div class="{{PAGECLASS}}" data-root="{{ROOT}}">
+{{TOC}}
+<main id="main" tabindex="-1">
+{{CONTENT}}
+</main>
+</div>
+<footer class="site-footer">
+<p>Built from <a href="{{COMMITURL}}">{{COMMIT}}</a> of the repository's Markdown. <a href="{{SOURCE}}">Source of this page</a>. Hyperdot is under the <a href="{{LICENCEURL}}">Apache License 2.0</a>.</p>
+</footer>
+</body>
+</html>

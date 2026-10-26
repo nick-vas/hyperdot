@@ -27,6 +27,9 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 - `examples/csharp` (C#, every framework) and `examples/gdscript` (GUT): the integration fixtures.
 - `docs/` per-topic documentation; `docs/json.md` is the output contract; `docs/help.md` is the text of `help` and `/kit`
   (a new command, skill or subagent needs an entry there).
+- `site/` the GitHub Pages site: `Build-Site.ps1` builds it from `README.md`, `CHANGELOG.md` and `docs/**/*.md` (Markdig, as in
+  `ConvertFrom-Markdown`, with GitHub's extensions) into `_site` (ignored) with `template.html`, `site.css` and `site.js`;
+  `.github/workflows/pages.yml` publishes it ([docs/site.md](docs/site.md)).
 
 ## Working here
 
@@ -122,6 +125,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-PrComment.ps1` | the PR comment's paging, ignoring others' marker comments, the push-only coverage baseline (a stand-in GitHub API on 127.0.0.1) | - |
 | `Test-SkillShaders.ps1` | shaders quoted in skills compile | Godot |
 | `Test-DocLinks.ps1` | links and quoted paths in the docs and skills | - |
+| `Test-Site.ps1` | the GitHub Pages site: a page for every Markdown source, every internal link, anchor and repository link resolving, no `.md` links left, one h1, a title, lang and the viewport meta on every page, nothing fetched from another host, the label SVGs shown, the colours at WCAG 2.2 AA in light and dark; a made-up repository with a broken link and anchor, and the builder's fixes where Markdig differs from GitHub (`-Site` checks a built site) | - |
 | `Test-CoverageMap.ps1` | `docs/coverage.md` has a row for every command, error code, lib file, tool, skill, subagent and workflow job; `-Check` catches missing, stale and wrong rows; records are credited to the test they name | - |
 | `Test-LibNames.ps1` | function names across `ci/godot` (unique, no alias clashes) | - |
 | `Test-OldState.ps1` | the one-time move of state from the names before Hyperdot (history, GUT stamp, tools folder, workflow, plugin entry) | - |
