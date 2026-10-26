@@ -32,7 +32,21 @@ if (-not $cases.Contains('res://crash.tscn') -or $cases['res://crash.tscn'] -not
 }
 Remove-Item -LiteralPath $log
 
-$json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') test -Project (Join-Path $PSScriptRoot 'tres-fixture') -Runners validate -Json 2>$null
+# A results folder holds no game files: a broken editor_settings .tres under test-results/ or TestResults/ (where a session
+# once pointed Godot's config folder) is skipped. The results go elsewhere, so the kit adds no .gdignore that would hide it.
+$fixture = Join-Path $PSScriptRoot 'tres-fixture'
+$planted = foreach ($folder in 'test-results', 'TestResults') { Join-Path $fixture "$folder/cfg/godot/editor_settings-4.7.tres" }
+$resultsOut = Join-Path ([IO.Path]::GetTempPath()) "tres-results-$PID"
+try {
+    foreach ($file in $planted) {
+        New-Item -ItemType Directory -Force (Split-Path $file -Parent) | Out-Null
+        Set-Content -LiteralPath $file -Value "[gd_resource type=`"Resource`" format=3]`n[resource]`nbroken = Vector2(`n"
+    }
+    $json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') test -Project $fixture -Runners validate -Results $resultsOut -Json 2>$null
+} finally {
+    foreach ($folder in 'test-results', 'TestResults') { Remove-Item -LiteralPath (Join-Path $fixture $folder) -Recurse -Force -ErrorAction SilentlyContinue }
+    Remove-Item -LiteralPath $resultsOut -Recurse -Force -ErrorAction SilentlyContinue
+}
 $result = $json | Out-String | ConvertFrom-Json
 $run = @($result.runnerResults)[0]
 $failed = @($run.failures | ForEach-Object { "$($_.file): $($_.message)" })
@@ -40,5 +54,5 @@ if ($result.ok) { $failures += 'validate should fail on bad.tres' }
 if ($failed.Count -ne 1 -or $failed[0] -notmatch '^bad\.tres: keeps spead, which EnemyStats no longer has') { $failures += "expected only bad.tres with 'spead': $($failed -join ' | ')" }
 if ($run.passed -lt 2) { $failures += "good.tres and stats.gd should pass: $($run.passed) passed" }
 if ($failures) { $failures | ForEach-Object { Write-Host "FAIL $_" -ForegroundColor Red }; exit 1 }
-Write-Host "validate fails a .tres that keeps a renamed export's old key (bad.tres: spead) and passes the rest"
+Write-Host "validate fails a .tres that keeps a renamed export's old key (bad.tres: spead), passes the rest and skips the results folders"
 exit 0

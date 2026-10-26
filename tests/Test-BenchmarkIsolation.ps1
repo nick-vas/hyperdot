@@ -52,6 +52,8 @@ $settings = [ordered]@{
     FAKE_PROBE = "$root/benchmark/PLAN.md|$hidden|..|$root"
     # What reaches the session: the CLI's credentials, and the names listed here; nothing else of the runner's.
     CLAUDE_CODE_OAUTH_TOKEN = 'sk-ant-oat-stand-in'; FAKE_NOT_PASSED = '1'
+    # A runner's own config folders (GitHub's: /home/runner/.config), which the session user cannot write.
+    XDG_CONFIG_HOME = "$privateTemp/runner-config"; XDG_DATA_HOME = "$privateTemp/runner-data"
     HYPERDOT_ISOLATE_ENV = 'FAKE_GAME_MODE,FAKE_CLAUDE_LOG,FAKE_PROBE,FAKE_RUN_GODOT,FAKE_LINGER,FAKE_HOSTILE,FAKE_HOSTILE_LINK,FAKE_CANARY'
 }
 foreach ($name in @($settings.Keys) + @('FAKE_GAME_MODE', 'FAKE_LINGER', 'FAKE_HOSTILE', 'FAKE_HOSTILE_LINK', 'FAKE_CANARY', 'HYPERDOT_ISOLATE_VIA', 'HYPERDOT_ISOLATE')) {
@@ -95,6 +97,7 @@ try {
     Assert-True (@($iso.Calls | Where-Object { $_.token -ne 'sk-ant-oat-stand-in' -or $_.notPassed }).Count -eq 0) 'the CLI''s credentials reach the session; the runner''s other variables do not'
     Assert-True (@($iso.Calls | Where-Object { $_.godotVersion -notmatch '^4\.' }).Count -eq 0) "the session user can run Godot ($(@($iso.Calls | ForEach-Object godotVersion) -join ', '))"
     Assert-True (@($iso.Calls | Where-Object { $_.home -notlike "$privateTemp/hyperdot-isolated-*" }).Count -eq 0) 'its HOME is the run''s own'
+    Assert-True (@($iso.Calls | Where-Object { -not $_.xdgConfig -or -not $_.xdgData -or -not $_.xdgConfig.StartsWith("$($_.home)/") -or -not $_.xdgData.StartsWith("$($_.home)/") }).Count -eq 0) "Godot's config and data folders are in that HOME, not the runner's ($(@($iso.Calls | ForEach-Object { "$($_.xdgConfig) $($_.xdgData)" }) -join '; '))"
     Assert-True ((Get-Content -LiteralPath $canary -Raw) -eq 'untouched') 'the grader does not write a hidden test through a link the session left'
     Assert-True (-not (Test-Path -LiteralPath "$canary.git-ran")) 'the grader''s git does not run what the session configured'
     $uid = @($iso.Calls | ForEach-Object uid | Select-Object -First 1)

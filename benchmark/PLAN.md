@@ -83,6 +83,28 @@ configuration, the first run with every session isolated as its own user on GitH
 - **Isolation.** The fix that lets a runner that is not root start sessions through sudo (the session user enters its
   game folder itself) held for all 32 sessions; the run before it (31) had failed on that before any session started.
 
+## The min tier over all ten genres
+
+Token-benchmark run 43 (2026-10-26, commit b890348, sessions isolated): one stage of each of the ten genres, two tasks
+each, one run per task and configuration, 80 sessions for $6.58 (the runner estimated $5.70).
+
+| | Sonnet | Sonnet + plugin | Haiku | Haiku + plugin |
+|---|---:|---:|---:|---:|
+| Passed (of 20) | 12 | 19 | 16 | 19 |
+| Failed on the word limit alone | 6 | 0 | 2 | 0 |
+| Cost | $2.18 | $3.45 | $0.43 | $0.51 |
+
+- **No task failed for every configuration**: each of the ten genres has tasks a session can pass, so none is broken.
+- **Sonnet without the plugin** lost six of its eight failures to answers over the 220-word limit, the same habit the
+  tool programme showed (`docs/roadmap.md`); its game work passed 18 of 20.
+- **Sonnet with the plugin** failed one task on the kit, not the work: Godot could not write its settings in the session
+  user's HOME, so the session pointed `XDG_CONFIG_HOME` into the game's `test-results/`, and the `validate` runner then
+  failed the game on Godot's own `editor_settings-4.7.tres` there. Isolated sessions now get their XDG folders inside
+  their own HOME (`Isolation.ps1`), and `validate` skips `test-results/` and `TestResults/` as the kit's file search does.
+- **Cost**: every configuration's sessions cost more than the arcade pilot's (means of $0.109, $0.173, $0.022 and $0.025);
+  `cost-model.json` now uses them, which prices this run at $6.66 and the mid tier at $105.96 under its $120 ceiling,
+  with the milestones still unmeasured.
+
 ## Decisions
 
 | Question | Decision |

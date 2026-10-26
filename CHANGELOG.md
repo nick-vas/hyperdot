@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- **The staged programme's first run over all ten genres** (the min tier, token-benchmark run 43, $6.58): 66 of 80
+  sessions passed and no task failed for every configuration (`benchmark/PLAN.md`). It found two faults in the kit, both
+  fixed with regression tests: isolated sessions inherited no writable XDG folders, so Godot's config ended up inside a
+  game (`Isolation.ps1` now gives each session its own, checked in `tests/Test-BenchmarkIsolation.ps1`), and the
+  `validate` runner read `.tres` files in `test-results/` and `TestResults/`, which it now skips like the kit's file
+  search (`tests/Test-StaleTres.ps1`). `cost-model.json`'s task prices are this run's mean costs.
 - **The staged programme's min and mid tiers cover all ten genres.** min runs one stage of each genre (every language
   and stage pair at least once), 20 tasks a configuration, estimated at $5.70 for all four configurations; mid runs one
   stage of each genre in each language, 40 tasks and 5 milestones a configuration, three times, estimated at $100.20
