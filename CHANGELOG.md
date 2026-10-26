@@ -24,6 +24,15 @@
   its `before_script` now unpacks PowerShell 7.6.9's self-contained Linux build into `.hyperdot-cache/pwsh/` (cached),
   puts it first on PATH and stops the job if `pwsh` is still older; games still build with the image's .NET 8 SDK.
   `tests/Test-GitLabTemplate.ps1` holds the template to the floor of `hyperdot.ps1`.
+- **The self-test runs what a change needs.** It ran 35 jobs and about 500 runner-minutes for any change, 84% of them in
+  the 20 pairs of the staged programme, and every push to a pull request branch started two runs. Now a `changes` job
+  (`.github/scripts/Select-Jobs.ps1`, held by `tests/Test-SelectJobs.ps1`) lists the changed files and a pull request runs
+  lint alone for documentation, the jobs that exercise the changed libs, tools and tests otherwise, one pair for a changed
+  game and a sample of three pairs for the programme's own code; a push to `main`, the nightly run (02:23 UTC) and a
+  manual run still run everything, and keep a few slow steps that have never failed for the full runs only. Branches are
+  tested through their pull request, not on push, and the coverage floors are enforced on the full runs. Git's background
+  maintenance is off in CI. [docs/ci.md](docs/ci.md) has the rules, the measured cost and the failure record of the last
+  100 runs; faster game jobs were measured and not shipped (no gain beyond noise).
 - **Game copies no longer race git's background maintenance.** Since git 2.54 a commit's automatic maintenance packs
   loose objects in a detached process ("geometric" strategy), and a beta or release game commits over a hundred: the
   benchmark's copy of the game or its `.git`, made a moment later, lost files under it ("Could not find a part of the
@@ -31,6 +40,16 @@
   2.55. `New-GameWorkspace` now sets `gc.auto 0`, `gc.autoDetach false` and `maintenance.auto false` before the first
   commit, which also covers the git commands a session runs, and `tests/Test-GameProgramme.ps1` checks every workspace
   it grades.
+- **A website, built from the docs.** `site/Build-Site.ps1` turns `README.md`, `CHANGELOG.md` and every
+  `docs/**/*.md` into a GitHub Pages site (https://nick-vas.github.io/hyperdot/): the home page, the quick start, the
+  label page with the labels and information sheets in `docs/label/`, a benchmark page with the reference runs, a docs
+  index with each doc's first sentence and a search over titles and headings, and the changelog. It uses Markdig, the
+  engine `ConvertFrom-Markdown` loads, with GitHub's extensions only, so heading ids, carets and escaped pipes in tables
+  come out as on GitHub; links to other repository files go to GitHub at the built commit. No framework and nothing
+  from another host; light and dark colours at WCAG 2.2 AA; readable at 360 px. `.github/workflows/pages.yml` builds,
+  checks and publishes it on every push to `main` that changes the docs; `tests/Test-Site.ps1` checks every page, link,
+  anchor and label, and proves the check fails on a broken link and anchor. `pwsh site/Build-Site.ps1 -Serve` previews
+  it; [docs/site.md](docs/site.md) has the one owner step (Settings, Pages, Source: GitHub Actions).
 - **The staged programme's CI check runs one job per genre and language**, and only for the pairs whose game
   changed (every pair when the harness or the programme changed, or when started by hand). One job per language ran
   every genre in turn and no longer fitted its 150 minutes with ten genres; a pull request that adds one genre now

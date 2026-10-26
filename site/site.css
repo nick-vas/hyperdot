@@ -1,0 +1,156 @@
+/* Hyperdot's site: system fonts, no external requests, light and dark from the reader's setting.
+   The colour pairs are held to WCAG 2.2 AA by tests/Test-Site.ps1, which computes their contrast ratios. */
+:root {
+  --bg: #ffffff;
+  --fg: #1f2328;
+  --muted: #57606a;
+  --link: #0550ae;
+  --surface: #f6f8fa;
+  --code-bg: #eff1f3;
+  --border: #d0d7de;
+  --focus: #0550ae;
+  --measure: 70ch;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117;
+    --fg: #e6edf3;
+    --muted: #9da7b3;
+    --link: #79b8ff;
+    --surface: #161b22;
+    --code-bg: #1f2630;
+    --border: #3d444d;
+    --focus: #79b8ff;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  overflow-wrap: break-word;
+}
+a { color: var(--link); text-underline-offset: 0.15em; }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 2px; }
+main:focus { outline: none; }
+
+.skip {
+  position: absolute; left: 1rem; top: -4rem; z-index: 10;
+  padding: 0.5rem 0.75rem; background: var(--fg); color: var(--bg); border-radius: 4px;
+}
+.skip:focus { top: 0.5rem; }
+
+/* Header */
+.site-header { background: var(--surface); border-bottom: 1px solid var(--border); }
+.site-nav {
+  max-width: 76rem; margin: 0 auto; padding: 0.5rem 1rem;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 1.25rem;
+}
+.brand { font-weight: 700; font-size: 1.15rem; color: var(--fg); text-decoration: none; }
+.site-nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.1rem 0.9rem; }
+.site-nav li a { display: inline-block; padding: 0.3rem 0; color: var(--fg); text-decoration: none; }
+.site-nav li a:hover { text-decoration: underline; }
+.site-nav a[aria-current="page"] { color: var(--link); text-decoration: underline; text-decoration-thickness: 2px; }
+
+/* Page */
+.page { max-width: 76rem; margin: 0 auto; padding: 1rem 1rem 3rem; }
+main { max-width: 52rem; min-width: 0; }
+main > :first-child { margin-top: 0.5rem; }
+p, li, dd, blockquote, details, figcaption, .note { max-width: var(--measure); }
+/* The README centres its header with align="center": those lines take the column's width. */
+p[align="center"] { max-width: none; }
+/* A table whose header row is empty (the README's "| | |" tables) shows no empty row. */
+thead:not(:has(th:not(:empty))) { display: none; }
+h1, h2, h3, h4, h5, h6 { line-height: 1.25; margin: 1.8em 0 0.6em; scroll-margin-top: 1rem; }
+h1 { font-size: 2rem; margin-top: 0.6em; }
+h2 { font-size: 1.5rem; padding-bottom: 0.25em; border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.2rem; }
+h4 { font-size: 1.05rem; }
+img { max-width: 100%; height: auto; }
+hr { border: 0; border-top: 1px solid var(--border); margin: 2rem 0; }
+blockquote { margin: 1rem 0; padding: 0 1rem; border-left: 4px solid var(--border); color: var(--muted); }
+ul, ol { padding-left: 1.6rem; }
+li + li { margin-top: 0.2rem; }
+.site-nav li + li, .groups li + li { margin-top: 0; }
+li.task-list-item { list-style: none; }
+li.task-list-item input { margin: 0 0.4rem 0 -1.3rem; }
+details { margin: 1rem 0; }
+summary { cursor: pointer; }
+.note { padding: 0.75rem 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; }
+.from { color: var(--muted); font-size: 0.95rem; }
+
+/* Code */
+code, pre, kbd, samp { font-family: ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 0.875em; }
+:not(pre) > code { background: var(--code-bg); color: var(--fg); padding: 0.1em 0.35em; border-radius: 4px; overflow-wrap: anywhere; }
+pre {
+  background: var(--code-bg); color: var(--fg); padding: 0.85rem 1rem; border-radius: 6px;
+  overflow-x: auto; line-height: 1.45; tab-size: 4;
+}
+pre code { font-size: inherit; }
+
+/* Tables scroll in their own box, never the page */
+.table-wrap { overflow-x: auto; margin: 1rem 0; border: 1px solid var(--border); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+th, td { padding: 0.45rem 0.7rem; border-bottom: 1px solid var(--border); vertical-align: top; text-align: left; }
+th { background: var(--surface); font-weight: 600; }
+tr:last-child td { border-bottom: 0; }
+td code, th code { overflow-wrap: break-word; }
+
+/* Home: the README's centred header and its badges, shown as text */
+.page-home main { max-width: 56rem; }
+.badge { display: inline-block; margin: 0.15rem 0.1rem; padding: 0.05rem 0.5rem; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--fg); font-size: 0.85rem; }
+a .badge { color: var(--link); }
+
+/* Table of contents: above the page on small screens, beside it on wide ones */
+.toc { margin: 0 0 1rem; padding: 0.5rem 0.9rem; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; }
+.toc summary { font-weight: 600; }
+.toc ul { list-style: none; margin: 0.4rem 0; padding-left: 0; }
+.toc ul ul { padding-left: 1rem; margin: 0.15rem 0; }
+.toc li { margin: 0.15rem 0; }
+.toc a { text-decoration: none; }
+.toc a:hover { text-decoration: underline; }
+@media (min-width: 75rem) {
+  .page.has-toc { display: grid; grid-template-columns: minmax(0, 52rem) 16rem; gap: 3rem; align-items: start; }
+  .page.has-toc main { grid-row: 1; grid-column: 1; }
+  .page.has-toc .toc { grid-row: 1; grid-column: 2; position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow-y: auto; margin-top: 1.5rem; }
+}
+
+/* Docs index and search */
+.groups ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; }
+.doc-list { list-style: none; padding: 0; }
+.doc-list > li { margin: 0 0 0.9rem; }
+.doc-list > li > a { font-weight: 600; }
+.doc-list p { margin: 0.1rem 0 0; color: var(--muted); }
+.search { margin: 1rem 0 1.5rem; }
+.search label { display: block; font-weight: 600; margin-bottom: 0.3rem; }
+.search input { width: 100%; max-width: 28rem; padding: 0.45rem 0.6rem; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--muted); border-radius: 6px; }
+#search-results { list-style: none; padding: 0; margin: 0.6rem 0 0; }
+#search-results li { margin: 0.25rem 0; }
+#search-results span { color: var(--muted); font-size: 0.9rem; }
+
+/* Labels */
+.labels { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 1.25rem; margin: 1rem 0 1.5rem; }
+figure.label { margin: 0; }
+figure.label img { display: block; width: 100%; max-width: 16rem; border-radius: 10px; }
+figure.label figcaption { font-size: 0.92rem; margin-top: 0.4rem; }
+
+/* Footer */
+.site-footer { border-top: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 0.9rem; }
+.site-footer p { max-width: 76rem; margin: 0 auto; padding: 1rem; }
+
+@media (max-width: 40rem) {
+  body { font-size: 1rem; }
+  h1 { font-size: 1.65rem; }
+  h2 { font-size: 1.3rem; }
+  .site-nav { gap: 0.1rem 1rem; }
+}
+@media print {
+  .site-header, .site-footer, .toc, .skip, .search { display: none; }
+}

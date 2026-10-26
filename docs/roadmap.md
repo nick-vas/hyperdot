@@ -150,12 +150,6 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 
 ### Kit features not built
 
-- **A GitHub Pages site.** A project page with what Hyperdot is, the quick start, the label (tool, game-making and
-  tested classes, with the SVG labels and information sheets from `docs/label/`), the benchmark results and the docs.
-  It would be built from the repository's Markdown by a workflow, so it never drifts from them. The scope and look are
-  still to agree with the owner.
-
-
 - **Add-on status from release zips and the API.** `ci/godot/addons-status.json`'s names were confirmed from each
   repository's files and build scripts with git, because GitHub's release downloads and API answered 403 in the sandbox
   that built it; Godot Jolt's, PerfBullets' and py4godot's `archived` are still `null`. The canary's first run fills
