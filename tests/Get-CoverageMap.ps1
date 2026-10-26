@@ -346,6 +346,7 @@ $notes = @{
     'jobs/token-benchmark.yml/plan'                = 'plans the matrix for the benchmark job; started by hand'
     'jobs/trello-sync.yml/live'                    = 'runs `Test-TrelloSync.ps1 -Live` against the real Trello; needs `TRELLO_KEY` and `TRELLO_TOKEN`'
     'jobs/canary.yml/canary'                       = 'weekly against new releases; `Test-UpdatePins.ps1` checks its exit checks and pairing'
+    'jobs/pages.yml/deploy'                        = 'publishes the site the build job made and `Test-Site.ps1` checked; runs on main only'
 }
 
 # --- The map -------------------------------------------------------------------------------------------------------------

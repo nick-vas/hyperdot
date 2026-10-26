@@ -1,0 +1,51 @@
+# Builds the GitHub Pages site from the repository's Markdown (site/Build-Site.ps1), checks it (tests/Test-Site.ps1) and
+# publishes it, so the site never drifts from the docs. Needs Settings > Pages > Source: GitHub Actions (docs/site.md).
+name: Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - README.md
+      - CHANGELOG.md
+      - 'docs/**'
+      - 'site/**'
+      - .github/workflows/pages.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; a newer push waits rather than cancelling one in progress.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build the site
+        shell: pwsh
+        run: ./site/Build-Site.ps1 -Out _site -Commit '${{ github.sha }}'
+      - name: Every page, link, anchor, repository link and label in the built site checks out
+        shell: pwsh
+        run: ./tests/Test-Site.ps1 -Site _site
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
