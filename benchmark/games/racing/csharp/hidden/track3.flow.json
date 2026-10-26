@@ -1,0 +1,13 @@
+{
+  "name": "A race on track 3 starts with its name",
+  "scene": "res://game/game.tscn",
+  "seed": 1,
+  "steps": [
+    { "wait": 2 },
+    { "call": ".", "method": "start_track", "args": [3] },
+    { "wait": 2 },
+    { "assert": { "node": ".", "prop": "track", "equals": 3 } },
+    { "assert": { "node": "HUD/TrackLabel", "prop": "text", "equals": "Caldera Hairpins" } },
+    { "assert": { "node": "HUD/LapLabel", "prop": "text", "equals": "Lap 1/2" } }
+  ]
+}
