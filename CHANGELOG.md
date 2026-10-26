@@ -1,6 +1,16 @@
 # Changelog
 
 ## Unreleased
+- **A website, built from the docs.** `site/Build-Site.ps1` turns `README.md`, `CHANGELOG.md` and every
+  `docs/**/*.md` into a GitHub Pages site (https://nick-vas.github.io/hyperdot/): the home page, the quick start, the
+  label page with the labels and information sheets in `docs/label/`, a benchmark page with the reference runs, a docs
+  index with each doc's first sentence and a search over titles and headings, and the changelog. It uses Markdig, the
+  engine `ConvertFrom-Markdown` loads, with GitHub's extensions only, so heading ids, carets and escaped pipes in tables
+  come out as on GitHub; links to other repository files go to GitHub at the built commit. No framework and nothing
+  from another host; light and dark colours at WCAG 2.2 AA; readable at 360 px. `.github/workflows/pages.yml` builds,
+  checks and publishes it on every push to `main` that changes the docs; `tests/Test-Site.ps1` checks every page, link,
+  anchor and label, and proves the check fails on a broken link and anchor. `pwsh site/Build-Site.ps1 -Serve` previews
+  it; [docs/site.md](docs/site.md) has the one owner step (Settings, Pages, Source: GitHub Actions).
 - **The staged programme's CI check runs one job per genre and language**, and only for the pairs whose game
   changed (every pair when the harness or the programme changed, or when started by hand). One job per language ran
   every genre in turn and no longer fitted its 150 minutes with ten genres; a pull request that adds one genre now

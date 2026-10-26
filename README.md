@@ -322,6 +322,9 @@ Logs go to stderr. See [docs/json.md](docs/json.md).
 
 ## Documentation
 
+Also as a website: [nick-vas.github.io/hyperdot](https://nick-vas.github.io/hyperdot/), the repository's default github.io
+address, built from these files on every change ([docs/site.md](docs/site.md)).
+
 **Using the kit**
 - [docs/usage.md](docs/usage.md): usage scenarios, from adding the kit to a game to several games in one repository
 - [docs/reference.md](docs/reference.md): parameters, config files, workflow inputs and secrets, cost
