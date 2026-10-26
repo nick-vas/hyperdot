@@ -1,0 +1,16 @@
+{
+  "name": "Play on the menu starts a local match with the player in slot 1, and the first round begins on the Cinder Pit",
+  "scene": "res://main.tscn",
+  "seed": 1,
+  "steps": [
+    { "assert": { "node": "Menu", "prop": "visible", "equals": true } },
+    { "press": "Menu/PlayButton" },
+    { "wait": 2 },
+    { "assert": { "node": "Game", "exists": true } },
+    { "assert": { "node": "Menu", "prop": "visible", "equals": false } },
+    { "assert": { "node": "Game", "prop": "my_slot", "equals": 0 } },
+    { "assert": { "node": "Game/HUD/Scores/Slot0Label", "prop": "text", "equals": "P1 (you): 0" } },
+    { "wait_until": { "node": "Game", "prop": "state", "equals": "round" }, "timeout": 120 },
+    { "assert": { "node": "Game/HUD/RoundLabel", "prop": "text", "equals": "Round 1" } }
+  ]
+}

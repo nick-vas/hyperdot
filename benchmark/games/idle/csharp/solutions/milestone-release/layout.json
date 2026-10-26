@@ -1,0 +1,4 @@
+{
+  "scenes": ["res://main.tscn", "res://game/game.tscn", "res://ui/settings.tscn", "res://ui/credits.tscn"],
+  "profiles": ["phone_portrait", "tablet_portrait:1536x2048@264:touch:insets=0,48,0,40", "tablet", "ultrawide"]
+}

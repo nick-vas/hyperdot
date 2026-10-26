@@ -1,0 +1,48 @@
+keys,en
+MENU_TITLE,Glimmerpit
+MENU_PLAY,Play
+MENU_HOST,Host
+MENU_JOIN,Join
+MENU_SETTINGS,Settings
+MENU_CREDITS,Credits
+MENU_QUIT,Quit
+MENU_VERSION,Version %s
+MENU_NET_FAILED,Could not open the connection: %s
+MENU_NET_LOST,The connection to the host was lost.
+JOIN_TITLE,Join a match
+JOIN_ADDRESS,Host address
+JOIN_JOIN,Join
+JOIN_BACK,Back
+HUD_SLOT,P%d: %d
+HUD_SLOT_YOU,P%d (you): %d
+HUD_SLOT_BOT,P%d (bot): %d
+HUD_ROUND,Round %d
+HUD_HEALTH,Health: %d
+HUD_PAUSE,Pause
+HUD_FULL,The pit is full.
+HUD_CONNECTING,Connecting...
+HUD_GET_READY,Get ready!
+HUD_OVER,P%d wins the match!
+HUD_WAIT,Out: back next round
+HUD_MATCH_POINT,Match point!
+PAUSE_TITLE,Paused
+PAUSE_RESUME,Resume
+PAUSE_QUIT,Quit to menu
+RESULT_WON,Victory
+RESULT_LOST,Defeat
+RESULT_MESSAGE,P%d wins %d rounds to %d.
+RESULT_REMATCH,Rematch
+RESULT_MENU,Back to menu
+SETTINGS_TITLE,Settings
+SETTINGS_VOLUME,Volume
+SETTINGS_LANGUAGE,Language
+SETTINGS_BACK,Back
+LANG_EN,English
+LANG_FR,Français
+LANG_DE,Deutsch
+CREDITS_TITLE,Credits
+CREDITS_BACK,Back
+CREDITS_THIRD_PARTY,Third-party works
+CREDITS_THANKS,Thanks
+CREDITS_ENGINE,Engine
+COURT_CINDER_PIT,The Cinder Pit

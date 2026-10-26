@@ -1,0 +1,12 @@
+{
+  "name": "Back on the track select returns to the menu",
+  "scene": "res://main.tscn",
+  "seed": 1,
+  "steps": [
+    { "press": "Menu/StartButton" },
+    { "assert": { "node": "TrackSelect", "exists": true } },
+    { "press": "TrackSelect/Box/BackButton" },
+    { "assert": { "node": "TrackSelect", "exists": false } },
+    { "assert": { "node": "Menu", "prop": "visible", "equals": true } }
+  ]
+}

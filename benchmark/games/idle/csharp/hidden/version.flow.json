@@ -1,0 +1,10 @@
+{
+  "name": "The settings show version 1.1.0",
+  "scene": "res://main.tscn",
+  "seed": 1,
+  "steps": [
+    { "press": "Game/Safe/Column/Bar/SettingsButton" },
+    { "assert": { "node": "Settings/Safe/Box/VersionLabel", "prop": "text", "contains": "1.1.0" } },
+    { "assert": { "node": "Settings/Safe/Box/VersionLabel", "prop": "visible", "equals": true } }
+  ]
+}

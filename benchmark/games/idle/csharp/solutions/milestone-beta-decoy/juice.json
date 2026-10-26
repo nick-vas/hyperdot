@@ -1,0 +1,10 @@
+{
+  "frames": 1500,
+  "args": ["--autoplay", "--speed=60", "--no-save"],
+  "rules": [
+    { "event": "gathered", "feedback": ["sfx", "pop"], "withinMs": 100 },
+    { "event": "bought", "feedback": ["sfx", "pop"], "withinMs": 100 },
+    { "event": "upgraded", "feedback": ["sfx", "pop"], "withinMs": 100 },
+    { "event": "dawn", "feedback": ["flash", "shake", "sfx"], "withinMs": 100 }
+  ]
+}

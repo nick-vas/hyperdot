@@ -14,6 +14,36 @@
   when `TMPDIR` is too long for a socket path (which made every gdUnit4 run fail before), and remove it after the run.
   `tests/Test-DotnetTempDir.ps1` runs two at once against a stand-in `dotnet` and Godot. Windows names its pipes
   globally and is unchanged.
+- **The racing game in C#.** Cinderloop now has its C# version (`benchmark/games/racing/csharp/`), written from the
+  language-neutral contract in its `DESIGN.md`: the same scenes, scene tree, node names, data files, flows, bot and
+  juice runs and log lines, with 69 gdUnit4 tests in place of the GUT ones and a Linux export only. Its race keeps
+  GDScript's arithmetic, doubles for numbers and float vectors with the number cast where they meet, the engine's
+  `Geometry2D` and its `wrapf`, `posmod` and `roundi` as the engine defines them, so a race runs the same to the last
+  bit: the bot run prints the same log lines as the GDScript one, line for line, for seed 1 and for other seeds, rival
+  counts and starting tracks. Its four stages carry the same 17 tasks and three milestones as the GDScript version,
+  each with hidden checks in C# and a reference solution, five with a decoy; all pass
+  `tests/Test-GameProgramme.ps1 -Genre racing -Language csharp`. `DESIGN.md`'s "As built" records the port's choices.
+- **The idle game in C#.** Duskhive now has its C# version (`benchmark/games/idle/csharp/`), written from the
+  language-neutral contract in its `DESIGN.md`: the same scenes, scene tree, node names, data files, flows, portrait
+  layout, bot and juice runs and log lines, with 62 gdUnit4 tests in place of the GUT ones and Linux and Android
+  exports. Glow is a double in both, worked out with the same operations in the same order and no `Math.Pow` or
+  `Math.Log` in the simulation, and every number is written with the invariant culture, so the bot run prints the same
+  3,487 lines as the GDScript version, game times included, on a machine set to German too. Its four stages carry the
+  same 17 tasks and three milestones as the GDScript version, each with hidden checks in C#, a reference solution and
+  a decoy; all pass `tests/Test-GameProgramme.ps1 -Genre idle -Language csharp`. `DESIGN.md`'s "As built" records the
+  port's choices.
+- **The multiplayer arena in C#.** Glimmerpit now has its C# version (`benchmark/games/arena/csharp/`), written from
+  the language-neutral contract in its `DESIGN.md`: the same scenes, scene tree, node names, data files, flows, wire
+  messages, bot and juice runs and log lines, the same dedicated server and soak roles, with 54 gdUnit4 tests in place
+  of the GUT ones and Linux exports only. Both versions move in whole pixels and trace shots and steer bots with the
+  engine's 32-bit vectors and seeded generator, so the bot matches of seeds 1-20 end alike and the bot run prints the
+  same 485 lines, line for line. Its messages are the engine's `var_to_bytes` bytes, written in managed code (a test
+  holds them to `GD.VarToBytes` byte for byte), since engine dictionaries for every message kept the server's memory
+  climbing until the garbage collector ran; the dedicated server collects its first generation once a second, stops
+  with 0 on SIGTERM, and passes a 120-second `soak` at 200 MB/h. Its four stages carry the same 17 tasks and three
+  milestones as the GDScript version, each with hidden checks in C# and a reference solution, five with a decoy; all
+  pass `tests/Test-GameProgramme.ps1 -Genre arena -Language csharp`. `DESIGN.md`'s "As built" records the port's
+  choices.
 - **The roguelite in C#.** Wickerdeep now has its C# version (`benchmark/games/roguelite/csharp/`), written from the
   language-neutral contract in its `DESIGN.md`: the same scenes, scene tree, node names, data files, flows, bot and
   juice runs and log lines, the same `--swarm=N` load, with 44 gdUnit4 tests in place of the GUT ones and a Linux
@@ -35,6 +65,8 @@
   without the rubric) checks it on pairs it was not written from.
   On it (run 34) neither judge passes either: Haiku agreed with the owner on 56% and with itself on 81%, Sonnet on
   50% and 63%, mostly by picking the same position in both orders; `benchmark/PLAN.md` records it.
+  Opus (runs 35 and 36) no longer depends on the order (2 flips in 31 pairs) but agrees with the owner on 53% and 69%
+  of the two sets, so no judge is pinned yet.
 - **The staged game programme's idle genre**, Duskhive, in GDScript (`benchmark/games/idle/`). A moth hive gathers
   glow at dusk: five producers whose prices grow geometrically, Buy 1, 10 or as many as the glow pays for, upgrades,
   and a dawn that trades a run's glow for embers. Every number is in data checked by the `data` runner; glow is a

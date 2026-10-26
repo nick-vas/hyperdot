@@ -1,0 +1,33 @@
+{
+  "tables": {
+    "courts": {
+      "file": "data/courts.json",
+      "id": "id",
+      "fields": {
+        "name": { "type": "string", "pattern": "^COURT_[A-Z_]+$" },
+        "width": { "type": "int", "min": 640, "max": 2000 },
+        "height": { "type": "int", "min": 480, "max": 1200 }
+      }
+    },
+    "walls": {
+      "file": "data/walls.json",
+      "id": "id",
+      "fields": {
+        "court": { "ref": "courts" },
+        "x": { "type": "int", "min": 0, "max": 2000 },
+        "y": { "type": "int", "min": 0, "max": 1200 },
+        "w": { "type": "int", "min": 40, "max": 600 },
+        "h": { "type": "int", "min": 40, "max": 600 }
+      }
+    },
+    "spawns": {
+      "file": "data/spawns.json",
+      "id": "id",
+      "fields": {
+        "court": { "ref": "courts" },
+        "x": { "type": "int", "min": 16, "max": 1984 },
+        "y": { "type": "int", "min": 16, "max": 1184 }
+      }
+    }
+  }
+}

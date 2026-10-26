@@ -1,0 +1,15 @@
+name: Godot
+on: [push, pull_request]
+jobs:
+  godot:
+    uses: nick-vas/hyperdot/.github/workflows/godot.yml@main
+  soak:
+    # The dedicated server with three clients that leave and rejoin every few seconds, for two minutes.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: nick-vas/hyperdot
+          path: .hyperdot
+      - run: pwsh .hyperdot/ci/godot/hyperdot.ps1 soak -Clients 3 -Seconds 120 -Warmup 3 -MaxGrowthMbPerHour 200 -Json

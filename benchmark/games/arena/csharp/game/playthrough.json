@@ -1,0 +1,5 @@
+{
+  "frames": 10800,
+  "args": ["--autoplay", "--seed=1", "--no-save"],
+  "expect": ["[Match] round 1 started", "[Net] peer 2 left", "[Net] peer 2 joined", "[Match] over", "[Run] match over"]
+}

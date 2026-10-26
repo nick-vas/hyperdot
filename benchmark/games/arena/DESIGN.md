@@ -5,9 +5,9 @@ core. An authoritative server owns the match; each client predicts its own glimm
 and reconciles it against snapshots, and draws the others a little in the past (`godot-multiplayer`); hits are decided
 by the server's trace alone; players join and leave in the middle of a match and bots fill every empty slot, so tests
 and the bot run need no second machine; the same server runs headless as a dedicated server, which is what `soak`
-starts. One game, written twice: `gdscript/` (built) and `csharp/` (to come, from this design). Both behave the same,
+starts. One game, written twice: `gdscript/` and `csharp/` (ported from this design), both built. Both behave the same,
 use the same data files, scene tree, node names, wire messages and log lines, and pass the same flows. Only the code and
-the test framework differ: GUT for GDScript, gdUnit4 (run by the kit's `gdunit4` runner) for C#.
+the test framework differ: GUT for GDScript, gdUnit4 (run by the kit's `dotnet` runner) for C#.
 
 Everything here is made up for the benchmark: the name, the courts and the glimmers. The pit is drawn in code, the icon
 and the store art are rendered by the game, and the sounds come from the kit's `sfx` command. Nothing comes from a real
@@ -120,7 +120,7 @@ player_out <ms>` and `[juice] feedback sfx|flash|pop|shake <ms>`. The round soun
 
 | Part | Files |
 |---|---|
-| Tests | GDScript: `test/unit/test_*.gd` (GUT), 51 tests: movement and shots (`test_sim.gd`), the match (`test_match.gd`), its rules (`test_match_rules.gd`), the courts, the netcode over a SimLink with and without delay (`test_netcode.gd`), real ENet in one process (`test_enet.gd`, port 24651), bot matches, settings, launch options, the game scene. C#: `test/*Test.cs` (gdUnit4) |
+| Tests | GDScript: `test/unit/test_*.gd` (GUT), 51 tests: movement and shots (`test_sim.gd`), the match (`test_match.gd`), its rules (`test_match_rules.gd`), the courts, the netcode over a SimLink with and without delay (`test_netcode.gd`), real ENet in one process (`test_enet.gd`, port 24651), bot matches, settings, launch options, the game scene. C#: `test/*Test.cs` (gdUnit4), 54 tests: the same 51 and three of the wire format (`WireTest.cs`) |
 | Flows | `test/flows/start.flow.json` (menu, Play, the first round), `pause.flow.json`, `join.flow.json` (the join screen's Back), `settings.flow.json` (French and back) |
 | Data | `data/courts.json`, `data/walls.json`, `data/spawns.json` (walls and spawns `ref` the courts); `data.json` |
 | Bot runs | `playthrough.json`: `--autoplay --seed=1 --no-save`, the first round, the guest leaving and joining again, `[Match] over` and `[Run] match over` within 10800 frames. `juice.json`: 2400 frames; shot_fired gets sfx, player_hit flash and sfx, player_out pop, shake and sfx, each within 100 ms |
@@ -220,7 +220,7 @@ has otherwise.
 
 ## As built
 
-Choices made in the GDScript build where the design was open. The C# port follows them.
+Choices made in the GDScript build where the design was open. The C# port follows them; its own choices come after.
 
 - **Rounds of last-one-standing, not a frag count.** A match to a score where players come and go needs a moment that a
   leave can decide: when one of the last two leaves, the other wins the round. That is where the never-ending match
@@ -252,3 +252,70 @@ Choices made in the GDScript build where the design was open. The C# port follow
   headless roles) is about 700 of them. A test run takes about 20 s; the bot run with seed 1 ends its match (slot 2 wins
   3 to 0, the guest leaves once) at about 29 s of game time.
 - **Decoys:** fix-bug in all three stages that have one, fix-playthrough and fill-translations.
+
+### C#
+
+- **Same matches, checked against each other.** The movement is whole pixels, and the shot's ray and the bots' distances
+  are taken from the engine's 32-bit `Vector2` and compared as doubles, as GDScript does with them; the bots and the
+  link's jitter draw from the engine's `RandomNumberGenerator` in the contract's order, and the interpolation rounds half
+  away from zero as `roundf` does. So the bot matches of seeds 1-20 end the same in both languages (tick, winner,
+  scores, refused claims, where every glimmer stands and its health), and the bot run (`--autoplay --seed=1 --no-save`)
+  prints the same 485 `[Match]`, `[Net]`, `[Run]` and `[juice]` lines, line for line.
+- **Names:** `Game` keeps the snake_case names the flows, the hidden checks and the contract use: `mode`, `server`,
+  `link`, `client`, `session`, `matches`, `state`, `round_number`, `my_slot`, `start_match` and `rematch`; `start_match`
+  is two overloads, `()` and `(seed)`, not a default argument, because the engine calls a C# method only with all its
+  arguments. The rest is C#'s own case: `Court.LoadAll`, `BoxFree`, `Slide`, `RayLength`, `ClearLine`, `Sim.Step`,
+  `Trace`, `Sanitize`, `Idle`, `ArenaMatch.Apply`, `Advance`, `SetOwner`, `RemoveFighter`, `Snapshot`, `LoadSnapshot`,
+  `ArenaServer.PeerJoined`, `PeerLeft`, `Receive`, `Tick`, `RecordCount`, `ArenaClient.Step`, `ShownFighters`,
+  `SimLink.Join`, `Leave`, `Pump`, `TicksForMs`, `NetSession.Host`, `Serve`, `Join`, `JoinWith`, `Close`. The match's
+  states are the enum `MatchState` (a nested `ArenaMatch.State` would clash with the `State` property), and the hit
+  the GDScript tests reach as `_damage` is the public `ArenaMatch.DealDamage`.
+- **Typed inside, dictionaries on the wire.** An input is a `SimInput` and an event a `MatchEvent`; a shot's trace is a
+  `Shot` record. They become the contract's dictionaries (`ToWire`, `Sanitize`, `MatchEvent.FromWire`) only where a
+  message is made or read, and snapshots, welcomes and inputs keep the contract's keys and arrays.
+- **The wire is written in managed code.** `scripts/Wire.cs` writes and reads the engine's `var_to_bytes` format
+  itself, for messages of numbers, booleans, strings, lists and dictionaries with string keys, and refuses anything
+  else (a typed container, a count longer than the bytes, nesting past 16). The first build used the engine's
+  `Godot.Collections.Dictionary` and `GD.VarToBytes`, as the GDScript version does; every message then made engine
+  Variants, Arrays and Dictionaries whose native memory waits for the garbage collector to finalize their wrappers,
+  and a 120-second soak saw the server's resident memory climb from 58 to 194 MB. `WireTest` holds the bytes to
+  `GD.VarToBytes` byte for byte, so the two versions put the same bytes on the wire.
+- **A server that keeps its memory where it settles.** Even managed, every message is a few small objects, and the
+  runtime let them pile up to its first-generation budget (more than 38 MB here) before its first collection: `soak -Seconds
+  120 -MaxGrowthMbPerHour 200`, the game's own workflow, read that as 2,100 MB/h of growth. `Headless` (the dedicated
+  server and the soak clients) collects the first generation once a second, which takes well under a millisecond with
+  so little alive; the same soak then reads about 3 MB/h for the server and under 40 for the clients. A screen's game does
+  not, as nothing soaks it.
+- **The server stops on SIGTERM**, as `tests/soak-fixture-cs` shows: `Headless` registers a `PosixSignalRegistration`
+  that only sets a flag, and the next tick closes the session and quits with 0 (`soak -RequireCleanStop`: exit 0 in
+  0.2 s). The GDScript server cannot catch the signal and dies with 143.
+- **No server relay.** `NetSession.Host` turns `SceneMultiplayer.ServerRelay` off: players only talk to the server, and
+  with the relay on the engine sent news of each newcomer to a peer still disconnecting, an engine error on its closed
+  channels that soak counted 4 times in 120 seconds.
+- **Sorted dictionaries on the server.** What it keeps per peer is in `SortedDictionary`s, so it broadcasts and trims
+  in peer-id order on every run (the architecture runner's `nondeterministic-sim` flags iterating a `Dictionary` in
+  `scripts`); in the bot run the peers join in id order anyway, so the order matches the GDScript version's.
+- **NetSession** keeps the `SceneMultiplayer` it set up and disconnects only the signals it connected (the engine
+  reports disconnecting anything else as an error); its signals are C# events, as are the game's and the screens'.
+- **Settings:** `SettingsStore` takes a file path (Main passes `user://settings.json`, globalised) and reads and writes
+  it with `System.Text.Json` into a `SettingsData` (`Version`, `Volume`, `Locale`, `Played`, `Won`); the file is the
+  GDScript version's, so either reads the other's. Its tests use temporary files.
+- **Tests:** 54 gdUnit4 tests in `test/*Test.cs`, the 51 GUT tests one for one and `WireTest`'s three, run by the kit's
+  `dotnet` runner, and `gdunit4` for the mutants; the prototype keeps 19 (`SimTest`, `NetcodeTest`, `WireTest`). The ENet
+  test gives each branch its own `SceneMultiplayer` with `SceneTree.SetMultiplayer`, as the GUT one does. The scene's
+  tests load it with `ISceneRunner` and wait whole physics ticks; the French check adds the game to the tree itself.
+- **Hidden checks** are the GDScript ones in C#. The milestone's ENet check is `HiddenEnetTest.cs`, a copy of the
+  game's own under its own class name (port 24652), since a session may well write an `EnetTest` of its own. The
+  fix-performance check finds the server's collections by reflection over its fields (private ones and properties'
+  backing fields), and measures memory as the managed heap after a full collection (`GC.GetTotalMemory`), not the
+  engine's static memory, which does not see C# objects.
+- **The explain-failure test** is `A_straight_step_moves_eight_pixels`, `test/SimTest.cs` line 30. The add-feature
+  prompt names the dash's C# shape: a `Dash` property of `SimInput`, `"dash"` on the wire.
+- **Stages** lay overlays of `game/Game.cs` and `game/game.tscn` over the prototype, as the GDScript stage does with
+  `game.gd`; the alpha and beta take the credits out of `ui/Main.cs` with edits. The task references and decoys are the
+  stage's files with the defect undone or a wrong fix made; those of data and translations are the GDScript version's
+  files. The milestone references follow the rule above, generated from the built stages.
+- **Export:** Linux and Linux Server, with the .NET options (Godot 4.7 cannot export C# to the Web, and the GDScript
+  version has no Web preset either), so the planted export defect adds `data/*` to the Linux preset's
+  `exclude_filter="test/*"`. `THIRD-PARTY-NOTICES.txt` comes from `credits` on the C# game, with the .NET runtime's
+  notices; the store art, docs, data, translations, sounds and flows are the GDScript version's files.
