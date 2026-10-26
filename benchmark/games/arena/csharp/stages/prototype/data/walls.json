@@ -1,0 +1,7 @@
+[
+  { "id": "cinder_top", "court": "cinder_pit", "x": 570, "y": 0, "w": 60, "h": 170 },
+  { "id": "cinder_bottom", "court": "cinder_pit", "x": 570, "y": 470, "w": 60, "h": 170 },
+  { "id": "cinder_left", "court": "cinder_pit", "x": 0, "y": 290, "w": 170, "h": 60 },
+  { "id": "cinder_right", "court": "cinder_pit", "x": 1030, "y": 290, "w": 170, "h": 60 },
+  { "id": "cinder_core", "court": "cinder_pit", "x": 540, "y": 260, "w": 120, "h": 120 }
+]

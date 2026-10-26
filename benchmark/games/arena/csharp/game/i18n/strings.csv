@@ -1,0 +1,49 @@
+keys,en,fr,de
+MENU_TITLE,Glimmerpit,Glimmerpit,Glimmerpit
+MENU_PLAY,Play,Jouer,Spielen
+MENU_HOST,Host,Héberger,Hosten
+MENU_JOIN,Join,Rejoindre,Beitreten
+MENU_SETTINGS,Settings,Réglages,Einstellungen
+MENU_CREDITS,Credits,Crédits,Mitwirkende
+MENU_QUIT,Quit,Quitter,Beenden
+MENU_VERSION,Version %s,Version %s,Version %s
+MENU_NET_FAILED,Could not open the connection: %s,Connexion impossible : %s,Verbindung nicht möglich: %s
+MENU_NET_LOST,The connection to the host was lost.,La connexion à l'hôte est perdue.,Die Verbindung zum Host ist abgebrochen.
+JOIN_TITLE,Join a match,Rejoindre une partie,Einem Spiel beitreten
+JOIN_ADDRESS,Host address,Adresse de l'hôte,Adresse des Hosts
+JOIN_JOIN,Join,Rejoindre,Beitreten
+JOIN_BACK,Back,Retour,Zurück
+HUD_SLOT,P%d: %d,J%d : %d,S%d: %d
+HUD_SLOT_YOU,P%d (you): %d,J%d (vous) : %d,S%d (du): %d
+HUD_SLOT_BOT,P%d (bot): %d,J%d (bot) : %d,S%d (Bot): %d
+HUD_ROUND,Round %d,Manche %d,Runde %d
+HUD_HEALTH,Health: %d,Vie : %d,Leben: %d
+HUD_PAUSE,Pause,Pause,Pause
+HUD_FULL,The pit is full.,L'arène est pleine.,Die Arena ist voll.
+HUD_CONNECTING,Connecting...,Connexion...,Verbinde...
+HUD_GET_READY,Get ready!,Préparez-vous !,Macht euch bereit!
+HUD_OVER,P%d wins the match!,J%d gagne la partie !,S%d gewinnt das Spiel!
+HUD_WAIT,Out: back next round,Éliminé : retour à la prochaine manche,Raus: zurück in der nächsten Runde
+HUD_MATCH_POINT,Match point!,Balle de match !,Matchball!
+PAUSE_TITLE,Paused,En pause,Pausiert
+PAUSE_RESUME,Resume,Reprendre,Weiter
+PAUSE_QUIT,Quit to menu,Quitter vers le menu,Zum Menü
+RESULT_WON,Victory,Victoire,Sieg
+RESULT_LOST,Defeat,Défaite,Niederlage
+RESULT_MESSAGE,P%d wins %d rounds to %d.,J%d gagne %d manches à %d.,S%d gewinnt %d zu %d Runden.
+RESULT_REMATCH,Rematch,Revanche,Revanche
+RESULT_MENU,Back to menu,Retour au menu,Zurück zum Menü
+SETTINGS_TITLE,Settings,Réglages,Einstellungen
+SETTINGS_VOLUME,Volume,Volume,Lautstärke
+SETTINGS_LANGUAGE,Language,Langue,Sprache
+SETTINGS_BACK,Back,Retour,Zurück
+LANG_EN,English,English,English
+LANG_FR,Français,Français,Français
+LANG_DE,Deutsch,Deutsch,Deutsch
+CREDITS_TITLE,Credits,Crédits,Mitwirkende
+CREDITS_BACK,Back,Retour,Zurück
+CREDITS_THIRD_PARTY,Third-party works,Œuvres de tiers,Werke Dritter
+CREDITS_THANKS,Thanks,Remerciements,Dank
+CREDITS_ENGINE,Engine,Moteur,Engine
+COURT_CINDER_PIT,The Cinder Pit,La Fosse de cendres,Die Aschengrube
+COURT_HOLLOW_RING,The Hollow Ring,L'Anneau creux,Der hohle Ring

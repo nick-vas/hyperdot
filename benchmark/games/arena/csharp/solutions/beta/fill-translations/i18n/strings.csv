@@ -1,0 +1,49 @@
+keys,en,fr
+MENU_TITLE,Glimmerpit,Glimmerpit
+MENU_PLAY,Play,Jouer
+MENU_HOST,Host,Héberger
+MENU_JOIN,Join,Rejoindre
+MENU_SETTINGS,Settings,Réglages
+MENU_CREDITS,Credits,Crédits
+MENU_QUIT,Quit,Quitter
+MENU_VERSION,Version %s,Version %s
+MENU_NET_FAILED,Could not open the connection: %s,Connexion impossible : %s
+MENU_NET_LOST,The connection to the host was lost.,La connexion à l'hôte est perdue.
+JOIN_TITLE,Join a match,Rejoindre une partie
+JOIN_ADDRESS,Host address,Adresse de l'hôte
+JOIN_JOIN,Join,Rejoindre
+JOIN_BACK,Back,Retour
+HUD_SLOT,P%d: %d,J%d : %d
+HUD_SLOT_YOU,P%d (you): %d,J%d (vous) : %d
+HUD_SLOT_BOT,P%d (bot): %d,J%d (bot) : %d
+HUD_ROUND,Round %d,Manche %d
+HUD_HEALTH,Health: %d,Vie : %d
+HUD_PAUSE,Pause,Pause
+HUD_FULL,The pit is full.,L'arène est pleine.
+HUD_CONNECTING,Connecting...,Connexion...
+HUD_GET_READY,Get ready!,Préparez-vous !
+HUD_OVER,P%d wins the match!,J%d gagne la partie !
+HUD_WAIT,Out: back next round,Éliminé : retour à la prochaine manche
+HUD_MATCH_POINT,Match point!,Balle de match !
+PAUSE_TITLE,Paused,En pause
+PAUSE_RESUME,Resume,Reprendre
+PAUSE_QUIT,Quit to menu,Quitter vers le menu
+RESULT_WON,Victory,Victoire
+RESULT_LOST,Defeat,Défaite
+RESULT_MESSAGE,P%d wins %d rounds to %d.,J%d gagne %d manches à %d.
+RESULT_REMATCH,Rematch,Revanche
+RESULT_MENU,Back to menu,Retour au menu
+SETTINGS_TITLE,Settings,Réglages
+SETTINGS_VOLUME,Volume,Volume
+SETTINGS_LANGUAGE,Language,Langue
+SETTINGS_BACK,Back,Retour
+LANG_EN,English,English
+LANG_FR,Français,Français
+LANG_DE,Deutsch,Deutsch
+CREDITS_TITLE,Credits,Crédits
+CREDITS_BACK,Back,Retour
+CREDITS_THIRD_PARTY,Third-party works,Œuvres de tiers
+CREDITS_THANKS,Thanks,Remerciements
+CREDITS_ENGINE,Engine,Moteur
+COURT_CINDER_PIT,The Cinder Pit,La Fosse de cendres
+COURT_HOLLOW_RING,The Hollow Ring,L'Anneau creux

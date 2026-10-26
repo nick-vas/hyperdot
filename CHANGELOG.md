@@ -32,6 +32,18 @@
   same 17 tasks and three milestones as the GDScript version, each with hidden checks in C#, a reference solution and
   a decoy; all pass `tests/Test-GameProgramme.ps1 -Genre idle -Language csharp`. `DESIGN.md`'s "As built" records the
   port's choices.
+- **The multiplayer arena in C#.** Glimmerpit now has its C# version (`benchmark/games/arena/csharp/`), written from
+  the language-neutral contract in its `DESIGN.md`: the same scenes, scene tree, node names, data files, flows, wire
+  messages, bot and juice runs and log lines, the same dedicated server and soak roles, with 54 gdUnit4 tests in place
+  of the GUT ones and Linux exports only. Both versions move in whole pixels and trace shots and steer bots with the
+  engine's 32-bit vectors and seeded generator, so the bot matches of seeds 1-20 end alike and the bot run prints the
+  same 485 lines, line for line. Its messages are the engine's `var_to_bytes` bytes, written in managed code (a test
+  holds them to `GD.VarToBytes` byte for byte), since engine dictionaries for every message kept the server's memory
+  climbing until the garbage collector ran; the dedicated server collects its first generation once a second, stops
+  with 0 on SIGTERM, and passes a 120-second `soak` at 200 MB/h. Its four stages carry the same 17 tasks and three
+  milestones as the GDScript version, each with hidden checks in C# and a reference solution, five with a decoy; all
+  pass `tests/Test-GameProgramme.ps1 -Genre arena -Language csharp`. `DESIGN.md`'s "As built" records the port's
+  choices.
 - **The roguelite in C#.** Wickerdeep now has its C# version (`benchmark/games/roguelite/csharp/`), written from the
   language-neutral contract in its `DESIGN.md`: the same scenes, scene tree, node names, data files, flows, bot and
   juice runs and log lines, the same `--swarm=N` load, with 44 gdUnit4 tests in place of the GUT ones and a Linux
