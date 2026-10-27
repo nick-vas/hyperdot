@@ -34,6 +34,13 @@ try {
     Assert-True (@(Get-Content -LiteralPath $log).Count -eq 1) 'one line in .godot/hyperdot-handoffs.jsonl'
     Assert-True ($null -eq $r.Doc.PSObject.Properties['features']) 'recording a handoff does not run the whole status'
 
+    # One line of text each: -Checked is cut at 500 characters and -Verdict at 300, and a text at its limit is kept whole.
+    $r = Invoke-Kit @('status', '-Handoff', 'godot-verifier', '-Checked', ('c' * 501), '-Verdict', ('v' * 301))
+    Assert-True ($r.Doc.handoff.checked.Length -eq 500 -and $r.Doc.handoff.verdict.Length -eq 300) "an over-long -Checked is cut to 500 and -Verdict to 300 ($($r.Doc.handoff.checked.Length), $($r.Doc.handoff.verdict.Length))"
+    $r = Invoke-Kit @('status', '-Handoff', 'godot-verifier', '-Checked', ('c' * 500), '-Verdict', ('v' * 300))
+    Assert-True ($r.Doc.handoff.checked.Length -eq 500 -and $r.Doc.handoff.verdict.Length -eq 300) 'a -Checked of 500 and a -Verdict of 300 are kept whole'
+    [System.IO.File]::WriteAllLines($log, [string[]]@(Get-Content -LiteralPath $log | Select-Object -First 1))   # back to the one line the checks below count
+
     # Refusals: invalid-arguments, and nothing recorded (not even a failed run in the run history).
     foreach ($case in @(
             @{ Name = 'a name that is not a subagent'; Args = @('status', '-Handoff', 'Godot Verifier', '-Checked', 'x', '-Verdict', 'PASS') },
