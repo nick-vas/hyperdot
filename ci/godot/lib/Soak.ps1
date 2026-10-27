@@ -79,19 +79,31 @@ function Start-SoakProcess([string]$ProjectDir, [string]$Log, [string[]]$UserArg
     return $process
 }
 
-# Least-squares slope of memory over time, in MB per hour: steady growth, not the noise of one sample. $Field picks the
-# sample's value: Mb (the memory a leak shows in) or Resident (everything resident).
-function Get-GrowthMbPerHour($Samples, [string]$Field = 'Mb') {
-    $points = @($Samples)
-    if ($points.Count -lt 3) { return 0 }
-    $meanT = ($points | Measure-Object -Property T -Average).Average
-    $meanM = ($points | Measure-Object -Property $Field -Average).Average
+# Least-squares slope of memory over time for the samples as given, in MB per hour.
+function Get-SlopeMbPerHour($Points, [string]$Field) {
+    if ($Points.Count -lt 3) { return 0.0 }
+    $meanT = ($Points | Measure-Object -Property T -Average).Average
+    $meanM = ($Points | Measure-Object -Property $Field -Average).Average
     $num = 0.0; $den = 0.0
-    foreach ($p in $points) { $num += ($p.T - $meanT) * ($p.$Field - $meanM); $den += ($p.T - $meanT) * ($p.T - $meanT) }
-    if ($den -eq 0) { return 0 }
-    return [Math]::Round($num / $den * 3600, 1)
+    foreach ($p in $Points) { $num += ($p.T - $meanT) * ($p.$Field - $meanM); $den += ($p.T - $meanT) * ($p.T - $meanT) }
+    if ($den -eq 0) { return 0.0 }
+    return $num / $den * 3600
 }
 
+# Steady growth of memory over time, in MB per hour: not the noise of one sample, and not a one-time step. A slope over the
+# whole window turns a step (a JIT tier, a GC resizing its heap, a pool filling) into a rate: 1.5 MB in the middle of a 20 s
+# window reads as 400 MB/h. A leak grows through the whole window, so the growth is the smallest of the slope over all samples
+# and over each half; a step shows in one half or between them, a leak in both. $Field picks the sample's value: Mb (the
+# memory a leak shows in) or Resident (everything resident).
+function Get-GrowthMbPerHour($Samples, [string]$Field = 'Mb') {
+    $points = @($Samples)
+    $slope = Get-SlopeMbPerHour $points $Field
+    if ($points.Count -ge 8) {
+        $half = [int][Math]::Floor($points.Count / 2)
+        $slope = [Math]::Min($slope, [Math]::Min((Get-SlopeMbPerHour @($points[0..($half - 1)]) $Field), (Get-SlopeMbPerHour @($points[$half..($points.Count - 1)]) $Field)))
+    }
+    return [Math]::Round($slope, 1)
+}
 # The memory a leak grows, in MB: on Linux the anonymous resident memory (RssAnon: heaps and stacks), not the pages of
 # the binary, libraries and .NET assemblies mapped from files, which fill in as code first runs and grew a C# server's
 # working set about 370 MB/h for minutes on GitHub's runners with nothing leaking; elsewhere the working set.

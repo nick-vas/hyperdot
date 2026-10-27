@@ -59,7 +59,7 @@ this machine at the Deck's resolution, not a Deck's speed.
 | `-TargetLufs` | `-24` | `audio -Mix`: the integrated loudness the mix must reach, within 2 LU; `-18` for phones and handhelds |
 | `-MaxOnsetMs` | `20` | `audio`: warn when an `sfx` or `ui` file takes longer than this to come within 10 dB of its loudest 10 ms (`onsetMs`) |
 | `-Clients` | `4` | `soak`: headless clients started next to the one server |
-| `-MaxGrowthMbPerHour` | `0` (report only) | `soak`: fail (`soak-leak`) when a process's memory grows faster than this |
+| `-MaxGrowthMbPerHour` | `0` (report only) | `soak`: fail (`soak-leak`) when a process's memory grows steadily faster than this (one-time steps do not count; the window is `-Seconds`, so a short run resolves only large leaks) |
 | `-StopGraceSeconds` | `30` | `soak`: after the run, how long the server has to quit once sent SIGTERM (Kubernetes' default grace period; Docker's is 10 s, systemd's 90 s); reported under `soak.stop` |
 | `-RequireCleanStop` | off | `soak`: fail (`soak-unclean-stop`) when the server does not quit with 0 within `-StopGraceSeconds` of SIGTERM |
 | `-JunkPps` | `0` (off) | `soak`: flood the server's own port on `127.0.0.1` with this many junk UDP packets a second (loopback only), to measure how it holds up; reported under `soak.junk` |
