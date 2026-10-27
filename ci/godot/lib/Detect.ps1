@@ -186,6 +186,8 @@ function Get-ProjectInfo {
         ProjectDir     = $projectDir
         IsCSharp       = $isCSharp
         Name           = ConvertTo-SafeName $name
+        # The name as the project writes it: for what a person reads (the plan's title), where Name is a file-name slug.
+        DisplayName    = $name
         Solution       = $sln
         GodotVersion   = $version
         # @(...): PowerShell unrolls one-item and empty arrays returned from functions.

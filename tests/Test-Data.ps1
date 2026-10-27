@@ -18,6 +18,9 @@ $expect = @{
                         "table 'recipes' field 'requires' refers to table 'itemz', which data.json does not list; did you mean 'items'?",
                         "table 'recipes' field 'requires' is acyclic, which needs a ref to its own table ('recipes')",
                         "table 'quests' field 'reward' refers to table 'loot', which data.json does not list")
+    # A table with no "fields" still gets its ids checked, and a pattern that is not a regular expression is a problem
+    # with data.json (once, naming the table and field), not a crash.
+    'table nofields' = @("'a' appears twice")
     # A tech tree: names close to a real id are suggested, and prerequisites that wait on each other are cycles.
     'table techs'   = @("'forge' requires names 'minning', which is not in techs; did you mean 'mining'?",
                         'steam -> physics -> optics -> steam is a cycle: none of them can come first',
@@ -79,6 +82,8 @@ if ($cases['table levels'] -match 'forest') { $failures += "forest is valid: $($
 if (@("$($cases['table techs'])" -split "`n").Count -ne 3) { $failures += "techs should report three problems (engines only waits on a cycle; mining and smelting are fine): $($cases['table techs'])" }
 if ($cases['table recipes']) { $failures += "a misconfigured acyclic field should be reported once, in data.json: $($cases['table recipes'])" }
 if ($cases['table enemies'] -match 'did you mean') { $failures += "'amulet' is near no item: $($cases['table enemies'])" }
+if ("$($cases['data.json'])" -notmatch "(?m)^table 'badregex' field 'code' has a pattern that is not a valid regular expression: \[a- \(.+\)$") { $failures += "a bad pattern should be a data.json problem: $($cases['data.json'])" }
+if ($cases['table badregex']) { $failures += "a bad pattern is reported once, in data.json: $($cases['table badregex'])" }
 $enum = Test-DataValue 'comon' @{ enum = @('common', 'rare') } $false
 if ($enum -ne "is 'comon', not one of: common, rare; did you mean 'common'?") { $failures += "an enum typo should be suggested: $enum" }
 # Case matters: the game compares the strings exactly, so "Rare" is not "rare", and a lowercase pattern refuses "Sword".

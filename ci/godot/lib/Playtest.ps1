@@ -248,19 +248,21 @@ function Invoke-Playtest {
         $size = if ($Cell -gt 0) { $Cell } elseif ($lc.Cell -gt 0) { $lc.Cell } elseif ($config.Cell -gt 0) { $config.Cell } elseif ($plane -eq 'xz') { 2.0 } else { 64.0 }
         if ($lc.Bounds) {
             $u0 = $lc.Bounds[0]; $v0 = $lc.Bounds[1]; $maxU = $lc.Bounds[2]; $maxV = $lc.Bounds[3]
-            $cols = [int][Math]::Ceiling(($maxU - $u0) / $size); $rows = [int][Math]::Ceiling(($maxV - $v0) / $size)
+            $cols = [Math]::Ceiling(($maxU - $u0) / $size); $rows = [Math]::Ceiling(($maxV - $v0) / $size)
         } else {
             $c0 = [Math]::Floor((($all | ForEach-Object { $_[0] }) | Measure-Object -Minimum).Minimum / $size)
             $c1 = [Math]::Floor((($all | ForEach-Object { $_[0] }) | Measure-Object -Maximum).Maximum / $size)
             $r0 = [Math]::Floor((($all | ForEach-Object { $_[$vi] }) | Measure-Object -Minimum).Minimum / $size)
             $r1 = [Math]::Floor((($all | ForEach-Object { $_[$vi] }) | Measure-Object -Maximum).Maximum / $size)
-            $cols = [int]($c1 - $c0 + 1); $rows = [int]($r1 - $r0 + 1)
+            $cols = $c1 - $c0 + 1; $rows = $r1 - $r0 + 1
             $u0 = $c0 * $size; $v0 = $r0 * $size
         }
+        # cols and rows are doubles until here: a tiny cell would overflow an [int] before this check could refuse it.
         if ($cols -gt 2048 -or $rows -gt 2048 -or $cols * $rows -gt 1048576) {
-            Stop-GodotCi ("Level ${id}: a grid of $cols x $rows cells of $size is too large; set a larger cell (-HotspotCell, or cell in " +
+            Stop-GodotCi ("Level ${id}: a grid of $($cols.ToString('0', [cultureinfo]::InvariantCulture)) x $($rows.ToString('0', [cultureinfo]::InvariantCulture)) cells of $size is too large; set a larger cell (-HotspotCell, or cell in " +
                 'playtest.json) or the bounds the level fills') 'invalid-playtest-config'
         }
+        $cols = [int]$cols; $rows = [int]$rows
         $background = $null; $width = 0; $height = 0
         if ($lc.Image) {
             try { $background = [GodotCi.Png]::Decode([System.IO.File]::ReadAllBytes($lc.Image), [ref]$width, [ref]$height) }

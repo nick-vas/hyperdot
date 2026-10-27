@@ -91,6 +91,21 @@ try {
     Assert-Code 'invalid-mcp-config' @('init', '-Mcp', 'godot-mcp', '-Project', $mcp)
     Assert-Code 'aseprite-not-found' @('init', '-McpAseprite', (Join-Path $temp 'no-aseprite'), '-Project', (Copy-Example 'ase'))
 
+    # -Frames below 1 (--quit-after 0 never quits) and an export preset the project lacks are refused up front, with a
+    # Godot that does not exist and no network: neither may reach Godot's download.
+    $early = Copy-Example 'early' 'examples/csharp/game'
+    $standIn = @{ GODOT_BIN = (Join-Path $temp 'no-godot'); HYPERDOT_INSTALLED = $null }
+    foreach ($frames in '0', '-1') {
+        $clock = [Diagnostics.Stopwatch]::StartNew()
+        Assert-Code 'invalid-arguments' @('test', '-Project', $gd, '-Runners', 'smoke', '-Frames', $frames) $standIn
+        Assert-Code 'invalid-arguments' @('shot', '-Project', $gd, '-Frames', $frames) $standIn
+        Assert-Code 'invalid-arguments' @('export', '-Project', $early, '-Run', '-Frames', $frames) $standIn
+        Assert-True ($clock.Elapsed.TotalSeconds -lt 60) "-Frames $frames is refused quickly ($([int]$clock.Elapsed.TotalSeconds) s)"
+    }
+    $clock = [Diagnostics.Stopwatch]::StartNew()
+    Assert-Code 'preset-not-found' @('export', '-Project', $early, '-Preset', 'typo') $standIn
+    Assert-True ($clock.Elapsed.TotalSeconds -lt 90) "export -Preset typo fails before any download ($([int]$clock.Elapsed.TotalSeconds) s)"
+
     # audio measures with ffmpeg: a PATH without it.
     $audio = Copy-Example 'audio'
     Assert-Code 'no-ffmpeg' @('audio', '-Project', $audio, '-Results', (Join-Path $temp 'audio-results')) @{ PATH = (New-Item -ItemType Directory -Force (Join-Path $temp 'bin') | ForEach-Object FullName) }
