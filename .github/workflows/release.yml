@@ -39,15 +39,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      # The commit to release is what gets checked out, so every check below reads the files as they are at that commit.
+      # The workflow's own commit (the tip of main) is checked out, so the scripts below exist even when the commit to release
+      # is older than they are; the files of the commit to release are read with `git show`.
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.sha || github.sha }}
           fetch-depth: 0
       - name: The commit is on main and its Self-test push run succeeded
         shell: pwsh
         env:
           VERSION: ${{ inputs.version }}
+          SHA_INPUT: ${{ inputs.sha }}
           GH_TOKEN: ${{ github.token }}
         run: |
           function Invoke-Native([string]$What, [scriptblock]$Command) {
@@ -56,7 +57,8 @@ jobs:
             return $out
           }
           if ($env:VERSION -notmatch '^\d+\.\d+\.\d+$') { throw "version '$env:VERSION' is not <major>.<minor>.<patch>" }
-          $sha = (Invoke-Native 'git rev-parse' { git rev-parse HEAD }).Trim()
+          $target = if ($env:SHA_INPUT) { $env:SHA_INPUT } else { 'HEAD' }
+          $sha = (Invoke-Native 'git rev-parse' { git rev-parse "$target^{commit}" }).Trim()
           Invoke-Native 'git fetch origin main' { git fetch --quiet origin main }
           git merge-base --is-ancestor "$sha" origin/main
           if ($LASTEXITCODE -ne 0) { throw "$sha is not reachable from origin/main: only commits on main are released" }
@@ -72,8 +74,13 @@ jobs:
           VERSION: ${{ inputs.version }}
         run: |
           $notes = Join-Path $env:RUNNER_TEMP 'release-notes.md'
+          # The changelog and the plugin manifest as they are at the commit to release.
+          $changelog = Join-Path $env:RUNNER_TEMP 'CHANGELOG.md'
+          $content = git show "$($env:RELEASE_SHA):CHANGELOG.md"
+          if ($LASTEXITCODE -ne 0) { throw "git show $env:RELEASE_SHA:CHANGELOG.md failed (exit code $LASTEXITCODE)" }
+          Set-Content -LiteralPath $changelog -Encoding utf8 -Value $content
           # Stops when CHANGELOG.md has no "## <version> - " section or it is empty.
-          ./.github/scripts/Get-ChangelogSection.ps1 -Version $env:VERSION | Set-Content -LiteralPath $notes -Encoding utf8
+          ./.github/scripts/Get-ChangelogSection.ps1 -Version $env:VERSION -Changelog $changelog | Set-Content -LiteralPath $notes -Encoding utf8
           # A release body holds at most 125000 characters; the 0.1.0 section is longer, so the notes are cut at a line and point
           # to the changelog.
           $body = Get-Content -Raw -LiteralPath $notes
@@ -83,7 +90,9 @@ jobs:
             $link = "https://github.com/$env:GITHUB_REPOSITORY/blob/v$env:VERSION/CHANGELOG.md"
             Set-Content -LiteralPath $notes -Encoding utf8 -Value "$cut`n`n(Cut here: the whole section is in [CHANGELOG.md]($link).)"
           }
-          $plugin = (Get-Content -Raw -LiteralPath .claude-plugin/plugin.json | ConvertFrom-Json).version
+          $manifest = git show "$($env:RELEASE_SHA):.claude-plugin/plugin.json"
+          if ($LASTEXITCODE -ne 0) { throw "git show $env:RELEASE_SHA:.claude-plugin/plugin.json failed (exit code $LASTEXITCODE)" }
+          $plugin = ($manifest | Out-String | ConvertFrom-Json).version
           if ($plugin -ne $env:VERSION) { throw ".claude-plugin/plugin.json has version $plugin, not $env:VERSION" }
           "NOTES_FILE=$notes" >> $env:GITHUB_ENV
       - name: Tag the version and move the major tag

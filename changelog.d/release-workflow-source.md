@@ -1,0 +1,1 @@
+Fixed: `release.yml` checks out the workflow's own commit and reads the changelog and plugin manifest of the commit to release with `git show`, so releasing a commit older than the notes script works.
