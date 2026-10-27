@@ -311,6 +311,8 @@ function Get-Median([double[]]$Values) {
     if ($sorted.Count % 2 -eq 1) { return $sorted[$middle] }
     return ($sorted[$middle - 1] + $sorted[$middle]) / 2
 }
+# A judge's median score as a whole number: a half rounds up (2.5 is 3), not to the even neighbour.
+function Get-MedianScore([double[]]$Values) { return [int][math]::Round([double](Get-Median $Values), [System.MidpointRounding]::AwayFromZero) }
 
 # What a judge reads: the session's answer, or a file the session left in the game.
 function Get-JudgeSubject($Judge, [string]$Answer, [string]$GameDir) {
@@ -345,7 +347,7 @@ function Invoke-Judge($Spec, $Judge, [string]$Subject) {
             $scores.Add($(if ($parsed.ok -and $match.Success) { [int]$match.Groups[1].Value } else { 0 }))
         }
     } finally { Remove-Item -LiteralPath $folder -Recurse -Force -ErrorAction SilentlyContinue }
-    return [pscustomobject]@{ scores = $scores.ToArray(); median = [int](Get-Median ([double[]]$scores.ToArray())); passScore = $passScore
+    return [pscustomobject]@{ scores = $scores.ToArray(); median = Get-MedianScore ([double[]]$scores.ToArray()); passScore = $passScore
         model = $config.model; rubric = $Judge.rubric; costUsd = [Math]::Round($cost, 6) }
 }
 
@@ -523,7 +525,9 @@ $isolating = ($Isolate -or $env:HYPERDOT_ISOLATE -eq '1') -and -not $DryRun
 $ownWorkspace = $false
 try {
 # Isolation first, so the temporary folder every later step uses is the run's own.
-if ($isolating) { [void](Initialize-SessionIsolation $repoRoot $Claude) }
+# What really happened is what the summary records: isolation asked for and not possible warns and goes on without.
+$isolated = $false
+if ($isolating) { $isolated = [bool](Initialize-SessionIsolation $repoRoot $Claude) }
 # The kit's copy without the benchmark exists before the spec is read: the field test's prompts name it.
 if (-not $DryRun -and -not $WorkDir) {
     $ownWorkspace = $true
@@ -542,6 +546,8 @@ if ($profiles.Count -eq 0 -or $tasks.Count -eq 0) { throw 'Nothing to run: no pr
 $tierSpec = if ($spec.Contains('selectedTier')) { $spec.selectedTier } else { $null }
 $repeatCount = if ($Repeat -gt 0) { $Repeat } elseif ($tierSpec -and $tierSpec.Contains('repeat')) { [int]$tierSpec.repeat } else { [int]$spec.repeat }
 $modelName = if ($Model) { $Model } else { $spec.model }
+# $Plugin is set per session below (the helpers read it); what was asked for is kept here for the summary and the checks.
+$requestedPlugin = [bool]$Plugin
 # The field test runs every configuration of its spec in one go, unless -Model or -Plugin names one.
 $configurations = if ($fieldMode -and -not $PSBoundParameters.ContainsKey('Model') -and -not $PSBoundParameters.ContainsKey('Plugin') -and $spec.field.Contains('configurations')) {
     @($spec.field.configurations | ForEach-Object { [pscustomobject]@{ Model = $_.model; Plugin = [bool]$_.plugin } })
@@ -560,31 +566,59 @@ $doneSessions = @{}
 $continuesRuns = [System.Collections.Generic.List[string]]::new()
 # A continuation is the same selection as the run it continues: the same tier, model, plugin, repetitions and narrowing.
 # Results with no summary.json beside them (a copy of results.json alone) have nothing to compare and pass.
-function Assert-SameSelection([string]$SummaryPath) {
+# Returns what differs, as "key was 'x', is 'y'" lines; the keys are also in $differing.
+function Get-SelectionDifference([string]$SummaryPath) {
     $earlier = (Get-Content -LiteralPath $SummaryPath -Raw | ConvertFrom-Json -AsHashtable).meta
-    if ($null -eq $earlier -or -not $earlier.Contains('tier')) { return }
-    if ($earlier.Contains('runId') -and $earlier.runId) { $continuesRuns.Add([string]$earlier.runId) }
-    $now = [ordered]@{ tier = [string]$Tier; requestedModel = (($configurations | ForEach-Object Model | Sort-Object -Unique) -join ', '); plugin = [bool]$Plugin; repeat = [int]$repeatCount
+    if ($null -eq $earlier -or -not $earlier.Contains('tier')) { return [pscustomobject]@{ Meta = $earlier; Keys = @(); Lines = @() } }
+    $now = [ordered]@{ tier = [string]$Tier; requestedModel = (($configurations | ForEach-Object Model | Sort-Object -Unique) -join ', '); repeat = [int]$repeatCount
         genre = [string]$Genre; stage = [string]$Stage; language = [string]$Language; task = [string]$TaskId; profile = [string]$ProfileId }
-    $differs = foreach ($key in $now.Keys) {
+    # A run of several configurations (the field test) records the plugin of no one of them: compare it for a single one only.
+    if ($configurations.Count -eq 1) { $now['plugin'] = $requestedPlugin }
+    $keys = [System.Collections.Generic.List[string]]::new(); $lines = [System.Collections.Generic.List[string]]::new()
+    foreach ($key in $now.Keys) {
         $was = if ($key -in 'genre', 'stage', 'language', 'task', 'profile') { if ($earlier.Contains('selection') -and $earlier.selection.Contains($key)) { [string]$earlier.selection[$key] } else { '' } } elseif ($earlier.Contains($key)) { $earlier[$key] } else { $null }
-        if ($null -ne $was -and "$was" -ne "$($now[$key])") { "$key was '$was', is '$($now[$key])'" }
+        if ($null -ne $was -and "$was" -ne "$($now[$key])") { $keys.Add($key); $lines.Add("$key was '$was', is '$($now[$key])'") }
     }
-    if (@($differs).Count) { throw "-SkipDone: $SummaryPath is not the same selection as this run ($(@($differs) -join '; ')). A continuation uses the tier, model, plugin, repeat and narrowing of the run it continues" }
+    return [pscustomobject]@{ Meta = $earlier; Keys = $keys.ToArray(); Lines = $lines.ToArray() }
 }
+# Every results.json under the folders, and a summary.json whose run wrote no results.json (an old artifact of a run that had
+# nothing to run), with what its summary says about the selection.
+$earlierRuns = [System.Collections.Generic.List[object]]::new()
 foreach ($folder in (& $splitList $SkipDone)) {
     if (-not (Test-Path -LiteralPath $folder -PathType Container)) { throw "-SkipDone: no such folder: $folder" }
     $files = @(Get-ChildItem -LiteralPath $folder -Filter 'results.json' -File -Recurse)
-    if ($files.Count -eq 0) { throw "-SkipDone: no results.json under $folder" }
+    $summariesAlone = @(Get-ChildItem -LiteralPath $folder -Filter 'summary.json' -File -Recurse | Where-Object { -not (Test-Path -LiteralPath (Join-Path $_.DirectoryName 'results.json')) })
+    if ($files.Count -eq 0 -and $summariesAlone.Count -eq 0) { throw "-SkipDone: no results.json under $folder" }
     foreach ($file in $files) {
         $summaryBeside = Join-Path $file.DirectoryName 'summary.json'
-        if (Test-Path -LiteralPath $summaryBeside) { Assert-SameSelection $summaryBeside }
-        foreach ($old in @(Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json -AsHashtable)) {
-            if ($null -eq $old) { continue }
-            $infrastructure = $old.Contains('infrastructure') -and $old.infrastructure
-            if ($infrastructure -or [long]$old.tokensTotal -le 0) { continue }
-            $doneSessions[(Get-SessionKey ([string]$old.configuration) ([string]$old.profile) ([string]$old.task) ([int]$old.repetition))] = $true
+        $earlierRuns.Add([pscustomobject]@{ Results = $file.FullName; Summary = $(if (Test-Path -LiteralPath $summaryBeside) { $summaryBeside }) })
+    }
+    foreach ($summary in $summariesAlone) { $earlierRuns.Add([pscustomobject]@{ Results = $null; Summary = $summary.FullName }) }
+}
+foreach ($entry in $earlierRuns) { $entry | Add-Member -NotePropertyName Difference -NotePropertyValue $(if ($entry.Summary) { Get-SelectionDifference $entry.Summary }) }
+# Folders of the other configurations of this programme are expected when a run of several configurations is continued
+# (the workflow gives each job all the artifacts of the programme), so one that differs only in model or plugin is skipped
+# with a log line, but only when some folder given is exactly this run's selection. A folder of another tier, repeat or
+# narrowing is a wrong folder given on purpose and is always refused, and so is a folder of another configuration that is
+# the only one given: skipping it would silently skip nothing and run everything again.
+$haveOwn = @($earlierRuns | Where-Object { $_.Difference -and $_.Difference.Meta -and $_.Difference.Meta.Contains('tier') -and $_.Difference.Keys.Count -eq 0 }).Count -gt 0
+foreach ($entry in $earlierRuns) {
+    $difference = $entry.Difference
+    if ($difference -and $difference.Keys.Count) {
+        $onlyConfiguration = @($difference.Keys | Where-Object { $_ -notin 'requestedModel', 'plugin' }).Count -eq 0
+        if ($onlyConfiguration -and $haveOwn) {
+            Write-BenchLog "-SkipDone: $($entry.Summary) is another configuration of this programme ($($difference.Lines -join '; ')); its sessions are not this run's, skipped"
+            continue
         }
+        throw "-SkipDone: $($entry.Summary) is not the same selection as this run ($($difference.Lines -join '; ')). A continuation uses the tier, model, plugin, repeat and narrowing of the run it continues"
+    }
+    if ($difference -and $difference.Meta -and $difference.Meta.Contains('tier') -and $difference.Meta.Contains('runId') -and $difference.Meta.runId) { $continuesRuns.Add([string]$difference.Meta.runId) }
+    if (-not $entry.Results) { continue }
+    foreach ($old in @(Get-Content -LiteralPath $entry.Results -Raw | ConvertFrom-Json -AsHashtable)) {
+        if ($null -eq $old) { continue }
+        $infrastructure = $old.Contains('infrastructure') -and $old.infrastructure
+        if ($infrastructure -or [long]$old.tokensTotal -le 0) { continue }
+        $doneSessions[(Get-SessionKey ([string]$old.configuration) ([string]$old.profile) ([string]$old.task) ([int]$old.repetition))] = $true
     }
 }
 # Every session of the run in order (configuration, repetition, task, profile), each numbered; those done before are
@@ -639,7 +673,10 @@ if ($costModel) {
 if ($BudgetUsd -gt 0) { $budget = $BudgetUsd }
 elseif ($tierSpec -and $tierSpec.Contains('maxCostUsd') -and $null -ne $tierSpec.maxCostUsd -and $null -ne $estimateUsd) {
     $budget = [double]$tierSpec.maxCostUsd * $(if ($tierEstimateUsd -gt 0) { $estimateUsd / $tierEstimateUsd } else { 1 })
-} elseif ($fieldMode -and $spec.field.Contains('maxCostUsd')) { $budget = [double]$spec.field.maxCostUsd }
+} elseif ($fieldMode -and $spec.field.Contains('maxCostUsd')) {
+    # A shard, or the rest of a continued run, gets its share of the ceiling, as on the tier path above.
+    $budget = [double]$spec.field.maxCostUsd * $(if ($null -ne $estimateUsd -and $tierEstimateUsd -gt 0) { $estimateUsd / $tierEstimateUsd } else { 1 })
+}
 
 Write-BenchLog "$($profiles.Count) profile(s), $($tasks.Count) task(s), $repeatCount run(s), $($configurations.Count) configuration(s): $calls session(s) (more with retries)$(if ($shardCount -gt 1) { ", shard $shardIndex of $shardCount" })$(if ($SkipDone) { ", $skippedCount already done and skipped" }), $(($configurations | ForEach-Object { "$($_.Model)$(if ($_.Plugin) { ' with the plugin' })" }) -join ', ')"
 if ($null -ne $estimateUsd) {
@@ -681,7 +718,8 @@ if ($gameSources.Count) {
 }
 if ($script:Isolation) { Grant-SessionGodot }
 
-$runId = (Get-Date).ToUniversalTime().ToString('yyyyMMdd-HHmmss')
+# Unique per run and per shard: shards started in the same second must not share a run id or a folder.
+$runId = (Get-Date).ToUniversalTime().ToString('yyyyMMdd-HHmmss') + $(if ($shardCount -gt 1) { "-s$shardIndex" }) + '-' + [guid]::NewGuid().ToString('N').Substring(0, 4)
 $runDir = Join-Path $OutputDir $runId
 New-Item -ItemType Directory -Force $runDir | Out-Null
 $responseDir = if ($SaveResponses) { New-Item -ItemType Directory -Force (Join-Path $runDir 'responses') | ForEach-Object FullName }
@@ -708,7 +746,7 @@ foreach ($session in $sessionPlan) {
     # The judge's sessions count toward the ceiling too, though not toward the configuration's tokens.
     $spentUsd += $row.costUsd + $(if ($row.judge) { $row.judge.costUsd } else { 0 })
     # Saved as it goes, so a run stopped from outside (a job's time limit) still leaves what it measured.
-    $rows | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $runDir 'results.json') -Encoding utf8
+    ConvertTo-Json -InputObject @($rows.ToArray()) -Depth 5 | Set-Content -LiteralPath (Join-Path $runDir 'results.json') -Encoding utf8
     Write-BenchLog ("{0,-12} {1,-12} #{2} {3} {4,9:N0} tokens  `${5:N4}  {6} turn(s){7}" -f $p.id, $t.id, $r,
         $(if ($row.success) { 'pass' } else { 'FAIL' }), $row.tokensTotal, $row.costUsd, $row.turns, $(if ($row.reasons) { "  ($($row.reasons))" }))
 }
@@ -720,9 +758,9 @@ foreach ($session in $sessionPlan) {
 
 $summary = Get-BenchmarkSummary $rows.ToArray() @($profiles.id) @($tasks.id)
 $meta = [ordered]@{ runId = $runId; spec = (Resolve-Path -LiteralPath $SpecPath).Path; repeat = $repeatCount; calls = $calls
-    models = ((@($rows | ForEach-Object model | Where-Object { $_ }) | Sort-Object -Unique) -join ', '); requestedModel = (($configurations | ForEach-Object Model | Sort-Object -Unique) -join ', '); claudeVersion = $claudeVersion; plugin = [bool]$Plugin
+    models = ((@($rows | ForEach-Object model | Where-Object { $_ }) | Sort-Object -Unique) -join ', '); requestedModel = (($configurations | ForEach-Object Model | Sort-Object -Unique) -join ', '); claudeVersion = $claudeVersion; plugin = $requestedPlugin
     tier = $Tier; selection = [ordered]@{ genre = $Genre; stage = $Stage; language = $Language; task = $TaskId; profile = $ProfileId }
-    estimateUsd = $estimateUsd; budgetUsd = $budget; spentUsd = [Math]::Round($spentUsd, 6); notRun = $notRun.ToArray(); isolated = [bool]$isolating
+    estimateUsd = $estimateUsd; budgetUsd = $budget; spentUsd = [Math]::Round($spentUsd, 6); notRun = $notRun.ToArray(); isolated = $isolated; isolationRequested = [bool]$isolating
     # Only the standard tier, unnarrowed and complete, can set a class (the label tool checks this). A shard alone is
     # not the run: it says which part it is and whether all n parts together would be.
     standard = $false; shard = $(if ($shardCount -gt 1) { "$shardIndex/$shardCount" }); partOfStandard = $false
@@ -734,7 +772,7 @@ if ($shardCount -gt 1) { $meta.partOfStandard = $meetsStandard } else { $meta.st
 if ($fieldMode) { $meta.field = $true; $meta.standard = $false }
 if ($notReached.Count) { ConvertTo-Json -InputObject @($notReached.ToArray()) -Depth 4 | Set-Content -LiteralPath (Join-Path $runDir 'not-reached.json') -Encoding utf8 }
 $rows | Export-Csv -LiteralPath (Join-Path $runDir 'results.csv') -NoTypeInformation -Encoding utf8
-$rows | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $runDir 'results.json') -Encoding utf8
+ConvertTo-Json -InputObject @($rows.ToArray()) -Depth 5 | Set-Content -LiteralPath (Join-Path $runDir 'results.json') -Encoding utf8
 $document = [ordered]@{ meta = $meta; profiles = $summary.profiles; cells = $summary.cells; folder = $runDir }
 if ($fieldMode) {
     $kitCommit = (& git -C $repoRoot rev-parse --short HEAD 2>$null)

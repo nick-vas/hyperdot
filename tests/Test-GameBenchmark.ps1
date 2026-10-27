@@ -102,6 +102,22 @@ try {
         Remove-Item -LiteralPath $keptDir -Recurse -Force -ErrorAction SilentlyContinue
     }
 
+    # A session cannot steer the kit's runners away from the hidden tests: a .gutconfig.json it wrote that lists a folder with
+    # no test in it would make the GUT runner skip its own search, and a game that fails the hidden tests would pass.
+    $specDoc = Get-Content -LiteralPath $spec -Raw | ConvertFrom-Json -AsHashtable
+    $fixTask = @($specDoc.tasks | Where-Object { $_.id -eq 'GAME-FIX-001' })[0]
+    foreach ($case in 1) {
+        $steered = New-GameWorkspace $specDoc $fixTask $root
+        try {
+            New-Item -ItemType Directory -Force (Join-Path $steered.Dir 'nothing_here') | Out-Null
+            Set-Content -LiteralPath (Join-Path $steered.Dir 'nothing_here/readme.txt') -Value 'no test'
+            Set-Content -LiteralPath (Join-Path $steered.Dir '.gutconfig.json') -Value '{ "dirs": ["res://nothing_here/"], "should_exit": true }'
+            $why = @(Test-GameResult $fixTask $steered)
+            Assert-True (($why -join '; ') -match 'tests fail: .*hidden_' -and -not (Test-Path -LiteralPath (Join-Path $steered.Dir '.gutconfig.json'))) "a .gutconfig.json the session wrote does not hide the hidden tests: the unfixed game still fails them ($($why -join '; '))"
+        } finally { Remove-GameWorkspace $steered.Dir }
+
+    }
+
     # The staged programme (benchmark/PLAN.md), on a one-genre, two-stage test programme.
     $programme = Join-Path $PSScriptRoot 'game-benchmark/programme/programme.json'
     function Invoke-Programme([string[]]$Arguments, [string]$Mode = 'good', [string]$Spec = $programme) {
