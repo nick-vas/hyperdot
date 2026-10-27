@@ -116,6 +116,19 @@ test programme (cheap to lose, redundant with a nearer check) and the field test
 largest, with the least to say about a kit change). The rest stay, as the error codes, the plan's gates, the web and GPU
 checks guard contracts a pull request should not break, and a quiet sample is not a reason to stop looking.
 
+### Demoting more to the nightly run: not done, and what is missing
+
+The task was to move every job that never failed to the nightly run. The numbers above do not show that safely, so
+nothing more was demoted. The sample is 22 runs read step by step, mostly failing ones, over three days of one burst of
+work, and a zero count there is "no failure seen", not "cannot fail". The steps and jobs that never failed (error codes, the
+plan's gates, Web `export -Run`, `audio -Mix`, the placement checker, `-GpuValidation`, Firefox) were weighed above and kept
+on purpose, as they guard contracts a pull request should not break; the three that were redundant with a nearer check
+are already kept for the full runs. To demote more, the decision needs, from the run history of `self-test.yml`
+(`gh run list` and `gh run view --json jobs`, which this change could not reach): per job and step over at least the last
+60 days, the count of runs it was in and of failures (split by pull request and `main`), how many failures were found
+only after merge, and the runner-minutes it cost. A job qualifies at zero failures in about 100 runs that included its
+files; `Test-SelectJobs.ps1` then needs the demotion added to its expectations. This is listed in the roadmap's To do.
+
 ### Changelog fragments
 
 `CHANGELOG.md` is edited only at release. Each change adds `changelog.d/<slug>.md` (format: `changelog.d/README.md`) and
