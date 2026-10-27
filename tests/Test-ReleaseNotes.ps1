@@ -87,3 +87,5 @@ Assert-True ($null -eq (Get-MajorDecision "1.0.0`n" @()).move) 'a version with a
 
 if ($failures.Count) { Write-Host "$($failures.Count) failed"; exit 1 }
 Write-Host 'Release notes: all checks passed'
+# The refusals above end with commands that fail on purpose; GitHub's pwsh wrapper exits with $LASTEXITCODE.
+exit 0
