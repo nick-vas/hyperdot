@@ -102,6 +102,26 @@ try {
     Remove-Item -LiteralPath $project -Recurse -Force
 }
 
+
+# A failure text with characters XML 1.0 cannot hold (BEL, ESC, NUL) must not make the JUnit unreadable or lose the text.
+$junitDir = Join-Path ([IO.Path]::GetTempPath()) "hd-junit-$([guid]::NewGuid().ToString('N'))"
+New-Item -ItemType Directory -Path $junitDir | Out-Null
+try {
+    $bad = "bell$([char]7) esc$([char]27)[31m nul$([char]0) real error text`nline two"
+    foreach ($kind in 'cases', 'single') {
+        $file = Join-Path $junitDir "$kind.xml"
+        if ($kind -eq 'cases') { Write-JUnitCases $file 'suite' @(@{ Name = "case$([char]7)"; Failure = $bad }) } else { Write-SingleCaseJUnit $file 'smoke' $false $bad }
+        $totals = New-TestTotals
+        try { Read-JUnit $file $totals } catch { $failures += "$kind JUnit with control characters is unreadable: $($_.Exception.Message)"; continue }
+        if ($totals.Failed -ne 1 -or $totals.Failures[0].Message -notlike '*real error text*' -and $totals.Failures[0].Message -notlike 'bell*') {
+            $failures += "$kind JUnit lost the failure text: $($totals.Failures[0].Message)"
+        }
+        if ($totals.Failures[0].Details -notlike '*real error text*') { $failures += "$kind JUnit details lost the text: $($totals.Failures[0].Details)" }
+    }
+    $pair = "ok $([char]::ConvertFromUtf32(0x1F600)) lone$([char]0xD800)end"
+    $clean = Remove-XmlInvalidChar $pair
+    if ($clean -ne "ok $([char]::ConvertFromUtf32(0x1F600)) loneend") { $failures += "surrogate handling: $clean" }
+} finally { Remove-Item -LiteralPath $junitDir -Recurse -Force }
 if ($failures) { $failures | ForEach-Object { Write-Host "FAIL $_" -ForegroundColor Red }; exit 1 }
 Write-Host 'failureDelta classes failures as new, still failing and fixed against the last run of the same scope, ignores other scopes and damaged lines, and keeps 200 ids'
 exit 0
