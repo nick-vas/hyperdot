@@ -1,0 +1,1 @@
+Changed: the README opens with the problem (an agent proves a Godot game still works, with evidence), has a quick start that runs on the examples, a choose-your-path section, Core against Advanced and a table of what Hyperdot adds on top of the test frameworks it runs; the roadmap records what remains and the postponed measurements.
