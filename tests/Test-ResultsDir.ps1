@@ -16,7 +16,7 @@ Copy-Item -Recurse -LiteralPath (Join-Path $root 'examples/gdscript') -Destinati
 $failures = @()
 
 function Invoke-KitTest([string]$Results) {
-    $out = & pwsh -NoProfile -File $kit test -Project $project -Runners architecture -Results $Results -Json 2>$null
+    $out = & pwsh -NoProfile -NonInteractive -File $kit test -Project $project -Runners architecture -Results $Results -Json 2>$null
     return ($out -join "`n") | ConvertFrom-Json
 }
 
@@ -36,15 +36,15 @@ try {
     if (-not $NoGodot) {
         $results = Join-Path $project 'test-results'
         $d = Invoke-KitTest $results
-        if (-not $d.ok) { $failures += "a new folder inside the project should be accepted: $($d.error | ConvertTo-Json -Compress)" }
+        if (-not $d.ok) { $failures += "a new folder inside the project should be accepted: $($d.error | ConvertTo-Json -Depth 10 -Compress)" }
         Set-Content -LiteralPath (Join-Path $results 'old.txt') -Value 'from an earlier run'
         $d = Invoke-KitTest $results
-        if (-not $d.ok) { $failures += "the kit's own results folder should be accepted again: $($d.error | ConvertTo-Json -Compress)" }
+        if (-not $d.ok) { $failures += "the kit's own results folder should be accepted again: $($d.error | ConvertTo-Json -Depth 10 -Compress)" }
         if (Test-Path -LiteralPath (Join-Path $results 'old.txt')) { $failures += 'the results folder was not cleared' }
         $empty = Join-Path $project 'empty'
         New-Item -ItemType Directory -Force $empty | Out-Null
         $d = Invoke-KitTest $empty
-        if (-not $d.ok) { $failures += "an empty folder inside the project should be accepted: $($d.error | ConvertTo-Json -Compress)" }
+        if (-not $d.ok) { $failures += "an empty folder inside the project should be accepted: $($d.error | ConvertTo-Json -Depth 10 -Compress)" }
     }
 } finally {
     Pop-Location

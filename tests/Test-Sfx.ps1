@@ -39,7 +39,7 @@ New-Item -ItemType Directory -Force $project | Out-Null
 Set-Content -LiteralPath (Join-Path $project 'project.godot') "config_version=5`n`n[application]`n`nconfig/name=`"Sfx`"`n"
 Set-Content -LiteralPath (Join-Path $project 'assets.json') '{ "assets": [ { "path": "art/**", "source": "own", "licence": "own" } ] }'
 function Invoke-Sfx([string[]]$Arguments) {
-    $json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') sfx -Project $project -Json @Arguments 2>$null
+    $json = & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') sfx -Project $project -Json @Arguments 2>$null
     return ($json | Out-String | ConvertFrom-Json)
 }
 
@@ -80,7 +80,7 @@ $before = Get-Content -LiteralPath (Join-Path $project 'assets.json') -Raw
 $sibling = Invoke-Sfx @('-Sound', 'jump', '-Seed', '3', '-Output', "$project-assets/sfx")
 if (-not $sibling.ok) { $failures += "sfx into a sibling folder failed: $($sibling.error.message)" }
 elseif ($null -ne $sibling.sfx.assetsEntry -or (Get-Content -LiteralPath (Join-Path $project 'assets.json') -Raw) -ne $before) {
-    $failures += "a folder beside the project is not inside it: $($sibling.sfx.assetsEntry | ConvertTo-Json -Compress)"
+    $failures += "a folder beside the project is not inside it: $($sibling.sfx.assetsEntry | ConvertTo-Json -Depth 10 -Compress)"
 }
 Remove-Item -Recurse -Force "$project-assets" -ErrorAction SilentlyContinue
 

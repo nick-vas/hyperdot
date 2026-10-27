@@ -105,7 +105,7 @@ function Invoke-Sfx {
                 Write-CiLog "assets.json: added $($entry.path) (own, generated)"
             }
         } else {
-            Write-CiLog "No assets.json: add $($entry | ConvertTo-Json -Compress) when you create one"
+            Write-CiLog "No assets.json: add $($entry | ConvertTo-Json -Depth 10 -Compress) when you create one"
         }
     }
     Set-JsonField sfx ([ordered]@{ outputDir = $full; peakDb = $PeakDb; files = @($files); assetsEntry = $entry })

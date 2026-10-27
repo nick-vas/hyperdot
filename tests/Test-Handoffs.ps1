@@ -12,7 +12,7 @@ function Assert-True([bool]$Condition, [string]$Name) {
     if ($Condition) { Write-Host "ok     $Name" } else { Write-Host "FAIL   $Name"; $script:failures += $Name }
 }
 function Invoke-Kit([string[]]$KitArgs) {
-    $out = & pwsh -NoProfile -File $ci @KitArgs -Json -Project $script:dir 2>$null | Out-String
+    $out = & pwsh -NoProfile -NonInteractive -File $ci @KitArgs -Json -Project $script:dir 2>$null | Out-String
     return [pscustomobject]@{ Code = $LASTEXITCODE; Doc = ($out.Trim() ? ($out | ConvertFrom-Json) : $null) }
 }
 
@@ -48,7 +48,7 @@ try {
 
     # The newest 200 are kept: 205 older lines and a damaged one, then one more.
     $old = @(1..205 | ForEach-Object {
-        [ordered]@{ time = (Get-Date '2026-01-01').AddMinutes($_).ToUniversalTime().ToString('o'); subagent = 'godot-architect'; checked = "design $_"; verdict = 'Proposed'; commit = 'abc1234' } | ConvertTo-Json -Compress
+        [ordered]@{ time = (Get-Date '2026-01-01').AddMinutes($_).ToUniversalTime().ToString('o'); subagent = 'godot-architect'; checked = "design $_"; verdict = 'Proposed'; commit = 'abc1234' } | ConvertTo-Json -Depth 10 -Compress
     })
     [System.IO.File]::WriteAllLines($log, [string[]](@($old) + @('{"time": broken')))
     $r = Invoke-Kit @('status', '-Handoff', 'godot-verifier', '-Checked', 'export -Preset Linux -Run', '-Verdict', 'PASS')

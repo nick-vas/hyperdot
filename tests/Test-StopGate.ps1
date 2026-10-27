@@ -48,8 +48,8 @@ function Add-TestRun([string]$Game, [datetime]$Time, [string[]]$Runners = @('arc
 function Invoke-Gate([string]$Cwd, [string]$Raw, [switch]$Empty) {
     Push-Location $Cwd
     try {
-        $out = if ($Empty) { @() | pwsh -NoProfile -File $hook }
-        else { "{""cwd"":""$($Cwd -replace '\\', '/')"",""stop_hook_active"":false}" | pwsh -NoProfile -File $hook }
+        $out = if ($Empty) { @() | pwsh -NoProfile -NonInteractive -File $hook }
+        else { "{""cwd"":""$($Cwd -replace '\\', '/')"",""stop_hook_active"":false}" | pwsh -NoProfile -NonInteractive -File $hook }
     } finally { Pop-Location }
     $text = (@($out) -join "`n").Trim()
     if (-not $text) { return [pscustomobject]@{ Decision = 'allow'; Reason = '' } }

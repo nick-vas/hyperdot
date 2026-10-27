@@ -144,7 +144,7 @@ try {
         $Site = Join-Path $temp 'site'
         $commit = @(& git -C $root rev-parse HEAD 2>$null) -join ''
         if ($commit -notmatch '^[0-9a-f]{40}$') { $commit = '0' * 40 }
-        & pwsh -NoProfile -File $builder -Out $Site -Commit $commit | Out-Host
+        & pwsh -NoProfile -NonInteractive -File $builder -Out $Site -Commit $commit | Out-Host
         Assert-True ($LASTEXITCODE -eq 0) 'the builder builds this repository''s site'
     }
     $problems = @(Get-SiteProblems $Site $root)
@@ -233,7 +233,7 @@ Back to [the home page](../README.md#documentation).
     Set-Content -LiteralPath (Join-Path $repo 'docs/label/hyperdot-9.9.9-tool-m.md') "# Product information sheet: Hyperdot 9.9.9`n`n![label](hyperdot-9.9.9-tool-m.svg)`n`n[Method](../label.md)`n"
     Set-Content -LiteralPath (Join-Path $repo 'docs/label.md') "# The label`n`nRated like an appliance.`n`n<!-- RATING -->`n`n## The method`n`nSee [the sheet](label/hyperdot-9.9.9-tool-m.md).`n"
     $made = Join-Path $temp 'made-up'
-    $buildLog = & pwsh -NoProfile -File $builder -Root $repo -Out $made -Commit ('a' * 40) 6>&1 2>&1 | Out-String
+    $buildLog = & pwsh -NoProfile -NonInteractive -File $builder -Root $repo -Out $made -Commit ('a' * 40) 6>&1 2>&1 | Out-String
     Assert-True ($LASTEXITCODE -eq 0 -and $buildLog -match 'warning: index\.html: docs/missing\.md does not exist') 'the builder builds a made-up repository and warns of the missing page'
     $madeProblems = @(Get-SiteProblems $made $repo)
     $text = $madeProblems -join "`n"
@@ -261,7 +261,7 @@ Back to [the home page](../README.md#documentation).
 
     # The local preview: -Serve answers under /hyperdot/, as github.io does, and sends other paths there.
     $port = Get-Random -Minimum 20000 -Maximum 60000
-    $server = Start-Process -FilePath (Get-Process -Id $PID).Path -ArgumentList @('-NoProfile', '-File', $builder, '-Root', $repo, '-Out', (Join-Path $temp 'served'), '-Commit', ('a' * 40), '-Serve', '-Port', $port) -PassThru -RedirectStandardOutput (Join-Path $temp 'serve.log')
+    $server = Start-Process -FilePath (Get-Process -Id $PID).Path -ArgumentList @('-NoProfile', '-File', "`"$builder`"", '-Root', "`"$repo`"", '-Out', "`"$(Join-Path $temp 'served')`"", '-Commit', "$('a' * 40)", '-Serve', '-Port', "$port") -PassThru -RedirectStandardOutput (Join-Path $temp 'serve.log')
     try {
         $served = $null
         foreach ($i in 1..60) {
@@ -277,7 +277,7 @@ Back to [the home page](../README.md#documentation).
     $other = Join-Path $temp 'not-a-site'
     New-Item -ItemType Directory -Force $other | Out-Null
     Set-Content -LiteralPath (Join-Path $other 'keep.txt') 'mine'
-    & pwsh -NoProfile -File $builder -Root $repo -Out $other -Commit ('a' * 40) *> $null
+    & pwsh -NoProfile -NonInteractive -File $builder -Root $repo -Out $other -Commit ('a' * 40) *> $null
     Assert-True ($LASTEXITCODE -ne 0 -and (Test-Path -LiteralPath (Join-Path $other 'keep.txt'))) 'the builder refuses to empty a folder that holds no earlier build'
 } finally {
     Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue

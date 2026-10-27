@@ -261,7 +261,7 @@ $saved = @{}
 foreach ($k in $envSet.Keys) { $saved[$k] = [Environment]::GetEnvironmentVariable($k); [Environment]::SetEnvironmentVariable($k, $envSet[$k]) }
 try {
     foreach ($command in 'test', 'export') {
-        $printed = & pwsh -NoProfile -File $runner $command -PrintOnly | Out-String | ConvertFrom-Json
+        $printed = & pwsh -NoProfile -NonInteractive -File $runner $command -PrintOnly | Out-String | ConvertFrom-Json
         $names = @($printed.parameters.PSObject.Properties.Name)
         Assert-True (@($names | Where-Object { $_ -notin $kitParams }).Count -eq 0) "$command's parameters are hyperdot.ps1's: $($names -join ', ')"
         Assert-True ($printed.parameters.Results -like '*checkout*test-results' -and $printed.parameters.Output -like '*checkout*build' -and $printed.parameters.MinCoverage -eq 50.5) "$command writes inside the checkout and reads the numbers invariantly"

@@ -17,7 +17,7 @@ if ((@($parsed.Unparsed) -join ' | ') -ne '[soak] metric version 1.2.3 | [soak] 
 
 function Invoke-Soak([string[]]$Extra, [string]$Project = $fixture, [double]$Warmup = 2) {
     $results = Join-Path ([System.IO.Path]::GetTempPath()) "soak-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
-    $json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') soak -Project $Project -Seconds 20 -Warmup $Warmup `
+    $json = & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') soak -Project $Project -Seconds 20 -Warmup $Warmup `
         -MaxGrowthMbPerHour 200 -Results $results -Json @Extra 2>$null
     return ($json | Out-String | ConvertFrom-Json)
 }
@@ -32,7 +32,7 @@ else {
 # The stop at the end: SIGTERM, as a host sends it. The GDScript fixture has no way to catch it and dies with 143; the C#
 # fixture catches it (PosixSignalRegistration), drains and quits with 0.
 if ($healthy.ok -and -not $IsWindows) {
-    if ($healthy.soak.stop.clean -or $healthy.soak.stop.exitCode -ne 143) { $failures += "the GDScript server should die on SIGTERM with 143: $($healthy.soak.stop | ConvertTo-Json -Compress)" }
+    if ($healthy.soak.stop.clean -or $healthy.soak.stop.exitCode -ne 143) { $failures += "the GDScript server should die on SIGTERM with 143: $($healthy.soak.stop | ConvertTo-Json -Depth 10 -Compress)" }
 }
 if (-not $IsWindows) {
     $strict = Invoke-Soak @('-Clients', '1', '-RequireCleanStop')
@@ -41,7 +41,7 @@ if (-not $IsWindows) {
     # measured 50 MB/h here and 374 MB/h on a GitHub runner (run 697), a 10 s one 36 MB/h. Measure it warm.
     $cs = Invoke-Soak @('-Clients', '1', '-RequireCleanStop') (Join-Path $PSScriptRoot 'soak-fixture-cs') 15
     if (-not $cs.ok) { $failures += "the C# server that handles SIGTERM failed: $($cs.error.code) $($cs.error.message)" }
-    elseif (-not $cs.soak.stop.clean -or $cs.soak.stop.exitCode -ne 0) { $failures += "the C# server should stop cleanly: $($cs.soak.stop | ConvertTo-Json -Compress)" }
+    elseif (-not $cs.soak.stop.clean -or $cs.soak.stop.exitCode -ne 0) { $failures += "the C# server should stop cleanly: $($cs.soak.stop | ConvertTo-Json -Depth 10 -Compress)" }
 }
 
 $leak = Invoke-Soak @('-Clients', '2', '-GameArgs', '--leak')
@@ -55,7 +55,7 @@ if ($crash.ok -or $crash.error.code -ne 'soak-failed' -or $crash.error.message -
 # -JunkPps floods the server's own port on 127.0.0.1. 100k packets a second crowd legitimate input out of the ENet
 # socket buffer: the server loses a large share of its input or drops clients outright (the soak run then fails).
 $flood = Invoke-Soak @('-Clients', '2', '-JunkPps', '100000')
-if ($flood.soak.junk.pps -ne 100000) { $failures += "a junk flood should record its rate: $($flood.soak.junk | ConvertTo-Json -Compress)" }
+if ($flood.soak.junk.pps -ne 100000) { $failures += "a junk flood should record its rate: $($flood.soak.junk | ConvertTo-Json -Depth 10 -Compress)" }
 if ($flood.soak.junk.packetsSent -le 0) { $failures += "a junk flood should send packets to the server: $($flood.soak.junk.packetsSent)" }
 $degraded = (-not $flood.ok -and $flood.error.code -eq 'soak-failed') -or ($flood.soak.server.metrics.input_loss_pct -gt 5)
 if (-not $degraded) {

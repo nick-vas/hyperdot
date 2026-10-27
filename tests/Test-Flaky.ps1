@@ -135,7 +135,7 @@ function Invoke-Kit([string[]]$KitArgs, [switch]$Fresh) {
     $script:RunNumber++
     $results = Join-Path $game "r$script:RunNumber"
     $extra = if ($KitArgs[0] -eq 'test') { @('-Runners', 'gut', '-Results', $results) } else { @() }
-    $out = pwsh -NoProfile -File $kit @KitArgs -Json -Quiet -Project $game @extra 2>$null
+    $out = pwsh -NoProfile -NonInteractive -File $kit @KitArgs -Json -Quiet -Project $game @extra 2>$null
     return ($out | Out-String | ConvertFrom-Json)
 }
 function Get-ErrorCode($Result) { if ($Result.PSObject.Properties['error']) { $Result.error.code } else { 'ok' } }

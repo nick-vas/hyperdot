@@ -23,7 +23,7 @@ function Assert-True([bool]$Condition, [string]$What) {
 }
 
 if (-not $env:GODOT_BIN -or -not (Test-Path -LiteralPath $env:GODOT_BIN)) {
-    $setup = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') setup -Json -Quiet -Project (Join-Path $root 'examples/gdscript') 2>$null
+    $setup = & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') setup -Json -Quiet -Project (Join-Path $root 'examples/gdscript') 2>$null
     $env:GODOT_BIN = @(Get-ChildItem -LiteralPath $(if ($env:GODOT_TOOLS_DIR) { $env:GODOT_TOOLS_DIR } else { Join-Path $HOME '.hyperdot' }) -Recurse -File |
         Where-Object { $_.Name -match '^Godot_v[\d.]+-stable(_mono)?_(linux\.x86_64|win64_console\.exe)$' } | Sort-Object { $_.Name -match '_mono' } |
         Select-Object -First 1 | ForEach-Object FullName) | Select-Object -First 1
@@ -32,7 +32,7 @@ if (-not $env:GODOT_BIN -or -not (Test-Path -LiteralPath $env:GODOT_BIN)) {
 
 function Invoke-GameBench([string]$Mode) {
     $env:FAKE_GAME_MODE = $Mode
-    $out = & pwsh -NoProfile -File $bench -SpecPath $spec -Claude $fake -OutputDir (Join-Path $work $Mode) -Repeat 1 -SaveResponses -Json 2>$null
+    $out = & pwsh -NoProfile -NonInteractive -File $bench -SpecPath $spec -Claude $fake -OutputDir (Join-Path $work $Mode) -Repeat 1 -SaveResponses -Json 2>$null
     $doc = @($out | Where-Object { $_ -match '^\{' }) | Select-Object -Last 1
     $folder = if ($doc) { ($doc | ConvertFrom-Json).folder }
     $rows = if ($folder) { @(Get-Content -LiteralPath (Join-Path $folder 'results.json') -Raw | ConvertFrom-Json) } else { @() }
@@ -106,7 +106,7 @@ try {
     $programme = Join-Path $PSScriptRoot 'game-benchmark/programme/programme.json'
     function Invoke-Programme([string[]]$Arguments, [string]$Mode = 'good', [string]$Spec = $programme) {
         $env:FAKE_GAME_MODE = $Mode
-        $out = & pwsh -NoProfile -File $bench -SpecPath $Spec -Claude $fake -OutputDir (Join-Path $work "programme-$Mode") -SaveResponses -Json @Arguments 2>$null
+        $out = & pwsh -NoProfile -NonInteractive -File $bench -SpecPath $Spec -Claude $fake -OutputDir (Join-Path $work "programme-$Mode") -SaveResponses -Json @Arguments 2>$null
         $code = $LASTEXITCODE
         $doc = @($out | Where-Object { $_ -match '^\{' }) | Select-Object -Last 1
         return [pscustomobject]@{ Code = $code; Json = $(if ($doc) { $doc | ConvertFrom-Json }) }
@@ -180,7 +180,7 @@ try {
             })
         ConvertTo-Json -InputObject $rows -Depth 4 | Set-Content -LiteralPath (Join-Path $dir 'results.json')
     }
-    $prefOut = & pwsh -NoProfile -File (Join-Path $root 'benchmark/Invoke-SideBySide.ps1') -Results "$sbs/with,$sbs/without" -Model haiku -Claude $fake -OutDir $sbs -Json 2>$null
+    $prefOut = & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'benchmark/Invoke-SideBySide.ps1') -Results "$sbs/with,$sbs/without" -Model haiku -Claude $fake -OutDir $sbs -Json 2>$null
     $prefs = if ($prefOut) { ($prefOut -join "`n") | ConvertFrom-Json } else { $null }
     Assert-True ($prefs -and $prefs.pluginWinRate.'claude-m' -eq 0.75 -and @($prefs.pairs).Count -eq 2) "a pair the plugin wins both ways counts 1, an even one half (win rate $(if ($prefs) { $prefs.pluginWinRate.'claude-m' }))"
     Assert-True (@(Get-Content -LiteralPath $env:FAKE_CLAUDE_LOG | ForEach-Object { $_ | ConvertFrom-Json } | Where-Object { $_.prompt -match '^You are comparing' -and $_.prompt -match 'plugin' }).Count -eq 0) 'the judge is never told which work had the plugin'

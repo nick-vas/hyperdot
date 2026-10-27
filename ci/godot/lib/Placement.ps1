@@ -32,8 +32,8 @@ function Invoke-PlacementRunner($Info, [string]$ResultsDir) {
     if (-not (Test-Path -LiteralPath $file)) { Stop-GodotCi 'placement runner: no placement.json in the project (it names the levels and where each limit comes from)' 'invalid-arguments' }
     try { $null = Get-Content -LiteralPath $file -Raw | ConvertFrom-Json -AsHashtable }
     catch { Stop-GodotCi "placement.json is not valid JSON: $($_.Exception.Message)" 'invalid-arguments' }
-    $tool = (Join-Path $PSScriptRoot '../tools/placement.gd' | Resolve-Path).Path -replace '\\', '/'
-    $check = (Join-Path $PSScriptRoot '../templates/placement_check.gd' | Resolve-Path).Path -replace '\\', '/'
+    $tool = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../tools/placement.gd')).Path -replace '\\', '/'
+    $check = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../templates/placement_check.gd')).Path -replace '\\', '/'
     $log = Join-Path $ResultsDir 'placement.log'
     Start-LogGroup 'Placement of objects in levels'
     $code = Invoke-Logged $env:GODOT_BIN @('--headless', '--path', $Info.ProjectDir, '-s', $tool, '--', "--check=$check") $log

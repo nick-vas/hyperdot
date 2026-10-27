@@ -27,7 +27,7 @@ New-Sound 'sfx/jump_fade.wav' 0.5 'afade=t=in:d=0.15,volume=-12dB'
 New-Sound 'ui/confirm_late.wav' 0.4 'adelay=100' 'sine=frequency=1000:sample_rate=44100'
 
 function Invoke-Kit([string[]]$Arguments) {
-    $out = & pwsh -NoProfile -File $ci @Arguments -Json -Project $game 2>$null
+    $out = & pwsh -NoProfile -NonInteractive -File $ci @Arguments -Json -Project $game 2>$null
     return ($out -join "`n") | ConvertFrom-Json
 }
 
@@ -97,7 +97,7 @@ foreach ($marked in $true, $false) {
 
 # Under a decimal-comma culture loudness.csv still writes -24.1, not "-24,1", which another culture's tools would misread.
 $deResults = Join-Path $game 'audio-de'
-$null = & pwsh -NoProfile -Command "[cultureinfo]::CurrentCulture = 'de-DE'; & '$ci' audio -Json -Project '$game' -Results '$deResults'" 2>$null
+$null = & pwsh -NoProfile -NonInteractive -Command "[cultureinfo]::CurrentCulture = 'de-DE'; & '$ci' audio -Json -Project '$game' -Results '$deResults'" 2>$null
 $deRow = @(Import-Csv -LiteralPath (Join-Path $deResults 'loudness.csv') | Where-Object file -eq 'res://voice/line1.wav')
 if ($deRow.Count -ne 1 -or $deRow[0].integratedLufs -notmatch '^-\d+\.\d+$') { $failures += "loudness.csv under de-DE should write -24.1, got '$(if ($deRow.Count) { $deRow[0].integratedLufs })'" }
 
@@ -111,7 +111,7 @@ if ($Mix) {
     $results = Join-Path $game 'mix-ok'
     $d = Invoke-Kit @('audio', '-Mix', '-Seconds', '6', '-Results', $results)
     if (-not $d.ok) { $failures += "mix at target failed: $($d.error.code) $($d.error.message)" }
-    elseif (-not (Test-Path $d.audio.mix.file) -or $d.audio.mix.seconds -lt 5.9) { $failures += "mix recording: $($d.audio.mix | ConvertTo-Json -Compress)" }
+    elseif (-not (Test-Path $d.audio.mix.file) -or $d.audio.mix.seconds -lt 5.9) { $failures += "mix recording: $($d.audio.mix | ConvertTo-Json -Depth 10 -Compress)" }
     $d = Invoke-Kit @('audio', '-Mix', '-Seconds', '2', '-TargetLufs', '-12', '-Results', (Join-Path $game 'mix-loud'))
     if ($d.ok -or $d.error.code -ne 'audio-off-target') { $failures += "a -12 LUFS target should fail as off-target: $($d | ConvertTo-Json -Depth 4 -Compress)" }
     # sfx/hit.wav peaks at about -0.5 dBFS, over the -1 dBTP limit.

@@ -33,7 +33,7 @@ try {
     git -C $game init -q 2>$null
 
     $env:HOME = $fakeHome; $env:USERPROFILE = $fakeHome; $env:GODOT_TOOLS_DIR = $null; $env:GODOT_BIN = $null
-    $d = pwsh -NoProfile -File $kit detect -Json -Project $game 2>$null | ConvertFrom-Json
+    $d = pwsh -NoProfile -NonInteractive -File $kit detect -Json -Project $game 2>$null | ConvertFrom-Json
     Assert-True $d.ok 'detect runs'
     $history = Join-Path $game '.godot/hyperdot-history.jsonl'
     Assert-True ((Test-Path -LiteralPath $history) -and -not (Test-Path -LiteralPath (Join-Path $game '.godot/godot-ci-history.jsonl'))) 'the run history moves to .godot/hyperdot-history.jsonl'
@@ -41,10 +41,10 @@ try {
     Assert-True ((Test-Path -LiteralPath (Join-Path $game 'addons/gut/.hyperdot-version')) -and -not (Test-Path -LiteralPath (Join-Path $game 'addons/gut/.godot-ci-version'))) "GUT's stamp moves to .hyperdot-version"
 
     # ~/.godot-ci moves when the kit first looks for its tools; doctor looks without downloading anything.
-    pwsh -NoProfile -File $kit doctor -Json -Project $game 2>$null | Out-Null
+    pwsh -NoProfile -NonInteractive -File $kit doctor -Json -Project $game 2>$null | Out-Null
     Assert-True ((Test-Path -LiteralPath (Join-Path $fakeHome '.hyperdot/4.7.2-stable/marker.txt')) -and -not (Test-Path -LiteralPath (Join-Path $fakeHome '.godot-ci'))) '~/.godot-ci moves to ~/.hyperdot with its downloads'
 
-    pwsh -NoProfile -File $kit init -Json -Project $game -Plugin 2>$null | Out-Null
+    pwsh -NoProfile -NonInteractive -File $kit init -Json -Project $game -Plugin 2>$null | Out-Null
     $workflow = Join-Path $game '.github/workflows/hyperdot.yml'
     Assert-True ((Test-Path -LiteralPath $workflow) -and -not (Test-Path -LiteralPath (Join-Path $game '.github/workflows/godot-ci.yml'))) 'init moves godot-ci.yml to hyperdot.yml'
     $text = (Test-Path -LiteralPath $workflow) ? (Get-Content -LiteralPath $workflow -Raw) : ''
@@ -57,7 +57,7 @@ try {
 
     # A second history under the old name, next to the new one, is left alone: the new one is never overwritten.
     Set-Content -LiteralPath (Join-Path $game '.godot/godot-ci-history.jsonl') -Value 'stale'
-    pwsh -NoProfile -File $kit detect -Json -Project $game 2>$null | Out-Null
+    pwsh -NoProfile -NonInteractive -File $kit detect -Json -Project $game 2>$null | Out-Null
     Assert-True ((Get-Content -LiteralPath $history | Select-Object -First 1) -eq $line) 'an existing hyperdot-history.jsonl is not overwritten'
 } finally {
     $env:HOME = $saved.home; $env:USERPROFILE = $saved.profile; $env:GODOT_TOOLS_DIR = $saved.tools; $env:GODOT_BIN = $saved.bin

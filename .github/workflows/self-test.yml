@@ -209,6 +209,9 @@ jobs:
       - name: status -Handoff keeps the newest 200 subagent handoffs, and status reads them back
         shell: pwsh
         run: ./tests/Test-Handoffs.ps1
+      - name: The version line and solution_directory keep a $ in their value
+        shell: pwsh
+        run: ./tests/Test-KitPaths.ps1 -NoGodot
       - name: No function in ci/godot is defined twice or named like a built-in alias
         shell: pwsh
         run: ./tests/Test-LibNames.ps1
@@ -537,6 +540,9 @@ jobs:
       - name: The textsize runner fails text under 9 px at 1280x800, and integer scaling that cuts off
         shell: pwsh
         run: ./tests/Test-TextSize.ps1
+      - name: The kit runs from a folder with [ ] in its name
+        shell: pwsh
+        run: ./tests/Test-KitPaths.ps1
       - name: The layout runner catches screens that do not fit phones, tablets and ultrawides
         shell: pwsh
         run: ./tests/Test-Layout.ps1

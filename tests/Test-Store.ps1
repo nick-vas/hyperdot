@@ -122,7 +122,7 @@ try {
             -c:v mpeg4 -c:a mp2 -shortest (Join-Path $clips 'trailer_old.avi') 2>&1 | Out-Null
         $r = Test-SteamTrailers $clips
         $goodClip = @($r.trailers | Where-Object { $_.file -eq 'trailer.mp4' })
-        Assert-True ($goodClip.Count -eq 1 -and $goodClip[0].videoCodec -eq 'h264' -and $goodClip[0].width -eq 1920 -and $goodClip[0].fps -eq 30 -and $goodClip[0].audioCodec -eq 'aac' -and $goodClip[0].sampleRate -eq 48000) "the H.264 trailer is read: $($goodClip | ConvertTo-Json -Compress)"
+        Assert-True ($goodClip.Count -eq 1 -and $goodClip[0].videoCodec -eq 'h264' -and $goodClip[0].width -eq 1920 -and $goodClip[0].fps -eq 30 -and $goodClip[0].audioCodec -eq 'aac' -and $goodClip[0].sampleRate -eq 48000) "the H.264 trailer is read: $($goodClip | ConvertTo-Json -Depth 10 -Compress)"
         $codes = @($r.problems | ForEach-Object { "$($_.code) $($_.asset)" })
         foreach ($expected in 'trailer-codec trailer_old.avi', 'trailer-fps trailer_old.avi', 'trailer-size trailer_old.avi') {
             Assert-True ($codes -contains $expected) "trailer check names $expected"
@@ -185,7 +185,7 @@ try {
     Set-Content (Join-Path $project 'telemetry.cs') "class T { TelemetryClient Client; }"
     Copy-Item -Recurse $thin (Join-Path $project 'store/press')
     Set-Content (Join-Path $project 'store/press/fact_sheet.txt') 'Brickfall, a roguelike breakout. Out on Steam.'
-    $d = pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') doctor -Json -Project $project 2>$null | ConvertFrom-Json
+    $d = pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') doctor -Json -Project $project 2>$null | ConvertFrom-Json
     $messages = @($d.checks | ForEach-Object { "$($_.status) $($_.message)" })
     Assert-True (@($messages | Where-Object { $_ -match '^WARN store/ has no \.gdignore' }).Count -eq 1) 'doctor warns that Godot would import the store art'
     Assert-True (@($messages | Where-Object { $_ -match '^FAIL Steam store art: header_capsule must be 920x430, is 460x215' }).Count -eq 1) 'doctor fails an old capsule size'

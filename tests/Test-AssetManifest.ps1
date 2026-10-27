@@ -27,7 +27,7 @@ function Set-TextureImport([string]$File, [int]$Mode, [string]$Mipmaps) {
 Set-TextureImport 'art/kenney/button.png' 0 'true'
 Set-TextureImport 'art/player/idle.png' 2 'false'
 Set-TextureImport 'art/borrowed/hero.png' 0 'false'
-$out = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') doctor -Json -Project $game 2>$null
+$out = & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') doctor -Json -Project $game 2>$null
 $checks = @((($out -join "`n") | ConvertFrom-Json).checks | ForEach-Object { "$($_.status) $($_.message)" })
 $expected = [ordered]@{
     'no source'      = '^WARN assets\.json: an entry needs path, source and licence'
@@ -56,7 +56,7 @@ if (-not ($fixes -match [regex]::Escape('{"path":"addons/tween_kit/**","source":
 if ($checks -match 'addons/(covered|gut|no_licence) has a licence') { $failures += 'a covered, test or unlicensed add-on was reported' }
 if ($checks -match 'same content') { $failures += 'empty files were reported as copies' }
 # status counts the same placeholders and warns about the one past due.
-$status = (& pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') status -Json -Project $game 2>$null) -join "`n" | ConvertFrom-Json
+$status = (& pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') status -Json -Project $game 2>$null) -join "`n" | ConvertFrom-Json
 $p = $status.placeholders
 if (-not ($p.count -eq 3 -and $p.pastDue -eq 1 -and @($p.entries | Where-Object { $_.path -eq 'art/stand_in/**' -and $_.files -eq 1 -and $_.status -eq 'in-progress' }).Count -eq 1)) {
     $failures += "status placeholders: $($p | ConvertTo-Json -Depth 4 -Compress)"

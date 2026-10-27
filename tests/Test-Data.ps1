@@ -153,7 +153,7 @@ foreach ($example in $examples) {
 }
 
 # The levels table quoted in godot-game-design is the one tested here.
-function ConvertTo-RuleText($Rule) { (@($Rule.Keys) | Sort-Object | ForEach-Object { "$_=$(ConvertTo-Json $Rule[$_] -Compress)" }) -join ' ' }
+function ConvertTo-RuleText($Rule) { (@($Rule.Keys) | Sort-Object | ForEach-Object { "$_=$(ConvertTo-Json -Depth 10 $Rule[$_] -Compress)" }) -join ' ' }
 $skill = Get-Content -LiteralPath (Join-Path $root '.agents/skills/godot-game-design/SKILL.md') -Raw
 $block = [regex]::Match($skill, '(?s)```json\s*(\{.*?"solution".*?)```')
 $fixtureFields = (Get-Content -LiteralPath (Join-Path $fixture 'data.json') -Raw | ConvertFrom-Json -AsHashtable)['tables']['puzzles']['fields']

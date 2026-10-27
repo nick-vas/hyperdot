@@ -39,9 +39,9 @@ foreach ($dir in Get-ChildItem -LiteralPath $Dist -Directory | Where-Object Name
         try { & zip -q -r -X $zip . } finally { Pop-Location }
         if ($LASTEXITCODE -ne 0) { throw "zip failed for $preset" }
     } else {
-        Compress-Archive -Path (Join-Path $dir.FullName '*') -DestinationPath $zip -Force
+        Compress-Archive -LiteralPath @(Get-ChildItem -LiteralPath $dir.FullName | ForEach-Object FullName) -DestinationPath $zip -Force
     }
-    Write-Host ("Packed {0} ({1:N1} MB)" -f (Split-Path $zip -Leaf), ((Get-Item $zip).Length / 1MB))
+    Write-Host ("Packed {0} ({1:N1} MB)" -f (Split-Path $zip -Leaf), ((Get-Item -LiteralPath $zip).Length / 1MB))
     $zips += $zip
 }
 if (-not $zips) { throw "No exported builds found in $Dist; set the workflow's exports input" }

@@ -19,16 +19,16 @@ function Get-Cases([string[]]$Lines) {
 $cases = Get-Cases @('@@validate begin res://a.gd', '@@validate error SCRIPT ERROR: Parse Error: x (res://a.gd:3)', '@@validate end res://a.gd ok',
     '@@validate begin res://b.gd', 'SCRIPT ERROR: Parse Error: x', '   at: GDScript::reload (res://a.gd:3)', '@@validate end res://b.gd ok')
 if ($cases['res://a.gd'] -notmatch 'Parse Error' -or $cases['res://b.gd'] -or $cases.Contains('project startup')) {
-    $failures += "a late stderr error is a.gd's, not b.gd's: $($cases | ConvertTo-Json -Compress)"
+    $failures += "a late stderr error is a.gd's, not b.gd's: $($cases | ConvertTo-Json -Depth 10 -Compress)"
 }
 # Without the logger (before Godot 4.5), errors between a file's markers are still that file's.
 $cases = Get-Cases @('@@validate begin res://a.gd', 'ERROR: broken', '@@validate end res://a.gd ok', '@@validate begin res://b.gd', '@@validate end res://b.gd ok')
-if ($cases['res://a.gd'] -ne 'ERROR: broken' -or $cases['res://b.gd']) { $failures += "without the logger, errors stay with their file: $($cases | ConvertTo-Json -Compress)" }
+if ($cases['res://a.gd'] -ne 'ERROR: broken' -or $cases['res://b.gd']) { $failures += "without the logger, errors stay with their file: $($cases | ConvertTo-Json -Depth 10 -Compress)" }
 # A crash inside crash.tscn: no end marker; the file fails and names the crash.
 $cases = Get-Cases @('@@validate begin res://a.gd', '@@validate end res://a.gd ok', '@@validate begin res://crash.tscn', 'ERROR: validate crash test',
     '   at: crash (core/core_bind.cpp:349)', 'handle_crash: Program crashed with signal 4')
 if (-not $cases.Contains('res://crash.tscn') -or $cases['res://crash.tscn'] -notmatch 'signal 4' -or $cases['res://crash.tscn'] -notmatch 'validate crash test' -or $cases.Contains('project startup')) {
-    $failures += "a file that crashed Godot fails: $($cases | ConvertTo-Json -Compress)"
+    $failures += "a file that crashed Godot fails: $($cases | ConvertTo-Json -Depth 10 -Compress)"
 }
 Remove-Item -LiteralPath $log
 
@@ -42,7 +42,7 @@ try {
         New-Item -ItemType Directory -Force (Split-Path $file -Parent) | Out-Null
         Set-Content -LiteralPath $file -Value "[gd_resource type=`"Resource`" format=3]`n[resource]`nbroken = Vector2(`n"
     }
-    $json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') test -Project $fixture -Runners validate -Results $resultsOut -Json 2>$null
+    $json = & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') test -Project $fixture -Runners validate -Results $resultsOut -Json 2>$null
 } finally {
     foreach ($folder in 'test-results', 'TestResults') { Remove-Item -LiteralPath (Join-Path $fixture $folder) -Recurse -Force -ErrorAction SilentlyContinue }
     Remove-Item -LiteralPath $resultsOut -Recurse -Force -ErrorAction SilentlyContinue

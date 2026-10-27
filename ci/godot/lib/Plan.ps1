@@ -68,7 +68,7 @@ function Test-PlanGate($Gate, $Info) {
         '^file:(?<path>.+)$' {
             $path = $Matches.path
             foreach ($base in $root, $Info.ProjectDir) {
-                foreach ($item in @(Get-Item -Path (Join-Path $base $path) -Force -ErrorAction SilentlyContinue)) {
+                foreach ($item in @(Get-Item -LiteralPath (Join-Path $base $path) -Force -ErrorAction SilentlyContinue)) {
                     if ($item -is [System.IO.DirectoryInfo]) { return $true }
                     if ([System.IO.File]::ReadAllText($item.FullName) -match '\S') { return $true }
                 }
@@ -421,7 +421,7 @@ function Invoke-Trello([string]$Method, [string]$Resource, [hashtable]$Body) {
     $headers = @{ Authorization = "OAuth oauth_consumer_key=""$env:TRELLO_KEY"", oauth_token=""$env:TRELLO_TOKEN""" }
     try {
         $arguments = @{ Method = $Method; Uri = "$base/$Resource"; Headers = $headers }
-        if ($Body) { $arguments.Body = ($Body | ConvertTo-Json -Compress); $arguments.ContentType = 'application/json' }
+        if ($Body) { $arguments.Body = ($Body | ConvertTo-Json -Depth 10 -Compress); $arguments.ContentType = 'application/json' }
         $result = Invoke-RestMethod @arguments
         # Invoke-RestMethod emits a JSON array as one object; emit its items so callers can use @(...) and pipelines.
         if ($result -is [array]) { foreach ($item in $result) { $item } } else { $result }

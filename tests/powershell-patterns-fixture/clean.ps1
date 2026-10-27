@@ -33,3 +33,23 @@ $copy = Join-Path $PSScriptRoot 'copy.txt'
 (Get-Content -LiteralPath $PSCommandPath) | Set-Content -LiteralPath $copy
 Get-Content -LiteralPath $PSCommandPath | Set-Content -LiteralPath $copy
 Remove-Item -LiteralPath $copy
+$resolved = (Resolve-Path -LiteralPath $PSCommandPath).Path
+$resolvedToo = Resolve-Path -LiteralPath $PSCommandPath
+$quoted = Join-Path $PSScriptRoot 'a b.ps1'
+$null = Start-Process -FilePath 'pwsh' -ArgumentList @('-NoProfile', '-NonInteractive', '-File', "`"$quoted`"", '-Wait') -PassThru
+$null = Start-Process -FilePath 'sleep' -ArgumentList '600' -PassThru
+$value = 'a$0b'
+$safe = 'x' -replace 'x', $value.Replace('$', '$$')
+$safe = 'x' -replace 'x', "[a]`n$($value.Replace('$', '$$'))"
+$safe = 'x' -replace 'x', 'literal'
+pwsh -NoProfile -NonInteractive -File x.ps1
+$deep = @{ a = @{ b = @{ c = @{ d = 1 } } } } | ConvertTo-Json -Depth 10 -Compress
+$deeper = ConvertTo-Json -InputObject $deep -Compress -De 5
+$null = Get-Item -LiteralPath $PSCommandPath
+$null = @(Get-ChildItem -LiteralPath $PSScriptRoot -Recurse)
+$null = Test-Path -LiteralPath "$PSScriptRoot/a.txt"
+$null = @(Get-ChildItem -Path "$PSScriptRoot/*.ps1")
+Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.nothing' | Remove-Item -Force
+$null = ConvertTo-Json -InputObject @(1, 2) -Depth 3 -Compress
+$null = Get-Command -Name 'Get-Content'
+$null = Get-HostOs

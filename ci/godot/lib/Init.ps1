@@ -101,7 +101,7 @@ function Add-CSharpTestSetup([string]$ProjectDir, $Info) {
   </ItemGroup>
 '@
         $newline = if ($content.Contains("`r`n")) { "`r`n" } else { "`n" }
-        $content = $content -replace '</Project>\s*$', (($block -replace "`r?`n", $newline) + "</Project>$newline")
+        $content = $content -replace '</Project>\s*$', { ($block -replace "`r?`n", { $newline }) + "</Project>$newline" }
         Set-Content -LiteralPath $csproj -Value $content -NoNewline -Encoding utf8
         Write-InitStep updated "$(Split-Path $csproj -Leaf): gdUnit4Net test packages (excluded from release exports)"
     }
@@ -195,7 +195,7 @@ function Set-SolutionDirectory([string]$ProjectDir, [string]$Solution) {
     if ($content -match '(?m)^project/solution_directory=') { return }
     $relative = [System.IO.Path]::GetRelativePath($ProjectDir, (Split-Path $Solution)) -replace '\\', '/'
     $entry = "project/solution_directory=""$relative"""
-    $content = if ($content -match '(?m)^\[dotnet\]\s*$') { $content -replace '(?m)^\[dotnet\]\s*$', "[dotnet]`n`n$entry" }
+    $content = if ($content -match '(?m)^\[dotnet\]\s*$') { $content -replace '(?m)^\[dotnet\]\s*$', { "[dotnet]`n`n$entry" } }
         else { $content.TrimEnd() + "`n`n[dotnet]`n`n$entry`n" }
     Set-Content -LiteralPath $file -Value $content -NoNewline -Encoding utf8
     Write-InitStep updated "project.godot: solution_directory=$relative (exports need it to find your C# code)"

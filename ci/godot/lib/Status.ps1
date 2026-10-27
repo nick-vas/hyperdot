@@ -226,7 +226,7 @@ function Add-Handoff([string]$ProjectDir, [string]$Subagent, [string]$Checked, [
     }
     $file = Get-HandoffFile $ProjectDir
     $lines = @(if (Test-Path -LiteralPath $file) { Get-Content -LiteralPath $file | Where-Object { $_.Trim() } })
-    $lines = @(@($lines) + @($entry | ConvertTo-Json -Compress) | Select-Object -Last $script:HandoffLimit)
+    $lines = @(@($lines) + @($entry | ConvertTo-Json -Depth 10 -Compress) | Select-Object -Last $script:HandoffLimit)
     New-Item -ItemType Directory -Force (Split-Path $file) | Out-Null
     [System.IO.File]::WriteAllLines($file, [string[]]$lines, [System.Text.UTF8Encoding]::new($false))
     Set-JsonField handoff $entry

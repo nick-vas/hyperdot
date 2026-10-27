@@ -143,11 +143,11 @@ try {
     # An empty tools folder: if the version check came after setup, Godot's download would start here.
     $env:GODOT_TOOLS_DIR = Join-Path $temp 'tools'
     try {
-        $doc = & pwsh -NoProfile -File $cli export -Json -Quiet -Project $shallow -GameVersion auto -Results (Join-Path $temp 'results') 2>$null | ConvertFrom-Json
+        $doc = & pwsh -NoProfile -NonInteractive -File $cli export -Json -Quiet -Project $shallow -GameVersion auto -Results (Join-Path $temp 'results') 2>$null | ConvertFrom-Json
         if ($doc.error.code -ne 'shallow-checkout' -or $doc.error.message -notmatch 'fetch-depth: 0') { $failures += "export -GameVersion auto in a shallow clone: $($doc.error.code) $($doc.error.message)" }
         # A version whose minor is over 999 makes no Android version code.
         $before = Get-Content -LiteralPath (Join-Path $repo 'project.godot') -Raw
-        $doc = & pwsh -NoProfile -File $cli export -Json -Quiet -Project $repo -GameVersion 1.1000.0 -Results (Join-Path $temp 'results') 2>$null | ConvertFrom-Json
+        $doc = & pwsh -NoProfile -NonInteractive -File $cli export -Json -Quiet -Project $repo -GameVersion 1.1000.0 -Results (Join-Path $temp 'results') 2>$null | ConvertFrom-Json
         if ($doc.error.code -ne 'invalid-arguments' -or $doc.error.message -notmatch "Android's version code") { $failures += "export -GameVersion 1.1000.0 with an Android preset: $($doc.error.code) $($doc.error.message)" }
         if ((Get-Content -LiteralPath (Join-Path $repo 'project.godot') -Raw) -ne $before) { $failures += 'project.godot changed after a failed version check' }
         if (Test-Path -LiteralPath (Join-Path $temp 'tools')) { $failures += 'Godot setup started before the version was checked' }

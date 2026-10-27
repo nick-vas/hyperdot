@@ -99,7 +99,7 @@ function Get-PngPixels([string]$Path, [object[]]$Points) {
 
 # A small window keeps the PNG reader quick; the swatches are anchored, so they sit in the same place at any size.
 $output = Join-Path ([IO.Path]::GetTempPath()) "colorvision-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
-$json = pwsh -NoProfile -File $kit shot -Json -Project $fixture -Resolution 480x270 -Frames 5 -ColorVision protan,deutan,tritan -Output $output 2>$null | ConvertFrom-Json
+$json = pwsh -NoProfile -NonInteractive -File $kit shot -Json -Project $fixture -Resolution 480x270 -Frames 5 -ColorVision protan,deutan,tritan -Output $output 2>$null | ConvertFrom-Json
 # A kit without -ColorVision prints no JSON at all (pwsh refuses the parameter), so look before reading fields.
 $ran = $null -ne $json -and $json.PSObject.Properties['ok'] -and $json.ok
 Assert-True ($ran -and @($json.shots).Count -eq 1) "shot -ColorVision succeeds with one shot$(if ($json -and -not $ran) { ": $($json.error.message)" })"
@@ -146,9 +146,9 @@ foreach ($kind in 'protan', 'deutan', 'tritan') {
 }
 
 # Without the switch nothing extra is written or reported; a kind that does not exist is refused.
-$plain = pwsh -NoProfile -File $kit shot -Json -Project $fixture -Resolution 480x270 -Frames 5 -Output "$output-plain" 2>$null | ConvertFrom-Json
+$plain = pwsh -NoProfile -NonInteractive -File $kit shot -Json -Project $fixture -Resolution 480x270 -Frames 5 -Output "$output-plain" 2>$null | ConvertFrom-Json
 Assert-True ($plain.ok -and -not @($plain.shots)[0].PSObject.Properties['colorVision'] -and @(Get-ChildItem "$output-plain" -Filter '*.*an.png').Count -eq 0) 'without -ColorVision there are no simulated pictures'
-$bad = pwsh -NoProfile -File $kit shot -Json -Project $fixture -Resolution 480x270 -Frames 5 -ColorVision deutan,achromat -Output "$output-bad" 2>$null | ConvertFrom-Json
+$bad = pwsh -NoProfile -NonInteractive -File $kit shot -Json -Project $fixture -Resolution 480x270 -Frames 5 -ColorVision deutan,achromat -Output "$output-bad" 2>$null | ConvertFrom-Json
 Assert-True (-not $bad.ok -and $bad.error.code -eq 'invalid-arguments') "an unknown kind is refused with invalid-arguments: $($bad.error.code)"
 
 if ($failures.Count) { throw "$($failures.Count) colour-vision check(s) failed" }

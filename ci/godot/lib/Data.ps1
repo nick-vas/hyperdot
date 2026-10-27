@@ -520,7 +520,7 @@ function Test-DataTotals([string]$Name, $Spec, $Loaded, $Tables) {
     $problems = @()
     foreach ($total in @($Spec['totals'])) {
         $sum = $total['sum']; $by = $total['by']; $need = $total['atLeast']
-        if (-not $sum -or -not $by -or $null -eq $need) { $problems += "totals needs sum, by and atLeast: $($total | ConvertTo-Json -Compress)"; continue }
+        if (-not $sum -or -not $by -or $null -eq $need) { $problems += "totals needs sum, by and atLeast: $($total | ConvertTo-Json -Depth 10 -Compress)"; continue }
         $missing = @(foreach ($f in $sum, $by) { if (-not $Spec['fields'].Contains($f)) { $f } })
         if ($missing) { $problems += "totals names $($missing -join ' and '), which the table does not list$(Format-DidYouMean $missing[0] @($Spec['fields'].Keys))"; continue }
         $sums = [ordered]@{}
@@ -564,7 +564,7 @@ function Test-DataEconomy([string]$Name, $Spec, $Loaded, $Tables) {
     if (-not $Spec.Contains('economy')) { return @() }
     $economy = $Spec['economy']
     if ($economy -isnot [System.Collections.IDictionary] -or $economy['currency'] -isnot [string] -or $economy['rate'] -isnot [string]) {
-        return @("economy needs currency and rate, the fields holding each row's currency and its rate per hour: $($economy | ConvertTo-Json -Compress)")
+        return @("economy needs currency and rate, the fields holding each row's currency and its rate per hour: $($economy | ConvertTo-Json -Depth 10 -Compress)")
     }
     $currency = $economy['currency']; $rate = $economy['rate']
     $missing = @(foreach ($f in $currency, $rate) { if (-not $Spec['fields'].Contains($f)) { $f } })

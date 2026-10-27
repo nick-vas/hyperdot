@@ -106,13 +106,13 @@ $token = $env:TRELLO_TOKEN
 function Invoke-Board([string]$Method, [string]$Resource, [hashtable]$Body) {
     $headers = @{ Authorization = "OAuth oauth_consumer_key=""$env:TRELLO_KEY"", oauth_token=""$env:TRELLO_TOKEN""" }
     $arguments = @{ Method = $Method; Uri = "$base/$Resource"; Headers = $headers }
-    if ($Body) { $arguments.Body = ($Body | ConvertTo-Json -Compress); $arguments.ContentType = 'application/json; charset=utf-8' }
+    if ($Body) { $arguments.Body = ($Body | ConvertTo-Json -Depth 10 -Compress); $arguments.ContentType = 'application/json; charset=utf-8' }
     return Invoke-RestMethod @arguments
 }
 $outputs = [System.Collections.Generic.List[string]]::new()
 function Invoke-PlanJson([string[]]$Arguments) {
     $errFile = Join-Path $dir 'stderr.txt'
-    $out = pwsh -NoProfile -File $ci plan -Json -Project $dir @Arguments 2>$errFile
+    $out = pwsh -NoProfile -NonInteractive -File $ci plan -Json -Project $dir @Arguments 2>$errFile
     $outputs.Add(($out -join "`n") + (Get-Content -LiteralPath $errFile -Raw -ErrorAction SilentlyContinue))
     return ($out -join "`n") | ConvertFrom-Json
 }
@@ -124,7 +124,7 @@ function Get-PlanTask([string]$Id) {
 try {
     New-Item -ItemType Directory -Force $dir | Out-Null
     Set-Content -LiteralPath (Join-Path $dir 'project.godot') -Value "config_version=5`n`n[application]`n`nconfig/name=""Sync Fixture""`n"
-    pwsh -NoProfile -File $ci plan -Do init -Project $dir 2>$null | Out-Null
+    pwsh -NoProfile -NonInteractive -File $ci plan -Do init -Project $dir 2>$null | Out-Null
 
     $board = Invoke-Board POST 'boards' @{ name = "hyperdot sync test $([datetime]::UtcNow.ToString('yyyy-MM-dd HH:mm'))"; defaultLists = $false; prefs_permissionLevel = 'private' }
     Write-Host "Board $($board.id) ($($board.shortLink))"
@@ -142,7 +142,7 @@ try {
     }
 
     $d = Invoke-PlanJson @('-Do', 'sync', '-Board', $board.shortLink)
-    Assert-True ($d.ok -and $d.sync.created -eq 4 -and $d.sync.moved -eq 0) "first sync (by short link) creates 4 cards: $(if ($d.ok) { $d.sync | ConvertTo-Json -Compress } else { $d.error.message })"
+    Assert-True ($d.ok -and $d.sync.created -eq 4 -and $d.sync.moved -eq 0) "first sync (by short link) creates 4 cards: $(if ($d.ok) { $d.sync | ConvertTo-Json -Depth 10 -Compress } else { $d.error.message })"
     $plan = Get-Content -LiteralPath (Join-Path $dir 'plan/plan.json') -Raw | ConvertFrom-Json
     Assert-True ($plan.trello.board -eq $board.shortLink) 'sync saves the board to plan.json'
     Assert-True (@($plan.tasks | Where-Object { $_.cardId -match '^[0-9a-f]{24}$' }).Count -eq 4) 'every task gets a 24-hex card id'
@@ -170,7 +170,7 @@ try {
     # A task moved in the plan since the last sync moves its card; the board's earlier move above is not undone.
     Invoke-PlanJson @('-Do', 'move', '-Id', 't5', '-Column', 'todo') | Out-Null
     $d = Invoke-PlanJson @('-Do', 'sync')
-    Assert-True ($d.ok -and $d.sync.moved -eq 0 -and $d.sync.PSObject.Properties['cardsMoved'] -and $d.sync.cardsMoved -eq 1) "a task moved with plan -Do move moves its card: $(if ($d.ok) { $d.sync | ConvertTo-Json -Compress } else { $d.error.message })"
+    Assert-True ($d.ok -and $d.sync.moved -eq 0 -and $d.sync.PSObject.Properties['cardsMoved'] -and $d.sync.cardsMoved -eq 1) "a task moved with plan -Do move moves its card: $(if ($d.ok) { $d.sync | ConvertTo-Json -Depth 10 -Compress } else { $d.error.message })"
     Assert-True ((Get-PlanTask 't5').column -eq 'todo' -and (Get-PlanTask 't2').column -eq 'verify') 'the sync keeps the plan move (t5 in todo) and the board move (t2 in verify)'
     $card = Invoke-Board GET "cards/$((Get-PlanTask 't5').cardId)?fields=name,idList"
     Assert-True ($card.idList -eq $lists['To Do']) "t5's card follows it to 'To Do'"
@@ -226,14 +226,14 @@ try {
         (@($plan.tasks) | Where-Object { $_.id -eq 't7' }).title = 'Credits screen'
         $plan | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $planPath -Encoding utf8
         $d = Invoke-PlanJson @('-Do', 'sync')
-        Assert-True ($d.ok -and $d.sync.created -eq 1) "the next sync creates only the missing card: $(if ($d.ok) { $d.sync | ConvertTo-Json -Compress } else { $d.error.message })"
+        Assert-True ($d.ok -and $d.sync.created -eq 1) "the next sync creates only the missing card: $(if ($d.ok) { $d.sync | ConvertTo-Json -Depth 10 -Compress } else { $d.error.message })"
         Assert-True (@($state.cards.Values | Where-Object { $_.name -eq 'Combo meter' }).Count -eq 1) 'no card is duplicated'
     }
 
     # Board list names stand for columns, case-insensitive and by prefix as sync matches lists; anything else is refused.
     $d = Invoke-PlanJson @('-Do', 'add', '-Title', 'Sound pass', '-Column', 'testing')
     $sound = $d.ok ? $d.task.id : $null
-    Assert-True ($d.ok -and $d.task.column -eq 'verify') "plan -Do add takes the list name 'testing' for verify: $(if ($d.ok) { $d.task | ConvertTo-Json -Compress } else { $d.error.message })"
+    Assert-True ($d.ok -and $d.task.column -eq 'verify') "plan -Do add takes the list name 'testing' for verify: $(if ($d.ok) { $d.task | ConvertTo-Json -Depth 10 -Compress } else { $d.error.message })"
     $d = Invoke-PlanJson @('-Do', 'move', '-Id', $sound, '-Column', 'To Do')
     Assert-True ($d.ok -and $d.task.column -eq 'todo' -and (Get-PlanTask $sound).column -eq 'todo') "plan -Do move takes 'To Do' for todo: $(if (-not $d.ok) { $d.error.message })"
     $d = Invoke-PlanJson @('-Do', 'move', '-Id', $sound, '-Column', $done)
@@ -245,12 +245,12 @@ try {
     $d = Invoke-PlanJson @('-Do', 'add', '-Title', 'Nowhere', '-Column', 'Review')
     Assert-True (-not $d.ok -and $d.error.code -eq 'invalid-arguments') 'plan -Do add refuses it too'
     $d = Invoke-PlanJson @('-Do', 'sync')
-    Assert-True ($d.ok -and $d.sync.cardsMoved -eq 0 -and $d.sync.moved -eq 0 -and (Get-PlanTask $sound).column -eq 'done') "the sync after a recorded list moves the card, not the task: $(if ($d.ok) { $d.sync | ConvertTo-Json -Compress } else { $d.error.message })"
+    Assert-True ($d.ok -and $d.sync.cardsMoved -eq 0 -and $d.sync.moved -eq 0 -and (Get-PlanTask $sound).column -eq 'done') "the sync after a recorded list moves the card, not the task: $(if ($d.ok) { $d.sync | ConvertTo-Json -Depth 10 -Compress } else { $d.error.message })"
 
     # A card a person adds on the board becomes a task in its list's column; the next sync does not add it again.
     $userCard = Invoke-Board POST 'cards' @{ idList = $lists['To Do']; name = 'Boss rush mode' }
     $d = Invoke-PlanJson @('-Do', 'sync')
-    Assert-True ($d.ok -and $d.sync.imported -eq 1 -and $d.sync.created -eq 0) "a card added on the board is imported: $(if ($d.ok) { $d.sync | ConvertTo-Json -Compress } else { $d.error.message })"
+    Assert-True ($d.ok -and $d.sync.imported -eq 1 -and $d.sync.created -eq 0) "a card added on the board is imported: $(if ($d.ok) { $d.sync | ConvertTo-Json -Depth 10 -Compress } else { $d.error.message })"
     $plan = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json
     $boss = @($plan.tasks) | Where-Object { $_.PSObject.Properties['cardId'] -and $_.cardId -eq $userCard.id } | Select-Object -First 1
     Assert-True ($boss -and $boss.title -eq 'Boss rush mode' -and $boss.column -eq 'todo' -and $boss.boardColumn -eq 'todo' -and $boss.phase -eq 'concept') "it becomes task $(if ($boss) { $boss.id }) 'Boss rush mode' in todo, linked to its card"
@@ -262,7 +262,7 @@ try {
     $plan = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json
     Assert-True ($d.ok -and $d.task.cardId -eq $userCard.id -and -not (Get-PlanTask $boss.id) -and @($plan.trello.toArchive) -contains $userCard.id) "plan -Do remove deletes $($boss.id) and queues its card for archiving: $(if (-not $d.ok) { $d.error.message })"
     $d = Invoke-PlanJson @('-Do', 'sync')
-    Assert-True ($d.ok -and $d.sync.archived -eq 1 -and $d.sync.imported -eq 0) "the next sync archives the card: $(if ($d.ok) { $d.sync | ConvertTo-Json -Compress } else { $d.error.message })"
+    Assert-True ($d.ok -and $d.sync.archived -eq 1 -and $d.sync.imported -eq 0) "the next sync archives the card: $(if ($d.ok) { $d.sync | ConvertTo-Json -Depth 10 -Compress } else { $d.error.message })"
     Assert-True ((Invoke-Board GET "cards/$($userCard.id)?fields=closed").closed -eq $true) 'the card is archived on the board'
     Assert-True (-not (Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json).trello.PSObject.Properties['toArchive']) 'and nothing is left to archive'
     $d = Invoke-PlanJson @('-Do', 'add', '-Title', 'After the removal')
@@ -284,7 +284,7 @@ try {
     $d = Invoke-PlanJson @('-Do', 'link', '-Id', $byAri, '-Card', "ari:cloud:trello::card/workspace/$workspace/$($ariCard.id)", '-Column', 'Backlog')
     Assert-True ($d.ok -and (Get-PlanTask $byAri).cardId -eq $ariCard.id -and $d.task.boardColumn -eq 'backlog') "plan -Do link -Card <ARI> stores the plain card id: $(if ($d.ok) { (Get-PlanTask $byAri).cardId } else { $d.error.message })"
     $d = Invoke-PlanJson @('-Do', 'sync')
-    Assert-True ($d.ok -and $d.sync.created -eq 0 -and $d.sync.imported -eq 0 -and @($d.sync.warnings | Where-Object { $_ -match "\b$byAri\b" }).Count -eq 0) "the card linked by ARI is the task's card: $(if ($d.ok) { $d.sync | ConvertTo-Json -Compress } else { $d.error.message })"
+    Assert-True ($d.ok -and $d.sync.created -eq 0 -and $d.sync.imported -eq 0 -and @($d.sync.warnings | Where-Object { $_ -match "\b$byAri\b" }).Count -eq 0) "the card linked by ARI is the task's card: $(if ($d.ok) { $d.sync | ConvertTo-Json -Depth 10 -Compress } else { $d.error.message })"
     $plan = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json
     (@($plan.tasks) | Where-Object { $_.id -eq $byAri }).cardId = "ari:cloud:trello::card/workspace/$workspace/$($ariCard.id)"
     $plan | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $planPath -Encoding utf8

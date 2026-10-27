@@ -12,7 +12,7 @@ $failures = @()
 $env:HYPERDOT_TIMEOUT = '3'
 $clock = [Diagnostics.Stopwatch]::StartNew()
 # The child starts a grandchild that would outlive it, as a game's helper process might.
-$hang = "Write-Output started; Start-Process '$pwshPath' -ArgumentList '-NoProfile', '-Command', 'Start-Sleep 120' -NoNewWindow; Start-Sleep 120"
+$hang = "Write-Output started; Start-Process '$pwshPath' -ArgumentList '-NoProfile', '-Command', '`"Start-Sleep 120`"' -NoNewWindow; Start-Sleep 120"
 $code = Invoke-Logged $pwshPath @('-NoProfile', '-Command', $hang) $log
 $seconds = $clock.Elapsed.TotalSeconds
 $text = Get-Content -LiteralPath $log -Raw

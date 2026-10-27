@@ -161,7 +161,7 @@ try {
     $reason = "Godot files changed $when`: $($shown -join ', ')$more. Run pwsh `"$kit`" test -Json -Quiet$projectArg (without -Filter, " +
         "and with the game's tests among the runners) and fix what fails before finishing. If the tests cannot run here, say so " +
         "and why instead of reporting the work as done."
-    [ordered]@{ decision = 'block'; reason = $reason } | ConvertTo-Json -Compress
+    [ordered]@{ decision = 'block'; reason = $reason } | ConvertTo-Json -Depth 10 -Compress
     exit 0
 } catch {
     # A broken gate must never trap the session.

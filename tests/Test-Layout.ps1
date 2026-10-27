@@ -15,7 +15,7 @@ function Assert-True([bool]$Condition, [string]$What) {
 }
 function Invoke-Layout([string]$Project) {
     $results = Join-Path ([IO.Path]::GetTempPath()) "layout-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
-    $json = pwsh -NoProfile -File $kit test -Json -Project $Project -Runners layout -Results $results 2>$null | ConvertFrom-Json
+    $json = pwsh -NoProfile -NonInteractive -File $kit test -Json -Project $Project -Runners layout -Results $results 2>$null | ConvertFrom-Json
     $runner = @(if ($json.PSObject.Properties['runnerResults']) { $json.runnerResults | Where-Object runner -eq 'layout' })
     # The JSON keeps the first 10 failures; the runner's JUnit file has them all.
     $junit = Join-Path $results 'layout/layout.junit.xml'

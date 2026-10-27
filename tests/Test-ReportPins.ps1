@@ -12,7 +12,7 @@ $failures = [System.Collections.Generic.List[string]]::new()
 function Assert-True([bool]$Condition, [string]$What) {
     if ($Condition) { Write-Host "ok     $What" } else { Write-Host "FAILED $What" -ForegroundColor Red; $failures.Add($What) }
 }
-$godot = if ($env:GODOT_BIN) { $env:GODOT_BIN } else { (Install-Godot '4.7.2' $false).Binary }
+$godot = if ($env:GODOT_BIN) { $env:GODOT_BIN } else { Install-GodotTools -Version '4.7.2' -Mono $false 6>$null 4>$null; $env:GODOT_BIN }
 
 $id = [guid]::NewGuid().ToString('N').Substring(0, 8)
 $game = Join-Path ([IO.Path]::GetTempPath()) "report-pins-$id"

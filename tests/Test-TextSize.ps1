@@ -14,7 +14,7 @@ function Assert-True([bool]$Condition, [string]$What) {
 }
 function Invoke-TextSize([string]$Project) {
     $results = Join-Path ([IO.Path]::GetTempPath()) "textsize-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
-    $json = pwsh -NoProfile -File $kit test -Json -Project $Project -Runners textsize -Results $results 2>$null | ConvertFrom-Json
+    $json = pwsh -NoProfile -NonInteractive -File $kit test -Json -Project $Project -Runners textsize -Results $results 2>$null | ConvertFrom-Json
     $runner = @($json.runnerResults | Where-Object runner -eq 'textsize')[0]
     return [pscustomobject]@{ Ok = $json.ok; Failures = @($runner.failures); Warnings = @($runner.warnings) }
 }

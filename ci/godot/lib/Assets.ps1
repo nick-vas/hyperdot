@@ -83,7 +83,7 @@ function Get-AssetManifestReport([string]$ProjectDir) {
     catch { $report.invalid = @("assets.json is not valid JSON: $($_.Exception.Message)"); $report.uncovered = $files; return $report }
     $rules = @(foreach ($entry in $entries) {
         if ($entry -isnot [hashtable] -or -not $entry['path'] -or -not $entry['licence'] -or -not $entry['source']) {
-            $report.invalid += "an entry needs path, source and licence: $($entry | ConvertTo-Json -Compress)"
+            $report.invalid += "an entry needs path, source and licence: $($entry | ConvertTo-Json -Depth 10 -Compress)"
             continue
         }
         if ($entry['source'] -eq 'commissioned') { Add-CommissionedProblems $report.commissioned $entry }
@@ -216,7 +216,7 @@ function Get-AddonLicenceGaps([string]$ProjectDir) {
         if ($copyright) { $entry.copyright = $copyright }
         $entry.licenceFile = "$folder/$($licenceFile[0].Name)"
         [pscustomobject]@{ Addon = $folder; LicenceFile = $entry.licenceFile; Licence = $licence; Copyright = $copyright
-            Uncovered = $uncovered.Count; Entry = ($entry | ConvertTo-Json -Compress) }
+            Uncovered = $uncovered.Count; Entry = ($entry | ConvertTo-Json -Depth 10 -Compress) }
     })
 }
 

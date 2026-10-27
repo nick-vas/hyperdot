@@ -17,7 +17,7 @@ function Get-JuiceConfig([string]$ProjectDir) {
     }
     # Godot's --quit-after 0 means never quit: the run would hang until the time limit.
     if ($config.Contains('frames') -and ("$($config.frames)" -notmatch '^\d+$' -or [long]$config.frames -le 0)) {
-        Stop-GodotCi "juice.json ""frames"" must be a whole number above 0, not $($config.frames | ConvertTo-Json -Compress)" 'invalid-arguments'
+        Stop-GodotCi "juice.json ""frames"" must be a whole number above 0, not $($config.frames | ConvertTo-Json -Depth 10 -Compress)" 'invalid-arguments'
     }
     return $config
 }

@@ -16,7 +16,7 @@ $work = Join-Path ([IO.Path]::GetTempPath()) "web-fixture-$([guid]::NewGuid().To
 Copy-Item -Recurse (Join-Path $PSScriptRoot 'web-fixture') $work
 $output = Join-Path $work 'build'
 function Invoke-WebExport([string]$Preset) {
-    $json = pwsh -NoProfile -File $kit export -Json -Quiet -Project $work -Preset $Preset -Run -Browser ($Browser -join ',') -Output $output -Results (Join-Path $work 'results') 2>$null | ConvertFrom-Json
+    $json = pwsh -NoProfile -NonInteractive -File $kit export -Json -Quiet -Project $work -Preset $Preset -Run -Browser ($Browser -join ',') -Output $output -Results (Join-Path $work 'results') 2>$null | ConvertFrom-Json
     return [pscustomobject]@{ Ok = $json.ok; Code = $(if ($json.PSObject.Properties['error']) { $json.error.code } else { '' })
         Message = $(if ($json.PSObject.Properties['error']) { $json.error.message } else { '' })
         Exports = @(if ($json.PSObject.Properties['exports']) { $json.exports }); Runs = @(if ($json.PSObject.Properties['webRuns']) { $json.webRuns }) }
@@ -27,7 +27,7 @@ try {
     Assert-True ($web.Ok -and $web.Runs.Count -eq $Browser.Count -and @($web.Runs | Where-Object { -not $_.ok }).Count -eq 0) "the single-threaded build starts in $($Browser -join ', '): $($web.Message)"
     Assert-True ($web.Runs.Count -gt 0 -and $web.Runs[0].crossOriginIsolated -eq $false) 'it runs without cross-origin isolation headers, as on itch.io or GitHub Pages'
     $size = if ($web.Exports.Count) { $web.Exports[0].web } else { $null }
-    Assert-True ($null -ne $size -and $size.rawMb -gt 30 -and $size.gzipMb -gt 5 -and $size.gzipMb -lt $size.rawMb / 2) "the download size is reported raw and gzipped: $($size | ConvertTo-Json -Compress)"
+    Assert-True ($null -ne $size -and $size.rawMb -gt 30 -and $size.gzipMb -gt 5 -and $size.gzipMb -lt $size.rawMb / 2) "the download size is reported raw and gzipped: $($size | ConvertTo-Json -Depth 10 -Compress)"
     Assert-True (Test-Path -LiteralPath (Join-Path $output '.gdignore')) 'an output folder inside the project gets a .gdignore'
     Assert-True (@(Get-ChildItem -LiteralPath (Join-Path $output 'Web') -Filter '*.png' | Where-Object Name -like 'screenshot-*').Count -eq 0) 'screenshots stay out of the release folder'
 

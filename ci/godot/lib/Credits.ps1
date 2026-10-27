@@ -81,7 +81,7 @@ function Get-NoticeText([hashtable]$Entry, [string]$ManifestDir, [string]$Licenc
     $text = (Get-Content -LiteralPath $template -Raw).TrimEnd()
     if (-not $copyright) { return $text }
     $line = if ($copyright -match '^(?i)copyright') { $copyright } else { "Copyright (c) $copyright" }
-    if ($text -match '(?m)^.*<(year|owner|copyright holders)>.*$') { return ($text -replace '(?m)^.*<(year|owner|copyright holders)>.*$', $line) }
+    if ($text -match '(?m)^.*<(year|owner|copyright holders)>.*$') { return ($text -replace '(?m)^.*<(year|owner|copyright holders)>.*$', { $line }) }
     return "$line`n`n$text"
 }
 
@@ -243,7 +243,7 @@ function Invoke-Credits($Info, [string]$OutputDir) {
     $manifest = Join-Path $Info.ProjectDir 'assets.json'
     if (-not (Test-Path -LiteralPath $manifest)) { Stop-GodotCi "No assets.json in $($Info.ProjectDir): list where every asset came from first (godot-asset-pipeline)" 'no-asset-manifest' }
     $engineJson = Join-Path ([System.IO.Path]::GetTempPath()) "engine-notices-$([guid]::NewGuid().ToString('N').Substring(0, 8)).json"
-    $tool = (Join-Path $PSScriptRoot '../tools/notices.gd' | Resolve-Path).Path -replace '\\', '/'
+    $tool = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../tools/notices.gd')).Path -replace '\\', '/'
     $log = [System.IO.Path]::GetTempFileName()
     $code = Invoke-Logged $env:GODOT_BIN @('--headless', '--path', $Info.ProjectDir, '-s', $tool, '--', $engineJson) $log
     if ($code -ne 0 -or -not (Test-Path -LiteralPath $engineJson)) { Write-CiLog "Could not read the engine's notices (Godot exited with $code)" }

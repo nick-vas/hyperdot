@@ -1,7 +1,21 @@
 # Changelog
 
 ## Unreleased
-- **The first mid run of the staged programme, stopped halfway** (token-benchmark run 44, $34.53, 294 of 540 sessions
+- **PowerShell review: six bugs fixed, four new syntax-tree checks.** `bench -Sweep 'particles=100 0',5000` named `' '`
+  instead of the values (`$Matches` was overwritten before the message); eleven `Resolve-Path` calls on the kit's own
+  tools now take `-LiteralPath` (a kit under a folder with `[ ]` found nothing); `Start-Process -ArgumentList` in four
+  self-tests quotes its paths; `-replace` replacements built from a version line, a `[dotnet]` entry, a home folder, a
+  licence line and a csproj block are script blocks, so a `$` in the data is not read as a group; the Stop hook and every
+  child `pwsh` in the scripts start with `-NonInteractive`; `Test-SkillFixtures.ps1` pins strict mode.
+  `Test-PowerShellPatterns.ps1` gains `resolve-path-wildcard`, `start-process-arglist`, `replace-interpolated` and
+  `pwsh-interactive`, a strict-mode check for every entry and test script, and a check of the hook's arguments;
+  `Test-BenchSweep.ps1` checks the refusal's message.
+- **PowerShell review, second pass.** Every `ConvertTo-Json` now passes `-Depth` (nested data was cut at depth 2 and a
+  warning reached stdout); `Plan.ps1`'s `file:` check, `Publish-Release.ps1` and the Godot templates copy read their paths
+  literally; `Test-ReportPins.ps1` called `Install-Godot`, which does not exist (it failed on any machine without
+  `GODOT_BIN`). New checks in `Test-PowerShellPatterns.ps1`: `json-depth`, `path-wildcard`, `duplicate-parameter` and
+  `undefined-command`. `Set-ProjectVersionLine` (export's version patch) is a function so a `$` in the line is tested, and
+  `tests/Test-KitPaths.ps1` runs the textsize runner from a folder named `kit [v2]` and keeps a `$` in `solution_directory`.- **The first mid run of the staged programme, stopped halfway** (token-benchmark run 44, $34.53, 294 of 540 sessions
   graded; `benchmark/PLAN.md`). The owner's plan ran out of usage after 65 minutes of twenty parallel jobs, and a git
   race ended four parts early (fixed in nick-vas/hyperdot#134). Milestones cost about $0.40 to $0.50, not the guessed
   ten Sonnet tasks: `cost-model.json` now uses the measured means, and the mid tier is priced at $67.71. It also found

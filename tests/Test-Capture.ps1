@@ -18,7 +18,7 @@ function Assert-True([bool]$Condition, [string]$What) {
 function Invoke-CaptureShot([string]$Name, [string]$GameArgs, [string]$Baseline) {
     $out = Join-Path $work $Name
     $extra = @(if ($GameArgs) { '-GameArgs', $GameArgs }) + @(if ($Baseline) { '-Baseline', (Join-Path $work $Baseline) })
-    $json = pwsh -NoProfile -File $kit shot -Json -Project $fixture -Frames 20 -Resolution 640x360 -Output $out `
+    $json = pwsh -NoProfile -NonInteractive -File $kit shot -Json -Project $fixture -Frames 20 -Resolution 640x360 -Output $out `
         -Results (Join-Path $work "$Name-results") @extra 2>$null | Out-String | ConvertFrom-Json
     $log = Join-Path $out 'shot.log'
     $lines = @(if (Test-Path -LiteralPath $log) { Get-Content -LiteralPath $log })
@@ -43,7 +43,7 @@ try {
     if ($normal.Probe) {
         $p = $normal.Probe
         Assert-True ($p.hud_visible -and $p.prompt_visible -and -not $p.music_muted -and -not $p.mouse_hidden -and -not $p.paused -and $p.time_scale -eq 1) `
-            "without --capture nothing changes: $($p | ConvertTo-Json -Compress)"
+            "without --capture nothing changes: $($p | ConvertTo-Json -Depth 10 -Compress)"
     }
 
     $clean = Invoke-CaptureShot 'clean' '--capture=nohud+nomusic+nocursor' 'normal'

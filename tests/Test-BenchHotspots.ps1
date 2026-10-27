@@ -23,16 +23,16 @@ function Assert-True([bool]$Condition, [string]$What) {
 # The whole -Json document, passing or not.
 function Invoke-BenchDoc([string[]]$Arguments) {
     $results = Join-Path ([IO.Path]::GetTempPath()) "bench-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
-    $out = pwsh -NoProfile -File $kit bench -Json -Quiet -Project $fixture -Results $results @Arguments 2>$null
+    $out = pwsh -NoProfile -NonInteractive -File $kit bench -Json -Quiet -Project $fixture -Results $results @Arguments 2>$null
     return $(if ($out) { $out | ConvertFrom-Json } else { $null })
 }
 function Invoke-Bench([string[]]$Arguments) {
     $results = Join-Path ([IO.Path]::GetTempPath()) "bench-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
     $script:LastResults = $results
-    $out = pwsh -NoProfile -File $kit bench -Json -Quiet -Project $fixture -Results $results @Arguments 2>$null
+    $out = pwsh -NoProfile -NonInteractive -File $kit bench -Json -Quiet -Project $fixture -Results $results @Arguments 2>$null
     $json = if ($out) { $out | ConvertFrom-Json } else { $null }
     if (-not $json -or -not $json.ok) {
-        throw "bench $($Arguments -join ' ') failed: $(if ($json) { $json.error | ConvertTo-Json -Compress } else { 'no JSON result' })"
+        throw "bench $($Arguments -join ' ') failed: $(if ($json) { $json.error | ConvertTo-Json -Depth 10 -Compress } else { 'no JSON result' })"
     }
     return $json.bench
 }
@@ -80,7 +80,7 @@ Assert-True (@($b.hitches | Where-Object { $null -ne $_.pos }).Count -eq 0) 'hit
 
 # Under a decimal-comma culture bench.csv still writes 59.5, not "59,5", so rows from machines in other cultures agree.
 $deResults = Join-Path ([IO.Path]::GetTempPath()) "bench-de-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
-$null = pwsh -NoProfile -Command "[cultureinfo]::CurrentCulture = 'de-DE'; & '$kit' bench -Json -Quiet -Project '$fixture' -Results '$deResults' -Scene res://no_camera.tscn -Headless -Warmup 0 -Seconds 1" 2>$null
+$null = pwsh -NoProfile -NonInteractive -Command "[cultureinfo]::CurrentCulture = 'de-DE'; & '$kit' bench -Json -Quiet -Project '$fixture' -Results '$deResults' -Scene res://no_camera.tscn -Headless -Warmup 0 -Seconds 1" 2>$null
 $deRow = @(Import-Csv -LiteralPath (Join-Path $deResults 'bench.csv'))
 Assert-True ($deRow.Count -eq 1 -and $deRow[0].fpsAvg -match '^\d+\.\d+$' -and $deRow[0].p99Ms -match '^\d+(\.\d+)?$') "bench.csv under de-DE writes numbers with a point: fpsAvg '$(if ($deRow.Count) { $deRow[0].fpsAvg })', p99Ms '$(if ($deRow.Count) { $deRow[0].p99Ms })'"
 
@@ -90,7 +90,7 @@ $heavy = @('-Scene', 'res://heavy.tscn', '-Warmup', '0', '-Seconds', '1')
 $d = Invoke-BenchDoc ($heavy + @('-MaxDrawCalls', '100', '-MaxLoadMs', '10000'))
 Assert-True ($d -and $d.ok) "limits the scene stays under pass: $(if ($d -and -not $d.ok) { $d.error.code })"
 $b = $d.bench
-Assert-True ($b.loadMs -ge 300 -and $b.loadBreakdownMs.firstFrame + $b.loadBreakdownMs.instantiate + $b.loadBreakdownMs.resource -le $b.loadMs + 0.5) "loadMs includes the 300 ms _ready, and its parts add up to it: $($b.loadMs) ms ($($b.loadBreakdownMs | ConvertTo-Json -Compress))"
+Assert-True ($b.loadMs -ge 300 -and $b.loadBreakdownMs.firstFrame + $b.loadBreakdownMs.instantiate + $b.loadBreakdownMs.resource -le $b.loadMs + 0.5) "loadMs includes the 300 ms _ready, and its parts add up to it: $($b.loadMs) ms ($($b.loadBreakdownMs | ConvertTo-Json -Depth 10 -Compress))"
 Assert-True ($b.drawCalls.avg -ge 24) "24 boxes are at least 24 draw calls a frame: $($b.drawCalls.avg)"
 $buckets = @($b.frameHistogram)
 $sum = ($buckets | Measure-Object frames -Sum).Sum

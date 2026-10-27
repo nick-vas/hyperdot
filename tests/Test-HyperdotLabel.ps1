@@ -36,7 +36,7 @@ function New-Run([string]$Name, [string]$Model, [object[]]$Sessions, [string]$Pr
     return $dir
 }
 function Invoke-Label([string[]]$Arguments, [string]$Scale = (Join-Path $fixture 'scale.json')) {
-    $out = & pwsh -NoProfile -File $tool -SpecPath (Join-Path $fixture 'spec.json') -ScalePath $Scale -Version 9.9.9 -Json @Arguments 2>$null
+    $out = & pwsh -NoProfile -NonInteractive -File $tool -SpecPath (Join-Path $fixture 'spec.json') -ScalePath $Scale -Version 9.9.9 -Json @Arguments 2>$null
     return [pscustomobject]@{ Code = $LASTEXITCODE; Json = $(if ($out) { ($out -join "`n") | ConvertFrom-Json -AsHashtable }) }
 }
 

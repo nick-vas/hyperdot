@@ -49,7 +49,7 @@ function Find-Playwright {
 # Opens a web export in each browser. Returns one result per browser (see tools/web-smoke.mjs).
 function Invoke-WebSmoke([string]$Dir, [string[]]$Browsers, [bool]$CrossOriginIsolation, [string]$ScreenshotPrefix) {
     $modules = Find-Playwright
-    $tool = (Join-Path $PSScriptRoot '../tools/web-smoke.mjs' | Resolve-Path).Path
+    $tool = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../tools/web-smoke.mjs')).Path
     $previous = $env:NODE_PATH
     $env:NODE_PATH = $modules
     try {
