@@ -48,3 +48,5 @@ try {
 }
 if ($failures.Count) { throw "$($failures.Count) kit path check(s) failed" }
 Write-Host 'Kit paths self-test passed'
+# The last child run fails on purpose; GitHub's pwsh wrapper would exit with its $LASTEXITCODE.
+exit 0
