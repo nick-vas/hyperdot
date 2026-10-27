@@ -179,6 +179,22 @@ foreach ($table in 'talk', 'greet', 'levels', 'flows') {
 $breakout = @(Get-DataCases (Join-Path $root 'examples/csharp/game') | Where-Object { $_.Failure -or ($_.Contains('Warnings') -and @($_['Warnings']).Count) })
 if ($breakout) { $failures += "examples/csharp/game/data.json reported: $(($breakout | ForEach-Object { "$($_.Name): $($_.Failure) $(if ($_.Contains('Warnings')) { @($_['Warnings'] | ForEach-Object { $_['message'] }) -join ' | ' })" }) -join ' | ')" }
 
+# A value on the bound passes; one past it fails (the minimum has its own case in the fixture).
+$rule = @{ type = 'int'; min = 0; max = 9999 }
+if ($null -ne (Test-DataValue 9999 $rule $false)) { $failures += "a value equal to max should pass: '$(Test-DataValue 9999 $rule $false)'" }
+if ((Test-DataValue 10000 $rule $false) -ne 'is 10000, above the maximum 9999') { $failures += "a value above max should fail: '$(Test-DataValue 10000 $rule $false)'" }
+# An item's start may equal its max and no more.
+function New-SoftLockLevel($Start) { @{ id = 'edge'; areas = @('A', 'B'); goals = @('B'); items = @(@{ name = 'key'; max = 2; start = $Start }); pickups = @(); passages = @(@{ from = 'A'; to = 'B' }) } }
+$atMax = Read-SoftLockLevel (New-SoftLockLevel 2)
+if ($atMax.Problems.Count) { $failures += "start equal to max should read: $($atMax.Problems -join ' | ')" }
+$pastMax = Read-SoftLockLevel (New-SoftLockLevel 3)
+if (@($pastMax.Problems | Where-Object { $_ -eq "item 'key': start must be 0 to 2, not '3'" }).Count -ne 1) { $failures += "start past max should be refused: $($pastMax.Problems -join ' | ')" }
+# A currency only a sink moves has no source to pile up: the economy rule reports it only when no row moves it at all.
+$spec = @{ id = 'id'; fields = [ordered]@{ currency = @{ ref = 'currencies' }; rate = @{} }; economy = @{ currency = 'currency'; rate = 'rate' } }
+$loaded = @{ flows = @(@{ id = 'fuel_burn'; currency = 'fuel'; rate = -5; '@line' = 1 }); currencies = @(@{ id = 'fuel' }, @{ id = 'dust' }) }
+$got = @(Test-DataEconomy 'flows' $spec $loaded @{ currencies = @{ id = 'id' } })
+if ($got.Count -ne 1 -or $got[0] -notlike "currency 'dust' has no sink*") { $failures += "only 'dust' (moved by no row) should be reported, not 'fuel' (a sink): $($got -join ' | ')" }
+
 if ($failures) { $failures | ForEach-Object { Write-Host "FAIL $_" -ForegroundColor Red }; exit 1 }
 Write-Host 'data reports duplicates, missing and unknown fields, types, ranges, enums and broken references (with the near name when there is one), prerequisite cycles, puzzle levels without one solution sentence or a purpose, dialogue rules (criteria syntax as in C#, follow-ups, voice files, ties, contradictions, facts never written, lines missing in a locale), soft-lock levels with the same counterexample as C#, currencies without a sink, and nothing on a clean project'
 exit 0
