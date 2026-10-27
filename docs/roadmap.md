@@ -167,6 +167,8 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
   where `Select-Jobs.ps1` now selects by the paths a change touches. Open question first: a result may be reused
   only for tests that do not flake on runners (the C# soak's memory growth has failed there twice), so each job needs a
   note on whether its result is deterministic.
+  **Design written, awaiting the owner's decision:** [ci-cache.md](ci-cache.md) (the key, where results live, a verdict
+  per job, the risks, a staged plan from measurement only, and the questions for the owner). Nothing is built.
 
 ### From the label and the adversarial review (2026-10-23)
 
