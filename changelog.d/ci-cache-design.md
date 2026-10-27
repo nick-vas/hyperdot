@@ -1,0 +1,1 @@
+Added: `docs/ci-cache.md`, a design (not built) for a CI cache keyed by a hash of each job's inputs: the key, where results live, a verdict per self-test job, the risks and a staged plan starting with measurement only.
