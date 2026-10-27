@@ -17,18 +17,21 @@ if ($IsLinux -and -not $env:DISPLAY) { throw 'bench needs a display: start Xvfb 
 # Other drivers ignore the variable.
 $env:LP_NUM_THREADS = '0'
 $failures = [System.Collections.Generic.List[string]]::new()
+$tempDirs = [System.Collections.Generic.List[string]]::new()   # every results folder, removed at the end
 function Assert-True([bool]$Condition, [string]$What) {
     if ($Condition) { Write-Host "ok     $What" } else { Write-Host "FAILED $What" -ForegroundColor Red; $failures.Add($What) }
 }
 # The whole -Json document, passing or not.
 function Invoke-BenchDoc([string[]]$Arguments) {
     $results = Join-Path ([IO.Path]::GetTempPath()) "bench-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+    $tempDirs.Add($results)
     $out = pwsh -NoProfile -NonInteractive -File $kit bench -Json -Quiet -Project $fixture -Results $results @Arguments 2>$null
     return $(if ($out) { $out | ConvertFrom-Json } else { $null })
 }
 function Invoke-Bench([string[]]$Arguments) {
     $results = Join-Path ([IO.Path]::GetTempPath()) "bench-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
     $script:LastResults = $results
+    $tempDirs.Add($results)
     $out = pwsh -NoProfile -NonInteractive -File $kit bench -Json -Quiet -Project $fixture -Results $results @Arguments 2>$null
     $json = if ($out) { $out | ConvertFrom-Json } else { $null }
     if (-not $json -or -not $json.ok) {
@@ -42,6 +45,7 @@ function Find-Cell($Bench, [double]$X) {
     return @($Bench.hotspots | Where-Object { $_.centre[0] - $half -le $X -and $X -lt $_.centre[0] + $half })
 }
 
+try {
 # 3D, with a window, V-Sync off, 20 m cells: at 5 m/s x goes from about 30 to 85, so [40, 60) is one cell crossed in 4 s
 # and [60, 80) another after it. The first measured frames fall in [20, 40), which is not checked: a busy machine slows
 # them too.
@@ -80,6 +84,7 @@ Assert-True (@($b.hitches | Where-Object { $null -ne $_.pos }).Count -eq 0) 'hit
 
 # Under a decimal-comma culture bench.csv still writes 59.5, not "59,5", so rows from machines in other cultures agree.
 $deResults = Join-Path ([IO.Path]::GetTempPath()) "bench-de-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+$tempDirs.Add($deResults)
 $null = pwsh -NoProfile -NonInteractive -Command "[cultureinfo]::CurrentCulture = 'de-DE'; & '$kit' bench -Json -Quiet -Project '$fixture' -Results '$deResults' -Scene res://no_camera.tscn -Headless -Warmup 0 -Seconds 1" 2>$null
 $deRow = @(Import-Csv -LiteralPath (Join-Path $deResults 'bench.csv'))
 Assert-True ($deRow.Count -eq 1 -and $deRow[0].fpsAvg -match '^\d+\.\d+$' -and $deRow[0].p99Ms -match '^\d+(\.\d+)?$') "bench.csv under de-DE writes numbers with a point: fpsAvg '$(if ($deRow.Count) { $deRow[0].fpsAvg })', p99Ms '$(if ($deRow.Count) { $deRow[0].p99Ms })'"
@@ -104,6 +109,9 @@ $d = Invoke-BenchDoc ($heavy + @('-MaxDrawCalls', '10', '-MaxLoadMs', '100'))
 Assert-True ($d -and $d.error.code -eq 'bench-over-draw-calls' -and $d.error.message -match 'draw calls' -and $d.error.message -match 'to load') "over both: the first code, both in the message: $(if ($d) { $d.error.message })"
 $d = Invoke-BenchDoc ($heavy + @('-MaxDrawCalls', '-1'))
 Assert-True ($d -and $d.error.code -eq 'invalid-arguments') "a negative -MaxDrawCalls is refused: $(if ($d) { $d.error.code })"
+} finally {
+    foreach ($temp in $tempDirs) { Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue }
+}
 
 if ($failures.Count) { throw "$($failures.Count) bench hotspot check(s) failed" }
 Write-Host 'bench hotspots self-test passed'

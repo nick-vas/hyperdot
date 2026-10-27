@@ -79,13 +79,16 @@ if ((Get-GrowthMbPerHour @()) -ne 0 -or (Get-GrowthMbPerHour (New-SoakSamples { 
 $few = Get-GrowthMbPerHour (New-SoakSamples { param($i) 50 + $i * 1000 / 3600 } 6)
 if ([Math]::Abs($few - 1000) -gt 1) { $failures += "6 samples of a steady leak should read as the whole-window slope, 1000 MB/h: $few" }
 
+$tempDirs = [System.Collections.Generic.List[string]]::new()   # every results folder, removed at the end
 function Invoke-Soak([string[]]$Extra, [string]$Project = $fixture, [double]$Warmup = 2, [double]$Seconds = 20) {
     $results = Join-Path ([System.IO.Path]::GetTempPath()) "soak-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
+    $tempDirs.Add($results)
     $json = & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') soak -Project $Project -Seconds $Seconds -Warmup $Warmup `
         -MaxGrowthMbPerHour 200 -Results $results -Json @Extra 2>$null
     return ($json | Out-String | ConvertFrom-Json)
 }
 
+try {
 $healthy = Invoke-Soak @('-Clients', '4')
 if (-not $healthy.ok) { $failures += "a healthy run failed: $($healthy.error.code) $($healthy.error.message)" }
 else {
@@ -132,6 +135,9 @@ if ($flood.soak.junk.packetsSent -le 0) { $failures += "a junk flood should send
 $degraded = (-not $flood.ok -and $flood.error.code -eq 'soak-failed') -or ($flood.soak.server.metrics.input_loss_pct -gt 5)
 if (-not $degraded) {
     $failures += "a 100k-pps flood should degrade the server: ok $($flood.ok), input loss $($flood.soak.server.metrics.input_loss_pct)%, $($flood.soak.junk.packetsSent) packets sent in $($flood.soak.seconds) s"
+}
+} finally {
+    foreach ($temp in $tempDirs) { Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue }
 }
 
 if ($failures) { $failures | ForEach-Object { Write-Host "FAIL $_" -ForegroundColor Red }; exit 1 }
