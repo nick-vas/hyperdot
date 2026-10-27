@@ -11,10 +11,13 @@ $files = @(Get-ChildItem (Join-Path $root 'ci/godot/lib') -Filter '*.ps1') + @(G
 foreach ($file in $files) {
     $ast = [System.Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref]$null, [ref]$null)
     foreach ($fn in $ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $true)) {
-        if ($fn.Parent -isnot [System.Management.Automation.Language.NamedBlockAst] -or $fn.Parent.Parent.Parent) { continue }   # nested helpers are local
+        # Helpers nested in another function are local; one in an if, try or loop block of the file is defined when that runs.
+        $inside = $false
+        for ($up = $fn.Parent; $up; $up = $up.Parent) { if ($up -is [System.Management.Automation.Language.FunctionDefinitionAst]) { $inside = $true; break } }
+        if ($inside) { continue }
         $name = $fn.Name
         if ($defined.ContainsKey($name)) { $failures += "$name is defined in $($defined[$name]) and $($file.Name)" } else { $defined[$name] = $file.Name }
-        $builtin = Get-Command -Name $name -CommandType Alias, Cmdlet -ErrorAction SilentlyContinue
+        $builtin = Get-Command -Name $name -CommandType Alias, Cmdlet, Function -ErrorAction SilentlyContinue
         if ($builtin) { $failures += "$name ($($file.Name)) shadows the built-in $($builtin.CommandType.ToString().ToLowerInvariant()) $name" }
     }
 }
