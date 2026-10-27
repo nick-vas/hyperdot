@@ -150,13 +150,15 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 - **Why CI and the owner's PC disagree** (question round note 11). No quick way to see why a run passes on one and
   fails on the other; the idea is to compare the two runs' `-Json` results side by side. Postponed by the owner on
   2026-10-26 until after the 0.1.0 release.
-- **README adoption rewrite** (the owner's adoption review, 2026-10-27; after the complete mid run). A README opening
-  that leads with the problem (an agent proves a Godot game still works, with evidence instead of trust), a quick start
-  with the right script path (`ci/godot/hyperdot.ps1`), a choose-your-path section, Core (`test`, `build`, `export`)
-  against Advanced, and a table of what Hyperdot adds on top of GUT, gdUnit4Net and GoDotTest, which it runs. Both
-  languages stay in the headline. The demo recording and a "things AI agents break in Godot" write-up need material
-  from the owner.
-- **`telemetry`: one view of the pipeline's own numbers** (from the owner's study of distributed-pipeline reading, after
+- **README adoption: what remains** (the owner's adoption review, 2026-10-27). The README now leads with the problem and
+  the evidence, has a quick start with the right script path, a choose-your-path section, Core against Advanced and a table
+  of what Hyperdot adds on top of the test frameworks it runs. Two parts need material from the owner: a short demo
+  recording (an agent changes code, a test fails, the agent fixes it, the tests pass, the export succeeds), and a write-up
+  "things AI agents break in Godot" built from real failures Hyperdot caught. Social proof (users, runs) waits for real
+  numbers; none is invented.
+- **Measurements postponed** (decision of the owner, 2026-10-27): all measurements except the running Haiku
+  configuration wait until the owner says so: Haiku with the plugin, Sonnet, Sonnet with the plugin, Opus, and the
+  game-making label rating.- **`telemetry`: one view of the pipeline's own numbers** (from the owner's study of distributed-pipeline reading, after
   the README work, not before). `.godot/hyperdot-history.jsonl` already holds every command's run: mean test duration,
   export duration, bench duration, failure hot spots and flaky tests would be read from it, plus cache hit rates once
   the input-hash cache below exists. It adds a view over data the kit keeps, not new data.

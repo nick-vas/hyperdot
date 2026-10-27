@@ -4,10 +4,10 @@
 
 <h1 align="center">Hyperdot</h1>
 
-<h3 align="center">A hyper interface for Godot: build, test, ship and plan games with an AI agent.</h3>
+<h3 align="center">Helps AI agents prove that a Godot game still works, in GDScript or C#.</h3>
 
 <p align="center">
-  One PowerShell script, 51 skills and a Claude Code plugin, for GDScript and C# games of any genre.<br>
+  Build, test, export and launch checks that answer in JSON an agent can read.<br>
   Runs on your Windows machine and, as a GitHub workflow, on Linux runners.
 </p>
 
@@ -22,6 +22,7 @@
 </p>
 
 <p align="center">
+  <a href="#choose-your-path">Choose your path</a> ·
   <a href="#quick-start">Quick start</a> ·
   <a href="#what-it-gives-an-agent">Features</a> ·
   <a href="#skills">Skills</a> ·
@@ -31,23 +32,14 @@
 
 ---
 
-An agent can already write GDScript and C#. What it lacks is a way to know whether the game still works, and a plan that says
-what to build next. Hyperdot supplies both.
+An AI agent can write GDScript and C# and then say "done". Whether the game still builds, passes its tests, plays through its
+menus and starts after export is a different question, and an agent that answers it from memory is guessing.
 
-| | |
-|---|---|
-| **Verify** | One script detects the project, installs the right Godot, runs every test framework, plays UI flows, exports and launches the build, and answers in **JSON an agent can read**. |
-| **Plan** | Seven phases from concept to post-launch, with gates the project can check, tasks, and an optional Trello mirror (experimental). |
-| **Measure** | Frame-pacing benchmarks, real screenshots and loudness checks, so an agent judges performance, layout and sound, not just logic. |
-| **Teach** | `AGENTS.md` and 51 skills that make the agent work test first and prove it is done before it says so. |
-| **Stay honest** | A Claude Code plugin with two subagents and a Stop hook: a turn cannot end while changed code has no passing test run. The hook checks only that; it does not judge the design or the code. |
-| **Get better** | `/retro` turns a session's mistakes into kit changes, each measured with evals, with and without the plugin. |
-
-```powershell
-$kit = 'C:\Tools\hyperdot\ci\godot\hyperdot.ps1'                       # your clone of this repository
-pwsh $kit init -Agents -Mcp godot-mcp -Project 'C:\path\to\your\game'   # once: tests, CI, AGENTS.md, skills, editor bridge
-pwsh $kit test -Json -Quiet -Project 'C:\path\to\your\game'             # every time: build + every test, one JSON result
-```
+Hyperdot makes it show evidence. One script detects the project, installs the right Godot, builds, runs every test
+framework the project uses, plays UI flows, exports and launches the build, and answers in **JSON an agent can read**.
+The agent is done when `test -Json` says `ok: true`, not when it says so. With the Claude Code plugin, a Stop hook enforces
+that much: a turn cannot end while changed code has no passing test run (it checks only that; it does not judge the design
+or the code).
 
 What the agent reads back when a test fails:
 
@@ -59,23 +51,56 @@ What the agent reads back when a test fails:
                       "file": "test/test_score.gd", "line": 7 } ] } ] }
 ```
 
-## How the pieces fit
+## Choose your path
 
-```
-   plan -Json            what phase am I in, what is next
-        |
-   editor MCP            author and inspect: scenes, nodes, running game, live state   (needs the editor)
-        |
-   hyperdot.ps1 -Json    verify: build, test, flows, export, launch                     (headless, CI-safe)
-   bench / shot          measure frame pacing, look at screens                          (with a display)
-   audio [-Mix]          loudness of the sound files and of the game's own mix          (ffmpeg; -Mix needs a display)
-        |
-   plan -Do move/done    record progress; Trello mirrors the board
+| I want... | Start here |
+|---|---|
+| **Automated Godot testing**, locally, with GUT, gdUnit4Net, GoDotTest or xUnit/NUnit/MSTest | [Quick start](#quick-start), then [Test and verify](#test-and-verify) and [docs/usage.md](docs/usage.md#2-run-the-tests-locally-and-check-your-setup) |
+| **CI for my game**: tests on every push, a results comment on pull requests, exports and releases | [GitHub](#github) and [docs/usage.md](docs/usage.md#3-the-same-tests-on-a-github-linux-runner-with-a-pr-comment) |
+| **To use Claude Code**: skills, two subagents and the Stop hook loaded from one clone | Quick start step 3 below, then [Skills](#skills) and [docs/help.md](docs/help.md) |
+| **The complete AI development workflow**: plan, author through the editor, verify, measure, ship | [Advanced](#advanced), [How the pieces fit](#how-the-pieces-fit), [The plan](#the-plan) and [docs/plan.md](docs/plan.md) |
+
+## Quick start
+
+You need PowerShell 7.6+ and Git ([Prerequisites](#prerequisites)); Godot is downloaded by the kit on the first run, and C#
+projects need the .NET 8 SDK.
+
+**Try it on the examples in this repository** (a GDScript game with GUT, and a C# game with every framework):
+
+```powershell
+git clone https://github.com/nick-vas/hyperdot
+cd hyperdot
+pwsh ci/godot/hyperdot.ps1 test -Project examples/gdscript -Json -Quiet
+pwsh ci/godot/hyperdot.ps1 test -Project examples/csharp/game -Json -Quiet
 ```
 
-The editor is what you see; the files on disk are what CI and the export see. So the agent authors through the bridge, saves, and
-is done only when `test -Json` says `ok: true`. Neither editor MCP server builds C#, which is why the verification gate is a
-separate, headless tool.
+Each prints one JSON result with `"ok": true` and a `runnerResults` entry per runner. `detect -Project <game>` shows what the kit
+found and changes nothing; `doctor -Project <game>` checks the machine and the project and gives a fix for each problem.
+
+**Use it on your game.**
+
+1. Clone the kit once, **outside** your game, and point it at the game with `-Project`. Nothing of the kit goes into your
+   game's repository or its exported builds:
+   ```powershell
+   git clone https://github.com/nick-vas/hyperdot C:\Tools\hyperdot
+   $kit = 'C:\Tools\hyperdot\ci\godot\hyperdot.ps1'
+   $game = 'C:\path\to\your\game'
+   pwsh $kit doctor -Project $game
+   pwsh $kit init -Agents -Mcp godot-mcp -Project $game      # once: tests, CI, AGENTS.md, skills, editor bridge
+   pwsh $kit test -Json -Quiet -Project $game                # every time: build + every test, one JSON result
+   ```
+   `init` adds a starter test, a GitHub workflow, `.gitignore` lines, test exclusions in the export presets, `AGENTS.md`,
+   `CLAUDE.md`, `docs/kit-notes.md`, the skills, both subagents and `.mcp.json`. It never overwrites a file and prints each change. The full list,
+   and how to keep the kit in the game as a submodule instead: [docs/usage.md](docs/usage.md).
+2. If you only want the tests, you are done: use `-Mcp` and the steps below only with an agent.
+3. With Claude Code, use the kit as a plugin instead of copying skills into the game: `init -Plugin -Project $game` writes the
+   game's `.claude/settings.json` so Claude Code loads the skills, subagents and Stop hook from your clone (a `git pull` there
+   updates every game). Or by hand: `/plugin marketplace add <your clone>`, then `/plugin install hyperdot@hyperdot`.
+4. If you chose `-Mcp`, run the addon command `init` prints and enable the plugin in Godot.
+5. Open Claude Code in the game's folder and **start every session with `/game`**: it reads where the game stands (GDD,
+   plan, tests, git), writes `plan/STATUS.md` and ends with the three best next tasks to pick from. Then ask the agent to
+   work; it reads `AGENTS.md` and runs `test -Json` to check itself. `/kit` (or `hyperdot.ps1 help`) lists every command, skill and
+   subagent in one line each; `/kit <name>` shows one page ([docs/help.md](docs/help.md)).
 
 ## Prerequisites
 
@@ -99,30 +124,27 @@ separate, headless tool.
 
 `doctor` checks a machine and a project and says what is missing.
 
-## Quick start
+## What Hyperdot adds on top of your test framework
 
-1. Clone the kit once, **outside** your game, and point it at the game with `-Project`. Nothing of the kit goes into your
-   game's repository or its exported builds:
-   ```powershell
-   git clone https://github.com/nick-vas/hyperdot C:\Tools\hyperdot
-   $kit = 'C:\Tools\hyperdot\ci\godot\hyperdot.ps1'
-   $game = 'C:\path\to\your\game'
-   pwsh $kit doctor -Project $game
-   pwsh $kit init -Agents -Mcp godot-mcp -Project $game
-   ```
-   `init` adds a starter test, a GitHub workflow, `.gitignore` lines, test exclusions in the export presets, `AGENTS.md`,
-   `CLAUDE.md`, `docs/kit-notes.md`, the skills, both subagents and `.mcp.json`. It never overwrites a file and prints each change. The full list,
-   and how to keep the kit in the game as a submodule instead: [docs/usage.md](docs/usage.md).
-2. With Claude Code, use the kit as a plugin instead of copying skills into the game: `init -Plugin -Project $game` writes the
-   game's `.claude/settings.json` so Claude Code loads the skills, subagents and Stop hook from your clone (a `git pull` there
-   updates every game). Or by hand: `/plugin marketplace add <your clone>`, then `/plugin install hyperdot@hyperdot`.
-3. If you chose `-Mcp`, run the addon command `init` prints and enable the plugin in Godot.
-4. Open Claude Code in the game's folder and **start every session with `/game`**: it reads where the game stands (GDD,
-   plan, tests, git), writes `plan/STATUS.md` and ends with the three best next tasks to pick from. Then ask the agent to
-   work; it reads `AGENTS.md` and runs `test -Json` to check itself. `/kit` (or `hyperdot.ps1 help`) lists every command, skill and
-   subagent in one line each; `/kit <name>` shows one page ([docs/help.md](docs/help.md)).
+GUT, gdUnit4Net, GoDotTest and xUnit, NUnit or MSTest (through `dotnet test`) are the runners Hyperdot **runs**, not
+rivals: you keep writing your tests in them. They are test frameworks; the rows below are what Hyperdot puts around them.
+
+| | The test framework alone | With Hyperdot |
+|---|---|---|
+| Write and run tests | yes | yes: it runs them for you |
+| Find the project, the solution and the Godot version | you set them up | `detect`; the right Godot is downloaded on the first run |
+| Every framework in one call | one at a time | `test` picks its runners from the project and returns one result |
+| Failures an agent can read | the framework's own report | JSON with each failure's `message`, `file` and `line`; fails on zero tests and on engine `ERROR:` lines |
+| Load every script, scene and resource | not what it is for | `validate` and `smoke` runners |
+| Play the UI | not what it is for | `flows` runner: `*.flow.json` files in the real engine, headless |
+| Export, then launch the build | not what it is for | `export -Run` (Web presets open in real browsers) |
+| Misconfiguration that breaks CI or ships broken builds | not what it is for | `doctor`, a fix with each finding |
+| CI with a comment on the pull request | you write the workflow | the reusable workflow `godot.yml` ([GitHub](#github)) |
 
 ## What it gives an agent
+
+**Core** is `test`, `build` and `export`, with `detect` and `doctor` to see what the kit found. That is all most games need,
+and it works with no editor bridge, no plan and no Trello. Everything under [Advanced](#advanced) is optional.
 
 ### Understand the project
 
@@ -146,6 +168,28 @@ separate, headless tool.
 | **Coverage floor** | `-MinCoverage 60` | merged report, fails below the floor |
 | **Drive the game** | `-GameArgs '--autoplay','--seed=3'` | your game's own flags, passed to smoke runs, `export -Run`, `bench` and `shot` |
 | **Keep "done" honest** | the plugin's Stop hook | a turn cannot end while Godot files changed since the last full passing `test` run (no `-Filter`, a real test framework). It only checks that the tests passed after the last edit: it is not a design or code review |
+
+### Ship
+
+| Capability | Command | Result |
+|---|---|---|
+| **Have sounds on day one** | `sfx -Sound jump,coin,hit -Count 3` | placeholder WAVs from a seed (bfxr2's synth) and `.bfxr` files bfxr2 opens |
+| **Credit everyone** | `credits` | `CREDITS.md`, `credits.json` and `THIRD-PARTY-NOTICES.txt` from `assets.json`; fails when a credit or notice is missing |
+| **Ship** | `export -Preset X -Run` | exported and launched; Web presets open in real browsers (`-Browser chromium,firefox`). The workflow's `release` input zips the exports into a GitHub Release |
+
+`test` picks its runners from the project: `validate` and `architecture` always; `dotnet`, `godottest`, `gut`, `flows` and
+`smoke` when their tests or a main scene exist; `l10n` when there are translations. The optional runners switch on when their
+file is in the project folder: `juice.json`, `playthrough.json`, `data.json`, `textsize.json`, `layout.json`. `-Runners` picks
+them by hand. Every parameter: [docs/reference.md](docs/reference.md).
+
+Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotnet test`, and UI flows. Verified on Godot 4.7.2 and .NET 8.
+
+## Advanced
+
+Optional, and none of it is needed to run `test`, `build` or `export`: checks of the game itself, measurements, the plan and
+its Trello mirror (experimental), the editor bridge, the [skills](#skills), the two subagents and the Stop hook, and the
+benchmark and evals that measure the kit. The sections after the tables are
+[How the pieces fit](#how-the-pieces-fit), [Skills](#skills) and [The plan](#the-plan).
 
 ### Check the game itself
 
@@ -171,14 +215,6 @@ separate, headless tool.
 | **Hold up online** | `soak -Clients 8 -Seconds 600 -MaxGrowthMbPerHour 50` | one server and headless clients: crashes, engine errors, memory growth, a clean stop on SIGTERM |
 | **Read a playtest** | `playtest -Sessions playtests/sessions` | per level: time, deaths, stalls, items found, and PNG heat maps from testers' telemetry |
 
-### Ship
-
-| Capability | Command | Result |
-|---|---|---|
-| **Have sounds on day one** | `sfx -Sound jump,coin,hit -Count 3` | placeholder WAVs from a seed (bfxr2's synth) and `.bfxr` files bfxr2 opens |
-| **Credit everyone** | `credits` | `CREDITS.md`, `credits.json` and `THIRD-PARTY-NOTICES.txt` from `assets.json`; fails when a credit or notice is missing |
-| **Ship** | `export -Preset X -Run` | exported and launched; Web presets open in real browsers (`-Browser chromium,firefox`). The workflow's `release` input zips the exports into a GitHub Release |
-
 ### Plan
 
 | Capability | Command | Result |
@@ -193,12 +229,23 @@ separate, headless tool.
 | **Improve the kit** | `/retro`, `/kit-review`, `evals/`, `docs/kit-notes.md` | lessons with evidence, and the game's one-line notes each time the kit got in the way, become kit pull requests you approve, each measured with and without the plugin |
 | **Measure agent cost** | `benchmark/Invoke-TokenBenchmark.ps1` | tokens, cost and time per task, as medians over repeated runs |
 
-`test` picks its runners from the project: `validate` and `architecture` always; `dotnet`, `godottest`, `gut`, `flows` and
-`smoke` when their tests or a main scene exist; `l10n` when there are translations. The optional runners switch on when their
-file is in the project folder: `juice.json`, `playthrough.json`, `data.json`, `textsize.json`, `layout.json`. `-Runners` picks
-them by hand. Every parameter: [docs/reference.md](docs/reference.md).
+## How the pieces fit
 
-Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotnet test`, and UI flows. Verified on Godot 4.7.2 and .NET 8.
+```
+   plan -Json            what phase am I in, what is next
+        |
+   editor MCP            author and inspect: scenes, nodes, running game, live state   (needs the editor)
+        |
+   hyperdot.ps1 -Json    verify: build, test, flows, export, launch                     (headless, CI-safe)
+   bench / shot          measure frame pacing, look at screens                          (with a display)
+   audio [-Mix]          loudness of the sound files and of the game's own mix          (ffmpeg; -Mix needs a display)
+        |
+   plan -Do move/done    record progress; Trello mirrors the board
+```
+
+The editor is what you see; the files on disk are what CI and the export see. So the agent authors through the bridge, saves, and
+is done only when `test -Json` says `ok: true`. Neither editor MCP server builds C#, which is why the verification gate is a
+separate, headless tool.
 
 ## Skills
 
