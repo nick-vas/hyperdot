@@ -95,6 +95,9 @@ jobs:
       - name: Changelog fragments are grouped, sorted and assembled into CHANGELOG.md; bad ones are refused by name
         shell: pwsh
         run: ./tests/Test-Changelog.ps1
+      - name: The release notes are the changelog section of exactly that version
+        shell: pwsh
+        run: ./tests/Test-ReleaseNotes.ps1
       - name: The selection of what a change runs (the sample of pairs, the pairs of a changed game, everything on main) holds
         shell: pwsh
         run: ./tests/Test-SelectJobs.ps1

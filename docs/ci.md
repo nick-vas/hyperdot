@@ -136,6 +136,27 @@ files; `Test-SelectJobs.ps1` then needs the demotion added to its expectations. 
 is Markdown, so it runs `lint` alone. The repository has no rule that a pull request must change the changelog, so CI does
 not require a fragment.
 
+## Releasing
+
+`.github/workflows/release.yml` ("Release") tags and publishes a release. Tags cannot be pushed from the cloud session (its
+git proxy answers 403 for tag pushes), so a workflow makes them. Run it from Actions > Release > Run workflow, or
+`gh workflow run release.yml -f version=0.1.0 [-f sha=<commit>]`:
+
+| Input | |
+|---|---|
+| `version` | Required, `x.y.z` without the `v`. |
+| `sha` | Optional; the head of the branch the run is dispatched on when empty. |
+
+It stops before changing anything unless: the commit is reachable from `origin/main` and has a successful `Self-test` run for
+a push to `main` (read with `gh api`; this needs read access to workflow runs, the default for a public repository, and on a
+private one the check fails closed until `actions: read` is added to the workflow's permissions); `CHANGELOG.md` has a
+`## <version> - ` section (`.github/scripts/Get-ChangelogSection.ps1`, held by `tests/Test-ReleaseNotes.ps1`); and
+`.claude-plugin/plugin.json` has the same version. Then it creates the annotated tag `v<version>` (it fails if that tag
+exists: version tags are never moved), creates or force-moves the major tag `v<major>` (the one tag that moves, as games pin
+`@v1`), pushes both as `github-actions[bot]`, and runs `gh release create v<version> --verify-tag` with the changelog section
+as the notes (cut near 120000 characters, the limit of a release body, with a link to the changelog). Tags pushed with the
+workflow's token start no other workflow. A change to `release.yml` or the script runs `lint` alone.
+
 ## Running everything locally
 
 ```

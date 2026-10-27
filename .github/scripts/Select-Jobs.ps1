@@ -37,10 +37,11 @@ $ErrorActionPreference = 'Stop'
 $gated = 'zero-config', 'csharp', 'explicit-runners', 'action', 'local-windows', 'init', 'measure', 'game-benchmark', 'field-test', 'web'
 
 $sample = @(@{ genre = 'platformer'; language = 'csharp' }, @{ genre = 'arena'; language = 'gdscript' }, @{ genre = 'cards'; language = 'gdscript' })
-$pairsCode = '^benchmark/templates/|^benchmark/(GameProgramme\.ps1|game-programme\.json)$|^tests/Test-GameProgramme\.ps1$|^\.github/(workflows/self-test\.yml|scripts/)'
+$pairsCode = '^benchmark/templates/|^benchmark/(GameProgramme\.ps1|game-programme\.json)$|^tests/Test-GameProgramme\.ps1$|^\.github/(workflows/self-test\.yml|scripts/(?!Get-ChangelogSection\.ps1))'
 
-# Used by every job, so a change to them runs every job.
-$core = '^\.github/(workflows/self-test\.yml|actions/|scripts/)', '^ci/godot/hyperdot\.ps1$',
+# Used by every job, so a change to them runs every job. (The release workflow and its changelog script belong to no job:
+# a change to them runs lint, which holds their test.)
+$core = '^\.github/(workflows/self-test\.yml|actions/|scripts/(?!Get-ChangelogSection\.ps1))', '^ci/godot/hyperdot\.ps1$',
     '^ci/godot/lib/(Common|Runners|Setup|Detect|Report)\.ps1$', '^ci/godot/tools/(validate|validate_logger|flows)\.gd$',
     '^examples/', '^\.gdignore$', '^ci/godot/\.gdignore$'
 function Get-LibPattern([string[]]$Names) { return '^ci/godot/lib/(' + ($Names -join '|') + ')\.ps1$' }
@@ -125,7 +126,7 @@ if (-not $full) {
     $everything = @($code | Where-Object { $f = $_; @($core | Where-Object { $f -match $_ }).Count -gt 0 }).Count -gt 0
     # The field test (about 17 minutes, no failure in the sampled runs, docs/ci.md) follows the benchmark's code and its own
     # tests, and the workflow and scripts that run it; the nightly run checks it against the rest of the kit.
-    $everythingForFieldTest = @($code | Where-Object { $_ -match '^\.github/(workflows/self-test\.yml|scripts/)' }).Count -gt 0
+    $everythingForFieldTest = @($code | Where-Object { $_ -match '^\.github/(workflows/self-test\.yml|scripts/(?!Get-ChangelogSection\.ps1))' }).Count -gt 0
     foreach ($job in $gated) {
         if ($everything -and ($job -ne 'field-test' -or $everythingForFieldTest)) { $run[$job] = $true; continue }
         foreach ($file in $code) {

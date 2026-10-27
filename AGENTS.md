@@ -24,6 +24,7 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
   the sessions must not be able to recognise the test.
 - `.github/actions/godot`, `.github/workflows/godot.yml` composite action and reusable workflow; `.github/workflows/self-test.yml` and `.github/scripts/Select-Jobs.ps1` decide what runs for a change ([docs/ci.md](docs/ci.md)); `ci/gitlab/` the GitLab CI
   template (`hyperdot.gitlab-ci.yml`, untested on GitLab) and `Invoke-Hyperdot.ps1`, its run step.
+- `.github/workflows/release.yml` (run by hand) tags a release and publishes it, with `.github/scripts/Get-ChangelogSection.ps1` for the notes ([docs/ci.md](docs/ci.md)).
 - `examples/csharp` (C#, every framework) and `examples/gdscript` (GUT): the integration fixtures.
 - `docs/` per-topic documentation; `docs/json.md` is the output contract; `docs/help.md` is the text of `help` and `/kit`
   (a new command, skill or subagent needs an entry there).
@@ -81,6 +82,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | Script | Covers | Needs |
 |---|---|---|
 | `Test-Changelog.ps1` | `Update-Changelog.ps1`: fragments grouped and sorted, an empty `changelog.d/`, bad fragments refused by name, the old Unreleased text kept (temporary folders) | - |
+| `Test-ReleaseNotes.ps1` | `.github/scripts/Get-ChangelogSection.ps1`, the release notes of `release.yml`: first, middle and missing sections, `0.1.0` against `0.1.01` and `10.1.0`, an empty section (temporary changelog) | - |
 | `Test-SkillFixtures.ps1` | the skill validator against broken skills (`skill-fixtures`) | - |
 | `Test-ArchitectureFixtures.ps1` | the architecture rules (`architecture-fixtures`) | - |
 | `Test-JuiceLog.ps1` | the juice runner (`juice-fixture`) | - |

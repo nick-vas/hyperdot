@@ -27,7 +27,7 @@ $written = @(foreach ($g in $spec.programme.genres) { foreach ($l in $g.language
 Assert-True ($written.Count -ge 20) "the programme has its written pairs ($($written.Count))"
 
 # The jobs. Documentation and unrelated files run lint alone (it always runs): no gated job, no pair.
-foreach ($file in 'docs/ci.md', 'README.md', 'CHANGELOG.md', 'AGENTS.md', 'site/Build-Site.ps1', 'site/site.css', 'benchmark/PLAN.md', 'benchmark/games/arena/DESIGN.md', 'evals/scaffold-gdscript.sh', '.gitignore', 'tests/doctor-fixture/project.godot', 'tests/Get-CoverageMap.ps1', '.github/workflows/pages.yml') {
+foreach ($file in 'docs/ci.md', 'README.md', 'CHANGELOG.md', 'AGENTS.md', 'site/Build-Site.ps1', 'site/site.css', 'benchmark/PLAN.md', 'benchmark/games/arena/DESIGN.md', 'evals/scaffold-gdscript.sh', '.gitignore', 'tests/doctor-fixture/project.godot', 'tests/Get-CoverageMap.ps1', '.github/workflows/pages.yml', '.github/workflows/release.yml', '.github/scripts/Get-ChangelogSection.ps1', 'tests/Test-ReleaseNotes.ps1') {
     $s = Get-Selection -Files $file
     Assert-True (@(Get-JobNames $s).Count -eq 0 -and @($s.pairs).Count -eq 0 -and -not $s.all) "$file runs lint alone ($(@(Get-JobNames $s) -join ', '))"
 }
