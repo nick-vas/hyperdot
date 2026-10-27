@@ -43,7 +43,7 @@ instead of 1.0: see [Versions](#versions).
    (costs money: confirm first) and `bench` on the C# example. Done for the token benchmark, with the Hyperdot label
    ([label.md](label.md)): an adversarial review of every area (62 findings: 59 fixed with regression tests), a grader
    that cannot be fooled, sessions that cannot read the test, and the 0.1.0 rating from 216 sessions.
-6. **Retro** over all of the above.
+6. **Retro** over all of the above: [retro.md](retro.md).
 7. **Release 0.1.0**: changelog, version, tag `v0.1.0`; create and keep a moving `v1` tag (`init` and the docs already
    write `@v1`, which does not resolve until then), a
    start-here page for working on a game (first use: Breakout Roguelike, `nick-vas/BreakoutTheBreakout`, in a new chat

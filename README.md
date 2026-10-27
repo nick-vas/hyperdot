@@ -336,6 +336,7 @@ address, built from these files on every change ([docs/site.md](docs/site.md)).
 - [docs/plan.md](docs/plan.md): the A-to-Z plan, tasks and Trello sync
 - [docs/mcp.md](docs/mcp.md): editor-bridge MCP servers and how they fit
 - [docs/roadmap.md](docs/roadmap.md): the plan to 0.1.0 and 1.0, decisions and the open to-do list
+- [docs/retro.md](docs/retro.md): a look back at the 0.1.0 effort: what went well, what cost time, numbers, lessons
 
 **Making the game**
 - [docs/art.md](docs/art.md): textures, pixel art, Blender to glTF, shaders, particles, animation
