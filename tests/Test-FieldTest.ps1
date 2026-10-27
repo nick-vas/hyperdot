@@ -78,6 +78,9 @@ try {
     $dry = Invoke-Field $gd 'good' @('-DryRun')
     Assert-True ($dry.Code -eq 0 -and $dry.Json.configurations -eq 4 -and $dry.Json.calls -eq 16 -and $dry.Json.budgetUsd -eq 10) "a dry run plans every template under the four configurations within the ceiling ($(if ($dry.Json) { "$($dry.Json.calls) sessions, $($dry.Json.estimateUsd) USD" }))"
     Assert-True ((Invoke-Field $gd 'good' @('-SaveResponses', '-DryRun')).Code -ne 0) 'answers and diffs are never saved'
+    # A shard's ceiling is its share of the field test's, as on the tier path (it was always the whole ceiling).
+    $shardDry = Invoke-Field $gd 'good' @('-DryRun', '-Shard', '1/4')
+    Assert-True ($shardDry.Code -eq 0 -and $shardDry.Json.budgetUsd -gt 1.5 -and $shardDry.Json.budgetUsd -lt 3.5) "a quarter of the sessions gets about a quarter of the ceiling (got $(if ($shardDry.Json) { $shardDry.Json.budgetUsd }) of 10)"
 
     $good = Invoke-Field $gd 'good' @('-Model', 'sonnet')
     Assert-True ($good.Code -eq 0 -and $good.Rows.Count -eq 2 -and @($good.Rows | Where-Object success).Count -eq 2) "GDScript: good work passes fix-mutant and write-tests ($(@($good.Rows | ForEach-Object { "$($_.task) $($_.success) $($_.reasons)" }) -join '; '))"
@@ -93,6 +96,12 @@ try {
     Assert-True ($bad.Code -eq 0 -and $fix -and -not $fix.success -and $fix.reasons -eq 'the game''s checks fail') "GDScript: a bug left in fails fix-mutant ($(if ($fix) { $fix.reasons }))"
     Assert-True ($tests -and -not $tests.success -and $tests.reasons -match 'its tests miss a planted bug') "GDScript: tests that check nothing fail write-tests ($(if ($tests) { $tests.reasons }))"
     Assert-True ($bad.Markdown -match '\| fix-mutant \| haiku \+ plugin \| 1 \| 0 \|') 'the configuration is named in the summary'
+
+    # A run of all four configurations can be continued: the plugin of its last configuration is not what the run asked for.
+    $everyone = Invoke-Field $gd 'good' @('-TaskId', 'field.fix-mutant')
+    Assert-True ($everyone.Code -eq 0 -and $everyone.Rows.Count -eq 4 -and $everyone.Json.meta.plugin -eq $false) "the summary of a run of every configuration records the plugin that was asked for, not the last configuration's ($(if ($everyone.Json) { $everyone.Json.meta.plugin }))"
+    $continued = Invoke-Field $gd 'good' @('-TaskId', 'field.fix-mutant', '-DryRun', '-SkipDone', $everyone.Folder)
+    Assert-True ($continued.Code -eq 0 -and $continued.Json.skipped -eq 4 -and @($continued.Json.sessions).Count -eq 0) "a continuation of a multi-configuration run is accepted and skips what ran (exit $($continued.Code))"
 
     # doctor-green, on a copy whose doctor fails: an asset placeholder past its due date.
     $broken = Join-Path $work 'doctor-game'

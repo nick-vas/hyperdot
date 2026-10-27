@@ -219,6 +219,54 @@ try {
     $part1 = & $dryStaged @('-SkipDone', (Join-Path $work 'staged-done'), '-Shard', '1/2')
     $part2 = & $dryStaged @('-SkipDone', (Join-Path $work 'staged-done'), '-Shard', '2/2')
     Assert-True ([Math]::Abs(@($part1.Json.sessions).Count - @($part2.Json.sessions).Count) -le 1 -and [Math]::Abs($part1.Json.estimateUsd + $part2.Json.estimateUsd - $remainder.Json.estimateUsd) -lt 0.01) 'the remainder splits evenly over shards and their estimates add up to the remainder'
+
+    # A run with nothing left to run still writes results.json (an empty list), so a later -SkipDone can include its folder.
+    $nothing = Invoke-Bench ($pick + @('-SkipDone', $full.Json.folder))
+    $nothingFile = Join-Path $nothing.Json.folder 'results.json'
+    Assert-True ($nothing.Code -eq 0 -and $nothing.Json.meta.skipped -eq 12 -and (Test-Path -LiteralPath $nothingFile) -and @(Get-Content -LiteralPath $nothingFile -Raw | ConvertFrom-Json).Count -eq 0) 'a continuation with nothing to run writes an empty results.json'
+    $chain = Invoke-Bench ($pick + @('-DryRun', '-SkipDone', "$($full.Json.folder),$($nothing.Json.folder)"))
+    Assert-True ($chain.Code -eq 0 -and $chain.Json.skipped -eq 12) 'a later continuation can name the folder of a run that had nothing to do'
+    $oldArtifact = Join-Path $work 'old-artifact'
+    New-Item -ItemType Directory -Force $oldArtifact | Out-Null
+    Copy-Item -LiteralPath (Join-Path $nothing.Json.folder 'summary.json') -Destination $oldArtifact
+    $old = Invoke-Bench ($pick + @('-DryRun', '-SkipDone', "$($full.Json.folder),$oldArtifact"))
+    Assert-True ($old.Code -eq 0 -and $old.Json.skipped -eq 12) 'a folder with a summary.json but no results.json (an old artifact of such a run) is accepted'
+
+    # Folders of other configurations of one programme are expected when a multi-configuration run is continued: they are
+    # skipped; a folder of another selection is still refused, and so is a lone folder of another configuration.
+    $one = @('-TaskId', 'T-GOOD', '-ProfileId', 'P1-plain', '-Repeat', '1')
+    $runA = Invoke-Bench ($one + @('-Model', 'm-a'))
+    $runB = Invoke-Bench ($one + @('-Model', 'm-b'))
+    $runBPlugin = Invoke-Bench ($one + @('-Model', 'm-b', '-Plugin'))
+    $twoDry = Invoke-Bench ($one + @('-Model', 'm-a', '-DryRun', '-SkipDone', "$($runA.Json.folder),$($runB.Json.folder),$($runBPlugin.Json.folder)"))
+    Assert-True ($twoDry.Code -eq 0 -and $twoDry.Json.skipped -eq 1 -and @($twoDry.Json.sessions).Count -eq 0) 'folders of two other configurations beside the run''s own are skipped, not refused; only its own sessions count as done'
+    $onlyOther = Invoke-Bench ($one + @('-Model', 'm-a', '-DryRun', '-SkipDone', $runB.Json.folder))
+    Assert-True ($onlyOther.Code -ne 0) 'a lone folder of another configuration is still refused (a wrong folder given on purpose)'
+    $strange = Invoke-Bench (@('-TaskId', 'T-MISS', '-ProfileId', 'P1-plain', '-Repeat', '1', '-Model', 'm-b'))
+    $mixed = Invoke-Bench ($one + @('-Model', 'm-a', '-DryRun', '-SkipDone', "$($runA.Json.folder),$($strange.Json.folder)"))
+    Assert-True ($mixed.Code -ne 0) 'a folder of another task is refused even beside the right one'
+
+    # Each shard's run has a folder of its own, also when two start in the same second.
+    $shardRuns = @(1..2 | ForEach-Object { Invoke-Bench ($one + @('-Model', 'm-s', '-Shard', "$_/2")) })
+    Assert-True (@($shardRuns | ForEach-Object { $_.Json.meta.runId } | Sort-Object -Unique).Count -eq 2 -and ($shardRuns[0].Json.meta.runId -match '-s1-' -and $shardRuns[1].Json.meta.runId -match '-s2-')) 'shards get distinct run ids that name the shard'
+
+    # The judge's score is the median, rounded half away from zero (not to even).
+    foreach ($name in 'Get-Median', 'Get-MedianScore') {
+        $mf = $parsed.Find({ param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq $name }, $true)
+        if ($mf) { . ([scriptblock]::Create($mf.Extent.Text)) }
+    }
+    Assert-True ($null -ne $mf -and (Get-MedianScore @(2, 3)) -eq 3 -and (Get-MedianScore @(1, 2)) -eq 2 -and (Get-MedianScore @(4, 5)) -eq 5) 'a median of 2.5 is 3, of 1.5 is 2, of 4.5 is 5'
+
+    # Isolation asked for and not possible: the run goes on, and says it was not isolated.
+    $bare = Join-Path $work 'bare-bin'
+    New-Item -ItemType Directory -Force $bare | Out-Null
+    $pwshReal = (Get-Command pwsh -CommandType Application | Select-Object -First 1).Source
+    if ($IsLinux) {
+        New-Item -ItemType SymbolicLink -Path (Join-Path $bare 'pwsh') -Target $pwshReal | Out-Null
+        $savedPath = $env:PATH
+        try { $env:PATH = $bare; $iso = Invoke-Bench ($one + @('-Model', 'm-iso', '-Isolate')) } finally { $env:PATH = $savedPath }
+        Assert-True ($iso.Code -eq 0 -and $iso.Json.meta.isolated -eq $false) "isolation asked for where it is impossible is recorded as isolated=false (got $(if ($iso.Json) { $iso.Json.meta.isolated } else { "exit $($iso.Code)" }))"
+    }
 } finally {
     Remove-Item Env:CLAUDE_CODE_SESSION_ID, Env:FAKE_CLAUDE_STATE, Env:FAKE_CLAUDE_LOG -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue

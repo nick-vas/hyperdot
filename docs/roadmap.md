@@ -42,7 +42,7 @@ instead of 1.0: see [Versions](#versions).
 5. **Benchmark.** Evals with 3 runs per arm (the first run where all four cases can run commands), the token benchmark
    (costs money: confirm first) and `bench` on the C# example. Done for the token benchmark, with the Hyperdot label
    ([label.md](label.md)): an adversarial review of every area (62 findings: 59 fixed with regression tests), a grader
-   that cannot be fooled, sessions that cannot read the test, and the 0.1.0 rating from 216 sessions.
+   that cannot be fooled, sessions that cannot read the test, and the 0.1.0 rating from 192 sessions.
 6. **Retro** over all of the above: [retro.md](retro.md).
 7. **Release 0.1.0**: changelog, version, tag `v0.1.0`; create and keep a moving `v1` tag with `release.yml` (dispatch it: [ci.md](ci.md#releasing); `init` and the docs already
    write `@v1`; the tags `v0.1.0` and `v1` exist, so this step is done), a
@@ -190,6 +190,19 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
   `benchmark/PLAN.md` holds the owner's decisions and the design: ten genres, four stages each (prototype, alpha, beta,
   release candidate), GDScript and C#, everyday tasks and milestone runs as two results, grading from hard checks to a
   pinned model judge and human review, min/mid/max tiers, a private field test, and sessions isolated as a separate user.
+- **Grading runs the session's code as the runner (open).** After a session, `Exit-IsolatedSession`
+  (`benchmark/Isolation.ps1`) takes the game back for the runner user, and `Test-GameResult` and `Invoke-GameSuite`
+  (`benchmark/GameProgramme.ps1`) then run the kit's `test` on it: Godot loads the game's own autoloads, scenes and
+  scripts, so whatever the session wrote in them runs with the runner's privileges, outside the isolation. Such code can
+  read everything the runner can (the checkout including `benchmark/` and the hidden tests, the runner's credentials
+  and home, the grader's other game copies) and can write to the runner's files, so it could read the answers or change
+  a later result. The session itself is contained; the grading step is not. Proposed design: a second unprivileged
+  grading user made like the session user (`useradd`, no shell), to which the game copy is handed over for grading (chown,
+  mode 700) together with a copy of the hidden tests and the kit without `benchmark/`; the runner starts `hyperdot.ps1
+  test` through `runuser` or `sudo` as that user with the same narrow environment, reads the JUnit and TRX files it
+  leaves in a results folder it can write, and then stops that user's processes and takes the copy back, as
+  `Exit-IsolatedSession` does for the session. Mutants and kit-command checks (`doctor`, `export -Run`) run the same way.
+  Until then the benchmark's isolation is a protection of the tests from the session's commands, not from its code.
 - **Hold-out tasks.** The verification procedure could also run tasks that are not in the published spec, as market
   surveillance may test beyond the declared programme. That needs a private spec, and somewhere private to keep it.
 - **The last two binding errors as JSON.** A flag left without its value (`-Project` as the last word) and a value of the

@@ -16,7 +16,7 @@ function Assert-True([bool]$Condition, [string]$What) {
 }
 
 # One benchmark run: rows of @(task, tokens, answer) for a model, written as Invoke-TokenBenchmark writes them.
-function New-Run([string]$Name, [string]$Model, [object[]]$Sessions, [string]$ProfileId = 'A-baseline', [switch]$Plugin, [int]$RepFrom = 1, [string[]]$Continues = @()) {
+function New-Run([string]$Name, [string]$Model, [object[]]$Sessions, [string]$ProfileId = 'A-baseline', [switch]$Plugin, [int]$RepFrom = 1, [string[]]$Continues = @(), [hashtable]$Meta = @{}) {
     $dir = Join-Path $temp $Name
     New-Item -ItemType Directory -Force (Join-Path $dir 'responses') | Out-Null
     $rows = @()
@@ -24,15 +24,19 @@ function New-Run([string]$Name, [string]$Model, [object[]]$Sessions, [string]$Pr
     foreach ($s in $Sessions) {
         $task = $s[0]; $rep[$task] = $(if ($rep.ContainsKey($task)) { 1 + $rep[$task] } else { $RepFrom })
         $known = -not ($s.Count -gt 3 -and $s[3] -eq 'hang')
+        # 'zero': an infrastructure failure that reported a spend of nothing (an API error before any tokens).
+        $zero = $s.Count -gt 3 -and $s[3] -eq 'zero'
         $game = if ($s.Count -gt 4) { $s[4] } else { '' }
         # results.json says every session passed: the label must grade the saved answers itself.
         $rows += [ordered]@{ profile = $ProfileId; task = $task; repetition = $rep[$task]; model = $Model; plugin = [bool]$Plugin
             success = $true; retries = 0; steps = 1; tokensTotal = $s[1]; costUsd = $s[1] / 1e6; durationMs = 1000
-            reasons = $(if ($known) { $game } else { 'timed out' }); infrastructure = -not $known; spendKnown = $known; gameReasons = $game }
+            reasons = $(if ($zero) { 'API error' } elseif ($known) { $game } else { 'timed out' }); infrastructure = ((-not $known) -or $zero); spendKnown = $known; gameReasons = $game }
         Set-Content -LiteralPath (Join-Path $dir "responses/$ProfileId-$task-r$($rep[$task])-a0-s0.md") -Value $s[2]
     }
     ConvertTo-Json -InputObject @($rows) -Depth 4 | Set-Content -LiteralPath (Join-Path $dir 'results.json')
-    @{ meta = @{ runId = $Name; claudeVersion = '9.9.9 (Claude Code)'; continues = @($Continues) } } | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $dir 'summary.json')
+    $metaDoc = @{ runId = $Name; claudeVersion = '9.9.9 (Claude Code)'; continues = @($Continues) }
+    foreach ($k in $Meta.Keys) { $metaDoc[$k] = $Meta[$k] }
+    @{ meta = $metaDoc } | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $dir 'summary.json')
     return $dir
 }
 function Invoke-Label([string[]]$Arguments, [string]$Scale = (Join-Path $fixture 'scale.json')) {
@@ -129,6 +133,70 @@ try {
     $plain = @($q.Json.labels | Where-Object { -not $_.plugin })[0]; $withPlugin = @($q.Json.labels | Where-Object { $_.plugin })[0]
     Assert-True ($plain.index -eq 67.1 -and $plain.quality.factor -eq 1.0) 'without the plugin the quality factor is 1'
     Assert-True ($withPlugin.index -eq 53.7 -and $withPlugin.class -eq 'B' -and $withPlugin.quality.indexBeforeQuality -eq 67.1) "work preferred every time divides the index by 1.25 (67.1 to 53.7, class B; got $($withPlugin.index))"
+
+    # A plugin sheet declares the index after its quality factor: verifying it on the same data complies (the factor is read from the sheet).
+    $pluginOut = Join-Path $temp 'plugin-labels'
+    $null = Invoke-Label @('-Results', $goodPlugin, '-Preferences', $prefs, '-OutDir', $pluginOut)
+    $pluginSheet = Join-Path $pluginOut 'hyperdot-9.9.9-tool-m-good-plugin.json'
+    $pv = Invoke-Label @('-Results', $goodPlugin, '-Verify', $pluginSheet)
+    Assert-True ($pv.Code -eq 0 -and $pv.Json.verdict -eq 'complies' -and $pv.Json.units[0].index -eq 53.7) "a plugin sheet verifies on the data it was rated from (the quality factor applies to the measured index; got $(if ($pv.Json) { $pv.Json.units[0].index }))"
+
+    # The class comes from the index that is printed: 52.03 prints as 52.0 and is class A (bound 52), not B.
+    $edge = New-Run 'edge' 'm-edge' @(@('T1', 1040, 'alpha'), @('T1', 1040, 'alpha'), @('T1', 1040, 'alpha'), @('T2', 521, 'beta'), @('T2', 521, 'beta'), @('T2', 520, 'beta'))
+    $e = @((Invoke-Label @('-Results', $edge)).Json.labels)[0]
+    Assert-True ($e.index -eq 52 -and $e.class -eq 'A') "the class is read from the rounded index (printed $($e.index), class $($e.class))"
+
+    # Tasks whose sessions spent nothing (infrastructure failures) are not measured: no class, never an index of 0.
+    $zeroRun = New-Run 'zero' 'm-zero' @(@('T1', 0, 'alpha', 'zero'), @('T1', 0, 'alpha', 'zero'), @('T1', 0, 'alpha', 'zero'), @('T2', 2000, 'beta'), @('T2', 2000, 'beta'), @('T2', 2000, 'beta'))
+    $z = @((Invoke-Label @('-Results', $zeroRun)).Json.labels)[0]
+    Assert-True ($null -eq $z.class -and $null -eq $z.index -and (@($z.belowMinimum) -join ';') -match 'not run: T1') "a task that spent no tokens is not run: no index, no class (got index $($z.index), class $($z.class))"
+
+    # A sharded run, and a continuation of both shards that runs again a session which failed in the second shard,
+    # are one unit with the sessions of the whole run, whatever the order of the folders.
+    $whole = @(@('T1', 600, 'alpha'), @('T1', 600, 'alpha'), @('T1', 600, 'alpha'), @('T2', 1000, 'beta'))
+    $shard1 = New-Run 'shard-1' 'm-good' $whole -Meta @{ shard = '1/2' }
+    $shard2 = New-Run 'shard-2' 'm-good' @(@('T2', 0, 'beta', 'hang'), @('T2', 1000, 'no second word')) -RepFrom 2 -Meta @{ shard = '2/2' }
+    $shardCont = New-Run 'shard-cont' 'm-good' (,@('T2', 1000, 'beta')) -RepFrom 2 -Continues @('shard-1', 'shard-2')
+    $sc = @((Invoke-Label @('-Results', "$shard1,$shard2,$shardCont")).Json.labels)[0]
+    Assert-True ($sc.sessions -eq 6 -and $sc.successPercent -eq 83.3 -and $sc.index -eq 67.1) "two shards and a continuation of both rate as the whole run: 6 sessions, 83.3%, AEI 67.1 (got $($sc.sessions), $($sc.successPercent), $($sc.index))"
+    $scv = Invoke-Label @('-Results', "$shard1,$shard2,$shardCont", '-Verify', $declared)
+    Assert-True ($scv.Json.verdict -eq 'complies' -and @($scv.Json.units).Count -eq 1) 'the shards and their continuation are one unit when verifying'
+
+    # The last rerun wins whatever the order of the folders: a continuation of a continuation beats the first one.
+    $chainA = New-Run 'chain-a' 'm-good' @(@('T1', 600, 'alpha'), @('T1', 600, 'alpha'), @('T1', 600, 'alpha'), @('T2', 0, 'beta', 'hang'), @('T2', 1000, 'beta'), @('T2', 1000, 'no second word'))
+    $chainB = New-Run 'chain-b' 'm-good' (,@('T2', 1000, 'no second word')) -Continues @('chain-a')
+    $chainC = New-Run 'chain-c' 'm-good' (,@('T2', 1000, 'beta')) -Continues @('chain-b')
+    $orders = @("$chainA,$chainB,$chainC", "$chainC,$chainB,$chainA", "$chainB,$chainC,$chainA")
+    $chainOut = @($orders | ForEach-Object { $c = @((Invoke-Label @('-Results', $_)).Json.labels)[0]; "$($c.sessions)|$($c.successPercent)|$($c.index)|$($c.tokensPerSolvedTask)" })
+    Assert-True (@($chainOut | Sort-Object -Unique).Count -eq 1 -and $chainOut[0] -eq '6|83.3|67.1|960') "the same rating whatever the order of the folders, the latest rerun winning ($($chainOut -join ' / '))"
+
+    # A standard run that was cut short, or run fewer times than the standard, says so on the sheet (the class rules do not change).
+    $short = New-Run 'short' 'm-short' @(@('T1', 600, 'alpha'), @('T1', 600, 'alpha'), @('T1', 600, 'alpha'), @('T2', 1000, 'beta'), @('T2', 1000, 'beta'), @('T2', 1000, 'beta')) -Meta @{ repeat = 2; notReached = 2; continuation = $true }
+    $sh = @((Invoke-Label @('-Results', $short)).Json.labels)[0]
+    Assert-True ($sh.class -in 'A', 'B', 'C' -and (@($sh.notes) -join ' | ') -match 'repeated 2' -and (@($sh.notes) -join ' | ') -match '2 session\(s\) not reached') "a run with fewer repeats or sessions not reached carries a note (notes: $(@($sh.notes) -join ' | '))"
+    $plain = @((Invoke-Label @('-Results', $good)).Json.labels)[0]
+    Assert-True (@($plain.notes).Count -eq 0) 'a run without those facts in its summary gets no note'
+
+    # Two versions of one model do not overwrite each other's sheets, in one rating or in one folder over time.
+    $row6 = @(@('T1', 600, 'alpha'), @('T1', 600, 'alpha'), @('T1', 600, 'alpha'), @('T2', 1000, 'beta'), @('T2', 1000, 'beta'), @('T2', 1000, 'beta'))
+    $h55 = New-Run 'h55' 'claude-haiku-5-5' $row6; $h56 = New-Run 'h56' 'claude-haiku-5-6' $row6
+    $slugOut = Join-Path $temp 'slugs'
+    $null = Invoke-Label @('-Results', $h55, '-OutDir', $slugOut)
+    $null = Invoke-Label @('-Results', $h56, '-OutDir', $slugOut)
+    $names = @(Get-ChildItem -LiteralPath $slugOut -Filter '*.json' | ForEach-Object Name | Sort-Object)
+    Assert-True (($names -join ',') -eq 'hyperdot-9.9.9-tool-haiku-5-6.json,hyperdot-9.9.9-tool-haiku.json') "a second version of a model gets its version in the file name; the first keeps its name ($($names -join ', '))"
+    $bothOut = @((Invoke-Label @('-Results', "$h55,$h56")).Json.labels | ForEach-Object { $_.name } | Sort-Object)
+    Assert-True (($bothOut -join ',') -eq 'hyperdot-9.9.9-tool-haiku-5-5,hyperdot-9.9.9-tool-haiku-5-6') 'two versions rated together both keep their version in the name'
+
+    # The labels of the archived 0.1.0 runs are rebuilt byte for byte from the archive and its coverage report.
+    $archive = Join-Path $root 'benchmark/reference-runs/tool-0.1.0.tar.gz'
+    $unpacked = Join-Path $temp 'archive'; $rebuilt = Join-Path $temp 'rebuilt'
+    New-Item -ItemType Directory -Force $unpacked | Out-Null
+    & tar -xzf $archive -C $unpacked
+    $null = & pwsh -NoProfile -NonInteractive -File $tool -Results (Join-Path $unpacked 'runs') -Coverage (Join-Path $root 'benchmark/reference-runs/coverage.json') -Version 0.1.0 -OutDir $rebuilt -Note 'adversarial review: 62 findings, 59 fixed with regression tests'
+    $declaredFiles = @(Get-ChildItem -LiteralPath (Join-Path $root 'docs/label') -File)
+    $differ = @($declaredFiles | Where-Object { -not (Test-Path -LiteralPath (Join-Path $rebuilt $_.Name)) -or (Get-FileHash -LiteralPath $_.FullName).Hash -ne (Get-FileHash -LiteralPath (Join-Path $rebuilt $_.Name)).Hash } | ForEach-Object Name)
+    Assert-True ($declaredFiles.Count -eq 12 -and $differ.Count -eq 0 -and @(Get-ChildItem -LiteralPath $rebuilt -File).Count -eq 12) "docs/label is rebuilt byte for byte from the archive ($($differ -join ', '))"
 
     # The game programme: its own label, and a right answer whose game fails its tests (gameReasons) is a failure.
     $gameRun = New-Run 'game' 'm-game' @(@('T1', 600, 'alpha'), @('T1', 600, 'alpha', 'ok', 'tests fail: test_x'), @('T1', 600, 'alpha'),

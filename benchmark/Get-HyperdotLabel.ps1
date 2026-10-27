@@ -90,6 +90,19 @@ if (-not $Version) { $Version = (Get-Content -LiteralPath (Join-Path $root '.cla
 # with the results of the continuations of that run (summary.json meta.continues names the runs a continuation picks up),
 # so a run cut short and the run that finished it are one unit. A session run again by a continuation (the earlier row
 # had no tokens or an infrastructure failure) counts once, as its last row.
+# How many continuations deep a run is: 0 for a run nobody continues, else one more than the deepest run it continues.
+function Get-ChainDepth($File, [hashtable]$UnitOfRun, [hashtable]$Memo, [hashtable]$Visiting) {
+    if ($Memo.ContainsKey($File.Unit)) { return $Memo[$File.Unit] }
+    if ($Visiting.ContainsKey($File.Unit)) { return 0 }
+    $Visiting[$File.Unit] = $true
+    $depth = 0
+    foreach ($run in $File.Continues) {
+        if ($UnitOfRun.ContainsKey([string]$run)) { $depth = [math]::Max($depth, 1 + (Get-ChainDepth $UnitOfRun[[string]$run] $UnitOfRun $Memo $Visiting)) }
+    }
+    $Memo[$File.Unit] = $depth
+    return $depth
+}
+
 function Read-Sessions([string[]]$Folders) {
     $files = [System.Collections.Generic.List[object]]::new()
     foreach ($folder in $Folders) {
@@ -98,26 +111,45 @@ function Read-Sessions([string[]]$Folders) {
             $summaryPath = Join-Path $file.DirectoryName 'summary.json'
             $meta = if (Test-Path -LiteralPath $summaryPath) { (Get-Content -LiteralPath $summaryPath -Raw | ConvertFrom-Json -AsHashtable).meta } else { @{} }
             if ($null -eq $meta) { $meta = @{} }
-            $files.Add([pscustomobject]@{ File = $file; Meta = $meta; Unit = $files.Count + 1
+            $files.Add([pscustomobject]@{ File = $file; Meta = $meta; Unit = $files.Count + 1; Notes = @()
                 Continues = @(if ($meta.Contains('continues') -and $meta.continues) { $meta.continues } else { }) })
         }
     }
-    # A continuation takes the unit of the first run it continues; one that continues a continuation follows the chain.
+    # Runs joined by a continuation are one unit: the connected components of the "continues" relation across every run
+    # given (a continuation of several shards joins them all; one that continues a continuation follows the chain). A
+    # unit is named by the first of its runs in the order given.
     $unitOfRun = @{}
     foreach ($f in $files) { if ($f.Meta.Contains('runId') -and $f.Meta.runId) { $unitOfRun[[string]$f.Meta.runId] = $f } }
+    $parent = @{}
+    foreach ($f in $files) { $parent[$f.Unit] = $f.Unit }
+    $findRoot = { param($u) while ($parent[$u] -ne $u) { $parent[$u] = $parent[$parent[$u]]; $u = $parent[$u] }; $u }
     foreach ($f in $files) {
-        $seen = @{}; $at = $f
-        while ($at.Continues.Count -gt 0 -and -not $seen.ContainsKey($at.Unit)) {
-            $seen[$at.Unit] = $true
-            $earlier = @($at.Continues | Where-Object { $unitOfRun.ContainsKey([string]$_) } | ForEach-Object { $unitOfRun[[string]$_] })
-            if ($earlier.Count -eq 0) { break }
-            $at = $earlier[0]
+        foreach ($run in $f.Continues) {
+            if (-not $unitOfRun.ContainsKey([string]$run)) { continue }
+            $a = & $findRoot $f.Unit; $b = & $findRoot $unitOfRun[[string]$run].Unit
+            if ($a -ne $b) { $parent[[math]::Max($a, $b)] = [math]::Min($a, $b) }
         }
-        $f | Add-Member -NotePropertyName Root -NotePropertyValue $at.Unit
+    }
+    $depthOf = @{}
+    foreach ($f in $files) {
+        $f | Add-Member -NotePropertyName Root -NotePropertyValue (& $findRoot $f.Unit)
+        $f | Add-Member -NotePropertyName Depth -NotePropertyValue (Get-ChainDepth $f $unitOfRun $depthOf @{})
+        # What the run's own summary says about whether it is the whole standard programme. These only add a note to the
+        # sheet; they never change a class.
+        $name = if ($f.Meta.Contains('runId') -and $f.Meta.runId) { [string]$f.Meta.runId } else { $f.File.DirectoryName }
+        if ($Programme -eq 'tool' -and $f.Meta.Contains('repeat') -and $spec.Contains('repeat') -and [int]$f.Meta.repeat -lt [int]$spec.repeat) {
+            $f.Notes += "Run $name was repeated $($f.Meta.repeat) times, the standard programme $($spec.repeat)"
+        }
+        if ($f.Meta.Contains('notReached') -and [int]$f.Meta.notReached -gt 0) {
+            $f.Notes += "Run $name stopped at its time limit with $($f.Meta.notReached) session(s) not reached; they count only if a continuation was given"
+        }
+        $missing = @($f.Continues | Where-Object { -not $unitOfRun.ContainsKey([string]$_) })
+        if ($missing.Count) { $f.Notes += "Run $name continues $($missing -join ', '), which was not given: the sessions it holds are missing" }
     }
     $rows = [ordered]@{}
-    # Runs before the continuations that finish them, so the later row replaces the earlier of a session run twice.
-    foreach ($f in @($files | Sort-Object { [int]($_.Continues.Count -gt 0) }, { $_.Unit })) {
+    # Runs before the continuations that finish them (by how far down a chain of continuations a run is, then by run id,
+    # never by the order of the folders), so the later row replaces the earlier of a session run twice.
+    foreach ($f in @($files | Sort-Object { $_.Depth }, { [string]$_.Meta['runId'] }, { $_.Unit })) {
         $dir = $f.File.DirectoryName; $meta = $f.Meta
         foreach ($row in @(Get-Content -LiteralPath $f.File.FullName -Raw | ConvertFrom-Json -AsHashtable)) {
             if ($row.task -notin $tasks) { continue }
@@ -134,7 +166,7 @@ function Read-Sessions([string[]]$Folders) {
             $plugin = [bool]($row.Contains('plugin') -and $row.plugin)
             $key = "$($f.Root)|$($row.model)|$plugin|$($row.profile)|$($row.task)|$($row.repetition)"
             $rows[$key] = [pscustomobject]@{
-                unit = $f.Root; runId = [string]$meta['runId']; cli = [string]$meta['claudeVersion']
+                unit = $f.Root; notes = @($f.Notes); runId = [string]$meta['runId']; cli = [string]$meta['claudeVersion']
                 model = [string]$row.model; plugin = $plugin
                 profile = [string]$row.profile; task = [string]$row.task
                 success = (-not $broken) -and @($reasons).Count -eq 0 -and -not $gameReasons
@@ -161,7 +193,9 @@ function Get-TaskEnergy([object[]]$Sessions) {
         $runs = @($Sessions | Where-Object { $_.task -eq $task })
         $solved = @($runs | Where-Object { $_.success }).Count
         $spent = if ($runs.Count) { ($runs | Measure-Object tokens -Sum).Sum } else { 0 }
-        $energy[$task] = if ($runs.Count) { $spent / [math]::Max([double]$solved, 0.5) } else { $null }
+        # A task whose sessions spent nothing (every one an infrastructure failure, with no spend to charge) was not
+        # measured: it is "not run", not free. Zero energy would take the logarithm of 0 and rate the version A.
+        $energy[$task] = if ($runs.Count -and $spent -gt 0) { $spent / [math]::Max([double]$solved, 0.5) } else { $null }
     }
     return $energy
 }
@@ -184,10 +218,17 @@ function Get-Class($Index, $Classes, [string]$Key, [switch]$Higher) {
     return $Classes[-1].class
 }
 
+# The plugin's quality step (benchmark/PLAN.md): the index divided by 0.75 + 0.5 x win rate. One place, for the rating and
+# for -Verify, so both see the same index. The index is the one printed (one decimal), and so is the result.
+function Get-QualityFactor([double]$WinRate) { return 0.75 + 0.5 * $WinRate }
+function Get-QualityIndex([double]$Index, [double]$WinRate) { return [math]::Round($Index / (Get-QualityFactor $WinRate), 1) }
+
 # The declared values of one configuration's standard programme.
 function Measure-Configuration([object[]]$Sessions) {
     $energy = Get-TaskEnergy $Sessions
-    $index = Get-Index $energy
+    $rawIndex = Get-Index $energy
+    # Rounded once, to the one decimal that is printed; the class is read from that, so a sheet never shows 52.0 and class B.
+    $index = if ($null -ne $rawIndex) { [math]::Round($rawIndex, 1) } else { $null }
     $solved = @($Sessions | Where-Object { $_.success }).Count
     $success = 100.0 * $solved / $Sessions.Count
     $unsolved = @($tasks | Where-Object { $task = $_; @($Sessions | Where-Object { $_.task -eq $task -and $_.success }).Count -eq 0 })
@@ -201,7 +242,7 @@ function Measure-Configuration([object[]]$Sessions) {
     foreach ($t in $tasks) { $byTask[$t] = if ($null -ne $energy[$t]) { [math]::Round($energy[$t]) } else { $null } }
     $cost = ($Sessions | Measure-Object cost -Sum).Sum
     return [ordered]@{
-        index = if ($null -ne $index) { [math]::Round($index, 1) } else { $null }
+        index = $index
         class = if ($belowMinimum.Count) { $null } else { Get-Class $index $scale.classes 'maxIndex' }
         belowMinimum = $belowMinimum
         neverSolved = $unsolved
@@ -300,7 +341,13 @@ if ($Verify) {
     if ($declaredProgramme -ne $Programme) { throw "$Verify declares the $declaredProgramme programme; verify it with -Programme $declaredProgramme" }
     $units = @($sessions | Where-Object { $_.profile -eq $standardProfile -and $_.model -eq $declared.model -and $_.plugin -eq [bool]$declared.plugin } | Group-Object unit | Sort-Object { [int]$_.Name })
     if ($units.Count -eq 0) { throw "No runs of $($declared.model) $(if ($declared.plugin) { 'with' } else { 'without' }) the plugin under $standardProfile" }
-    $measured = @(foreach ($u in $units) { $m = Measure-Configuration $u.Group; [ordered]@{ unit = [int]$u.Name; runId = $u.Group[0].runId; index = $m.index; successPercent = $m.successPercent } })
+    # A sheet rated with the plugin's quality factor declares the index after it: the units get the declared factor too.
+    $declaredWinRate = if ($declared.Contains('quality') -and $declared.quality -and $declared.quality.Contains('pluginWinRate')) { [double]$declared.quality.pluginWinRate } else { $null }
+    $measured = @(foreach ($u in $units) {
+            $m = Measure-Configuration $u.Group
+            $unitIndex = if ($null -ne $m.index -and $null -ne $declaredWinRate) { Get-QualityIndex $m.index $declaredWinRate } else { $m.index }
+            [ordered]@{ unit = [int]$u.Name; runId = $u.Group[0].runId; index = $unitIndex; successPercent = $m.successPercent }
+        })
     $tolerance = $prog.tolerance
     $within = {
         param($m)
@@ -350,14 +397,34 @@ foreach ($file in $Preferences) {
     foreach ($k in $doc.pluginWinRate.Keys) { $winRates[$k] = [double]$doc.pluginWinRate[$k]; $judgeModels[$k] = $doc.judgeModel }
 }
 
+# The file name of a configuration's sheet: the model without its version ("haiku", "sonnet-plugin"). Two versions of one
+# model ("haiku-5-5" and "haiku-5-6") must not overwrite each other, so the version stays in the name when another
+# configuration rated now shares the short name, or when -OutDir already holds a sheet of that name for another model.
+function Get-SheetSlug([string]$Model, [bool]$WithPlugin, [string[]]$AllModels) {
+    $family = $Model -replace '^claude-', '' -replace '-\d+(-\d+)*$', ''
+    $suffix = if ($WithPlugin) { '-plugin' } else { '' }
+    $short = "$family$suffix"
+    $clash = @($AllModels | Where-Object { $_ -ne $Model -and (($_ -replace '^claude-', '' -replace '-\d+(-\d+)*$', '') -eq $family) }).Count -gt 0
+    if (-not $clash -and $OutDir) {
+        $existing = Join-Path $OutDir "hyperdot-$Version-$Programme-$short.json"
+        if (Test-Path -LiteralPath $existing) {
+            $was = (Get-Content -LiteralPath $existing -Raw | ConvertFrom-Json -AsHashtable)
+            if ($was.Contains('model') -and $was.model -ne $Model) { $clash = $true }
+        }
+    }
+    if ($clash -and $Model -match '^claude-(.+?)-(\d+(?:-\d+)*)$') { return "$($Matches[1])-$($Matches[2])$suffix" }
+    return $short
+}
+$allModels = @($sessions | Where-Object { $_.profile -eq $standardProfile } | ForEach-Object { $_.model } | Sort-Object -Unique)
+
 $sheets = @(foreach ($config in @(Get-Configurations $sessions $standardProfile)) {
         $m = Measure-Configuration $config.sessions
         $quality = $null
         if ($winRates.ContainsKey($config.model) -and $null -ne $m.index) {
             $w = if ($config.plugin) { $winRates[$config.model] } else { 0.5 }
-            $factor = 0.75 + 0.5 * $w
+            $factor = Get-QualityFactor $w
             $quality = [ordered]@{ pluginWinRate = $w; factor = $factor; judgeModel = $judgeModels[$config.model]; indexBeforeQuality = $m.index }
-            $m.index = [math]::Round($m.index / $factor, 1)
+            $m.index = Get-QualityIndex $m.index $w
             if (-not $m.belowMinimum.Count) { $m.class = Get-Class $m.index $scale.classes 'maxIndex' }
         }
         $informative = [ordered]@{}
@@ -365,7 +432,7 @@ $sheets = @(foreach ($config in @(Get-Configurations $sessions $standardProfile)
             $pm = Measure-Configuration $p.Group
             $informative[$p.Name] = [ordered]@{ index = $pm.index; successPercent = $pm.successPercent; tokensPerSolvedTask = $pm.tokensPerSolvedTask; costPerSolvedTaskUsd = $pm.costPerSolvedTaskUsd }
         }
-        $slug = ($config.model -replace '^claude-', '' -replace '-\d+(-\d+)*$', '') + $(if ($config.plugin) { '-plugin' } else { '' })
+        $slug = Get-SheetSlug $config.model ([bool]$config.plugin) $allModels
         [ordered]@{
             schema = 'hyperdot-label/1'
             supplier = 'nick-vas'
@@ -393,7 +460,7 @@ $sheets = @(foreach ($config in @(Get-Configurations $sessions $standardProfile)
             coverage = $coverageBlock
             runs = @($config.sessions | ForEach-Object { $_.runId } | Sort-Object -Unique)
             cli = @($config.sessions | ForEach-Object { $_.cli } | Where-Object { $_ } | Sort-Object -Unique)
-            notes = @($Note | Where-Object { $_ })
+            notes = @(@($Note | Where-Object { $_ }) + @($config.sessions | ForEach-Object { $_.notes } | Where-Object { $_ } | Select-Object -Unique))
         }
     })
 if ($sheets.Count -eq 0) { throw "No sessions under the standard profile $standardProfile" }

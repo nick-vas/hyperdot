@@ -159,7 +159,12 @@ jobs:
               $value = [Environment]::GetEnvironmentVariable($pair[0]); if ($value) { $params[$pair[1]] = $value }
             }
             if ($env:REPEAT) { $params.Repeat = [int]$env:REPEAT }
-            if ($env:CONTINUE_RUN) { $params.SkipDone = (Get-ChildItem continued -Directory | ForEach-Object FullName) -join ',' }
+            if ($env:CONTINUE_RUN) {
+              # This configuration's own artifacts only (the benchmark job downloads the same ones).
+              $name = "token-benchmark-$($env:PROGRAMME)-$($c.model)$(if ($c.plugin) { '-plugin' })"
+              $own = @(Get-ChildItem continued -Directory | Where-Object { $_.Name -eq $name -or $_.Name -like "$name-part-*" } | ForEach-Object FullName)
+              if ($own.Count) { $params.SkipDone = $own -join ',' }
+            }
             $out = ./benchmark/Invoke-TokenBenchmark.ps1 @params
             if ($LASTEXITCODE) { throw "$($c.model)$(if ($c.plugin) { ' with the plugin' }): the dry run failed (over its ceiling, or a bad selection)" }
             $estimate = ($out | Select-Object -Last 1 | ConvertFrom-Json).estimateUsd
@@ -200,10 +205,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RUN_ID: ${{ inputs.continue_run }}
           PROGRAMME: ${{ inputs.programme }}
+          MODEL: ${{ matrix.model }}
+          PLUGIN: ${{ matrix.plugin }}
         run: |
           [[ "$RUN_ID" =~ ^[0-9]+$ ]] || { echo "continue_run must be a run id (digits), got '$RUN_ID'"; exit 1; }
-          gh run download "$RUN_ID" -R "$GITHUB_REPOSITORY" -p "token-benchmark-$PROGRAMME-*" -D continued \
-            || { echo "The results of run $RUN_ID are gone or it has none for this programme (a run keeps them for 30 days)"; exit 1; }
+          # Only this job's own configuration: its artifact is token-benchmark-<programme>-<model>[-plugin] or, in parts, the same
+          # with -part-<k>. The patterns are exact, so `sonnet` takes neither `sonnet-plugin` nor another model.
+          NAME="token-benchmark-$PROGRAMME-$MODEL"; [ "$PLUGIN" = true ] && NAME="$NAME-plugin"
+          gh run download "$RUN_ID" -R "$GITHUB_REPOSITORY" -p "$NAME" -p "$NAME-part-*" -D continued \
+            || { echo "The results of run $RUN_ID are gone or it has none for $NAME (a run keeps them for 30 days)"; exit 1; }
       # The game programmes' sessions run Godot, and their grader runs the game's tests; setup sets GODOT_BIN for both.
       # The staged programme has C# games too, so it takes the .NET build of Godot, which runs GDScript as well.
       - name: Godot for the game programmes

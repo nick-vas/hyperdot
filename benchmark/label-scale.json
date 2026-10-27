@@ -57,7 +57,7 @@
         "indexPercent": 20.0,
         "successPoints": 10.0
       },
-      "introducedFrom": "Hyperdot 0.1.0 at commit e4ccc2e: claude-sonnet-5-5 and claude-haiku-5-5, profiles A, B and C, and A with the plugin; 8 configurations, 216 sessions (GitHub Actions runs 39930259189 to 39930286282)"
+      "introducedFrom": "Hyperdot 0.1.0 at commit e4ccc2e: claude-sonnet-5-5 and claude-haiku-5-5, profiles A, B and C, and A with the plugin; 8 configurations, 192 sessions (GitHub Actions runs 39930259189 to 39930286282)"
     },
     "game": {
       "name": "Game-making efficiency",
