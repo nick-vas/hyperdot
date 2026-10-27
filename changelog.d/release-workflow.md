@@ -1,0 +1,1 @@
+Added: `.github/workflows/release.yml`, a manual workflow that tags `v<version>` and moves the major tag `v<major>` (tags cannot be pushed from the cloud session), then publishes the release with the changelog section as its notes; `.github/scripts/Get-ChangelogSection.ps1` extracts the section and `tests/Test-ReleaseNotes.ps1` tests it.
