@@ -24,7 +24,7 @@ Third-party material in this repository
     Labels and ids from Wikidata, CC0 1.0.
   ci/godot/templates/licences/
     The standard texts of the licences `credits` ships with a game (Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, MIT,
-    OFL-1.1, Zlib), reproduced unchanged.
+    MPL-2.0, OFL-1.1, Zlib), reproduced unchanged.
   docs/
     Short quotations from talks, interviews, books and public documents are their authors' and are quoted with their
     sources for commentary; they are not licensed by this project.

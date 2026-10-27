@@ -674,7 +674,7 @@ The ten mistakes that cost the most here: each fails silently, or only on the Li
   [PSScriptAnalyzerSettings.psd1](../ci/godot/PSScriptAnalyzerSettings.psd1) (see "How this is checked").
 - **Source:** [Everything about null](https://learn.microsoft.com/powershell/scripting/learn/deep-dives/everything-about-null):
   "The PSScriptAnalyzer module has a rule that checks for this issue called `PSPossibleIncorrectComparisonWithNull`."
-  **Verified** (run over all 128 scripts).
+  **Verified** (run over all 163 scripts).
 
 ### T3. The floor is 7.6; use what it allows
 - **Rule:** Write for 7.6 and test on it; see "Version floor" for what that settles.

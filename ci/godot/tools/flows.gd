@@ -173,8 +173,8 @@ func _step(step: Dictionary) -> String:
 	if step.has("assert"):
 		return _check(step["assert"])
 	if step.has("wait_until"):
-		var limit := int(step.get("timeout", 300))
-		for _n in mini(limit, FRAME_LIMIT):
+		var limit := mini(int(step.get("timeout", 300)), FRAME_LIMIT)
+		for _n in limit:
 			if _check(step["wait_until"]) == "":
 				return ""
 			await physics_frame

@@ -47,7 +47,7 @@ Branch on `error.code`; `message` can change.
 | `export-failed`, `no-presets`, `preset-not-found` | Export problems | `exports[]` (completed so far) |
 | `unsafe-results-dir` | `-Results` would delete the project or cwd, or a non-empty folder inside the project that holds no `summary.json` or `hyperdot.log` of the kit's | - |
 | `doctor-problems` | `doctor` found `FAIL` checks | `checks[]` |
-| `invalid-arguments` | Any command: a parameter or environment variable the kit cannot use (an unknown command, flag or runner, a value outside a parameter's set, a word that belongs to no parameter, several `-Scene`s for `bench` or `audio`, `-Seconds` of 0 or less for `bench` or `audio -Mix`, a malformed `-Sweep` or one on another command, a bad `HYPERDOT_TIMEOUT` or `HYPERDOT_IGNORE_ERRORS`, an out-of-range percentage, a misspelt sound); checked before the work starts where it can be | `error.message` |
+| `invalid-arguments` | Any command: a parameter or environment variable the kit cannot use (an unknown command, flag or runner, a value outside a parameter's set, a word that belongs to no parameter, several `-Scene`s for `bench` or `audio`, `-Seconds` of 0 or less for `bench`, `deck` or `audio -Mix`, a malformed `-Sweep` or one on another command, a bad `HYPERDOT_TIMEOUT` or `HYPERDOT_IGNORE_ERRORS`, an out-of-range percentage, a misspelt sound); checked before the work starts where it can be | `error.message` |
 | `no-plan`, `invalid-plan`, `unknown-gate`, `auto-gate`, `unknown-task`, `wip-limit` | `plan` problems (`wip-limit`: too many tasks in `doing`) | - |
 | `trello-credentials`, `trello-error`, `trello-list-missing` | `plan -Do sync` could not reach or map the board | - |
 | `invalid-mcp-config` | `.mcp.json` exists but is not valid JSON | - |
@@ -259,7 +259,7 @@ source, `(root)` for files at the top; `bytes`, `files`) and `byType[]` (`type`:
 `project.binary` and the rest of `.godot/`; `bytes`, `files`), each the 15 largest. Imported and exported files count as
 their sources, through their `.import` and `.remap` files: a texture's `.ctex` counts as `.png` in its folder, a compiled
 `.gdc` as `.gd`.
-**bench**: `bench` with `scene`, `frames`, `fps` (`avg`, `low1`, `low01`: 1% and 0.1% lows), `frameMs` (`avg`, `p50`, `p90`, `p99`,
+**bench**: `bench` with `scene`, `seconds` (the measured run's length) and `warmupSeconds` (the unmeasured warm-up before it), `frames`, `fps` (`avg`, `low1`, `low01`: 1% and 0.1% lows), `frameMs` (`avg`, `p50`, `p90`, `p99`,
 `max`), `over20ms`, `over33ms`, `hitches[]` (the first 50; `t` seconds into the run, `ms`, `pos`: where the camera was, `[x, y, z]` or `[x, y]`,
 `null` without one; a hitch is a frame longer than twice the median and over 8.33 ms), `hitchCount` (all of them), `hitchThresholdMs`, `camera` (`3d`, `2d` or
 `none`: the root viewport's active camera in most frames; for `2d` the place is the centre of the screen), `hotspotCell` (the grid

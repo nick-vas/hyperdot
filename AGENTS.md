@@ -60,7 +60,7 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 - The `.gdignore` files at the repository root and in `ci/godot/` keep the kit out of a game it is placed inside (Godot neither
   imports nor exports it, and `Find-ProjectFiles` skips folders that have one). Do not remove them.
 - Verify with the examples: `pwsh ci/godot/hyperdot.ps1 test -Project examples/csharp/game` and `-Project examples/gdscript`
-  must be green, and `doctor` green on both. The examples have no plan, so `plan` on them gives `no-plan` as expected; check
+  must be green, and `doctor` must report no problems on both (each example keeps one gamepad warning). The examples have no plan, so `plan` on them gives `no-plan` as expected; check
   `plan` the way the Plan step of `.github/workflows/self-test.yml` does: copy `examples/gdscript` to a temporary folder,
   `git init` it, run `plan -Do init -Project <copy>`, then `plan -Json -Project <copy>` (phase `concept`, at least one next
   action). Changing a version matrix entry means re-running both on that Godot.
@@ -97,7 +97,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-Layout.ps1` | the `layout` runner (`layout-fixture`) | Godot |
 | `Test-Flows.ps1` | the `flows` runner's rotation steps (`resize`, `hold`, `release`) and errors (`flows-fixture`) | Godot |
 | `Test-Playthrough.ps1` | the `playthrough` runner (`playthrough-fixture`) | Godot; `-NoGodot` for the log part |
-| `Test-Placement.ps1` | `templates/placement_check.gd` (`placement-fixture`), from a GUT test and as the `placement` runner; limits read from GDScript and C# | Godot |
+| `Test-Placement.ps1` | `ci/godot/templates/placement_check.gd` (`placement-fixture`), from a GUT test and as the `placement` runner; limits read from GDScript and C# | Godot |
 | `Test-ReportPins.ps1` | the report pins add-on: reports saved in 3D and 2D, found once, kept to their scene, placed on the camera's screen; the editor loading it headless (a project made in a temporary folder) | Godot |
 | `Test-StaleTres.ps1` | `validate`'s stale `.tres` keys (`tres-fixture`) | Godot |
 | `Test-Flaky.ps1` | `test -Retry` and `quarantine.json` (`flaky-fixture`, GUT) | Godot; `-NoGodot` for the synthetic part |
@@ -131,7 +131,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-RepoHygiene.ps1` | `doctor`'s repository checks (a broken project made in a temporary folder, since reserved names or case twins committed here would break Windows checkouts) | - |
 | `Test-Help.ps1` | `help` and `docs/help.md`: an entry for every command, skill and subagent, none for what does not exist, quoted calls that bind | - |
 | `Test-Context.ps1` | `doctor`'s check of agent instructions; holds the template, skills and docs to the kit's real flags | - |
-| `Test-Plan.ps1` | the plan template's gates (only test frameworks count as tests), the release timeline, `plan` under a day-first culture, `init` keeping an existing starter test and pinning its workflow at `@v1`, `init -Plugin` writing `docs/kit-notes.md`, a plan `plan` and `status` cannot read, `plan -Do reopen`, the risk, optional budget and placeholder gates, the jam plan sized in days, `status`'s first-session steps (tests, stubs, warnings) | - |
+| `Test-Plan.ps1` | the plan template's gates (only test frameworks count as tests), the release timeline, `plan` under a day-first culture, `init` keeping an existing starter test and pinning its workflow at `@v1`, `init -Plugin` writing the kit notes (`ci/godot/templates/kit-notes.md`) into the game, a plan `plan` and `status` cannot read, `plan -Do reopen`, the risk, optional budget and placeholder gates, the jam plan sized in days, `status`'s first-session steps (tests, stubs, warnings) | - |
 | `Test-TrelloSync.ps1` | `plan -Do sync` against a stand-in Trello (local moves, custom lists, a failure halfway, an unreachable API, an empty board, cards added on the board, removed tasks, list names as columns, connector ARIs); `-Live` against the real one | `-Live`: `TRELLO_KEY`, `TRELLO_TOKEN` |
 | `Test-Playtest.ps1` | `playtest`'s report and heat maps (`playtest-fixture`, synthetic sessions) | - |
 | `Test-BuildSize.ps1` | `export -Json`'s size breakdown: a synthetic pack read as a file, embedded and zipped; a real Linux export of a copy of `examples/gdscript` | Godot's templates; `-NoGodot` for the synthetic part |
