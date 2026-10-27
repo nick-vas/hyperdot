@@ -155,6 +155,9 @@ function Add-RunHistory([bool]$Ok, [string]$Code) {
     try {
         New-Item -ItemType Directory -Force (Split-Path $file) | Out-Null
         Add-Content -LiteralPath $file -Value ($entry | ConvertTo-Json -Compress -Depth 4) -Encoding utf8
+        # Over 2,500 lines, the newest 2,000 are kept: status and telemetry read the whole file.
+        $kept = @(Get-Content -LiteralPath $file)
+        if ($kept.Count -gt 2500) { [System.IO.File]::WriteAllLines($file, [string[]]@($kept | Select-Object -Last 2000)) }
     } catch {
         # History is a convenience; a read-only project must not fail the run.
         Write-RunLog "[hyperdot] Could not record the run in ${file}: $_"

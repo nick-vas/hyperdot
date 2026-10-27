@@ -87,6 +87,21 @@ Remove-Item -Recurse -Force "$project-assets" -ErrorAction SilentlyContinue
 $typo = Invoke-Sfx @('-Sound', 'jmup')
 if ($typo.ok -or $typo.error.code -ne 'invalid-arguments' -or $typo.error.message -notmatch "did you mean 'jump'") { $failures += "an unknown sound should be refused with a suggestion: $($typo.error.message)" }
 
+# Seeds that differ must not share a file; a sound named twice is made once; a seed with nothing to name a file by gets a hash.
+$twice = Invoke-Sfx @('-Sound', 'jump,jump,Jump', '-Seed', '5')
+$twiceNames = @($twice.sfx.files | ForEach-Object { Split-Path $_.path -Leaf })
+if (-not $twice.ok -or ($twiceNames -join ',') -ne 'jump-5.wav') { $failures += "jump,jump,Jump should make jump-5.wav once: $($twiceNames -join ', ') $(if (-not $twice.ok) { $twice.error.message })" }
+$slash = Invoke-Sfx @('-Sound', 'jump', '-Seed', 'a/b')
+$mark = Invoke-Sfx @('-Sound', 'jump', '-Seed', 'a?b')
+$slashName = if ($slash.ok) { Split-Path $slash.sfx.files[0].path -Leaf } else { "failed: $($slash.error.message)" }
+$markName = if ($mark.ok) { Split-Path $mark.sfx.files[0].path -Leaf } else { "failed: $($mark.error.message)" }
+if ($slashName -notmatch '^jump-a-b-[0-9a-f]{6}\.wav$' -or $markName -notmatch '^jump-a-b-[0-9a-f]{6}\.wav$' -or $slashName -eq $markName) { $failures += "seeds a/b and a?b need their own files: $slashName, $markName" }
+$symbols = Invoke-Sfx @('-Sound', 'jump', '-Seed', '???')
+$symbolName = if ($symbols.ok) { Split-Path $symbols.sfx.files[0].path -Leaf } else { "failed: $($symbols.error.message)" }
+if ($symbolName -notmatch '^jump-[0-9a-f]{6}\.wav$') { $failures += "a symbol-only seed should be named by its hash, not jump-.wav: $symbolName" }
+$stable = Invoke-Sfx @('-Sound', 'jump', '-Seed', 'a/b')
+if ($stable.ok -and (Split-Path $stable.sfx.files[0].path -Leaf) -ne $slashName) { $failures += 'the hash in a name should be the same on every run' }
+
 Remove-Item -Recurse -Force $project
 if ($failures) { $failures | ForEach-Object { Write-Host "FAIL $_" -ForegroundColor Red }; exit 1 }
 Write-Host 'sfx makes every preset as bfxr does, the same file from the same seed, 16-bit mono WAVs at the asked peak, distinct variations, .bfxr files and one assets.json entry, none for a folder outside the project'

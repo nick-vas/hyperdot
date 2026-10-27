@@ -110,12 +110,12 @@ function Find-FeatureTags($Info) {
     return $tags
 }
 
-# The newest run of each command from .godot/hyperdot-history.jsonl.
-function Get-LastRuns([string]$ProjectDir) {
-    $file = Join-Path $ProjectDir '.godot/hyperdot-history.jsonl'
+# The newest run of each command, from the history Read-RunHistory returned. A line that is valid JSON but not a run (a
+# number, a string, an object without "command") is skipped, as Get-LastFullTestRun skips it.
+function Get-LastRuns([object[]]$History) {
     $last = [ordered]@{}
-    if (-not (Test-Path -LiteralPath $file)) { return $last }
-    foreach ($entry in Get-Content -LiteralPath $file | Where-Object { Test-Json -Json $_ -ErrorAction SilentlyContinue } | ConvertFrom-Json) {
+    foreach ($entry in $History) {
+        if ($entry -isnot [psobject] -or $entry -is [string] -or -not $entry.PSObject.Properties['command'] -or $entry.command -isnot [string]) { continue }
         $last[$entry.command] = $entry
     }
     return $last
@@ -240,9 +240,9 @@ function Invoke-Status($Info) {
     $gddPath = Get-GddPath $Info
     $gdd = if ($gddPath) { Read-Gdd $gddPath } else { $null }
     $tags = Find-FeatureTags $Info
-    $runs = Get-LastRuns $Info.ProjectDir
-    $lastTest = $runs.Contains('test') ? $runs['test'] : $null
     $history = @(Read-RunHistory $Info.ProjectDir)
+    $runs = Get-LastRuns $history
+    $lastTest = $runs.Contains('test') ? $runs['test'] : $null
     $lastFullTest = Get-LastFullTestRun $history @($Info.Runners)
 
     $plan = $null; $tasks = @(); $planDoc = $null
@@ -252,6 +252,7 @@ function Invoke-Status($Info) {
         $problems = @()
         try { $planDoc = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json -Depth 10 } catch { $problems = @("it is not valid JSON: $($_.Exception.Message)") }
         if ($problems.Count -eq 0) { $problems = @(Get-PlanProblems $planDoc) }
+        if ($problems.Count -eq 0) { Add-PlanDefaults $planDoc }
         if ($problems.Count -eq 0) {
             try {
                 $state = Get-PlanState $planDoc $Info

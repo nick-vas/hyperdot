@@ -19,6 +19,16 @@ function Get-SfxSeed([string]$Text) {
     return [GodotCi.SfxRandom]::SeedOf($Text, $Text -match '^-?\d+(\.\d+)?$')
 }
 
+# The seed as part of a file name. A seed that survives ConvertTo-SafeName unchanged keeps its text (jump-1.wav); one that
+# does not (a/b and a?b both become a-b, a symbol-only seed becomes nothing) gets a short stable hash of the seed appended.
+function Get-SfxSeedName([string]$Text) {
+    $safe = ConvertTo-SafeName $Text
+    if ($safe -ceq $Text -and $safe) { return $safe }
+    $hash = [System.Security.Cryptography.SHA256]::HashData([System.Text.Encoding]::UTF8.GetBytes($Text))
+    $short = [Convert]::ToHexString($hash).Substring(0, 6).ToLowerInvariant()
+    return $(if ($safe) { "$safe-$short" } else { $short })
+}
+
 function ConvertTo-SfxParams($Table) {
     $params = [System.Collections.Generic.Dictionary[string, double]]::new()
     foreach ($key in $Table.Keys) { $params[$key] = [double]$Table[$key] }
@@ -71,17 +81,29 @@ function Invoke-Sfx {
         }
     } else {
         $names = @(if ($Sound) { $Sound | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ } } else { @([GodotCi.Sfxr]::Presets) })
+        $planned = [System.Collections.Generic.List[object]]::new(); $seenPresets = @{}
         foreach ($name in $names) {
             $preset = if ($script:SfxAliases.Contains($name.ToLowerInvariant())) { $script:SfxAliases[$name.ToLowerInvariant()] } else { $name.ToLowerInvariant() }
             if ($preset -notin @([GodotCi.Sfxr]::Presets)) {
                 $near = Get-ClosestName $name (@([GodotCi.Sfxr]::Presets) + @($script:SfxAliases.Keys))
                 Stop-GodotCi "Unknown sound '$name'$(if ($near) { " (did you mean '$near'?)" }); use $((@($script:SfxAliases.Keys) + @([GodotCi.Sfxr]::Presets)) -join ', ')" 'invalid-arguments'
             }
+            # The same sound named twice (jump,jump, or an alias and its preset) is made once.
+            if ($seenPresets.ContainsKey($preset)) { continue }
+            $seenPresets[$preset] = $true
             for ($k = 0; $k -lt $Count; $k++) {
                 $seedText = if ($k -eq 0) { $Seed } elseif ($Seed -match '^-?\d+$') { "$([long]$Seed + $k)" } else { "$Seed-$k" }
-                $seed01 = Get-SfxSeed $seedText
-                $files.Add((Write-SfxSound $OutputDir "$preset-$(ConvertTo-SafeName $seedText)" ([GodotCi.Sfxr]::Preset($preset, $seed01)) $seed01 $PeakDb $preset $seedText))
+                $planned.Add([pscustomobject]@{ Preset = $preset; SeedText = $seedText; Stem = "$preset-$(Get-SfxSeedName $seedText)" })
             }
+        }
+        # Two sounds must not share a file: the later would silently overwrite the earlier.
+        $clash = @($planned | Group-Object { $_.Stem.ToLowerInvariant() } | Where-Object Count -gt 1)
+        if ($clash) {
+            Stop-GodotCi "These sounds would share a file: $(@($clash | ForEach-Object { "$($_.Name) ($(@($_.Group | ForEach-Object { "seed '$($_.SeedText)'" }) -join ', '))" }) -join '; '); give them different seeds" 'invalid-arguments'
+        }
+        foreach ($item in $planned) {
+            $seed01 = Get-SfxSeed $item.SeedText
+            $files.Add((Write-SfxSound $OutputDir $item.Stem ([GodotCi.Sfxr]::Preset($item.Preset, $seed01)) $seed01 $PeakDb $item.Preset $item.SeedText))
         }
     }
 

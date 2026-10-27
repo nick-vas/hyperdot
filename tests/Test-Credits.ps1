@@ -57,6 +57,21 @@ try {
     Assert-True ($engine -match 'Godot Engine contributors' -and $engine -match 'FreeType') 'the command includes the engine''s real notices'
     $bad = pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') credits -Json -Project $fixture -Output (Join-Path $out 'bad') 2>$null | ConvertFrom-Json
     Assert-True (-not $bad.ok -and $bad.error.code -eq 'credits-invalid' -and @($bad.credits.errors).Count -eq 4) 'the command fails with credits-invalid and lists the problems'
+
+    # A Godot that fails is an error, not a quiet success: engine-notices-failed, and an earlier complete notices file stays.
+    $failBin = Join-Path $out $(if ($IsWindows) { 'fail-godot.cmd' } else { 'fail-godot.sh' })
+    Set-Content -LiteralPath $failBin -Value $(if ($IsWindows) { "@exit /b 1" } else { "#!/bin/sh`nexit 1" }) -Encoding ascii
+    if (-not $IsWindows) { chmod +x $failBin }
+    $keepOut = Join-Path $out 'keep'
+    New-Item -ItemType Directory -Force -Path $keepOut | Out-Null
+    Set-Content -LiteralPath (Join-Path $keepOut 'THIRD-PARTY-NOTICES.txt') -Value 'earlier complete notices'
+    $savedBin = $env:GODOT_BIN; $savedInstalled = $env:HYPERDOT_INSTALLED
+    try {
+        $env:GODOT_BIN = $failBin; $env:HYPERDOT_INSTALLED = $null
+        $failed = pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') credits -Json -Project $clean -Output $keepOut 2>$null | ConvertFrom-Json
+    } finally { $env:GODOT_BIN = $savedBin; $env:HYPERDOT_INSTALLED = $savedInstalled }
+    Assert-True (-not $failed.ok -and $failed.error.code -eq 'engine-notices-failed') "a failing Godot gives engine-notices-failed: $($failed | ConvertTo-Json -Depth 3 -Compress)"
+    Assert-True ((Get-Content -LiteralPath (Join-Path $keepOut 'THIRD-PARTY-NOTICES.txt') -Raw).Trim() -eq 'earlier complete notices') 'a failed engine read leaves the earlier notices file alone'
 } finally {
     Remove-Item -LiteralPath $out -Recurse -Force -ErrorAction SilentlyContinue
 }
