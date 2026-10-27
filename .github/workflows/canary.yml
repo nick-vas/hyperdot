@@ -14,38 +14,71 @@ on:
     - cron: '47 18 * * 5'
   workflow_dispatch:
 
+# No write permission at workflow level: the job that runs upstream code (`try`) has read access only, no token in its
+# environment and no credentials left in its checkout. `propose`, which has the write permissions and the token, runs none of
+# that code: it applies the patch `try` made and opens the pull request and the issues.
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write
+  contents: read
 
 concurrency:
   group: canary
   cancel-in-progress: false
 
 jobs:
-  canary:
+  try:
     runs-on: ubuntu-latest
     timeout-minutes: 120
-    env:
-      GH_TOKEN: ${{ secrets.CANARY_TOKEN || github.token }}
-      GITHUB_TOKEN: ${{ github.token }}
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v7
         with:
-          token: ${{ secrets.CANARY_TOKEN || github.token }}
+          persist-credentials: false
       # uvx starts aseprite-mcp with new pins, as init -McpAseprite's .mcp.json entry does.
       - name: Install uv
         run: pipx install uv
       - name: Try the newest releases on both examples
         shell: pwsh
         run: |
-          ./ci/godot/tools/Invoke-Canary.ps1 | Set-Content (Join-Path $env:RUNNER_TEMP 'canary.json')
-          Get-Content (Join-Path $env:RUNNER_TEMP 'canary.json')
+          $out = Join-Path $env:RUNNER_TEMP 'canary'
+          New-Item -ItemType Directory -Force $out | Out-Null
+          ./ci/godot/tools/Invoke-Canary.ps1 | Set-Content (Join-Path $out 'canary.json')
+          Get-Content (Join-Path $out 'canary.json')
+      # What the passing updates changed in the tree, for the job that proposes it. A shell redirect, not a pwsh pipeline,
+      # which would rewrite line endings inside the patch.
+      - name: Patch of the passing updates
+        shell: bash
+        run: |
+          git add -A
+          git diff --cached --binary > "$RUNNER_TEMP/canary/canary.patch"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: canary
+          path: ${{ runner.temp }}/canary
+          retention-days: 7
+
+  propose:
+    needs: try
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    env:
+      GH_TOKEN: ${{ secrets.CANARY_TOKEN || github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.CANARY_TOKEN || github.token }}
+      - uses: actions/download-artifact@v8
+        with:
+          name: canary
+          path: ${{ runner.temp }}/canary
       - name: Pull request for what passed, issues for what did not
         shell: pwsh
         run: |
-          $c = Get-Content (Join-Path $env:RUNNER_TEMP 'canary.json') -Raw | ConvertFrom-Json
+          $c = Get-Content (Join-Path $env:RUNNER_TEMP 'canary/canary.json') -Raw | ConvertFrom-Json
           $run = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
           $summary = @('### Canary', '', '| Update | Result |', '|---|---|')
           $summary += @($c.passing | ForEach-Object { "| $($_.name) $($_.current) -> $($_.latest) | passes both examples |" })
@@ -69,7 +102,10 @@ jobs:
               git config user.name 'github-actions[bot]'
               git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
               git switch -c $branch
-              git add -A
+              # What the passing updates changed (made by the `try` job, which ran the upstream code).
+              $patch = Join-Path $env:RUNNER_TEMP 'canary/canary.patch'
+              git apply --index $patch
+              if ($LASTEXITCODE -ne 0) { throw 'git apply of the canary patch failed' }
               git commit -m $title
               git push -u origin $branch
               $body = @('Newer releases that pass both example projects (`examples/gdscript`, `examples/csharp/game`) and the skill validator:', '')

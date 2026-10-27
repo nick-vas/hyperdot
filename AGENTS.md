@@ -82,7 +82,8 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | Script | Covers | Needs |
 |---|---|---|
 | `Test-Changelog.ps1` | `Update-Changelog.ps1`: fragments grouped and sorted, an empty `changelog.d/`, bad fragments refused by name, the old Unreleased text kept (temporary folders) | - |
-| `Test-ReleaseNotes.ps1` | `.github/scripts/Get-ChangelogSection.ps1`, the release notes of `release.yml`: first, middle and missing sections, `0.1.0` against `0.1.01` and `10.1.0`, an empty section (temporary changelog) | - |
+| `Test-ReleaseNotes.ps1` | `.github/scripts/Get-ChangelogSection.ps1`, the release notes of `release.yml`: first, middle and missing sections, `0.1.0` against `0.1.01` and `10.1.0`, an empty section, a trailing newline or a Unicode digit in the version, and `Test-MajorTagMove.ps1` (the major tag never moves backwards) (temporary changelog) | - |
+| `Test-WorkflowLint.ps1` | the workflows read as text: a pull request's concurrency group is its number, `release` without exports fails, the canary's upstream code runs with no write permission or token, versions matched whole (`\A..\z`), `-MaxMinutes` always set; lists unpinned installs without failing | - |
 | `Test-SkillFixtures.ps1` | the skill validator against broken skills (`skill-fixtures`) | - |
 | `Test-ArchitectureFixtures.ps1` | the architecture rules (`architecture-fixtures`) | - |
 | `Test-JuiceLog.ps1` | the juice runner (`juice-fixture`) | - |

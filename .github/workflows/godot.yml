@@ -284,6 +284,7 @@ jobs:
           PLATFORMS: ${{ steps.godot.outputs.preset-platforms }}
           RUN_EXPORTS: ${{ inputs.run-exports }}
           DEFAULT_RUNNER: ${{ inputs.runs-on }}
+          RELEASE: ${{ inputs.release }}
         run: |
           $detected = @(if ($env:DETECTED) { $env:DETECTED | ConvertFrom-Json })
           $platforms = if ($env:PLATFORMS) { $env:PLATFORMS | ConvertFrom-Json -AsHashtable } else { @{} }
@@ -307,6 +308,12 @@ jobs:
           })
           "presets=$(ConvertTo-Json -Compress -InputObject $presets)" >> $env:GITHUB_OUTPUT
           "targets=$(ConvertTo-Json -Compress -InputObject $targets)" >> $env:GITHUB_OUTPUT
+          # A release zips the exports; with none, the export and release jobs would be skipped and the run would end green
+          # without a release.
+          if ($env:RELEASE -eq 'true' -and $presets.Count -eq 0) {
+            Write-Host "::error::release is true but no export preset is selected: set exports (all, or a list of presets) or turn release off"
+            exit 1
+          }
 
       - name: Keep what the kit reached
         if: always() && inputs.kit-coverage != ''
@@ -418,7 +425,7 @@ jobs:
   release:
     name: Release
     needs: [test, export]
-    if: inputs.release
+    if: inputs.release && needs.export.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: ${{ inputs.timeout-minutes }}
     steps:

@@ -61,10 +61,29 @@ Old things.
     Assert-True ($r.Code -ne 0 -and $r.Out -match 'is empty') 'an empty section fails'
     $r = Invoke-Section '0.0.8' (Join-Path $base 'missing.md')
     Assert-True ($r.Code -ne 0) 'a missing changelog fails'
+    $r = Invoke-Section "0.1.0`n" $log
+    Assert-True ($r.Code -ne 0) 'a version with a trailing newline is refused'
+    $r = Invoke-Section "0.1.$([char]0x0663)" $log
+    Assert-True ($r.Code -ne 0) 'a version with a non-ASCII digit is refused'
     $r = Invoke-Section '0.1.0' (Join-Path $root 'CHANGELOG.md')
     Assert-True ($r.Code -eq 0 -and $r.Out.Length -gt 100) "the real CHANGELOG.md has a 0.1.0 section ($($r.Out.Length) characters)"
 }
 finally { Remove-Item -LiteralPath $base -Recurse -Force -ErrorAction SilentlyContinue }
+
+# Whether the major tag may move to a release (.github/scripts/Test-MajorTagMove.ps1).
+$mover = Join-Path $root '.github/scripts/Test-MajorTagMove.ps1'
+function Get-MajorDecision([string]$Version, [string[]]$Tags) {
+    $text = (& pwsh -NoProfile -NonInteractive -File $mover -Version $Version -Tags ($Tags -join ',') 2>&1) -join "`n"
+    if ($LASTEXITCODE) { return [pscustomobject]@{ move = $null; reason = $text } }
+    return $text | ConvertFrom-Json
+}
+Assert-True ((Get-MajorDecision '1.3.0' 'v1.2.0', 'v1.2.1').move -eq $true) 'a newer release moves the major tag'
+Assert-True ((Get-MajorDecision '1.2.1' 'v1.2.0', 'v1.3.0').move -eq $false) 'an older release after 1.3.0 does not move v1'
+Assert-True ((Get-MajorDecision '1.3.0' 'v1.2.0', 'v1.3.0').move -eq $true) 'the release that is already tagged moves the major tag again (a repeated run)'
+Assert-True ((Get-MajorDecision '1.2.1' 'v2.0.0', 'v1.2.0').move -eq $true) 'a greater version of another major does not hold v1 back'
+Assert-True ((Get-MajorDecision '1.10.0' 'v1.9.0', 'v1.2.0').move -eq $true -and (Get-MajorDecision '1.9.0' 'v1.10.0').move -eq $false) 'versions compare as numbers, not text'
+Assert-True ((Get-MajorDecision '0.1.0' @()).move -eq $true -and (Get-MajorDecision '0.2.0' 'v1', 'v0.1.0', 'latest').move -eq $true) 'no tags, or tags that are not versions, hold nothing back'
+Assert-True ($null -eq (Get-MajorDecision "1.0.0`n" @()).move) 'a version with a trailing newline is refused'
 
 if ($failures.Count) { Write-Host "$($failures.Count) failed"; exit 1 }
 Write-Host 'Release notes: all checks passed'

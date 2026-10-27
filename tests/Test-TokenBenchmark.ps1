@@ -219,6 +219,18 @@ try {
     $part1 = & $dryStaged @('-SkipDone', (Join-Path $work 'staged-done'), '-Shard', '1/2')
     $part2 = & $dryStaged @('-SkipDone', (Join-Path $work 'staged-done'), '-Shard', '2/2')
     Assert-True ([Math]::Abs(@($part1.Json.sessions).Count - @($part2.Json.sessions).Count) -le 1 -and [Math]::Abs($part1.Json.estimateUsd + $part2.Json.estimateUsd - $remainder.Json.estimateUsd) -lt 0.01) 'the remainder splits evenly over shards and their estimates add up to the remainder'
+
+    function Get-WorkflowText { return Get-Content -Raw -LiteralPath (Join-Path $root '.github/workflows/token-benchmark.yml') }
+    # The -MaxMinutes the workflow passes: always a number, never later than 45 minutes before the job's limit.
+    $minutesTool = Join-Path $root '.github/scripts/Get-BenchmarkMinutes.ps1'
+    function Get-JobMinutes([string]$Requested, [int]$Job) { $text = (& pwsh -NoProfile -NonInteractive -File $minutesTool -MaxMinutes $Requested -JobMinutes $Job 2>&1) -join "`n"; return $(if ($LASTEXITCODE) { 'error' } else { $text.Trim() }) }
+    Assert-True ((Get-JobMinutes '' 330) -eq '285') 'no max_minutes: the cap of the job, not no limit'
+    Assert-True ((Get-JobMinutes '0' 330) -eq '285') 'max_minutes 0: the cap of the job, not no limit'
+    Assert-True ((Get-JobMinutes '300' 330) -eq '285') 'max_minutes 300 in a 330-minute job: 285'
+    Assert-True ((Get-JobMinutes '100' 330) -eq '100') 'max_minutes under the cap is kept'
+    Assert-True ((Get-JobMinutes '' 120) -eq '75' -and (Get-JobMinutes '90' 120) -eq '75') 'a 120-minute job: 75'
+    Assert-True ((Get-JobMinutes 'abc' 330) -eq 'error' -and (Get-JobMinutes '-5' 330) -eq 'error') 'max_minutes that is not a whole number is refused'
+    Assert-True ((Get-WorkflowText) -match 'Get-BenchmarkMinutes\.ps1' -and (Get-WorkflowText) -notmatch 'if \(\$minutes -gt 0\)') 'the workflow uses that script and always passes -MaxMinutes'
 } finally {
     Remove-Item Env:CLAUDE_CODE_SESSION_ID, Env:FAKE_CLAUDE_STATE, Env:FAKE_CLAUDE_LOG -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue

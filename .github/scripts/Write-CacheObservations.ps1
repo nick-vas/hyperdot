@@ -5,6 +5,8 @@
 # For each job it writes, to cache-observations.jsonl, one line: job, hash, whether a marker for that hash was found
 # before the run (`hit`), whether Select-Jobs selected the job, its result, the event, the run attempt and the run id (the
 # job's minutes are read from the API with that id when the lines are analysed). It appends a table to the step summary.
+# `hitStale` is true on a re-run (runAttempt above 1): "Re-run failed jobs" does not run `changes` again, so `hit` keeps the
+# value the first attempt looked up and understates the hits of the second; such rows do not count for a hit rate.
 # It outputs `save-<job>=true` for the jobs whose result is to be recorded: the job succeeded, no marker existed, and the
 # run is not a pull request from a fork (a fork's workflow code is not trusted to write a marker the base would read).
 param(
@@ -33,7 +35,7 @@ foreach ($job in $jobs) {
     $save = $result -eq 'success' -and -not $hit -and $hash -and $MayWrite -eq 'true'
     $outputs.Add("save-$job=$("$save".ToLowerInvariant())")
     $lines.Add((ConvertTo-Json -Compress -Depth 3 -InputObject ([ordered]@{ job = $job; hash = $hash; hit = $hit; selected = $selected; result = $result
-        event = $EventName; runAttempt = [int]$RunAttempt; runId = [string]$RunId })))
+        event = $EventName; runAttempt = [int]$RunAttempt; runId = [string]$RunId; hitStale = ([int]$RunAttempt -gt 1) })))
     $rows.Add("| ``$job`` | ``$(if ($hash) { $hash.Substring(0, 12) } else { '-' })`` | $(if ($hit) { 'hit' } else { 'miss' }) | $(if ($selected) { 'yes' } else { 'no' }) | $result |")
 }
 Set-Content -LiteralPath (Join-Path $OutputDirectory 'cache-observations.jsonl') -Value $lines -Encoding utf8

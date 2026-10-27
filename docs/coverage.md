@@ -15,7 +15,7 @@ gives the percentages and the floors CI holds them to.
 | [Tools](#tools) | 21 | 21 |
 | [Skills](#skills) | 51 | 51 |
 | [Subagents](#subagents) | 2 | 2 |
-| [Workflow jobs, actions, hooks and the GitLab template](#workflow-jobs-actions-hooks-and-the-gitlab-template) | 32 | 30 |
+| [Workflow jobs, actions, hooks and the GitLab template](#workflow-jobs-actions-hooks-and-the-gitlab-template) | 33 | 30 |
 
 ## Commands
 
@@ -251,15 +251,16 @@ A job of `self-test.yml` is a test itself (it lists what it runs); another workf
 
 | Job | Covered by |
 |---|---|
-| canary.yml/canary | `Test-UpdatePins.ps1`; weekly against new releases; `Test-UpdatePins.ps1` checks its exit checks and pairing |
+| canary.yml/try | `Test-UpdatePins.ps1`; weekly against new releases; `Test-UpdatePins.ps1` checks its exit checks and pairing; `Test-WorkflowLint.ps1` checks that it has no write permission or token |
+| canary.yml/propose | **none**; opens the pull request and the issues with the write token, from the patch `try` made; `Test-WorkflowLint.ps1` checks that it runs no upstream code; the rest needs the real repository |
 | evals.yml/evals | **none**; runs `claude plugin eval`, which costs money; started by hand |
 | godot.yml/test | `Test-PrComment.ps1`, self-test.yml csharp, self-test.yml explicit-runners, self-test.yml zero-config |
 | godot.yml/export | self-test.yml csharp, self-test.yml explicit-runners, self-test.yml zero-config |
 | godot.yml/release | self-test.yml csharp |
 | pages.yml/build | `Test-SelectJobs.ps1`, `Test-Site.ps1` |
 | pages.yml/deploy | **none**; publishes the site the build job made and `Test-Site.ps1` checked; runs on main only |
-| release.yml/release | `Test-ReleaseNotes.ps1`, `Test-SelectJobs.ps1` |
-| self-test.yml/lint | itself (on every pull request, push to main and nightly run); runs `Test-Addons.ps1`, `Test-ArchitectureFixtures.ps1`, `Test-AssetManifest.ps1`, `Test-Changelog.ps1`, `Test-Context.ps1`, `Test-CoverageMap.ps1`, `Test-CrashRetry.ps1`, `Test-Data.ps1`, `Test-Detect.ps1`, `Test-DocLinks.ps1`, `Test-DoctorFixture.ps1`, `Test-DotnetTempDir.ps1`, `Test-DownloadFailed.ps1`, `Test-EvalGraders.ps1`, `Test-FailureDelta.ps1`, `Test-GameVersion.ps1`, `Test-GitLabTemplate.ps1`, `Test-Handoffs.ps1`, `Test-Help.ps1`, `Test-HyperdotLabel.ps1`, `Test-InputHash.ps1`, `Test-InstallAddon.ps1`, `Test-InstallLock.ps1`, `Test-JuiceLog.ps1`, `Test-KitPaths.ps1`, `Test-LibNames.ps1`, `Test-OldState.ps1`, `Test-Plan.ps1`, `Test-Platforms.ps1`, `Test-Playtest.ps1`, `Test-PowerShellPatterns.ps1`, `Test-PrComment.ps1`, `Test-ProcessTimeout.ps1`, `Test-ReleaseNotes.ps1`, `Test-RepoHygiene.ps1`, `Test-ReviewPairs.ps1`, `Test-SceneCount.ps1`, `Test-SelectJobs.ps1`, `Test-Sfx.ps1`, `Test-Site.ps1`, `Test-SkillFixtures.ps1`, `Test-Steam.ps1`, `Test-StopGate.ps1`, `Test-Store.ps1`, `Test-Telemetry.ps1`, `Test-TestDuration.ps1`, `Test-TestsNotRun.ps1`, `Test-TokenBenchmark.ps1`, `Test-TrelloSync.ps1`, `Test-UpdatePins.ps1`, `Test-Skills.ps1`, 2 step(s) of its own |
+| release.yml/release | `Test-ReleaseNotes.ps1`, `Test-SelectJobs.ps1`, `Test-WorkflowLint.ps1` |
+| self-test.yml/lint | itself (on every pull request, push to main and nightly run); runs `Test-Addons.ps1`, `Test-ArchitectureFixtures.ps1`, `Test-AssetManifest.ps1`, `Test-Changelog.ps1`, `Test-Context.ps1`, `Test-CoverageMap.ps1`, `Test-CrashRetry.ps1`, `Test-Data.ps1`, `Test-Detect.ps1`, `Test-DocLinks.ps1`, `Test-DoctorFixture.ps1`, `Test-DotnetTempDir.ps1`, `Test-DownloadFailed.ps1`, `Test-EvalGraders.ps1`, `Test-FailureDelta.ps1`, `Test-GameVersion.ps1`, `Test-GitLabTemplate.ps1`, `Test-Handoffs.ps1`, `Test-Help.ps1`, `Test-HyperdotLabel.ps1`, `Test-InputHash.ps1`, `Test-InstallAddon.ps1`, `Test-InstallLock.ps1`, `Test-JuiceLog.ps1`, `Test-KitPaths.ps1`, `Test-LibNames.ps1`, `Test-OldState.ps1`, `Test-Plan.ps1`, `Test-Platforms.ps1`, `Test-Playtest.ps1`, `Test-PowerShellPatterns.ps1`, `Test-PrComment.ps1`, `Test-ProcessTimeout.ps1`, `Test-ReleaseNotes.ps1`, `Test-RepoHygiene.ps1`, `Test-ReviewPairs.ps1`, `Test-SceneCount.ps1`, `Test-SelectJobs.ps1`, `Test-Sfx.ps1`, `Test-Site.ps1`, `Test-SkillFixtures.ps1`, `Test-Steam.ps1`, `Test-StopGate.ps1`, `Test-Store.ps1`, `Test-Telemetry.ps1`, `Test-TestDuration.ps1`, `Test-TestsNotRun.ps1`, `Test-TokenBenchmark.ps1`, `Test-TrelloSync.ps1`, `Test-UpdatePins.ps1`, `Test-WorkflowLint.ps1`, `Test-Skills.ps1`, 2 step(s) of its own |
 | self-test.yml/zero-config | itself (on a pull request when the files it exercises change; always on pushes to main and in the nightly run) |
 | self-test.yml/csharp | itself (on a pull request when the files it exercises change; always on pushes to main and in the nightly run) |
 | self-test.yml/explicit-runners | itself (on a pull request when the files it exercises change; always on pushes to main and in the nightly run) |
@@ -275,7 +276,7 @@ A job of `self-test.yml` is a test itself (it lists what it runs); another workf
 | self-test.yml/coverage | itself (on every pull request, push to main and nightly run) |
 | self-test.yml/record | itself (on every pull request, push to main and nightly run) |
 | token-benchmark.yml/plan | `Test-BenchmarkIsolation.ps1`, `Test-FieldTest.ps1`, `Test-GameBenchmark.ps1`, `Test-GameProgramme.ps1`, `Test-TokenBenchmark.ps1`; plans the matrix for the benchmark job; started by hand |
-| token-benchmark.yml/benchmark | `Test-BenchmarkIsolation.ps1`, `Test-FieldTest.ps1`, `Test-GameBenchmark.ps1`, `Test-GameProgramme.ps1`, `Test-TokenBenchmark.ps1`; each real run costs money; `-DryRun` is what the self-test runs |
+| token-benchmark.yml/benchmark | `Test-BenchmarkIsolation.ps1`, `Test-FieldTest.ps1`, `Test-GameBenchmark.ps1`, `Test-GameProgramme.ps1`, `Test-SelectJobs.ps1`, `Test-TokenBenchmark.ps1`, `Test-WorkflowLint.ps1`; each real run costs money; `-DryRun` is what the self-test runs |
 | token-benchmark.yml/calibrate | `Test-GameBenchmark.ps1`, `Test-ReviewPairs.ps1` |
 | trello-sync.yml/live | `Test-TrelloSync.ps1`; runs `Test-TrelloSync.ps1 -Live` against the real Trello; needs `TRELLO_KEY` and `TRELLO_TOKEN` |
 | actions/apt | self-test.yml init, self-test.yml lint, self-test.yml measure, self-test.yml web |
@@ -287,5 +288,6 @@ A job of `self-test.yml` is a test itself (it lists what it runs); another workf
 ## Gaps
 
 - File `Telemetry.ps1`
+- Job `canary.yml/propose`: opens the pull request and the issues with the write token, from the patch `try` made; `Test-WorkflowLint.ps1` checks that it runs no upstream code; the rest needs the real repository
 - Job `evals.yml/evals`: runs `claude plugin eval`, which costs money; started by hand
 - Job `pages.yml/deploy`: publishes the site the build job made and `Test-Site.ps1` checked; runs on main only

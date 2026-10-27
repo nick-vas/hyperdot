@@ -202,7 +202,7 @@ A tier that outlasts one job (the mid tier runs 135 sessions a configuration, ab
 each configuration then runs as n parallel jobs, one per part, each with its own artifact (`-part-k`).
 
 **Finishing a run that did not complete.** A usage limit, the job's 330 minutes or a cancelled job leave sessions
-unrun. `max_minutes` (default 300) makes each job stop starting sessions at that time and end green with its results and
+unrun. `max_minutes` (default 285; empty or 0 mean the cap, never no limit) makes each job stop starting sessions at that time, at most 45 minutes (a milestone session) before the job's limit, and end green with its results and
 `not-reached.json` uploaded, instead of being cancelled. `continue_run: <run id>` then runs only what is missing: each
 job downloads the `token-benchmark-<programme>-*` artifacts of that run (kept 30 days; the workflow's `actions: read`
 permission), passes them as `-SkipDone`, and the plan job's estimate counts only the remainder, so the shards split it
@@ -211,7 +211,7 @@ repeat or narrowing, naming what differs. The old run is not changed; the new on
 (see `-SkipDone`) and its summary lists the runs it continues (`meta.continues`). A continuation can itself be continued, naming it in turn.
 `Get-HyperdotLabel.ps1` reads a run and its continuations as one unit, a session run again counting once as its last row.
 
-Sizing: at about seven minutes a session, a job reaches 300 minutes after about 40 sessions. A remainder of 40 sessions
+Sizing: at about seven minutes a session, a job reaches 285 minutes after about 40 sessions. A remainder of 40 sessions
 fits one job, two give margin.
 
 ## Isolation

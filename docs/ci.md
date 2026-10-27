@@ -156,9 +156,11 @@ private one the check fails closed until `actions: read` is added to the workflo
 `## <version> - ` section (`.github/scripts/Get-ChangelogSection.ps1`, held by `tests/Test-ReleaseNotes.ps1`); and
 `.claude-plugin/plugin.json` has the same version. Then it creates the annotated tag `v<version>` (it fails if that tag
 exists at another commit: version tags are never moved; at this commit it is left alone, so a run can be repeated), creates or force-moves the moving tag (the one tag that moves, as games pin
-`@v1`): `v<major>` by default, or the `major_tag` input, which a 0.x release sets to `v1`; it pushes both as `github-actions[bot]`, and runs `gh release create v<version> --verify-tag` with the changelog section
+`@v1`; `.github/scripts/Test-MajorTagMove.ps1` leaves it where it is, with a notice, when a tag of a greater version of the same major exists, so releasing 1.2.1 after 1.3.0 does not move `v1` backwards; the repeated run of the version already tagged still moves it): `v<major>` by default, or the `major_tag` input, which a 0.x release sets to `v1`; it pushes both as `github-actions[bot]`, and runs `gh release create v<version> --verify-tag` with the changelog section
 as the notes (cut near 120000 characters, the limit of a release body, with a link to the changelog). Tags pushed with the
-workflow's token start no other workflow. A change to `release.yml` or the script runs `lint` alone.
+workflow's token start no other workflow. A change to `release.yml` or its scripts (`Get-ChangelogSection.ps1`, `Test-MajorTagMove.ps1`) runs `lint` alone. The version and the major tag are matched whole (`\A[0-9]+\.[0-9]+\.[0-9]+\z`): `$` accepts a trailing newline and `\d` Unicode digits in .NET.
+
+`tests/Test-WorkflowLint.ps1` (in `lint`) reads the workflows as text for what cannot run here: a pull request's concurrency group is `pr-<number>` (the branch name alone made pull requests of two forks cancel each other), `release: true` with no `exports` fails the `test` job of `godot.yml` instead of ending green without a release, and `canary.yml` runs the upstream code (the `try` job) with read permission, no token and no stored credentials, while `propose`, which has the write permissions, applies the patch it made and runs none of that code.
 
 ## Running everything locally
 

@@ -27,7 +27,7 @@ $written = @(foreach ($g in $spec.programme.genres) { foreach ($l in $g.language
 Assert-True ($written.Count -ge 20) "the programme has its written pairs ($($written.Count))"
 
 # The jobs. Documentation and unrelated files run lint alone (it always runs): no gated job, no pair.
-foreach ($file in 'docs/ci.md', 'README.md', 'CHANGELOG.md', 'AGENTS.md', 'site/Build-Site.ps1', 'site/site.css', 'benchmark/PLAN.md', 'benchmark/games/arena/DESIGN.md', 'evals/scaffold-gdscript.sh', '.gitignore', 'tests/doctor-fixture/project.godot', 'tests/Get-CoverageMap.ps1', '.github/workflows/pages.yml', '.github/workflows/release.yml', '.github/scripts/Get-ChangelogSection.ps1', 'tests/Test-ReleaseNotes.ps1') {
+foreach ($file in 'docs/ci.md', 'README.md', 'CHANGELOG.md', 'AGENTS.md', 'site/Build-Site.ps1', 'site/site.css', 'benchmark/PLAN.md', 'benchmark/games/arena/DESIGN.md', 'evals/scaffold-gdscript.sh', '.gitignore', 'tests/doctor-fixture/project.godot', 'tests/Get-CoverageMap.ps1', '.github/workflows/pages.yml', '.github/workflows/release.yml', '.github/scripts/Get-ChangelogSection.ps1', '.github/scripts/Test-MajorTagMove.ps1', '.github/scripts/Get-BenchmarkMinutes.ps1', 'tests/Test-ReleaseNotes.ps1') {
     $s = Get-Selection -Files $file
     Assert-True (@(Get-JobNames $s).Count -eq 0 -and @($s.pairs).Count -eq 0 -and -not $s.all) "$file runs lint alone ($(@(Get-JobNames $s) -join ', '))"
 }
@@ -136,6 +136,32 @@ try {
     Assert-True ($names.Count -eq 1 -and $names[0] -eq 'arena/gdscript') "git diff against the base finds the changed game ($($names -join ', '))"
     $s = Get-Selection -Base ('b' * 40) -Where $temp -NoFiles
     Assert-True ($s.full) 'a base git cannot fetch runs every pair'
+
+    # A rename out of a gated path lists the old path too (no rename detection), and git's quoting of a non-ASCII name
+    # does not hide the file.
+    $gitCommit = { param([string]$Message) git -C $temp add -A; git -C $temp -c user.name=ci -c user.email=ci@example.com commit -qm $Message }
+    New-Item -ItemType Directory -Force (Join-Path $temp 'ci/godot/lib'), (Join-Path $temp 'docs'), (Join-Path $temp 'examples/gdscript/art') | Out-Null
+    Set-Content (Join-Path $temp 'ci/godot/lib/Measure.ps1') '# measure'
+    Set-Content -LiteralPath (Join-Path $temp 'examples/gdscript/art/café.png') 'one'
+    Set-Content -LiteralPath (Join-Path $temp 'examples/gdscript/art/a b.png') 'one'
+    & $gitCommit 'files' | Out-Null
+    $base2 = (git -C $temp rev-parse HEAD).Trim()
+    git -C $temp mv ci/godot/lib/Measure.ps1 docs/Measure.ps1
+    & $gitCommit 'move' | Out-Null
+    $s = Get-Selection -Base $base2 -Where $temp -NoFiles
+    Assert-True ($s.measure -and -not $s.full) 'a file moved out of a gated path into docs/ still selects the job'
+    git -C $temp reset -q --hard $base2
+    Set-Content -LiteralPath (Join-Path $temp 'examples/gdscript/art/café.png') 'two'
+    & $gitCommit 'cafe' | Out-Null
+    $s = Get-Selection -Base $base2 -Where $temp -NoFiles
+    Assert-True ($s.'zero-config' -and -not $s.full) 'a changed file with a non-ASCII name is selected'
+    git -C $temp reset -q --hard $base2
+    Set-Content -LiteralPath (Join-Path $temp 'examples/gdscript/art/a b.png') 'two'
+    & $gitCommit 'space' | Out-Null
+    $s = Get-Selection -Base $base2 -Where $temp -NoFiles
+    Assert-True ($s.'zero-config' -and -not $s.full) 'a changed file with a space in its name is selected'
+    $listed = (& pwsh -NoProfile -NonInteractive -File $script -Root $temp -Inputs) -join "`n" | ConvertFrom-Json -AsHashtable
+    Assert-True ('examples/gdscript/art/café.png' -in $listed['zero-config'] -and 'examples/gdscript/art/a b.png' -in $listed['zero-config']) '-Inputs lists a non-ASCII name and a name with a space as they are'
 } finally { Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue }
 
 if ($failures.Count) { Write-Host "`n$($failures.Count) failed" -ForegroundColor Red; exit 1 }
