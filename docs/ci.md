@@ -153,7 +153,7 @@ private one the check fails closed until `actions: read` is added to the workflo
 `## <version> - ` section (`.github/scripts/Get-ChangelogSection.ps1`, held by `tests/Test-ReleaseNotes.ps1`); and
 `.claude-plugin/plugin.json` has the same version. Then it creates the annotated tag `v<version>` (it fails if that tag
 exists at another commit: version tags are never moved; at this commit it is left alone, so a run can be repeated), creates or force-moves the moving tag (the one tag that moves, as games pin
-`@v1`): `v<major>` by default, or the `major_tag` input, which a 0.x release sets to `v1`, pushes both as `github-actions[bot]`, and runs `gh release create v<version> --verify-tag` with the changelog section
+`@v1`): `v<major>` by default, or the `major_tag` input, which a 0.x release sets to `v1`; it pushes both as `github-actions[bot]`, and runs `gh release create v<version> --verify-tag` with the changelog section
 as the notes (cut near 120000 characters, the limit of a release body, with a link to the changelog). Tags pushed with the
 workflow's token start no other workflow. A change to `release.yml` or the script runs `lint` alone.
 
