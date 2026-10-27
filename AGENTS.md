@@ -8,7 +8,7 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 - `ci/godot/hyperdot.ps1` entry point: `test build export setup detect doctor init plan bench shot status audio soak credits sfx playtest help deck`, all with `-Json`.
 - `ci/godot/lib/*.ps1` one concern per file: Common, Setup, Detect, Report, Runners, Doctor, Init, Plan, Measure, Status, Architecture, Juice, Audio, Assets, Localization, Soak, Data, TextSize, Layout, Credits, Store, Web, Platforms, Sfx, Playthrough, Version, Steam, Context, Addons, Playtest, Palette, BuildSize, Help, Deck, Placement.
 - `ci/godot/tools/` `validate.gd`, `flows.gd`, `bench.gd`, `shot.gd`, `textsize.gd`, `layout.gd`, `placement.gd`, `notices.gd`, `glyphs.gd` (run inside Godot), `web-smoke.mjs` (Node.js and Playwright, for `export -Run` of Web presets), `Sfxr.cs` (bfxr2's sound synth in C#, compiled by `sfx` with `Add-Type`; Apache-2.0 and MIT), `Heatmap.cs` (PNG heat maps for `playtest`, compiled with `Add-Type`), `Palette.cs` (PNG reader and CIEDE2000 palette check, compiled by `shot` with `Add-Type`), `Test-Skills.ps1` (skill validator),
-  `Update-Versions.ps1`, `Update-AddonStatus.ps1` and `Invoke-Canary.ps1` (the weekly check against new releases, and of the
+  `Update-Changelog.ps1` (assembles the `changelog.d/` fragments into `CHANGELOG.md` at release), `Update-Versions.ps1`, `Update-AddonStatus.ps1` and `Invoke-Canary.ps1` (the weekly check against new releases, and of the
   add-ons in `ci/godot/addons-status.json`, the known-status list `doctor` reads), release/PR-comment tools.
 - `tests/` self-tests, most with a deliberately broken fixture (`tests/<name>-fixture`); the table under "Self-tests" says what each covers and needs.
 - `ci/godot/templates/` files `init`, `plan`, `/game` and the architect copy into a game (`plan.json`, `plan-jam.json` for `plan -Do init -Profile jam`, `AGENTS.md`, `GDD.md`, `GDD-jam.md` for jams, `ADR.md`, `ARCHITECTURE.md` (kept by the architect), `STYLE.md`, `TECH-DEBT.md`, `TRAILER.md`, `kit-notes.md`, and `placement_check.gd`, a test a game copies to check where levels place things), `ci/godot/templates/addons/hyperdot_report_pins/` (an editor add-on a game copies: `bug_report.gd` saves a report with its scene, place and view, and the add-on pins each on its scene), `ci/godot/templates/playtest-events.json` (the playtest telemetry schema `playtest` reads and games copy), `ci/godot/templates/licences/` (SPDX texts `credits` ships for MIT, ISC, BSD, Apache-2.0, MPL-2.0, OFL-1.1 and Zlib), and `genres-uw.json` (University of Washington, CC BY-NC-SA 4.0 with permission) and `genres.json` (Wikidata, CC0), the genre vocabularies.
@@ -67,6 +67,8 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
   `pwsh ci/godot/tools/Test-Skills.ps1` and `pwsh tests/Test-SkillFixtures.ps1` must pass. A skill description says only when
   to use it, never how. Commands, flags, error codes and versions quoted in a skill are checked against the real script,
   `docs/json.md` and `examples/csharp`.
+- Changelog: add a fragment, `changelog.d/<slug>.md`, whose first line is `Added|Changed|Fixed|Removed|Deprecated|Security: <entry>`,
+  instead of editing `CHANGELOG.md` (every pull request would conflict on its top lines); the format is in `changelog.d/README.md`.
 - Commit as the repository owner. Do not add AI attribution trailers to commits or PR descriptions.
 - Do not rewrite pushed history.
 - Blocked access (a site, tool, credential or permission out of reach) is never a reason to drop a good idea: ask the
@@ -78,6 +80,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 
 | Script | Covers | Needs |
 |---|---|---|
+| `Test-Changelog.ps1` | `Update-Changelog.ps1`: fragments grouped and sorted, an empty `changelog.d/`, bad fragments refused by name, the old Unreleased text kept (temporary folders) | - |
 | `Test-SkillFixtures.ps1` | the skill validator against broken skills (`skill-fixtures`) | - |
 | `Test-ArchitectureFixtures.ps1` | the architecture rules (`architecture-fixtures`) | - |
 | `Test-JuiceLog.ps1` | the juice runner (`juice-fixture`) | - |

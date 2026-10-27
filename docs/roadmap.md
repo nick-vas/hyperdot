@@ -122,6 +122,13 @@ a removed task's card, which only the mock has seen.
 What was left open by the research passes (`docs/studio-lessons.md`, `docs/valve.md`, `docs/art.md`, `docs/audio.md`
 and the other topic pages), grouped by what it waits for. Done items are in `CHANGELOG.md`.
 
+### CI history needed to demote more self-test jobs
+
+- **Which self-test jobs may move to the nightly run.** `docs/ci.md` ("Demoting more to the nightly run") lists the data
+  that is missing: per job and step, runs and failures over 60 days or about 100 runs (pull request and `main` apart),
+  failures first seen after merge, and runner-minutes. It needs `gh run list` and `gh run view --json jobs`, which the
+  session that wrote the page could not reach. Nothing was demoted without it.
+
 ### After 0.1.0
 
 - **A complete mid run of the staged programme** (postponed by the owner on 2026-10-26 until after the 0.1.0 release).

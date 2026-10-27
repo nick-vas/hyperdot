@@ -92,6 +92,9 @@ jobs:
       - name: doctor reports agent instructions that name kit flags or files that do not exist; the kit's own calls bind
         shell: pwsh
         run: ./tests/Test-Context.ps1
+      - name: Changelog fragments are grouped, sorted and assembled into CHANGELOG.md; bad ones are refused by name
+        shell: pwsh
+        run: ./tests/Test-Changelog.ps1
       - name: The selection of what a change runs (the sample of pairs, the pairs of a changed game, everything on main) holds
         shell: pwsh
         run: ./tests/Test-SelectJobs.ps1
