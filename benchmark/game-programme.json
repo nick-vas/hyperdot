@@ -148,6 +148,16 @@
       {
         "model": "haiku",
         "plugin": true
+      },
+      {
+        "model": "opus",
+        "plugin": false,
+        "measuredApart": true
+      },
+      {
+        "model": "opus",
+        "plugin": true,
+        "measuredApart": true
       }
     ],
     "tiers": {

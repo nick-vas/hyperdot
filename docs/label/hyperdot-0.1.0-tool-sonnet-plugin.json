@@ -1,0 +1,62 @@
+{
+  "schema": "hyperdot-label/1",
+  "supplier": "nick-vas",
+  "product": "Hyperdot",
+  "version": "0.1.0",
+  "name": "hyperdot-0.1.0-tool-sonnet-plugin",
+  "programme": "tool",
+  "programmeName": "Tool efficiency",
+  "model": "claude-sonnet-5-5",
+  "plugin": true,
+  "scale": "2026-10",
+  "standardProgramme": {
+    "profile": "A-baseline",
+    "tasks": 8,
+    "spec": "benchmark/token-benchmark.json",
+    "specSha256": "f521ee805d02"
+  },
+  "class": "F",
+  "index": 100.4,
+  "belowMinimum": [],
+  "neverSolved": [
+    "COMP-PS-001",
+    "DEBUG-PS-001"
+  ],
+  "successPercent": 62.5,
+  "tokensPerSolvedTask": 85563.0,
+  "costPerSolvedTaskUsd": 0.0633,
+  "medianSeconds": 10.0,
+  "sessions": 24,
+  "tokensPerSolvedTaskByTask": {
+    "COMP-PS-001": 626380.0,
+    "COMP-GD-001": 73703.0,
+    "CODE-PS-001": 40347.0,
+    "CODE-PS-002": 63966.0,
+    "DEBUG-PS-001": 446790.0,
+    "DEBUG-GD-001": 23626.0,
+    "CI-PS-001": 35232.0,
+    "CI-PS-003": 71466.0
+  },
+  "quality": null,
+  "otherProfiles": {},
+  "coverage": {
+    "index": 97.2,
+    "class": "A",
+    "parts": {
+      "functions": 93.5,
+      "errorCodes": 98.2,
+      "commands": 100.0
+    }
+  },
+  "runs": [
+    "20261023-091344"
+  ],
+  "cli": [
+    "2.1.309 (Claude Code)"
+  ],
+  "notes": [
+    "adversarial review: 62 findings, 59 fixed with regression tests"
+  ],
+  "modelName": "Sonnet 5.5",
+  "badge": "https://img.shields.io/badge/Hyperdot%200.1.0%20%C2%B7%20Sonnet%205.5%20%2B%20plugin-tool%20efficiency%20F-f37021"
+}

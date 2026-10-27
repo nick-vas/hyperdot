@@ -43,7 +43,7 @@ instead of 1.0: see [Versions](#versions).
    (costs money: confirm first) and `bench` on the C# example. Done for the token benchmark, with the Hyperdot label
    ([label.md](label.md)): an adversarial review of every area (62 findings: 59 fixed with regression tests), a grader
    that cannot be fooled, sessions that cannot read the test, and the 0.1.0 rating from 216 sessions.
-6. **Retro** over all of the above.
+6. **Retro** over all of the above: [retro.md](retro.md).
 7. **Release 0.1.0**: changelog, version, tag `v0.1.0`; create and keep a moving `v1` tag (`init` and the docs already
    write `@v1`, which does not resolve until then), a
    start-here page for working on a game (first use: Breakout Roguelike, `nick-vas/BreakoutTheBreakout`, in a new chat
@@ -137,10 +137,16 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
   to a kept test file, and the arena soak race must be fixed; then run it in fewer parallel jobs or over several usage
   windows, priced at $67.71 (`benchmark/PLAN.md`, "The first mid run, stopped halfway"). The game-making label waits
   for it; 0.1.0 ships the tool programme's.
-- **Opus as a model the staged programme measures.** The programme's configurations are Sonnet and Haiku, with and
-  without the plugin; Opus only judges. The owner chose on 2026-10-26 to keep the first mid run to those four and measure
-  Opus in a run of its own later: two more configurations in `benchmark/game-programme.json`, priced by a dry run
-  (about $190 more on the mid tier at 2.2 times Sonnet's cost, from the judge's calibration, until a session is measured).
+- **Run Opus in the staged programme.** The two configurations are in `benchmark/game-programme.json` (`opus` and
+  `opus` with the plugin, marked `measuredApart`, so they share a tier ceiling among themselves and the standard four stay
+  under the mid tier's $120) and `benchmark/cost-model.json` prices them, as estimates (2.2 times Sonnet's task and
+  milestone means, the ratio from the judge's calibration; no Opus task has run). Dry run, mid tier
+  (`pwsh benchmark/Invoke-TokenBenchmark.ps1 -SpecPath benchmark/game-programme.json -Tier mid -Model opus -DryRun`, with
+  `-Plugin` for the second): $43.20 for Opus and $61.65 for Opus with the plugin, $104.85 together, against ceilings of
+  $49.44 and $70.56. Dispatch the token benchmark workflow with programme `staged`, tier `mid` and model `opus` (its model
+  input takes any alias), once for each plugin setting, or `configurations: all` for all six. It costs money: confirm
+  first, and put the measured means into `cost-model.json` afterwards. The owner chose on 2026-10-26 to measure Opus in a
+  run of its own, after the first complete mid run of the four.
 - **Why CI and the owner's PC disagree** (question round note 11). No quick way to see why a run passes on one and
   fails on the other; the idea is to compare the two runs' `-Json` results side by side. Postponed by the owner on
   2026-10-26 until after the 0.1.0 release.

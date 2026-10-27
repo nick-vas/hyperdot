@@ -322,6 +322,11 @@ Hyperdot 0.1.0 at commit `e4ccc2e`, Claude Code 2.1.309, three runs of every tas
 | Sonnet 5.5 | C-iterative | 167.8 | 66.7% | 133,253 | $0.1713 | |
 | Sonnet 5.5 + plugin | A-baseline | 100.4 | 62.5% | 85,563 | $0.0633 | F |
 
+The label's information sheets for the four profile-A rows, rebuilt from these runs' saved answers with `benchmark/Get-HyperdotLabel.ps1`:
+[Haiku](label/hyperdot-0.1.0-tool-haiku.md), [Haiku + plugin](label/hyperdot-0.1.0-tool-haiku-plugin.md),
+[Sonnet](label/hyperdot-0.1.0-tool-sonnet.md) and [Sonnet + plugin](label/hyperdot-0.1.0-tool-sonnet-plugin.md). The tested class is A
+(index 97.2), from the coverage of the self-test run on commit 0381761.
+
 What they show:
 
 - **Sonnet fails on length, not on content.** All but one of its failed answers, across every profile, are over the

@@ -262,7 +262,7 @@ ceiling, as `maxCalls` refuses too many sessions now. During the run it adds up 
 CLI's own figure), and it stops starting new ones once that passes the ceiling. The sessions it did not run are listed
 as not run, so such a run is incomplete and sets no class.
 
-| Tier | Runs (4 configurations: Sonnet and Haiku, with and without the plugin) | Ceiling | Use |
+| Tier | Runs (4 configurations: Sonnet and Haiku, with and without the plugin; Opus and Opus with the plugin are two more, marked `measuredApart` in `game-programme.json` and priced as a run of their own) | Ceiling | Use |
 |---|---|---:|---|
 | min | all 10 genres, 1 stage each, 2 tasks, 1 repeat, no milestones (every language and stage pair at least once) | $10 | a quick check after changing a skill (estimate $5.70) |
 | mid | all 10 genres, 1 stage in each language, 2 tasks a stage, 3 repeats, 5 milestones | $120 | **the standard programme: the only run that sets a class** (estimate $100.20) |

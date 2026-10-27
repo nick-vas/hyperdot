@@ -1,0 +1,72 @@
+{
+  "schema": "hyperdot-label/1",
+  "supplier": "nick-vas",
+  "product": "Hyperdot",
+  "version": "0.1.0",
+  "name": "hyperdot-0.1.0-tool-haiku",
+  "programme": "tool",
+  "programmeName": "Tool efficiency",
+  "model": "claude-haiku-5-5",
+  "plugin": false,
+  "scale": "2026-10",
+  "standardProgramme": {
+    "profile": "A-baseline",
+    "tasks": 8,
+    "spec": "benchmark/token-benchmark.json",
+    "specSha256": "f521ee805d02"
+  },
+  "class": "D",
+  "index": 74.2,
+  "belowMinimum": [],
+  "neverSolved": [],
+  "successPercent": 95.8,
+  "tokensPerSolvedTask": 86041.0,
+  "costPerSolvedTaskUsd": 0.0042,
+  "medianSeconds": 11.4,
+  "sessions": 24,
+  "tokensPerSolvedTaskByTask": {
+    "COMP-PS-001": 216101.0,
+    "COMP-GD-001": 72582.0,
+    "CODE-PS-001": 45343.0,
+    "CODE-PS-002": 159143.0,
+    "DEBUG-PS-001": 78466.0,
+    "DEBUG-GD-001": 66413.0,
+    "CI-PS-001": 21376.0,
+    "CI-PS-003": 22359.0
+  },
+  "quality": null,
+  "otherProfiles": {
+    "B-scoped": {
+      "index": 94.5,
+      "successPercent": 87.5,
+      "tokensPerSolvedTask": 82355.0,
+      "costPerSolvedTaskUsd": 0.0062
+    },
+    "C-iterative": {
+      "index": 120.1,
+      "successPercent": 100.0,
+      "tokensPerSolvedTask": 106040.0,
+      "costPerSolvedTaskUsd": 0.0084
+    }
+  },
+  "coverage": {
+    "index": 97.2,
+    "class": "A",
+    "parts": {
+      "functions": 93.5,
+      "errorCodes": 98.2,
+      "commands": 100.0
+    }
+  },
+  "runs": [
+    "20261023-091335"
+  ],
+  "cli": [
+    "2.1.309 (Claude Code)"
+  ],
+  "notes": [
+    "adversarial review: 62 findings, 59 fixed with regression tests"
+  ],
+  "modelName": "Haiku 5.5",
+  "badge": "https://img.shields.io/badge/Hyperdot%200.1.0%20%C2%B7%20Haiku%205.5-tool%20efficiency%20D-fff200"
+}
