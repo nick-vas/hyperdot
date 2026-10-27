@@ -39,6 +39,42 @@ foreach ($name in $growthCases.Keys) {
     $rate = Get-GrowthMbPerHour (New-SoakSamples $case.Memory)
     if ($rate -lt $case.Min -or $rate -gt $case.Max) { $failures += "growth for '$name' should be $($case.Min) to $($case.Max) MB/h: $rate" }
 }
+# The three slopes behind the gate are reported too, and a warning says when the gate hides a step or a late leak. For
+# each case: the whole-window, first-half and second-half slopes (MB/h, +-5), and the decision at a limit of 200 MB/h:
+# 'none', 'warn' (the gate passes, a slope over the limit) or 'fail' (the gate itself is over the limit: soak-leak, no warning).
+$limit = 200
+$slopeCases = [ordered]@{
+    'flat'                     = @{ Memory = { param($i) 50 + $noise[$i % 10] }; Whole = $null; Decision = 'none' }
+    'step of 6 MB in the middle' = @{ Memory = { param($i) 50 + ($i -ge 10 ? 6 : 0) }; Whole = $null; Decision = 'warn' }
+    'steady leak of 1000 MB/h' = @{ Memory = { param($i) 50 + $i * 1000 / 3600 + $noise[$i % 10] }; Whole = 1000; Decision = 'fail' }
+    'leak that starts late'    = @{ Memory = { param($i) 50 + [Math]::Max(0, $i - 6) * 2000 / 3600 }; Whole = $null; Limit = 1000; Decision = 'warn' }   # 558 MB/h as the gate, 2000 in the second half; at 200 the gate itself fails
+    'slow leak that starts late' = @{ Memory = { param($i) 50 + [Math]::Max(0, $i - 12) * 1500 / 3600 }; Whole = $null; Decision = 'warn' }
+}
+foreach ($name in $slopeCases.Keys) {
+    $case = $slopeCases[$name]
+    $slopes = Get-GrowthSlopes (New-SoakSamples $case.Memory)
+    $min = [Math]::Min($slopes.Whole, [Math]::Min($slopes.First, $slopes.Second))
+    if ($slopes.Smallest -ne $min -or $slopes.Smallest -ne (Get-GrowthMbPerHour (New-SoakSamples $case.Memory))) { $failures += "'$name': the gate should be the smallest of the three slopes: $($slopes | ConvertTo-Json -Depth 5 -Compress)" }
+    if ($case.Whole -and [Math]::Abs($slopes.Whole - $case.Whole) -gt 50) { $failures += "'$name': whole-window slope should be about $($case.Whole): $($slopes.Whole)" }
+    $caseLimit = $case.ContainsKey('Limit') ? $case.Limit : $limit
+    $warning = Get-SoakGrowthWarning 'server' $slopes $caseLimit
+    $decision = if ($slopes.Smallest -gt $caseLimit) { 'fail' } elseif ($warning) { 'warn' } else { 'none' }
+    if ($decision -ne $case.Decision) { $failures += "'$name' should be '$($case.Decision)' at $caseLimit MB/h, not '$decision' ($($slopes | ConvertTo-Json -Depth 5 -Compress): $warning)" }
+    if ($decision -eq 'warn' -and $warning -notmatch 'soak longer') { $failures += "'$name': the warning should advise a longer -Seconds: $warning" }
+    if ($decision -ne 'warn' -and $warning) { $failures += "'$name': no warning expected: $warning" }
+}
+$stepSlopes = Get-GrowthSlopes (New-SoakSamples { param($i) 50 + ($i -ge 10 ? 6 : 0) })
+if ($stepSlopes.Smallest -ne 0 -or $stepSlopes.Whole -le $limit -or $stepSlopes.First -ne 0 -or $stepSlopes.Second -ne 0) { $failures += "a step reads 0 in each half and a rate over the limit over the whole window: $($stepSlopes | ConvertTo-Json -Depth 5 -Compress)" }
+$lateSlopes = Get-GrowthSlopes (New-SoakSamples { param($i) 50 + [Math]::Max(0, $i - 6) * 2000 / 3600 })
+if ($lateSlopes.Smallest -lt 500 -or $lateSlopes.Smallest -gt 620 -or $lateSlopes.Second -lt 1500) { $failures += "the late leak of 2000 MB/h should read about 558 MB/h as the gate and more in the second half: $($lateSlopes | ConvertTo-Json -Depth 5 -Compress)" }
+if (Get-SoakGrowthWarning 'server' $stepSlopes 0) { $failures += 'no limit (0), no warning' }
+$onlySecond = [pscustomobject]@{ Smallest = 10.0; Whole = 150.0; Second = 300.0 }
+if ((Get-SoakGrowthWarning 'server' $onlySecond 200) -notmatch 'second half \(300') { $failures += 'a second half over the limit alone should warn about the second half' }
+$onlyWhole = [pscustomobject]@{ Smallest = 0.0; Whole = 400.0; Second = 0.0 }
+$wholeWarning = Get-SoakGrowthWarning 'server' $onlyWhole 200
+if ($wholeWarning -notmatch 'whole window \(400' -or $wholeWarning -match 'second half') { $failures += "a whole-window slope over the limit alone should warn about the whole window only: $wholeWarning" }
+$few = Get-GrowthSlopes (New-SoakSamples { param($i) 50 + $i * 1000 / 3600 } 6)
+if ($few.First -ne $few.Whole -or $few.Second -ne $few.Whole) { $failures += "with fewer than 8 samples the halves should equal the whole window: $($few | ConvertTo-Json -Depth 5 -Compress)" }
 if ((Get-GrowthMbPerHour @()) -ne 0 -or (Get-GrowthMbPerHour (New-SoakSamples { param($i) 50 + $i } 2)) -ne 0) { $failures += 'fewer than 3 samples should read as 0 MB/h' }
 $few = Get-GrowthMbPerHour (New-SoakSamples { param($i) 50 + $i * 1000 / 3600 } 6)
 if ([Math]::Abs($few - 1000) -gt 1) { $failures += "6 samples of a steady leak should read as the whole-window slope, 1000 MB/h: $few" }
@@ -54,6 +90,10 @@ $healthy = Invoke-Soak @('-Clients', '4')
 if (-not $healthy.ok) { $failures += "a healthy run failed: $($healthy.error.code) $($healthy.error.message)" }
 else {
     if (@($healthy.soak.processes | Where-Object { -not $_.ready }).Count) { $failures += 'a process never became ready' }
+    foreach ($f in 'growthPerHour', 'growthWholeWindowPerHour', 'growthFirstHalfPerHour', 'growthSecondHalfPerHour') {
+        if ($null -eq $healthy.soak.server.memoryMb.$f) { $failures += "soak.server.memoryMb.$f is missing" }
+    }
+    if ($null -eq $healthy.soak.warnings) { $failures += 'soak.warnings should be a list (empty when nothing grew)' }
     if ($healthy.soak.server.metrics.clients -ne 4) { $failures += "the server reported $($healthy.soak.server.metrics.clients) clients" }
 }
 
@@ -70,6 +110,7 @@ if (-not $IsWindows) {
     # a one-time step of 2 MB is 400 MB/h over a 20 s window (the growth ignores steps, but a longer window halves the rest).
     $cs = Invoke-Soak @('-Clients', '1', '-RequireCleanStop') (Join-Path $PSScriptRoot 'soak-fixture-cs') 15 30
     if (-not $cs.ok) { $failures += "the C# server that handles SIGTERM failed: $($cs.error.code) $($cs.error.message)" }
+    elseif (@($cs.soak.warnings).Count) { $failures += "a flat C# server should have no growth warning: $($cs.soak.warnings | ConvertTo-Json -Depth 5 -Compress)" }
     elseif (-not $cs.soak.stop.clean -or $cs.soak.stop.exitCode -ne 0) { $failures += "the C# server should stop cleanly: $($cs.soak.stop | ConvertTo-Json -Depth 10 -Compress)" }
 }
 

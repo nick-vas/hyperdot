@@ -95,14 +95,35 @@ function Get-SlopeMbPerHour($Points, [string]$Field) {
 # window reads as 400 MB/h. A leak grows through the whole window, so the growth is the smallest of the slope over all samples
 # and over each half; a step shows in one half or between them, a leak in both. $Field picks the sample's value: Mb (the
 # memory a leak shows in) or Resident (everything resident).
-function Get-GrowthMbPerHour($Samples, [string]$Field = 'Mb') {
+# All three slopes behind the growth, in MB per hour, rounded to 0.1: over the whole window (Whole), over its first half
+# (First) and over its second (Second). With fewer than 8 samples a half is too short to read, so both halves equal the
+# whole. Smallest is the gate.
+function Get-GrowthSlopes($Samples, [string]$Field = 'Mb') {
     $points = @($Samples)
-    $slope = Get-SlopeMbPerHour $points $Field
+    $whole = Get-SlopeMbPerHour $points $Field
+    $first = $whole; $second = $whole
     if ($points.Count -ge 8) {
         $half = [int][Math]::Floor($points.Count / 2)
-        $slope = [Math]::Min($slope, [Math]::Min((Get-SlopeMbPerHour @($points[0..($half - 1)]) $Field), (Get-SlopeMbPerHour @($points[$half..($points.Count - 1)]) $Field)))
+        $first = Get-SlopeMbPerHour @($points[0..($half - 1)]) $Field
+        $second = Get-SlopeMbPerHour @($points[$half..($points.Count - 1)]) $Field
     }
-    return [Math]::Round($slope, 1)
+    return [ordered]@{
+        Whole = [Math]::Round($whole, 1); First = [Math]::Round($first, 1); Second = [Math]::Round($second, 1)
+        Smallest = [Math]::Round([Math]::Min($whole, [Math]::Min($first, $second)), 1)
+    }
+}
+function Get-GrowthMbPerHour($Samples, [string]$Field = 'Mb') { return (Get-GrowthSlopes $Samples $Field).Smallest }
+
+# The warning for a process whose smallest slope passes the limit while the whole-window or the second-half slope does not:
+# a one-time step, or a leak that started late. $null when there is nothing to say: no limit, a failing gate (soak-leak says
+# it), or no slope over the limit. $Growth is a Get-GrowthSlopes result (or a process's memoryMb entry, same numbers).
+function Get-SoakGrowthWarning([string]$Name, $Growth, [double]$Limit) {
+    if ($Limit -le 0 -or $Growth.Smallest -gt $Limit) { return $null }
+    $over = @()
+    if ($Growth.Whole -gt $Limit) { $over += "over the whole window ($($Growth.Whole) MB/h)" }
+    if ($Growth.Second -gt $Limit) { $over += "in the second half ($($Growth.Second) MB/h)" }
+    if (-not $over) { return $null }
+    return "$Name's memory grew $($over -join ' and ') against a limit of $Limit MB/h, but the smallest slope is $($Growth.Smallest) MB/h: a one-time step or a leak that started late; soak longer (-Seconds) to tell them apart"
 }
 # The memory a leak grows, in MB: on Linux the anonymous resident memory (RssAnon: heaps and stacks), not the pages of
 # the binary, libraries and .NET assemblies mapped from files, which fill in as code first runs and grew a C# server's
@@ -204,13 +225,17 @@ function Invoke-Soak {
         $fails = @($lines | Where-Object { $_ -match '^\[soak\] fail ' } | ForEach-Object { $_ -replace '^\[soak\] fail ', '' })
         $ready = @($lines | Where-Object { $_ -eq '[soak] ready' }).Count -gt 0
         $samples = @($p.Samples)
+        $slopes = Get-GrowthSlopes $samples
         $entry = [ordered]@{
             name = $p.Name; ready = $ready
             exitCode = $exited.ContainsKey($p.Name) ? $exited[$p.Name] : $null
             memoryMb = [ordered]@{
                 start = $samples ? [Math]::Round($samples[0].Mb, 1) : $null
                 end = $samples ? [Math]::Round($samples[-1].Mb, 1) : $null
-                growthPerHour = Get-GrowthMbPerHour $samples
+                growthPerHour = $slopes.Smallest
+                growthWholeWindowPerHour = $slopes.Whole
+                growthFirstHalfPerHour = $slopes.First
+                growthSecondHalfPerHour = $slopes.Second
                 residentGrowthPerHour = Get-GrowthMbPerHour $samples 'Resident'
             }
             cpuPercent = if ($samples.Count -ge 2 -and $samples[-1].T -gt $samples[0].T) { [Math]::Round(100 * ($samples[-1].Cpu - $samples[0].Cpu) / ($samples[-1].T - $samples[0].T), 1) } else { $null }
@@ -236,6 +261,11 @@ function Invoke-Soak {
         }
         processes = $report
     }
+    $growthWarnings = @(foreach ($r in $report) {
+        $text = Get-SoakGrowthWarning $r.name ([pscustomobject]@{ Smallest = $r.memoryMb.growthPerHour; Whole = $r.memoryMb.growthWholeWindowPerHour; Second = $r.memoryMb.growthSecondHalfPerHour }) $MaxGrowthMbPerHour
+        if ($text) { [ordered]@{ process = $r.name; message = $text } }
+    })
+    $summary['warnings'] = $growthWarnings
     $summary['stop'] = $stop
     if ($stop -and -not $stop.clean) {
         $how = if ($null -eq $stop.exitCode) { "it was still running after $StopGraceSeconds s and was killed" } elseif ($stop.exitCode -eq 143) { 'it died at once with 143, so the game has no handler' } else { "it exited with $($stop.exitCode)" }
@@ -251,6 +281,7 @@ function Invoke-Soak {
 
     Write-CiLog ("Ran {0} s: server {1} MB ({2:+0.0;-0.0} MB/h, {3}% CPU), clients {4} MB each on average" -f
         $ranFor, $server.memoryMb.end, $server.memoryMb.growthPerHour, $server.cpuPercent, $summary.clientMemoryMb.average)
+    foreach ($w in $growthWarnings) { Write-CiLog "WARNING: $($w.message)" }
     foreach ($m in $server.metrics.GetEnumerator()) { Write-CiLog "  server $($m.Key): $($m.Value)" }
 
     # engineErrors[] (and the error keys in the history line) when a process crashed as much as when it only logged errors.
