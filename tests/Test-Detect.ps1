@@ -72,6 +72,24 @@ EndProject
         $scene = Find-GoDotTestScene $game
         if ($scene -ne 'res://test/Tests.tscn') { $failures += "GoDotTest scene: expected res://test/Tests.tscn, got '$scene'" }
     } catch { $failures += "an empty .tscn broke the GoDotTest scene search: $_" }
+
+    # A solution above the repository's root is not the game's: the search stops at the git root.
+    if ($hasGit) {
+        $repo = Join-Path $dir 'above-root/repo'
+        New-Item -ItemType Directory -Force -Path (Join-Path $repo 'game') | Out-Null
+        Set-Content -LiteralPath (Join-Path $repo 'game/Game.csproj') -Value '<Project Sdk="Godot.NET.Sdk/4.7.2"></Project>'
+        Set-Content -LiteralPath (Join-Path $dir 'above-root/Outer.sln') -Value '"Game", "repo\game\Game.csproj", "{6D3E5A40-6C1B-4A56-9C2B-0F3A1B2C4D5E}"'
+        git init -q $repo 2>&1 | Out-Null
+        $found = Get-Leaf (Find-Solution (Join-Path $repo 'game'))
+        if ($found -ne 'Game.csproj') { $failures += "a solution above the git root should not be picked, got '$found'" }
+    }
+    # Two solutions that list the project: the first by name wins.
+    $two = Join-Path $dir 'two-solutions'
+    New-Item -ItemType Directory -Force -Path (Join-Path $two 'game') | Out-Null
+    Set-Content -LiteralPath (Join-Path $two 'game/Game.csproj') -Value '<Project Sdk="Godot.NET.Sdk/4.7.2"></Project>'
+    foreach ($name in 'B.sln', 'A.sln') { Set-Content -LiteralPath (Join-Path $two $name) -Value '"Game", "game\Game.csproj", "{6D3E5A40-6C1B-4A56-9C2B-0F3A1B2C4D5E}"' }
+    $found = Get-Leaf (Find-Solution (Join-Path $two 'game'))
+    if ($found -ne 'A.sln') { $failures += "of two solutions the first by name should win, got '$found'" }
 } finally {
     Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
 }
