@@ -165,7 +165,7 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
   only for tests that do not flake on runners (the C# soak's memory growth has failed there twice), so each job needs a
   note on whether its result is deterministic.
   **Design written, awaiting the owner's decision:** [ci-cache.md](ci-cache.md) (the key, where results live, a verdict
-  per job, the risks, a staged plan from measurement only, and the questions for the owner). Nothing is built.
+  per job, the risks, a staged plan from measurement only, and the questions for the owner). **Stage 0 is built** (the owner's go of 2026-10-27, measure only, nothing skipped): after about two weeks of runs, read the `cache-observations` artifacts (hit rate by job, event and `run_attempt`; runner-minutes from the jobs' durations) and put the numbers to the owner with questions 2 to 6 of the page.
 
 ### From the label and the adversarial review (2026-10-23)
 
