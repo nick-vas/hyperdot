@@ -130,10 +130,16 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
   to a kept test file, and the arena soak race must be fixed; then run it in fewer parallel jobs or over several usage
   windows, priced at $67.71 (`benchmark/PLAN.md`, "The first mid run, stopped halfway"). The game-making label waits
   for it; 0.1.0 ships the tool programme's.
-- **Opus as a model the staged programme measures.** The programme's configurations are Sonnet and Haiku, with and
-  without the plugin; Opus only judges. The owner chose on 2026-10-26 to keep the first mid run to those four and measure
-  Opus in a run of its own later: two more configurations in `benchmark/game-programme.json`, priced by a dry run
-  (about $190 more on the mid tier at 2.2 times Sonnet's cost, from the judge's calibration, until a session is measured).
+- **Run Opus in the staged programme.** The two configurations are in `benchmark/game-programme.json` (`opus` and
+  `opus` with the plugin, marked `measuredApart`, so they share a tier ceiling among themselves and the standard four stay
+  under the mid tier's $120) and `benchmark/cost-model.json` prices them, as estimates (2.2 times Sonnet's task and
+  milestone means, the ratio from the judge's calibration; no Opus task has run). Dry run, mid tier
+  (`pwsh benchmark/Invoke-TokenBenchmark.ps1 -SpecPath benchmark/game-programme.json -Tier mid -Model opus -DryRun`, with
+  `-Plugin` for the second): $43.20 for Opus and $61.65 for Opus with the plugin, $104.85 together, against ceilings of
+  $49.44 and $70.56. Dispatch the token benchmark workflow with programme `staged`, tier `mid` and model `opus` (its model
+  input takes any alias), once for each plugin setting, or `configurations: all` for all six. It costs money: confirm
+  first, and put the measured means into `cost-model.json` afterwards. The owner chose on 2026-10-26 to measure Opus in a
+  run of its own, after the first complete mid run of the four.
 - **The tool programme's label files (0.1.0 item 8, not done).** `docs/label/` does not exist yet: the 0.1.0 rating
   ([token-benchmark.md](token-benchmark.md#reference-runs-october-2026)) was computed from 216 sessions of GitHub Actions
   runs 39930259189 to 39930286282, and `benchmark/Get-HyperdotLabel.ps1` reads the runs' `results.json` and `responses/`
