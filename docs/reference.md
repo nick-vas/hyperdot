@@ -1,7 +1,7 @@
 # Reference
 
 **Script** (`ci/godot/hyperdot.ps1`): commands `test` (default), `build`, `export`, `setup`, `detect`,
-`doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest`, `help` and `deck`
+`doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest`, `help`, `deck` and `telemetry`
 (`help [name]`: one line per command, skill and subagent, or the page of one, from [help.md](help.md)).
 
 **`deck`** is the Steam Deck check in one run, at 1280x800: the `textsize` runner (its resolutions forced to 1280x800),
@@ -40,6 +40,7 @@ this machine at the Deck's resolution, not a Deck's speed.
 | `-Label` | | `bench`: the run's name in `bench.csv` |
 | `-Sweep` | | `bench`: `<name>=<v1,v2,...>`, one run per value with `--<name>=<value>` after `-GameArgs` (the game reads it like any of its flags), each a `bench.csv` row labelled `<-Label> <name>=<value>` and its own `bench.<name>-<value>.json` and `.log`; `sweep` in `-Json` holds p99 and the rest against the value. A value over `-BudgetMs`, `-MaxDrawCalls` or `-MaxLoadMs` is marked, not a failure; a run that cannot be measured fails the sweep (`bench-sweep-failed`) after every value ran |
 | `-HotspotCell` | `0` (10 m in 3D, 512 px in 2D) | `bench`: the grid cell that frame times are grouped into by camera position, for `hotspots` (where it is slow). `playtest`: the heat maps' cell, over `playtest.json`'s (default 2 m on the `xz` plane, 64 px on `xy`) |
+| `-Last` | `50` | `telemetry`: how many of each command's newest runs to read; the command to report on is the word after it (`telemetry test`), one of `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits` or `deck` |
 | `-Sessions` | `<project>/playtests/sessions` | `playtest`: the folder of session files to read: the telemetry batches playtest builds wrote or sent (`.json`, one batch or an array; `.jsonl`, one batch a line), searched recursively |
 | `-Resolution` | project setting | `bench`, `shot`: window size, e.g. `1920x1080` |
 | `-Baseline` | | `shot`: a folder of earlier screenshots; each new one is compared with the one of the same name (not the `-Output` folder) |
@@ -59,7 +60,7 @@ this machine at the Deck's resolution, not a Deck's speed.
 | `-TargetLufs` | `-24` | `audio -Mix`: the integrated loudness the mix must reach, within 2 LU; `-18` for phones and handhelds |
 | `-MaxOnsetMs` | `20` | `audio`: warn when an `sfx` or `ui` file takes longer than this to come within 10 dB of its loudest 10 ms (`onsetMs`) |
 | `-Clients` | `4` | `soak`: headless clients started next to the one server |
-| `-MaxGrowthMbPerHour` | `0` (report only) | `soak`: fail (`soak-leak`) when a process's memory grows steadily faster than this (one-time steps do not count; the window is `-Seconds`, so a short run resolves only large leaks) |
+| `-MaxGrowthMbPerHour` | `0` (report only) | `soak`: fail (`soak-leak`) when a process's memory grows steadily faster than this (one-time steps do not count; the window is `-Seconds`, so a short run resolves only large leaks). The gate is the smallest of three slopes after the warm-up (whole window, first half, second half; all reported as `growthWholeWindowPerHour`, `growthFirstHalfPerHour`, `growthSecondHalfPerHour`), so a one-time step (JIT tier-up, a GC heap resize) is not read as an hourly leak; a leak that runs the whole window is over the limit in both halves and fails. The price is sensitivity to a leak that starts late: 2000 MB/h from the 7th of 20 samples reads 558 MB/h, and a slower one can pass in a short soak. When the gate passes but the whole-window or second-half slope is over the limit, a warning (not a failure) in `soak.warnings[]` and the log says so; soak longer (`-Seconds`), since a step stops mattering as the window grows and a leak does not |
 | `-StopGraceSeconds` | `30` | `soak`: after the run, how long the server has to quit once sent SIGTERM (Kubernetes' default grace period; Docker's is 10 s, systemd's 90 s); reported under `soak.stop` |
 | `-RequireCleanStop` | off | `soak`: fail (`soak-unclean-stop`) when the server does not quit with 0 within `-StopGraceSeconds` of SIGTERM |
 | `-JunkPps` | `0` (off) | `soak`: flood the server's own port on `127.0.0.1` with this many junk UDP packets a second (loopback only), to measure how it holds up; reported under `soak.junk` |

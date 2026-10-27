@@ -160,15 +160,13 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
   configuration wait until the owner says so: Haiku with the plugin, Sonnet, Sonnet with the plugin, Opus, and the
   game-making label rating.
 - **Rating a continued run**: `Get-HyperdotLabel.ps1` treats each `results.json` as one unit (one repetition of the standard programme), so a configuration finished with `-SkipDone` (benchmark/PLAN.md, section 4) would count as two units, each incomplete. It has to merge the units of a run and its continuations (`meta.continuation`) before the label can rate a continued run; until then the continued results are read apart.
-- **`telemetry`: one view of the pipeline's own numbers** (from the owner's study of distributed-pipeline reading, after
-  the README work, not before). `.godot/hyperdot-history.jsonl` already holds every command's run: mean test duration,
-  export duration, bench duration, failure hot spots and flaky tests would be read from it, plus cache hit rates once
-  the input-hash cache below exists. It adds a view over data the kit keeps, not new data.
-- **A cache keyed by a hash of the inputs, for CI** (same origin, after `telemetry`). A job's inputs (the project
+- **A cache keyed by a hash of the inputs, for CI** (same origin; `telemetry` exists now, and reports the hit rates of this cache once it exists, from the same history). A job's inputs (the project
   files it reads, the Godot version, the kit version) are hashed, and a job whose hash has already passed is skipped,
   where `Select-Jobs.ps1` now selects by the paths a change touches. Open question first: a result may be reused
   only for tests that do not flake on runners (the C# soak's memory growth has failed there twice), so each job needs a
   note on whether its result is deterministic.
+  **Design written, awaiting the owner's decision:** [ci-cache.md](ci-cache.md) (the key, where results live, a verdict
+  per job, the risks, a staged plan from measurement only, and the questions for the owner). Nothing is built.
 
 ### From the label and the adversarial review (2026-10-23)
 

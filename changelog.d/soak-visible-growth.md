@@ -1,0 +1,1 @@
+Changed: `soak` still gates on the smallest of three memory slopes, but now reports the other two (`growthWholeWindowPerHour`, `growthFirstHalfPerHour`, `growthSecondHalfPerHour`) and warns, without failing, when the whole-window or second-half slope is over `-MaxGrowthMbPerHour` while the gate passes (a one-time step or a leak that started late: soak longer).

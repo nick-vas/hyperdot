@@ -213,6 +213,7 @@ benchmark and evals that measure the kit. The sections after the tables are
 | **See the screens** | `shot -Scene X,Y -Resolution 1920x1080 [-Baseline before]` | real PNG frames; with a baseline, the share changed and a diff image; `-Locale` for translations |
 | **Hear the mix** | `audio [-Mix]` | each sound file's loudness and true peak by category; with `-Mix`, the game's own mix against -24 LUFS and -1 dBTP |
 | **Hold up online** | `soak -Clients 8 -Seconds 600 -MaxGrowthMbPerHour 50` | one server and headless clients: crashes, engine errors, memory growth, a clean stop on SIGTERM |
+| **Read the run history** | `telemetry [test]` | per command: runs, pass rate, mean, median and p95 duration, the trend; for `test` the slowest runners, failure hot spots, flaky tests and recurring errors, from `.godot/hyperdot-history.jsonl` |
 | **Read a playtest** | `playtest -Sessions playtests/sessions` | per level: time, deaths, stalls, items found, and PNG heat maps from testers' telemetry |
 
 ### Plan
@@ -378,6 +379,7 @@ address, built from these files on every change ([docs/site.md](docs/site.md)).
 - [docs/json.md](docs/json.md): the `-Json` contract and error codes
 - [docs/coverage.md](docs/coverage.md): which self-test covers each command, error code, kit file, tool, skill, subagent and workflow job, and the gaps
 - [docs/ci.md](docs/ci.md): what the kit's own CI runs when, what it costs, and which tests ever caught anything
+- [docs/ci-cache.md](docs/ci-cache.md): a design for a CI cache keyed by the inputs of a job, awaiting a decision
 - [docs/godot-pipelines.md](docs/godot-pipelines.md): test frameworks, versions, release-safe packaging
 - [docs/self-hosted-runners.md](docs/self-hosted-runners.md): the workflow on your own machines
 - [docs/plan.md](docs/plan.md): the A-to-Z plan, tasks and Trello sync

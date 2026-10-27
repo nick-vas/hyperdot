@@ -1,0 +1,1 @@
+Added: `benchmark/PLAN.md` records the Haiku configuration of the mid tier (run 45): 95 of 135 sessions ran for $8.34 before both parts reached the 330-minute job limit; 64 of 85 tasks and 2 of 10 milestones passed.

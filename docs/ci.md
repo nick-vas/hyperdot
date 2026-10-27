@@ -2,7 +2,8 @@
 
 What `.github/workflows/self-test.yml` runs, when, and what that costs. The workflow is the kit's own check; the
 reusable workflow games call is [godot.yml](godot-pipelines.md). To see which self-test covers what, read
-[coverage.md](coverage.md).
+[coverage.md](coverage.md). A design for skipping a job whose inputs already passed (awaiting the owner's decision):
+[ci-cache.md](ci-cache.md).
 
 ## What runs when
 

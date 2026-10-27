@@ -144,6 +144,30 @@ for $4.29 against $6.21 with Sonnet and $1.19 against $1.30 with Haiku.
   fits the plan: twenty parallel jobs spend a usage window in about an hour, so the rest has to run in fewer jobs, over
   several windows, or when the owner is not working.
 
+## The Haiku configuration of the mid tier, stopped by the job time limit
+
+Token-benchmark run 45 (2026-10-27, commit 275d4c3, sessions isolated, `model` haiku, no plugin, two shards): the first
+configuration of the complete mid run, which the owner chose to run one configuration per usage window. Both parts reached
+GitHub's 330-minute limit for a job (07:54 to 13:31 UTC) and were cancelled; their results were uploaded all the same.
+95 of the configuration's 135 sessions ran (46 and 49 per part), for $8.34. No session failed for the plan's usage limit
+(run 44's cause), and none was an infrastructure failure. The sessions take longer than the plan assumed: about 7 minutes
+each per part, against the 330 minutes a part has.
+
+| Haiku, no plugin | Ran | Passed |
+|---|---:|---:|
+| Tasks | 85 | 64 |
+| Milestones | 10 | 2 |
+| Mean cost of a task | $0.022 | |
+| Mean cost of a milestone | $0.643 (largest $1.373) | |
+
+By genre, sessions run and passed: arcade 13 and 8, arena 10 and 6, cards 8 and 6, idle 8 and 6, narrative 10 and 7,
+platformer 12 and 7, puzzle 10 and 8, racing 8 and 5, roguelite 8 and 7, tower defence 8 and 6. 40 sessions did not run.
+
+The milestones cost more than `cost-model.json` assumed for Haiku (about $0.5) and the tasks a little more ($0.016 in
+run 44). What to change before the other three configurations: more shards (four instead of two) so a part ends inside
+the limit, and a way to run only the sessions a part did not reach. The owner postponed the other measurements on
+2026-10-27 (Haiku with the plugin, Sonnet, Sonnet with the plugin, Opus, and the game-making label rating).
+
 ## Decisions
 
 | Question | Decision |
