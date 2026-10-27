@@ -100,8 +100,8 @@ is quoted here. Running `bench` on `examples/csharp` and writing the numbers whe
   the arena fix (both done), and then Opus as a run of its own ([roadmap.md](roadmap.md#after-010)).
 - Record every roadmap step's result (a number or a link) where the step is marked done.
 - Keep the raw runs of a benchmark that sets a label in the repository or a release asset. The tool programme's 216
-  sessions live only as GitHub Actions artifacts, so the label files cannot be regenerated from a clone (see the To do
-  in [roadmap.md](roadmap.md#after-010)).
+  sessions live only as GitHub Actions artifacts. The label files were rebuilt from them after the release work (the
+  numbers matched the recorded table), but a clone alone cannot repeat that.
 - Decide the order of work by what the next paid run would find: run the cheap checks that could fail it first.
 - Look at the Sonnet word-limit habit before the next measurement ([roadmap.md](roadmap.md#from-the-label-and-the-adversarial-review-2026-10-23)):
   6 of its 8 failures in run 43 and 12 in run 44's graded sessions were the 220-word limit alone.
