@@ -97,6 +97,7 @@ function Get-PngPixels([string]$Path, [object[]]$Points) {
     })
 }
 
+try {
 # A small window keeps the PNG reader quick; the swatches are anchored, so they sit in the same place at any size.
 $output = Join-Path ([IO.Path]::GetTempPath()) "colorvision-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
 $json = pwsh -NoProfile -NonInteractive -File $kit shot -Json -Project $fixture -Resolution 480x270 -Frames 5 -ColorVision protan,deutan,tritan -Output $output 2>$null | ConvertFrom-Json
@@ -150,6 +151,9 @@ $plain = pwsh -NoProfile -NonInteractive -File $kit shot -Json -Project $fixture
 Assert-True ($plain.ok -and -not @($plain.shots)[0].PSObject.Properties['colorVision'] -and @(Get-ChildItem "$output-plain" -Filter '*.*an.png').Count -eq 0) 'without -ColorVision there are no simulated pictures'
 $bad = pwsh -NoProfile -NonInteractive -File $kit shot -Json -Project $fixture -Resolution 480x270 -Frames 5 -ColorVision deutan,achromat -Output "$output-bad" 2>$null | ConvertFrom-Json
 Assert-True (-not $bad.ok -and $bad.error.code -eq 'invalid-arguments') "an unknown kind is refused with invalid-arguments: $($bad.error.code)"
+} finally {
+    foreach ($temp in $output, "$output-plain", "$output-bad") { Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue }
+}
 
 if ($failures.Count) { throw "$($failures.Count) colour-vision check(s) failed" }
 Write-Host 'colour-vision self-test passed'

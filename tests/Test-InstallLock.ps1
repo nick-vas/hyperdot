@@ -13,6 +13,16 @@ $log = Join-Path $dir 'turns.log'
 $failures = @()
 
 # A stand-in install: takes the lock, writes when it starts and ends, and holds the lock for $Seconds.
+# Waits until a stand-in has taken the lock (it writes its start line inside the lock), so the next one really waits behind it.
+function Wait-StandInStart([string]$Name) {
+    $until = [datetime]::UtcNow.AddSeconds(60)
+    while ([datetime]::UtcNow -lt $until) {
+        if ((Test-Path -LiteralPath $log) -and @(Get-Content -LiteralPath $log) -contains "$Name start") { return }
+        Start-Sleep -Milliseconds 50
+    }
+    throw "stand-in $Name never took the lock"
+}
+
 function Start-StandIn([string]$Name, [double]$Seconds, [switch]$Die, [string]$Lock = 'godot-test') {
     $exit = if ($Die) { 'exit 3' } else { '' }
     $script = @"
@@ -36,7 +46,7 @@ Use-InstallLock '$Lock' {
 try {
     # Two at once: the turns never overlap.
     $first = Start-StandIn 'a' 2
-    Start-Sleep -Milliseconds 300
+    Wait-StandInStart 'a'
     $second = Start-StandIn 'b' 0.5
     $first.WaitForExit(); $second.WaitForExit()
     $turns = @(Get-Content -LiteralPath $log)
@@ -56,7 +66,7 @@ try {
     # Waiting past HYPERDOT_TIMEOUT stops setup with install-busy.
     # The lock setup takes for Godot 0.0.0, which it names 0.0 (the GDScript example needs the standard build).
     $holder = Start-StandIn 'holder' 15 -Lock '0.0-stable-standard'
-    Start-Sleep -Seconds 2
+    Wait-StandInStart 'holder'
     $saved = $env:HYPERDOT_TIMEOUT, $env:GODOT_TOOLS_DIR, $env:GODOT_BIN, $env:HYPERDOT_INSTALLED
     $env:HYPERDOT_TIMEOUT = '2'; $env:GODOT_TOOLS_DIR = $dir; $env:GODOT_BIN = $null; $env:HYPERDOT_INSTALLED = $null
     try {

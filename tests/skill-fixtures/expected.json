@@ -8,5 +8,11 @@
   "bad-version": "version-drift",
   "over-budget": "size",
   "bad-model": "model-in-main-context",
-  "bad-side-file": "unknown-command"
+  "bad-side-file": "unknown-command",
+  "bad-parameter": "unknown-parameter",
+  "bad-value": "invalid-value",
+  "Bad_Name": "name-format",
+  "bad-person": "description-person",
+  "bad-length": "description-length",
+  "no-skill-file": "missing-skill-file"
 }

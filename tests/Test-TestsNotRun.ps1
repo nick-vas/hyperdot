@@ -48,6 +48,12 @@ try {
     $totals = New-TestTotals; Read-Trx (New-Trx 'filtered-broken.trx' @() "$found`nCleaning up runner file at x/GdUnit4TestRunnerScene.cs due to compilation failure") $totals $true
     if ($totals.Failed -ne 1) { $failures += "a filtered run whose rebuild failed still fails, got $($totals.Failed)" }
 
+    # Each way the rebuild names its failure counts for a filtered run too.
+    foreach ($line in 'Test project build fails with 2 errors', 'Godot did not complete within 120 s', 'Godot compilation TIMEOUT') {
+        $totals = New-TestTotals; Read-Trx (New-Trx 'filtered-named.trx' @() "$found`n$line") $totals $true
+        if ($totals.Failed -ne 1) { $failures += "a filtered run whose log says '$line' still fails, got $($totals.Failed)" }
+    }
+
     # Other frameworks' TRX (xUnit, no discovery line) are read as before.
     $t = Read-One (New-Trx 'xunit.trx' @('Passed', 'Passed') 'xUnit.net VSTest Adapter v2.8.2')
     if ($t.Total -ne 2 -or $t.Failed -ne 0) { $failures += "xUnit run: expected 2 passed, got $($t.Total) total, $($t.Failed) failed" }
