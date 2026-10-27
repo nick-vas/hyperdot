@@ -1,6 +1,7 @@
 # A cache keyed by the inputs, for the kit's CI: a design
 
-Status: **a design awaiting the owner's decision.** Nothing here is built; no workflow or script changed with this page.
+Status: **stage 0 is built (owner's decision of 2026-10-27); nothing is skipped.** The rest is a design awaiting the owner's decisions
+(section 7). What stage 0 is: [Stage 0, as built](#stage-0-as-built), at the end.
 It answers the roadmap entry "A cache keyed by a hash of the inputs, for CI" ([roadmap.md](roadmap.md), "After 0.1.0"),
 which asked first for a note on which jobs are deterministic. Every number below is quoted from [ci.md](ci.md), the
 workflows or the tests, with the file named; where the repository has no number, the page says so.
@@ -222,3 +223,24 @@ Other workflows:
 5. **Opt-in for the model workflows** (`evals.yml`, `token-benchmark.yml`): never, or an input that is off by default?
 6. **Where would `main` read results from**, if stage 3 is wanted: a check run (needs `checks: write`) or a results
    branch (needs `contents: write`)?
+
+## Stage 0, as built
+
+The owner chose stage 0 on 2026-10-27, with the file set derived from `Select-Jobs.ps1` (way A of section 2). It measures; **no job's
+`if:` changed and nothing is skipped.**
+
+| Piece | What it does |
+|---|---|
+| `Select-Jobs.ps1 -Inputs` | The decision "which jobs does a change to this file run" is now a function of one file (`Get-FileJobs`); the selection of a pull request calls it for each changed file, and `-Inputs` calls it for every tracked file that is not documentation and prints job -> files as JSON. `tests/Test-SelectJobs.ps1` holds the selection to the same rules as before. |
+| `Get-InputHash.ps1` | Per job, the sha256 of the job id, the event kind (pull request or not), the runner image (`ImageOS-ImageVersion`), the PowerShell version and the git mode and object id of each file in the job's set, read from the commit's tree. `lint` is hashed over the whole tree id. |
+| `changes` job | Computes the hashes and looks each one up with `actions/cache/restore` (`lookup-only`), key `ci-job-<job>-<hash>`. The outputs `hash-<job>` and `hit-<job>` go to `record`. |
+| `record` job | After every job (`if: always()`): writes `cache-observations.jsonl` (job, hash, hit, selected, result, event, run attempt, run id), uploads it as the `cache-observations` artifact (14 days), appends a table to the step summary and saves a one-line marker for each job that succeeded without a marker for its hash. A pull request from a fork saves none. |
+| `tests/Test-InputHash.ps1` | A temporary repository: a change moves the hash of the jobs that read the file; a documentation commit moves lint's alone; the event and the runner image move every hash; what `record` saves and what it does not. |
+
+Not in stage 0: the `game-programme` pairs (a matrix job; keyed later, per game folder), `coverage`, and every `if:` that would skip.
+
+**Reading the result after two weeks.** For each `cache-observations` artifact (`gh run download`), a line with `hit: true`
+and `selected: true` is a job that would have been skipped. Group by job, `event` and `runAttempt`; the minutes are the
+jobs' own durations (`gh api repos/<repo>/actions/runs/<id>/jobs`, joined on `runId`). That answers the three gaps of section 1
+and the cache's scope and eviction rules. Markers are Actions cache entries, so a pull request run reads its own earlier
+runs' and the default branch's, not another branch's, which is the scope stage 1 would have.

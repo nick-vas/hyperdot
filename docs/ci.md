@@ -27,6 +27,8 @@ On a pull request `.github/scripts/Select-Jobs.ps1` (the `changes` job) lists th
 | The staged programme's own code (`benchmark/templates/`, `GameProgramme.ps1`, `game-programme.json`, `Test-GameProgramme.ps1`) | A sample of three pairs: platformer in C# (it caught a git race on release-stage games), arena in GDScript (it caught an ENet race) and cards in GDScript. |
 | A game folder (`benchmark/games/<genre>/<language>/`) | That pair. |
 
+Alongside, every run measures an *input hash* per job and records which jobs went green on which hash (the `record` job and the `cache-observations` artifact; [ci-cache.md](ci-cache.md), stage 0). It skips nothing yet.
+
 Skipped jobs report as skipped, which satisfies a required check. The `coverage` job enforces its floors only on the full
 runs; on a pull request it reports what was reached, since a skipped job's records are missing by design.
 `tests/Test-SelectJobs.ps1` holds all of this, and checks that every test a skippable job runs selects that job.

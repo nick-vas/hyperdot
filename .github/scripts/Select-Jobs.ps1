@@ -28,7 +28,10 @@ param(
     [string]$Base = $env:BASE,
     [string[]]$Files,
     [string]$Root = (Split-Path (Split-Path $PSScriptRoot)),
-    [switch]$Json
+    [switch]$Json,
+    # Instead of a selection: every tracked file that is not documentation, under each job that a change to it alone would run
+    # (JSON: job -> files). The input hash of .github/scripts/Get-InputHash.ps1 is a hash of these files.
+    [switch]$Inputs
 )
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
@@ -79,6 +82,9 @@ foreach ($line in $workflow) {
 $blockText = [ordered]@{}
 foreach ($key in $blocks.Keys) { $blockText[$key] = $blocks[$key].ToString() }
 
+# The test scripts and their text, read once.
+$testScripts = @(Get-ChildItem -LiteralPath (Join-Path $Root 'tests') -Filter 'Test-*.ps1' -File -ErrorAction SilentlyContinue | ForEach-Object { [pscustomobject]@{ Name = $_.Name; Text = [System.IO.File]::ReadAllText($_.FullName) } })
+
 # The jobs a changed file under tests/ runs, or $null when nothing names it.
 function Get-TestJobs([string]$File) {
     $parts = $File -split '/'
@@ -89,8 +95,8 @@ function Get-TestJobs([string]$File) {
     foreach ($job in $blockText.Keys) { if ($blockText[$job] -match "tests/$mention") { $named = $true; [void]$found.Add($job) } }
     # A fixture or a helper is named by test scripts, whose jobs run it (a test script is named by its jobs above).
     if ($parts.Count -gt 2 -or $key -notmatch '^Test-.*\.ps1$') {
-        foreach ($test in Get-ChildItem -LiteralPath (Join-Path $Root 'tests') -Filter 'Test-*.ps1' -File -ErrorAction SilentlyContinue) {
-            if ([System.IO.File]::ReadAllText($test.FullName).Contains($key)) {
+        foreach ($test in $testScripts) {
+            if ($test.Text.Contains($key)) {
                 $named = $true
                 foreach ($job in $blockText.Keys) { if ($blockText[$job] -match "tests/$([regex]::Escape($test.Name))") { [void]$found.Add($job) } }
             }
@@ -98,6 +104,32 @@ function Get-TestJobs([string]$File) {
     }
     if (-not $named) { return $null }
     return @($found)
+}
+
+
+# The gated jobs one changed file (not documentation) runs. The field test follows the workflow and its scripts, not the rest
+# of the shared core: the nightly run checks it against the rest.
+function Get-FileJobs([string]$File) {
+    $shared = @($core | Where-Object { $File -match $_ }).Count -gt 0
+    $forFieldTest = $File -match '^\.github/(workflows/self-test\.yml|scripts/(?!Get-ChangelogSection\.ps1))'
+    $testJobs = if ($File -match '^tests/') { Get-TestJobs $File } else { @() }
+    foreach ($job in $gated) {
+        if ($shared -and ($job -ne 'field-test' -or $forFieldTest)) { $job; continue }
+        if (@($patterns[$job] | Where-Object { $File -match $_ }).Count -gt 0) { $job; continue }
+        if ($File -match '^tests/' -and ($null -eq $testJobs -or $job -in $testJobs)) { $job }
+    }
+}
+
+if ($Inputs) {
+    $sets = [ordered]@{}
+    foreach ($job in $gated) { $sets[$job] = [System.Collections.Generic.List[string]]::new() }
+    foreach ($file in @(git -C $Root ls-files)) {
+        if (Test-Documentation $file) { continue }
+        foreach ($job in @(Get-FileJobs $file)) { $sets[$job].Add($file) }
+    }
+    $out = [ordered]@{}; foreach ($job in $gated) { $out[$job] = @($sets[$job]) }
+    ConvertTo-Json -InputObject $out -Depth 4
+    return
 }
 
 $spec = Get-Content -Raw -LiteralPath (Join-Path $Root 'benchmark/game-programme.json') | ConvertFrom-Json
@@ -123,22 +155,8 @@ $run = [ordered]@{}
 foreach ($job in $gated) { $run[$job] = $full }
 if (-not $full) {
     $code = @($changed | Where-Object { -not (Test-Documentation $_) })
-    $everything = @($code | Where-Object { $f = $_; @($core | Where-Object { $f -match $_ }).Count -gt 0 }).Count -gt 0
-    # The field test (about 17 minutes, no failure in the sampled runs, docs/ci.md) follows the benchmark's code and its own
-    # tests, and the workflow and scripts that run it; the nightly run checks it against the rest of the kit.
-    $everythingForFieldTest = @($code | Where-Object { $_ -match '^\.github/(workflows/self-test\.yml|scripts/(?!Get-ChangelogSection\.ps1))' }).Count -gt 0
-    foreach ($job in $gated) {
-        if ($everything -and ($job -ne 'field-test' -or $everythingForFieldTest)) { $run[$job] = $true; continue }
-        foreach ($file in $code) {
-            if (@($patterns[$job] | Where-Object { $file -match $_ }).Count -gt 0) { $run[$job] = $true; break }
-            if ($file -match '^tests/') {
-                $jobs = Get-TestJobs $file
-                if ($null -eq $jobs -or $job -in $jobs) { $run[$job] = $true; break }
-            }
-        }
-    }
+    foreach ($file in $code) { foreach ($job in @(Get-FileJobs $file)) { $run[$job] = $true } }
 }
-
 $sampled = -not $full -and @($changed | Where-Object { $_ -match $pairsCode }).Count -gt 0
 $pairs = @(foreach ($p in $written) {
     # A pair changed when its language's folder did, or a file of the genre outside both languages that is not prose (its

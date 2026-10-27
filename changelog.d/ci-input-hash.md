@@ -1,0 +1,1 @@
+Added: stage 0 of the CI cache (docs/ci-cache.md): every Self-test run computes an input hash per job from the files `Select-Jobs.ps1 -Inputs` lists for it, looks for a marker saved by an earlier green run, records which jobs went green on which hash (`record` job, `cache-observations` artifact) and skips nothing.

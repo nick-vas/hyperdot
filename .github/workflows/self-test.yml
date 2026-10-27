@@ -104,6 +104,9 @@ jobs:
       - name: The selection of what a change runs (the sample of pairs, the pairs of a changed game, everything on main) holds
         shell: pwsh
         run: ./tests/Test-SelectJobs.ps1
+      - name: Each job's input hash moves with the files it reads and the runner, and the observations name what to record (stage 0 of the CI cache)
+        shell: pwsh
+        run: ./tests/Test-InputHash.ps1
       - name: help and /kit have an entry for every command, skill and subagent
         shell: pwsh
         run: ./tests/Test-Help.ps1
@@ -698,6 +701,28 @@ jobs:
       full: ${{ steps.select.outputs.full }}
       all: ${{ steps.select.outputs.all }}
       pairs: ${{ steps.select.outputs.pairs }}
+      hash-lint: ${{ steps.hash.outputs.lint }}
+      hit-lint: ${{ steps.lookup-lint.outputs.cache-hit }}
+      hash-zero-config: ${{ steps.hash.outputs.zero-config }}
+      hit-zero-config: ${{ steps.lookup-zero-config.outputs.cache-hit }}
+      hash-csharp: ${{ steps.hash.outputs.csharp }}
+      hit-csharp: ${{ steps.lookup-csharp.outputs.cache-hit }}
+      hash-explicit-runners: ${{ steps.hash.outputs.explicit-runners }}
+      hit-explicit-runners: ${{ steps.lookup-explicit-runners.outputs.cache-hit }}
+      hash-action: ${{ steps.hash.outputs.action }}
+      hit-action: ${{ steps.lookup-action.outputs.cache-hit }}
+      hash-local-windows: ${{ steps.hash.outputs.local-windows }}
+      hit-local-windows: ${{ steps.lookup-local-windows.outputs.cache-hit }}
+      hash-init: ${{ steps.hash.outputs.init }}
+      hit-init: ${{ steps.lookup-init.outputs.cache-hit }}
+      hash-measure: ${{ steps.hash.outputs.measure }}
+      hit-measure: ${{ steps.lookup-measure.outputs.cache-hit }}
+      hash-game-benchmark: ${{ steps.hash.outputs.game-benchmark }}
+      hit-game-benchmark: ${{ steps.lookup-game-benchmark.outputs.cache-hit }}
+      hash-field-test: ${{ steps.hash.outputs.field-test }}
+      hit-field-test: ${{ steps.lookup-field-test.outputs.cache-hit }}
+      hash-web: ${{ steps.hash.outputs.web }}
+      hit-web: ${{ steps.lookup-web.outputs.cache-hit }}
     steps:
       - uses: actions/checkout@v7
       - name: Which jobs and which genre and language pairs does this change need?
@@ -706,6 +731,78 @@ jobs:
         env:
           BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         run: ./.github/scripts/Select-Jobs.ps1
+      # Stage 0 of the cache in docs/ci-cache.md: each job's input hash, and whether a green marker for it was saved by an
+      # earlier run (the `record` job below saves them). Nothing is skipped; the hit rate is only observed.
+      - name: Input hash of each job (git object ids of the files it reads, the runner image, the event)
+        id: hash
+        shell: pwsh
+        run: ./.github/scripts/Get-InputHash.ps1
+      - id: lookup-lint
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/ci-marker
+          key: ci-job-lint-${{ steps.hash.outputs.lint }}
+          lookup-only: true
+      - id: lookup-zero-config
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/ci-marker
+          key: ci-job-zero-config-${{ steps.hash.outputs.zero-config }}
+          lookup-only: true
+      - id: lookup-csharp
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/ci-marker
+          key: ci-job-csharp-${{ steps.hash.outputs.csharp }}
+          lookup-only: true
+      - id: lookup-explicit-runners
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/ci-marker
+          key: ci-job-explicit-runners-${{ steps.hash.outputs.explicit-runners }}
+          lookup-only: true
+      - id: lookup-action
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/ci-marker
+          key: ci-job-action-${{ steps.hash.outputs.action }}
+          lookup-only: true
+      - id: lookup-local-windows
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/ci-marker
+          key: ci-job-local-windows-${{ steps.hash.outputs.local-windows }}
+          lookup-only: true
+      - id: lookup-init
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/ci-marker
+          key: ci-job-init-${{ steps.hash.outputs.init }}
+          lookup-only: true
+      - id: lookup-measure
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/ci-marker
+          key: ci-job-measure-${{ steps.hash.outputs.measure }}
+          lookup-only: true
+      - id: lookup-game-benchmark
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/ci-marker
+          key: ci-job-game-benchmark-${{ steps.hash.outputs.game-benchmark }}
+          lookup-only: true
+      - id: lookup-field-test
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/ci-marker
+          key: ci-job-field-test-${{ steps.hash.outputs.field-test }}
+          lookup-only: true
+      - id: lookup-web
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/ci-marker
+          key: ci-job-web-${{ steps.hash.outputs.web }}
+          lookup-only: true
 
   game-programme:
     needs: changes
@@ -978,3 +1075,82 @@ jobs:
           path: |
             ${{ runner.temp }}/coverage.json
             ${{ runner.temp }}/coverage.md
+
+  # Stage 0 of the cache (docs/ci-cache.md): records which jobs went green on which input hash, so a later run can tell it
+  # would have found the result. A marker is a one-line Actions cache entry; it is saved only for a job that succeeded, only
+  # when no marker for its hash existed, and never for a pull request from a fork. Nothing reads a marker to skip a job.
+  # The observations of every job (hash, hit, selected, result) are kept for 14 days for the analysis of the two weeks.
+  record:
+    needs: [changes, lint, zero-config, csharp, explicit-runners, action, local-windows, init, measure, game-benchmark, field-test, web]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: What the hashes say about this run
+        id: observe
+        shell: pwsh
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+          MAY_WRITE: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        run: ./.github/scripts/Write-CacheObservations.ps1
+      - if: ${{ steps.observe.outputs.save-lint == 'true' }}
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.temp }}/ci-marker
+          key: ci-job-lint-${{ needs.changes.outputs.hash-lint }}
+      - if: ${{ steps.observe.outputs.save-zero-config == 'true' }}
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.temp }}/ci-marker
+          key: ci-job-zero-config-${{ needs.changes.outputs.hash-zero-config }}
+      - if: ${{ steps.observe.outputs.save-csharp == 'true' }}
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.temp }}/ci-marker
+          key: ci-job-csharp-${{ needs.changes.outputs.hash-csharp }}
+      - if: ${{ steps.observe.outputs.save-explicit-runners == 'true' }}
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.temp }}/ci-marker
+          key: ci-job-explicit-runners-${{ needs.changes.outputs.hash-explicit-runners }}
+      - if: ${{ steps.observe.outputs.save-action == 'true' }}
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.temp }}/ci-marker
+          key: ci-job-action-${{ needs.changes.outputs.hash-action }}
+      - if: ${{ steps.observe.outputs.save-local-windows == 'true' }}
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.temp }}/ci-marker
+          key: ci-job-local-windows-${{ needs.changes.outputs.hash-local-windows }}
+      - if: ${{ steps.observe.outputs.save-init == 'true' }}
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.temp }}/ci-marker
+          key: ci-job-init-${{ needs.changes.outputs.hash-init }}
+      - if: ${{ steps.observe.outputs.save-measure == 'true' }}
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.temp }}/ci-marker
+          key: ci-job-measure-${{ needs.changes.outputs.hash-measure }}
+      - if: ${{ steps.observe.outputs.save-game-benchmark == 'true' }}
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.temp }}/ci-marker
+          key: ci-job-game-benchmark-${{ needs.changes.outputs.hash-game-benchmark }}
+      - if: ${{ steps.observe.outputs.save-field-test == 'true' }}
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.temp }}/ci-marker
+          key: ci-job-field-test-${{ needs.changes.outputs.hash-field-test }}
+      - if: ${{ steps.observe.outputs.save-web == 'true' }}
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.temp }}/ci-marker
+          key: ci-job-web-${{ needs.changes.outputs.hash-web }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cache-observations
+          path: ${{ runner.temp }}/cache-observations.jsonl
+          retention-days: 14
