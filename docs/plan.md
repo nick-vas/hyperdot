@@ -45,7 +45,7 @@ Three inputs, cross-referenced:
 remove gates freely: `plan.json` is yours after `init`. A manual gate marked done too early opens again with
 `plan -Do reopen -Id <gate>`; an automatic gate opens by itself when the project stops meeting it.
 
-Automatic checks: `tests` (a test framework's runner is detected), `ci` (a workflow calls the kit's), `preset` (an export
+Automatic checks: `tests` (a test framework's runner is detected), `ci` (a GitHub workflow calls the kit's reusable workflow or composite action, or `.gitlab-ci.yml` includes its GitLab template), `preset` (an export
 preset exists), `runner:<name>` (that runner is set up), `file:<path>` (a folder, or a file that is not empty: an empty
 `docs/RISKS.md` is not a risk log; the path is looked up from the repository root, then the Godot project) and
 `placeholders` (nothing is left as a placeholder: no `assets.json` entry has `"placeholder": true` and the Placeholders

@@ -43,7 +43,7 @@ Put files anywhere outside `addons/`, named `*.flow.json` (convention: `test/flo
 | `set: "path"`, `prop`, `value` | sets a property (`prop` may be `a:b` sub-paths) |
 | `call: "path"`, `method`, `args` | calls a method |
 | `assert: {...}` | condition now |
-| `wait_until: {...}`, `timeout` | condition within `timeout` frames (default 300) |
+| `wait_until: {...}`, `timeout` | condition within `timeout` frames (default 300, at most 3600) |
 
 Condition: `node` (path from the scene root, `.` for the root, or absolute `/root/...`), `prop` and one of `equals`, `not_equals`,
 `gt`, `ge`, `lt`, `le`, `contains`; or `node` with `exists: true|false`. `seed` fixes the random generator so a flow is repeatable.

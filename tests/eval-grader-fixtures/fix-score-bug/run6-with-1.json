@@ -4,13 +4,13 @@
   "arm": "with",
   "run": 1,
   "source": "Evals run 6 (Actions run 39853578546, 2026-10-22)",
-  "note": "Fixes combo / 6 back to combo / 5 with Edit and calls the kit (pwsh \"<path>/godot-ci.ps1\" test -Json -Quiet, now hyperdot.ps1), which used-kit's pattern then missed; the read-only sandbox kept it from writing result.txt, so verified rightly fails. It edited, so a grader that forbids edits must fail it.",
+  "note": "Fixes combo / 6 back to combo / 5 with Edit and calls the kit (pwsh \"<path>/godot-ci.ps1\" test -Json -Quiet, now hyperdot.ps1), which used-kit's pattern then missed; the read-only sandbox kept it from writing result.txt, so verified rightly fails.",
   "rename": {
     "godot-ci.ps1": "hyperdot.ps1"
   },
   "expect": {
-    "explain-failure/unchanged": false,
     "fix-score-bug/fixed": true,
+    "fix-score-bug/ran-tests": true,
     "fix-score-bug/used-kit": true,
     "fix-score-bug/verified": false
   },

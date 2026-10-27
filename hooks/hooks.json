@@ -1,5 +1,5 @@
 {
-  "description": "Keeps 'done' honest: Claude cannot end a turn while Godot code changed since the last passing test run. It checks only that the tests passed after the last edit; it is not a design or code review.",
+  "description": "Keeps 'done' honest: once for each set of changes, stops Claude from ending its turn while Godot files changed since the last full passing test run, and tells it to run the tests. If the tests ran and failed, or Claude stops again, it lets the turn end, so Claude must report the result. It checks only that the tests passed after the last edit; it is not a design or code review.",
   "hooks": {
     "Stop": [
       {

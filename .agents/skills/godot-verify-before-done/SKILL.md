@@ -12,8 +12,9 @@ NO "DONE", "FIXED" OR "PASSING" WITHOUT A FRESH test -Json THAT SHOWS ok: true
 ```
 
 Evidence before claims. If you have not run it in this message, you cannot say it passes. Violating the letter of this rule
-is violating its spirit. With the kit's plugin enabled, a Stop hook enforces it: a turn cannot end while Godot files changed
-after the last passing `test` run, unless you say why the tests could not run. The hook checks only that tests passed after
+is violating its spirit. With the kit's plugin enabled, a Stop hook backs it up: once for each set of changes, it stops you from ending
+your turn while Godot files changed since the last full passing `test` run, and tells you to run the tests. If the tests ran
+and failed, or you stop again, it lets the turn end, so report the result, or say why the tests could not run. The hook checks only that tests passed after
 the last edit; it says nothing about whether the design or the code is good.
 
 ## The gate

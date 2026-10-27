@@ -25,6 +25,10 @@ lower Godot version. Pick godot-ai for its tool breadth or if you already use it
 ```powershell
 pwsh ci/godot/hyperdot.ps1 init -Agents -Mcp godot-mcp     # adds godot-mcp to .mcp.json; existing servers are kept
 ```
+Not pinned: the `npx -y` entries `init -Mcp` writes for `@satelliteoflove/godot-mcp` (and `@ryanmazzolini/minimal-godot-mcp`)
+fetch the latest published package each time the server starts; only the `uvx` Aseprite server below is pinned
+(see the To do list in [roadmap.md](roadmap.md)).
+
 `init` never edits an existing server entry and backs up `.mcp.json` as `.mcp.json.bak` before adding one. It then prints the steps it
 does not run: install the addon (`npx @satelliteoflove/godot-mcp --install-addon <project>`), enable it under
 Project Settings > Plugins, restart the agent. `-Mcp godot-ai` prints the manual steps, because that server configures clients from its own dock.

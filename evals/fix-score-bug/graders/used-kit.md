@@ -1,6 +1,6 @@
 ---
 type: tool_used
 tool: Bash
-input_match: 'hyperdot\.ps1\W{0,4}test\b[^"]*-Quiet'
+input_match: 'hyperdot\.ps1\b.*\btest\b'
 arm: with-only
 ---
