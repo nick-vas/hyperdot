@@ -252,6 +252,7 @@ function Invoke-Status($Info) {
         $problems = @()
         try { $planDoc = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json -Depth 10 } catch { $problems = @("it is not valid JSON: $($_.Exception.Message)") }
         if ($problems.Count -eq 0) { $problems = @(Get-PlanProblems $planDoc) }
+        if ($problems.Count -eq 0) { Add-PlanDefaults $planDoc }
         if ($problems.Count -eq 0) {
             try {
                 $state = Get-PlanState $planDoc $Info

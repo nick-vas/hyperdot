@@ -643,6 +643,10 @@ if (($Command -in @('bench', 'deck') -or ($Command -eq 'audio' -and $Mix)) -and 
 if ($Command -in 'test', 'shot', 'deck' -or ($Command -eq 'export' -and $Run)) {
     if ($Frames -lt 1) { Stop-GodotCi "-Frames must be 1 or more for $Command, not $Frames" 'invalid-arguments' }
 }
+# playtest -HotspotCell is the grid cell: given, it must be a size above 0 (left out, playtest.json or the default decides).
+if ($Command -eq 'playtest' -and $PSBoundParameters.ContainsKey('HotspotCell') -and $HotspotCell -le 0) {
+    Stop-GodotCi "-HotspotCell must be a size above 0, not $HotspotCell (leave it out for playtest.json's cell or the default)" 'invalid-arguments'
+}
 # export -Preset, checked against the project's presets before Godot's export templates are downloaded.
 if ($Command -eq 'export') {
     if ($presets.Count -eq 0) { Stop-GodotCi "No export presets in $(Join-Path $info.ProjectDir 'export_presets.cfg')" 'no-presets' }

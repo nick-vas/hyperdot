@@ -47,7 +47,7 @@ Branch on `error.code`; `message` can change.
 | `export-failed`, `no-presets`, `preset-not-found` | Export problems | `exports[]` (completed so far) |
 | `unsafe-results-dir` | `-Results` would delete the project or cwd, or a non-empty folder inside the project that holds no `summary.json` or `hyperdot.log` of the kit's | - |
 | `doctor-problems` | `doctor` found `FAIL` checks | `checks[]` |
-| `invalid-arguments` | Any command: a parameter or environment variable the kit cannot use (an unknown command, flag or runner, a value outside a parameter's set, a word that belongs to no parameter, several `-Scene`s for `bench` or `audio`, `-Seconds` of 0 or less for `bench` or `audio -Mix`, a malformed `-Sweep` or one on another command, a bad `HYPERDOT_TIMEOUT` or `HYPERDOT_IGNORE_ERRORS`, an out-of-range percentage, a misspelt sound); checked before the work starts where it can be | `error.message` |
+| `invalid-arguments` | Any command: a parameter or environment variable the kit cannot use (an unknown command, flag or runner, a value outside a parameter's set, a word that belongs to no parameter, several `-Scene`s for `bench` or `audio`, `-Seconds` of 0 or less for `bench` or `audio -Mix`, `-Frames` below 1 for `test`, `shot`, `deck` or `export -Run`, `-HotspotCell` of 0 or less for `playtest`, `-MaxGrowthMbPerHour` with a `soak` `-Seconds` too short for 3 memory samples, two `sfx` sounds that would share a file, a malformed `-Sweep` or one on another command, a bad `HYPERDOT_TIMEOUT` or `HYPERDOT_IGNORE_ERRORS`, an out-of-range percentage, a misspelt sound); checked before the work starts where it can be | `error.message` |
 | `no-plan`, `invalid-plan`, `unknown-gate`, `auto-gate`, `unknown-task`, `wip-limit` | `plan` problems (`wip-limit`: too many tasks in `doing`) | - |
 | `trello-credentials`, `trello-error`, `trello-list-missing` | `plan -Do sync` could not reach or map the board | - |
 | `invalid-mcp-config` | `.mcp.json` exists but is not valid JSON | - |
@@ -343,7 +343,7 @@ the bound for `sfx` and `ui` files: one that starts later adds a warning.
 
 **sfx**: `sfx` with `outputDir`, `peakDb` (the peak every sound was scaled to), `files[]` (`path` of the WAV, `bfxr` (its
 parameters, which bfxr2's editor and library open), `sound` (the preset, or the source file's name with `-Vary`), `seed`,
-`seconds`, `peakDb`), and `assetsEntry` (the `assets.json` entry for the output folder, added to the project's
+`seconds`, `peakDb`; the file is `<sound>-<seed>.wav`, and a seed that is not a plain file-name word gets a short stable hash appended, so different seeds never share a file; naming a sound twice makes it once), and `assetsEntry` (the `assets.json` entry for the output folder, added to the project's
 `assets.json` when it has one and not already there; `null` when the output is outside the project). An unknown
 `-Sound` is `invalid-arguments`, with the nearest name.
 
