@@ -1,0 +1,1 @@
+Changed: a continuation of a benchmark run (`-SkipDone`) must have the same selection as the run it continues (tier, model, plugin, repeat, narrowing) and is refused otherwise, naming what differs; its summary lists the runs it continues (`meta.continues`), and `Get-HyperdotLabel.ps1` reads a run and its continuations as one unit, so a continued configuration can be rated.

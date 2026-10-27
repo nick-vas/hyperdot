@@ -159,7 +159,6 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 - **Measurements postponed** (decision of the owner, 2026-10-27): all measurements except the running Haiku
   configuration wait until the owner says so: Haiku with the plugin, Sonnet, Sonnet with the plugin, Opus, and the
   game-making label rating.
-- **Rating a continued run**: `Get-HyperdotLabel.ps1` treats each `results.json` as one unit (one repetition of the standard programme), so a configuration finished with `-SkipDone` (benchmark/PLAN.md, section 4) would count as two units, each incomplete. It has to merge the units of a run and its continuations (`meta.continuation`) before the label can rate a continued run; until then the continued results are read apart.
 - **A cache keyed by a hash of the inputs, for CI** (same origin; `telemetry` exists now, and reports the hit rates of this cache once it exists, from the same history). A job's inputs (the project
   files it reads, the Godot version, the kit version) are hashed, and a job whose hash has already passed is skipped,
   where `Select-Jobs.ps1` now selects by the paths a change touches. Open question first: a result may be reused

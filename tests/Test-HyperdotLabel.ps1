@@ -16,13 +16,13 @@ function Assert-True([bool]$Condition, [string]$What) {
 }
 
 # One benchmark run: rows of @(task, tokens, answer) for a model, written as Invoke-TokenBenchmark writes them.
-function New-Run([string]$Name, [string]$Model, [object[]]$Sessions, [string]$ProfileId = 'A-baseline', [switch]$Plugin) {
+function New-Run([string]$Name, [string]$Model, [object[]]$Sessions, [string]$ProfileId = 'A-baseline', [switch]$Plugin, [int]$RepFrom = 1, [string[]]$Continues = @()) {
     $dir = Join-Path $temp $Name
     New-Item -ItemType Directory -Force (Join-Path $dir 'responses') | Out-Null
     $rows = @()
     $rep = @{}
     foreach ($s in $Sessions) {
-        $task = $s[0]; $rep[$task] = 1 + $(if ($rep.ContainsKey($task)) { $rep[$task] } else { 0 })
+        $task = $s[0]; $rep[$task] = $(if ($rep.ContainsKey($task)) { 1 + $rep[$task] } else { $RepFrom })
         $known = -not ($s.Count -gt 3 -and $s[3] -eq 'hang')
         $game = if ($s.Count -gt 4) { $s[4] } else { '' }
         # results.json says every session passed: the label must grade the saved answers itself.
@@ -32,7 +32,7 @@ function New-Run([string]$Name, [string]$Model, [object[]]$Sessions, [string]$Pr
         Set-Content -LiteralPath (Join-Path $dir "responses/$ProfileId-$task-r$($rep[$task])-a0-s0.md") -Value $s[2]
     }
     ConvertTo-Json -InputObject @($rows) -Depth 4 | Set-Content -LiteralPath (Join-Path $dir 'results.json')
-    @{ meta = @{ runId = $Name; claudeVersion = '9.9.9 (Claude Code)' } } | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $dir 'summary.json')
+    @{ meta = @{ runId = $Name; claudeVersion = '9.9.9 (Claude Code)'; continues = @($Continues) } } | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $dir 'summary.json')
     return $dir
 }
 function Invoke-Label([string[]]$Arguments, [string]$Scale = (Join-Path $fixture 'scale.json')) {
@@ -96,6 +96,14 @@ try {
     Assert-True ($v.Code -eq 0 -and $v.Json.verdict -eq 'complies') 'a unit within the tolerance complies'
     $v = Invoke-Label @('-Results', $bad1, '-Verify', $declared)
     Assert-True ($v.Code -eq 0 -and $v.Json.verdict -eq 'retest') 'one unit outside the tolerance asks for three more'
+    # A run cut short and its continuation are one unit: the sessions of the cut run, then the one it lacked and a hung one run again.
+    $cutRun = New-Run 'cut' 'm-good' @(@('T1', 600, 'alpha'), @('T1', 600, 'alpha'), @('T1', 600, 'alpha'), @('T2', 1000, 'beta'), @('T2', 1000, 'beta'), @('T2', 0, 'beta', 'hang'))
+    $rest = New-Run 'cut-rest' 'm-good' (,@('T2', 1000, 'no second word')) -RepFrom 3 -Continues @('cut')
+    $v = Invoke-Label @('-Results', "$cutRun,$rest", '-Verify', $declared)
+    Assert-True ($v.Code -eq 0 -and $v.Json.verdict -eq 'complies' -and @($v.Json.units).Count -eq 1) 'a run and its continuation are one unit (the session run again counts once, as its last row)'
+    $stranger = New-Run 'cut-other' 'm-good' (,@('T2', 1000, 'no second word')) -RepFrom 3
+    $v = Invoke-Label @('-Results', "$cutRun,$stranger", '-Verify', $declared)
+    Assert-True (@($v.Json.units).Count -eq 2) 'a run that does not name the first as the one it continues stays a unit of its own'
     $okUnits = @(1..3 | ForEach-Object { & $same "v-ok$_" 620 })
     $v = Invoke-Label @('-Results', ((@($bad1) + $okUnits) -join ','), '-Verify', $declared)
     Assert-True ($v.Code -eq 0 -and $v.Json.verdict -eq 'complies') 'three more units whose mean is within the tolerance: complies'

@@ -86,41 +86,65 @@ $tasks = @($spec.tasks | ForEach-Object { $_.id })
 $expected = @{}; foreach ($t in $spec.tasks) { $expected[$t.id] = $t.expected }
 if (-not $Version) { $Version = (Get-Content -LiteralPath (Join-Path $root '.claude-plugin/plugin.json') -Raw | ConvertFrom-Json).version }
 
-# One row per session, graded again from its saved answer. A unit is one results.json: one run of the benchmark.
+# One row per session, graded again from its saved answer. A unit is one run of the benchmark: one results.json, joined
+# with the results of the continuations of that run (summary.json meta.continues names the runs a continuation picks up),
+# so a run cut short and the run that finished it are one unit. A session run again by a continuation (the earlier row
+# had no tokens or an infrastructure failure) counts once, as its last row.
 function Read-Sessions([string[]]$Folders) {
-    $unit = 0
+    $files = [System.Collections.Generic.List[object]]::new()
     foreach ($folder in $Folders) {
         if (-not (Test-Path -LiteralPath $folder)) { throw "No such results folder: $folder" }
         foreach ($file in @(Get-ChildItem -LiteralPath $folder -Filter 'results.json' -File -Recurse | Sort-Object FullName)) {
-            $unit++
-            $dir = $file.DirectoryName
-            $summaryPath = Join-Path $dir 'summary.json'
+            $summaryPath = Join-Path $file.DirectoryName 'summary.json'
             $meta = if (Test-Path -LiteralPath $summaryPath) { (Get-Content -LiteralPath $summaryPath -Raw | ConvertFrom-Json -AsHashtable).meta } else { @{} }
-            foreach ($row in @(Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json -AsHashtable)) {
-                if ($row.task -notin $tasks) { continue }
-                $answer = Join-Path $dir "responses/$($row.profile)-$($row.task)-r$($row.repetition)-a$($row.retries)-s$($row.steps - 1).md"
-                if (-not (Test-Path -LiteralPath $answer)) { throw "No saved answer ${answer}: run the benchmark with -SaveResponses (the workflow does)" }
-                $text = Get-Content -LiteralPath $answer -Raw
-                # A session that never answered (time limit, not JSON, an API error) fails; running out of turns is a
-                # result and fails too, by the same rule. Either way its saved answer, if any, is not graded as a pass.
-                $gameReasons = if ($row.Contains('gameReasons') -and $row.gameReasons) { [string]$row.gameReasons } else { '' }
-                $sessionProblem = if ($gameReasons) { ([string]$row.reasons).Replace($gameReasons, '') } else { [string]$row.reasons }
-                $broken = ($row.Contains('infrastructure') -and $row.infrastructure) -or $sessionProblem -match 'timed out|error|not JSON'
-                # The grader returns its reasons as one array (`, $list`): assigned straight, never wrapped in @().
-                $reasons = if ($text) { Test-BenchmarkAnswer $text $expected[$row.task] } else { @('empty answer') }
-                [pscustomobject]@{
-                    unit = $unit; runId = [string]$meta['runId']; cli = [string]$meta['claudeVersion']
-                    model = [string]$row.model; plugin = [bool]($row.Contains('plugin') -and $row.plugin)
-                    profile = [string]$row.profile; task = [string]$row.task
-                    success = (-not $broken) -and @($reasons).Count -eq 0 -and -not $gameReasons
-                    tokens = [double]$row.tokensTotal; cost = [double]$row.costUsd; seconds = [double]$row.durationMs / 1000
-                    spendKnown = -not ($row.Contains('spendKnown') -and -not $row.spendKnown)
-                }
+            if ($null -eq $meta) { $meta = @{} }
+            $files.Add([pscustomobject]@{ File = $file; Meta = $meta; Unit = $files.Count + 1
+                Continues = @(if ($meta.Contains('continues') -and $meta.continues) { $meta.continues } else { }) })
+        }
+    }
+    # A continuation takes the unit of the first run it continues; one that continues a continuation follows the chain.
+    $unitOfRun = @{}
+    foreach ($f in $files) { if ($f.Meta.Contains('runId') -and $f.Meta.runId) { $unitOfRun[[string]$f.Meta.runId] = $f } }
+    foreach ($f in $files) {
+        $seen = @{}; $at = $f
+        while ($at.Continues.Count -gt 0 -and -not $seen.ContainsKey($at.Unit)) {
+            $seen[$at.Unit] = $true
+            $earlier = @($at.Continues | Where-Object { $unitOfRun.ContainsKey([string]$_) } | ForEach-Object { $unitOfRun[[string]$_] })
+            if ($earlier.Count -eq 0) { break }
+            $at = $earlier[0]
+        }
+        $f | Add-Member -NotePropertyName Root -NotePropertyValue $at.Unit
+    }
+    $rows = [ordered]@{}
+    # Runs before the continuations that finish them, so the later row replaces the earlier of a session run twice.
+    foreach ($f in @($files | Sort-Object { [int]($_.Continues.Count -gt 0) }, { $_.Unit })) {
+        $dir = $f.File.DirectoryName; $meta = $f.Meta
+        foreach ($row in @(Get-Content -LiteralPath $f.File.FullName -Raw | ConvertFrom-Json -AsHashtable)) {
+            if ($row.task -notin $tasks) { continue }
+            $answer = Join-Path $dir "responses/$($row.profile)-$($row.task)-r$($row.repetition)-a$($row.retries)-s$($row.steps - 1).md"
+            if (-not (Test-Path -LiteralPath $answer)) { throw "No saved answer ${answer}: run the benchmark with -SaveResponses (the workflow does)" }
+            $text = Get-Content -LiteralPath $answer -Raw
+            # A session that never answered (time limit, not JSON, an API error) fails; running out of turns is a
+            # result and fails too, by the same rule. Either way its saved answer, if any, is not graded as a pass.
+            $gameReasons = if ($row.Contains('gameReasons') -and $row.gameReasons) { [string]$row.gameReasons } else { '' }
+            $sessionProblem = if ($gameReasons) { ([string]$row.reasons).Replace($gameReasons, '') } else { [string]$row.reasons }
+            $broken = ($row.Contains('infrastructure') -and $row.infrastructure) -or $sessionProblem -match 'timed out|error|not JSON'
+            # The grader returns its reasons as one array (`, $list`): assigned straight, never wrapped in @().
+            $reasons = if ($text) { Test-BenchmarkAnswer $text $expected[$row.task] } else { @('empty answer') }
+            $plugin = [bool]($row.Contains('plugin') -and $row.plugin)
+            $key = "$($f.Root)|$($row.model)|$plugin|$($row.profile)|$($row.task)|$($row.repetition)"
+            $rows[$key] = [pscustomobject]@{
+                unit = $f.Root; runId = [string]$meta['runId']; cli = [string]$meta['claudeVersion']
+                model = [string]$row.model; plugin = $plugin
+                profile = [string]$row.profile; task = [string]$row.task
+                success = (-not $broken) -and @($reasons).Count -eq 0 -and -not $gameReasons
+                tokens = [double]$row.tokensTotal; cost = [double]$row.costUsd; seconds = [double]$row.durationMs / 1000
+                spendKnown = -not ($row.Contains('spendKnown') -and -not $row.spendKnown)
             }
         }
     }
+    return @($rows.Values)
 }
-
 function Get-Median([double[]]$Values) {
     $sorted = @($Values | Sort-Object)
     if ($sorted.Count -eq 0) { return [double]::NaN }

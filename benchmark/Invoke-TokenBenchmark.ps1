@@ -557,11 +557,28 @@ function Get-SessionKey([string]$Configuration, [string]$ProfileName, [string]$T
 function Get-ConfigurationName([string]$ModelName, [bool]$WithPlugin) { return "$ModelName$(if ($WithPlugin) { ' + plugin' })" }
 # Sessions of earlier runs that ran: a row that spent tokens and was not an infrastructure failure.
 $doneSessions = @{}
+$continuesRuns = [System.Collections.Generic.List[string]]::new()
+# A continuation is the same selection as the run it continues: the same tier, model, plugin, repetitions and narrowing.
+# Results with no summary.json beside them (a copy of results.json alone) have nothing to compare and pass.
+function Assert-SameSelection([string]$SummaryPath) {
+    $earlier = (Get-Content -LiteralPath $SummaryPath -Raw | ConvertFrom-Json -AsHashtable).meta
+    if ($null -eq $earlier -or -not $earlier.Contains('tier')) { return }
+    if ($earlier.Contains('runId') -and $earlier.runId) { $continuesRuns.Add([string]$earlier.runId) }
+    $now = [ordered]@{ tier = [string]$Tier; requestedModel = (($configurations | ForEach-Object Model | Sort-Object -Unique) -join ', '); plugin = [bool]$Plugin; repeat = [int]$repeatCount
+        genre = [string]$Genre; stage = [string]$Stage; language = [string]$Language; task = [string]$TaskId; profile = [string]$ProfileId }
+    $differs = foreach ($key in $now.Keys) {
+        $was = if ($key -in 'genre', 'stage', 'language', 'task', 'profile') { if ($earlier.Contains('selection') -and $earlier.selection.Contains($key)) { [string]$earlier.selection[$key] } else { '' } } elseif ($earlier.Contains($key)) { $earlier[$key] } else { $null }
+        if ($null -ne $was -and "$was" -ne "$($now[$key])") { "$key was '$was', is '$($now[$key])'" }
+    }
+    if (@($differs).Count) { throw "-SkipDone: $SummaryPath is not the same selection as this run ($(@($differs) -join '; ')). A continuation uses the tier, model, plugin, repeat and narrowing of the run it continues" }
+}
 foreach ($folder in (& $splitList $SkipDone)) {
     if (-not (Test-Path -LiteralPath $folder -PathType Container)) { throw "-SkipDone: no such folder: $folder" }
     $files = @(Get-ChildItem -LiteralPath $folder -Filter 'results.json' -File -Recurse)
     if ($files.Count -eq 0) { throw "-SkipDone: no results.json under $folder" }
     foreach ($file in $files) {
+        $summaryBeside = Join-Path $file.DirectoryName 'summary.json'
+        if (Test-Path -LiteralPath $summaryBeside) { Assert-SameSelection $summaryBeside }
         foreach ($old in @(Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json -AsHashtable)) {
             if ($null -eq $old) { continue }
             $infrastructure = $old.Contains('infrastructure') -and $old.infrastructure
@@ -710,7 +727,7 @@ $meta = [ordered]@{ runId = $runId; spec = (Resolve-Path -LiteralPath $SpecPath)
     # not the run: it says which part it is and whether all n parts together would be.
     standard = $false; shard = $(if ($shardCount -gt 1) { "$shardIndex/$shardCount" }); partOfStandard = $false
     # A continuation holds only the sessions an earlier run did not; the whole is the earlier results and these together.
-    continuation = [bool]$SkipDone; skipped = $skippedCount; notReached = $notReached.Count; maxMinutes = $MaxMinutes }
+    continuation = [bool]$SkipDone; continues = @($continuesRuns | Sort-Object -Unique); skipped = $skippedCount; notReached = $notReached.Count; maxMinutes = $MaxMinutes }
 $meetsStandard = [bool]($Tier -and $Tier -eq 'mid' -and -not ($Genre -or $Stage -or $Language -or $TaskId -or $ProfileId) -and $Repeat -eq 0 -and $notRun.Count -eq 0 -and $notReached.Count -eq 0 -and -not $SkipDone)
 if ($shardCount -gt 1) { $meta.partOfStandard = $meetsStandard } else { $meta.standard = $meetsStandard }
 # The field test's spec path names nothing of the game; its meta does not hold the game's folder.

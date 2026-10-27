@@ -170,6 +170,15 @@ try {
     Assert-True ($rest.Json.meta.continuation -eq $true -and $rest.Json.meta.skipped -eq $cutRows.Count -and $rest.Json.meta.standard -eq $false -and (Get-Content -LiteralPath (Join-Path $rest.Json.folder 'summary.md') -Raw) -match 'A continuation' -and -not (Test-Path -LiteralPath (Join-Path $rest.Json.folder 'not-reached.json'))) 'the continuation says it is one, how many it skipped, and has nothing not reached'
     Assert-True (@(Get-ChildItem -LiteralPath $cut.Json.folder -Filter 'results.json').Count -eq 1 -and @(& $readRows $cut.Json.folder).Count -eq $cutRows.Count) 'the earlier run''s results are not changed'
 
+    # A continuation names the runs it continues, and must be the same selection as them (model, plugin, repeat, narrowing).
+    Assert-True (@($rest.Json.meta.continues).Count -eq 1 -and $rest.Json.meta.continues[0] -eq $cut.Json.meta.runId) 'the continuation records the run it continues'
+    $refused = { param($extra) $o = & pwsh -NoProfile -NonInteractive -File $bench -SpecPath $spec -Claude $fake -DryRun -SkipDone $cut.Json.folder @extra 2>&1; [pscustomobject]@{ Code = $LASTEXITCODE; Text = ($o | Out-String) } }
+    foreach ($case in @(@('another task', @('-TaskId', 'T-GOOD')), @('another repeat', @('-TaskId', 'T-GOOD,T-MISS', '-Repeat', '1')), @('another model', @('-TaskId', 'T-GOOD,T-MISS', '-Model', 'opus')), @('plugin', @('-TaskId', 'T-GOOD,T-MISS', '-Plugin')))) {
+        $r = & $refused $case[1]
+        Assert-True ($r.Code -ne 0 -and $r.Text -match 'not the same selection') "a continuation with $($case[0]) is refused, naming what differs"
+    }
+    $r = & $refused $pick
+    Assert-True ($r.Code -eq 0) 'a continuation of the same selection is accepted'
     # A row with no tokens, or an infrastructure failure, counts as not done; a failed answer that spent tokens does.
     $copy = Join-Path $work 'earlier'
     New-Item -ItemType Directory -Force (Join-Path $copy 'run-1'), (Join-Path $copy 'run-2') | Out-Null

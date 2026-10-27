@@ -206,8 +206,10 @@ unrun. `max_minutes` (default 300) makes each job stop starting sessions at that
 `not-reached.json` uploaded, instead of being cancelled. `continue_run: <run id>` then runs only what is missing: each
 job downloads the `token-benchmark-<programme>-*` artifacts of that run (kept 30 days; the workflow's `actions: read`
 permission), passes them as `-SkipDone`, and the plan job's estimate counts only the remainder, so the shards split it
-evenly. Give the same selection as the run being continued. The old run is not changed; the new one is a continuation
-(see `-SkipDone`). A continuation can itself be continued, naming it in turn.
+evenly. Give the same selection as the run being continued: the runner refuses a `-SkipDone` result of another tier, model, plugin,
+repeat or narrowing, naming what differs. The old run is not changed; the new one is a continuation
+(see `-SkipDone`) and its summary lists the runs it continues (`meta.continues`). A continuation can itself be continued, naming it in turn.
+`Get-HyperdotLabel.ps1` reads a run and its continuations as one unit, a session run again counting once as its last row.
 
 Sizing: at about seven minutes a session, a job reaches 300 minutes after about 40 sessions. A remainder of 40 sessions
 fits one job, two give margin.
