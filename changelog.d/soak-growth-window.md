@@ -1,0 +1,1 @@
+Fixed: `soak` read a one-time memory step (a JIT tier, a GC resizing its heap) as hours-scale growth: over a 20 s window 1.5 MB looked like 400 MB/h and failed the C# self-test on GitHub runners. The growth is now the smallest slope over the whole window and over each half, so only memory that grows throughout counts; the C# self-test also measures for 30 s.
