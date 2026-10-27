@@ -26,7 +26,7 @@ in-process (`& ./hyperdot.ps1`) will not capture it in a variable.
 | Field | Type | |
 |---|---|---|
 | `schema` | string | `hyperdot/1`. Fields are only ever added within a schema version |
-| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest`, `help`, `deck` |
+| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest`, `help`, `deck`, `telemetry` |
 | `ok` | bool | The verdict |
 | `error` | object, when `ok` is false | `{ "code": "<stable-code>", "message": "<for people>" }` |
 | `log` | string, for `setup`, `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits`, `deck` | Path of the full run log, `hyperdot.log` in the command's results folder: `-Results` (default `test-results`; `bench-results`, `soak-results`, `audio-results` and `deck-results` for those commands), or `-Output` for `shot` (default `screenshots`). Search it; don't read it whole |
@@ -217,7 +217,7 @@ Each `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits` and 
 project: `time` (UTC), `command`, `ok`, `code`, `seconds`, and `failedRunners` for `test`. A `test` run that reached its
 runners also records `scope` (`runners`, sorted, and `filter`, `""` without `-Filter`), `failures` (up to 200 ids
 `<runner>|<test name>`, in ordinal order) and `failuresTruncated`; the next run of the same scope compares itself with them.
-It also records `retry`, `flaky` and `quarantined` (ids as in `failures`, up to 200 each). Lines only gain keys; a reader
+It also records `retry`, `flaky` and `quarantined` (ids as in `failures`, up to 200 each) and `runnerSeconds` (each runner's seconds, retries included; `telemetry` reads it). Lines only gain keys; a reader
 ignores the ones it does not know.
 Every line also has `commit` (the short hash checked out, without uncommitted changes; `null` outside git) and `errorKeys`:
 the distinct error keys of the run's log, passing or failing, in the order they first appear, up to 20. A key is one
@@ -228,7 +228,7 @@ runs taken out: numbers become `N` (line numbers, sizes, object ids, `@Node2D@23
 and a program stopped at the time limit `<program> was still running at the time limit and was stopped`. `status`
 groups the history by key (`recurringErrors`), after Activision's error buckets for Call of Duty
 ([gdc/call-of-duty-error-keys.md](gdc/call-of-duty-error-keys.md)).
-The plugin's Stop hook and the `retro` skill read it.
+The plugin's Stop hook and the `retro` skill read it, and `telemetry` reports on it.
 
 **export**: `exports[]`: `preset`, `platform`, `file`, `size` (below), `retried` (1 or 2, present when Godot crashed during the export, an exit code of 128 or more or a negative one, and the export was run again; the export's file is deleted first, and a crash on every run still fails with `export-failed`), and for Web presets `web` (`files`, `rawMb`, `gzipMb`: the export
 folder's download size), and with `-Run -GpuValidation`, for a build launched on this machine, `gpuValidation` (see below; the
@@ -449,3 +449,37 @@ in `.gitignore`).
   unknown kind of fun, features with no plan task, tags or tasks naming
   features the GDD does not have, a failed or missing latest test run, a plan.json that cannot be read, plan overruns, repeatedly flaky tests, ended
   quarantines, placeholders past their due date and a latest failure whose error predates the current commit.
+
+**telemetry** (read-only; it never fails on what it finds, and writes nothing, not even a history line of its own): one view
+over `.godot/hyperdot-history.jsonl`, the data the kit already keeps. `telemetry [<command>] [-Last <n>]` reads the newest
+`-Last` runs (default 50, at least 1) of each command, or of the one command named (`build`, `test`, `export`, `bench`,
+`shot`, `audio`, `soak`, `credits` or `deck`, the commands that leave a history line; another is `invalid-arguments`, as is
+`-Last` on another command). The result is `telemetry`:
+- `historyFile` (path), `last`, `command` (the one asked for, or `null`), `minRuns` (3).
+- `entries`: usable lines read. `skipped`: lines dropped, a line that is not JSON or not an object with a `command`; they are
+  counted, never an error. `runs`: runs in the window, all commands. A project without a history file has all three at 0,
+  `commands` empty and `ok` true.
+- `insufficient`: `true` when no command in the window has enough timed runs (below) to say anything about its durations;
+  also when there are no runs at all.
+- `commands[]`, sorted by name, one per command with a run in the window: `command`, `runs`, `passed`, `failed`, `passRate`
+  (`passed` over `runs`, 0 to 1, three decimals), `timedRuns` (the passing runs with a `seconds`: a failed run stops early,
+  so only passing runs are timed, as in `status`'s `testDuration`), `insufficient` (`timedRuns` below `minRuns`),
+  `meanSeconds`, `medianSeconds`, `p95Seconds` (nearest rank; seconds to one decimal), `trend`, `firstRun`, `lastRun` (UTC).
+  The three durations and `trend` are `null` when `insufficient`; no number is made up for a thin history. `trend` is
+  `null` too below four timed runs, else `halfRuns`, `olderMeanSeconds` (the oldest `halfRuns` timed runs),
+  `newerMeanSeconds` (the newest `halfRuns`; the middle run of an odd count is in neither) and `ratio` (newer over older
+  mean, above 1 is slower, `null` when the older mean is 0).
+- `test`: `null` without a test run in the window, else `runs` and
+  - `slowestRunners[]`: `runner`, `runs` (lines that timed it), `insufficient`, `meanSeconds`, `medianSeconds`, `p95Seconds`,
+    the slowest mean first, the insufficient last. Timed by the `runnerSeconds` of the history line (below), which lines
+    written before it lack.
+  - `hotSpots[]`: the 10 tests that failed in most runs of the window: `runner`, `name`, `failedRuns`. A test that was
+    broken and fixed is a hot spot.
+  - `flakyTests[]`: up to 10 tests that failed in some runs and passed in others although the code was the same, the most
+    failed first: `runner`, `name`, `failedRuns` (runs that list it in `failures`), `passedRuns` (runs that ran its runner
+    in full: no `-Filter`, `failures` not cut off, and did not list it as a failure, a retry or quarantined), `retryRuns`
+    (runs where it passed only on a `test -Retry`), `commitsFailedAndPassed` (commits at which it both failed in one run and
+    passed in another) and `basis[]`: `retry`, `same-commit`, or both. A test that failed at one commit and passed at the
+    next is fixed, not flaky; outside git (no `commit`) only retries count.
+- `recurringErrors[]`: as `status`'s (the same function, over the window): up to 10 error keys that were in at least one
+  failed run, with `key`, `count`, `failedRuns`, `firstSeen`, `lastSeen` and `commands[]`.

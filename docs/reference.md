@@ -1,7 +1,7 @@
 # Reference
 
 **Script** (`ci/godot/hyperdot.ps1`): commands `test` (default), `build`, `export`, `setup`, `detect`,
-`doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest`, `help` and `deck`
+`doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest`, `help`, `deck` and `telemetry`
 (`help [name]`: one line per command, skill and subagent, or the page of one, from [help.md](help.md)).
 
 **`deck`** is the Steam Deck check in one run, at 1280x800: the `textsize` runner (its resolutions forced to 1280x800),
@@ -40,6 +40,7 @@ this machine at the Deck's resolution, not a Deck's speed.
 | `-Label` | | `bench`: the run's name in `bench.csv` |
 | `-Sweep` | | `bench`: `<name>=<v1,v2,...>`, one run per value with `--<name>=<value>` after `-GameArgs` (the game reads it like any of its flags), each a `bench.csv` row labelled `<-Label> <name>=<value>` and its own `bench.<name>-<value>.json` and `.log`; `sweep` in `-Json` holds p99 and the rest against the value. A value over `-BudgetMs`, `-MaxDrawCalls` or `-MaxLoadMs` is marked, not a failure; a run that cannot be measured fails the sweep (`bench-sweep-failed`) after every value ran |
 | `-HotspotCell` | `0` (10 m in 3D, 512 px in 2D) | `bench`: the grid cell that frame times are grouped into by camera position, for `hotspots` (where it is slow). `playtest`: the heat maps' cell, over `playtest.json`'s (default 2 m on the `xz` plane, 64 px on `xy`) |
+| `-Last` | `50` | `telemetry`: how many of each command's newest runs to read; the command to report on is the word after it (`telemetry test`), one of `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits` or `deck` |
 | `-Sessions` | `<project>/playtests/sessions` | `playtest`: the folder of session files to read: the telemetry batches playtest builds wrote or sent (`.json`, one batch or an array; `.jsonl`, one batch a line), searched recursively |
 | `-Resolution` | project setting | `bench`, `shot`: window size, e.g. `1920x1080` |
 | `-Baseline` | | `shot`: a folder of earlier screenshots; each new one is compared with the one of the same name (not the `-Output` folder) |

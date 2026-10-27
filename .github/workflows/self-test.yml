@@ -95,6 +95,9 @@ jobs:
       - name: Changelog fragments are grouped, sorted and assembled into CHANGELOG.md; bad ones are refused by name
         shell: pwsh
         run: ./tests/Test-Changelog.ps1
+      - name: telemetry reads the run history - pass rate, mean, median, p95, trend, hot spots, flaky tests - and says so when it is thin or missing
+        shell: pwsh
+        run: ./tests/Test-Telemetry.ps1
       - name: The release notes are the changelog section of exactly that version
         shell: pwsh
         run: ./tests/Test-ReleaseNotes.ps1

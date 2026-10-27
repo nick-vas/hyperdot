@@ -136,6 +136,15 @@ The Steam Deck check in one run at 1280x800: text size, layout, a screenshot and
 
 Every part runs even when one fails; the run fails with deck-failed, and deck.parts gives each part's own code. Needs
 a display. bench measures this machine at the Deck's resolution, not a Deck's speed.
+### telemetry
+One view of the run history the kit already keeps: per command the runs, pass rate and mean, median and p95 duration, and for test the slowest runners, the tests that fail most and the flaky ones.
+
+    hyperdot.ps1 telemetry [<command>] [-Last 50] -Json
+
+Reads .godot/hyperdot-history.jsonl and writes nothing. -Last is how many of each command's newest runs to read; a
+command name narrows it. With fewer than 3 passing runs a duration is null and insufficient is true, never a guess. A
+test is flaky when it failed and passed at the same commit, or passed only on a -Retry. Needs no Godot.
+
 ### help
 List every command, skill and subagent in one line each, or show the page of one.
 

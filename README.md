@@ -213,6 +213,7 @@ benchmark and evals that measure the kit. The sections after the tables are
 | **See the screens** | `shot -Scene X,Y -Resolution 1920x1080 [-Baseline before]` | real PNG frames; with a baseline, the share changed and a diff image; `-Locale` for translations |
 | **Hear the mix** | `audio [-Mix]` | each sound file's loudness and true peak by category; with `-Mix`, the game's own mix against -24 LUFS and -1 dBTP |
 | **Hold up online** | `soak -Clients 8 -Seconds 600 -MaxGrowthMbPerHour 50` | one server and headless clients: crashes, engine errors, memory growth, a clean stop on SIGTERM |
+| **Read the run history** | `telemetry [test]` | per command: runs, pass rate, mean, median and p95 duration, the trend; for `test` the slowest runners, failure hot spots, flaky tests and recurring errors, from `.godot/hyperdot-history.jsonl` |
 | **Read a playtest** | `playtest -Sessions playtests/sessions` | per level: time, deaths, stalls, items found, and PNG heat maps from testers' telemetry |
 
 ### Plan
