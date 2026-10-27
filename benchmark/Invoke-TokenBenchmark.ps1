@@ -57,6 +57,14 @@ param(
     # order, are those whose number leaves k-1 when divided by n, so every part gets a fair mix of tasks, repetitions and
     # milestones; its estimate and ceiling are its own sessions' share. The n parts together are the whole run.
     [ValidatePattern('^\d+/\d+$')][string]$Shard,
+    # Continue an earlier run: folders (a list or comma-separated) holding its results (<folder>/<time>/results.json, searched
+    # recursively). A session (configuration, profile, task, repetition) with a row there that RAN (tokens spent, not an
+    # infrastructure failure) is not run again; one with no tokens or an infrastructure failure is. The skip comes before
+    # -Shard, so the sessions left split evenly. The new run is a fresh folder and its summary says it continues.
+    [string[]]$SkipDone,
+    # Stop starting new sessions after this many minutes (the one running finishes); the rest is listed in not-reached.json
+    # and the exit code is 2 (incomplete, nothing failed), so a part can end inside a CI job's time limit with its results.
+    [ValidateRange(0.001, 100000)][double]$MaxMinutes = 0,
     # The private field test: the game in this folder (a copy of it), the field spec's templates and configurations.
     [string]$GameSource,
     # Fixes which defects the field test plants (default: the spec's).
@@ -454,6 +462,8 @@ function Format-BenchmarkMarkdown($Summary, $Meta) {
     $md = [System.Collections.Generic.List[string]]::new()
     $md.Add("# Token benchmark $($Meta.runId)"); $md.Add('')
     $md.Add("Model $($Meta.models), $($Meta.repeat) run(s) per task and profile, $($Meta.calls) session(s), CLI $($Meta.claudeVersion), $(if ($Meta.plugin) { 'with this repository loaded as a plugin (its skills)' } else { 'without the plugin' }).")
+    if ($Meta.continuation) { $md.Add("**A continuation:** $($Meta.skipped) session(s) already done in earlier results were skipped; this run holds only the others, and the whole is those results and this one together."); $md.Add('') }
+    if ($Meta.notReached) { $md.Add("**Stopped at the time limit** ($($Meta.maxMinutes) minutes): $($Meta.notReached) session(s) were not started, listed in not-reached.json."); $md.Add('') }
     $md.Add('Tokens include cache reads and writes; cost is Claude Code''s own figure. Medians leave out sessions stopped at the time limit, whose spend is unknown (the "Unknown" column).'); $md.Add('')
     $md.Add('| Profile | Runs | Success % | Median tokens | P90 tokens | Median output | Median turns | Median cost | Total cost | Successes per $ | Median time (s) | Retries | Unknown |')
     $md.Add('|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|')
@@ -542,14 +552,52 @@ if ($Shard) {
     $shardIndex = [int]($Shard -split '/')[0]; $shardCount = [int]($Shard -split '/')[1]
     if ($shardCount -lt 1 -or $shardCount -gt 50 -or $shardIndex -lt 1 -or $shardIndex -gt $shardCount) { throw "-Shard $Shard`: give k/n with 1 <= k <= n <= 50" }
 }
-# Every session of the run in order (configuration, repetition, task, profile), each numbered; a shard keeps its own.
+# The identity of a session does not depend on the order it runs in (the profile that runs first rotates each repetition).
+function Get-SessionKey([string]$Configuration, [string]$ProfileName, [string]$TaskName, [int]$Repetition) { return "$Configuration|$ProfileName|$TaskName|$Repetition" }
+function Get-ConfigurationName([string]$ModelName, [bool]$WithPlugin) { return "$ModelName$(if ($WithPlugin) { ' + plugin' })" }
+# Sessions of earlier runs that ran: a row that spent tokens and was not an infrastructure failure.
+$doneSessions = @{}
+$continuesRuns = [System.Collections.Generic.List[string]]::new()
+# A continuation is the same selection as the run it continues: the same tier, model, plugin, repetitions and narrowing.
+# Results with no summary.json beside them (a copy of results.json alone) have nothing to compare and pass.
+function Assert-SameSelection([string]$SummaryPath) {
+    $earlier = (Get-Content -LiteralPath $SummaryPath -Raw | ConvertFrom-Json -AsHashtable).meta
+    if ($null -eq $earlier -or -not $earlier.Contains('tier')) { return }
+    if ($earlier.Contains('runId') -and $earlier.runId) { $continuesRuns.Add([string]$earlier.runId) }
+    $now = [ordered]@{ tier = [string]$Tier; requestedModel = (($configurations | ForEach-Object Model | Sort-Object -Unique) -join ', '); plugin = [bool]$Plugin; repeat = [int]$repeatCount
+        genre = [string]$Genre; stage = [string]$Stage; language = [string]$Language; task = [string]$TaskId; profile = [string]$ProfileId }
+    $differs = foreach ($key in $now.Keys) {
+        $was = if ($key -in 'genre', 'stage', 'language', 'task', 'profile') { if ($earlier.Contains('selection') -and $earlier.selection.Contains($key)) { [string]$earlier.selection[$key] } else { '' } } elseif ($earlier.Contains($key)) { $earlier[$key] } else { $null }
+        if ($null -ne $was -and "$was" -ne "$($now[$key])") { "$key was '$was', is '$($now[$key])'" }
+    }
+    if (@($differs).Count) { throw "-SkipDone: $SummaryPath is not the same selection as this run ($(@($differs) -join '; ')). A continuation uses the tier, model, plugin, repeat and narrowing of the run it continues" }
+}
+foreach ($folder in (& $splitList $SkipDone)) {
+    if (-not (Test-Path -LiteralPath $folder -PathType Container)) { throw "-SkipDone: no such folder: $folder" }
+    $files = @(Get-ChildItem -LiteralPath $folder -Filter 'results.json' -File -Recurse)
+    if ($files.Count -eq 0) { throw "-SkipDone: no results.json under $folder" }
+    foreach ($file in $files) {
+        $summaryBeside = Join-Path $file.DirectoryName 'summary.json'
+        if (Test-Path -LiteralPath $summaryBeside) { Assert-SameSelection $summaryBeside }
+        foreach ($old in @(Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json -AsHashtable)) {
+            if ($null -eq $old) { continue }
+            $infrastructure = $old.Contains('infrastructure') -and $old.infrastructure
+            if ($infrastructure -or [long]$old.tokensTotal -le 0) { continue }
+            $doneSessions[(Get-SessionKey ([string]$old.configuration) ([string]$old.profile) ([string]$old.task) ([int]$old.repetition))] = $true
+        }
+    }
+}
+# Every session of the run in order (configuration, repetition, task, profile), each numbered; those done before are
+# dropped first, then a shard keeps its own of what is left.
 $sessionPlan = [System.Collections.Generic.List[object]]::new()
 $sessionNumber = 0
+$skippedCount = 0
 foreach ($c in $configurations) {
     for ($r = 1; $r -le $repeatCount; $r++) {
         $order = @(for ($i = 0; $i -lt $profiles.Count; $i++) { $profiles[($i + $r - 1) % $profiles.Count] })
         foreach ($t in $tasks) {
             foreach ($p in $order) {
+                if ($doneSessions.ContainsKey((Get-SessionKey (Get-ConfigurationName $c.Model $c.Plugin) $p.id $t.id $r))) { $skippedCount++; continue }
                 if ($sessionNumber % $shardCount -eq $shardIndex - 1) { $sessionPlan.Add([pscustomobject]@{ Configuration = $c; Repetition = $r; Task = $t; Profile = $p }) }
                 $sessionNumber++
             }
@@ -582,8 +630,8 @@ if ($costModel) {
     $tierEstimateUsd = 0.0
     foreach ($c in $tierConfigurations) { $tierEstimateUsd += Get-RunEstimateUsd $costModel $tasks $profiles $repeatCount $c.model ([bool]$c.plugin) $judgeModel }
     if ($tierEstimateUsd -le 0) { $tierEstimateUsd = $estimateUsd }
-    # A shard is priced by its own sessions, and its ceiling below is its share of the whole tier's.
-    if ($shardCount -gt 1) {
+    # A shard, or what is left of a continued run, is priced by its own sessions; its ceiling below is its share of the whole tier's.
+    if ($shardCount -gt 1 -or $skippedCount -gt 0) {
         $estimateUsd = 0.0
         foreach ($s in $sessionPlan) { $estimateUsd += Get-RunEstimateUsd $costModel @($s.Task) @($s.Profile) 1 $s.Configuration.Model $s.Configuration.Plugin $judgeModel }
     }
@@ -593,7 +641,7 @@ elseif ($tierSpec -and $tierSpec.Contains('maxCostUsd') -and $null -ne $tierSpec
     $budget = [double]$tierSpec.maxCostUsd * $(if ($tierEstimateUsd -gt 0) { $estimateUsd / $tierEstimateUsd } else { 1 })
 } elseif ($fieldMode -and $spec.field.Contains('maxCostUsd')) { $budget = [double]$spec.field.maxCostUsd }
 
-Write-BenchLog "$($profiles.Count) profile(s), $($tasks.Count) task(s), $repeatCount run(s), $($configurations.Count) configuration(s): $calls session(s) (more with retries)$(if ($shardCount -gt 1) { ", shard $shardIndex of $shardCount" }), $(($configurations | ForEach-Object { "$($_.Model)$(if ($_.Plugin) { ' with the plugin' })" }) -join ', ')"
+Write-BenchLog "$($profiles.Count) profile(s), $($tasks.Count) task(s), $repeatCount run(s), $($configurations.Count) configuration(s): $calls session(s) (more with retries)$(if ($shardCount -gt 1) { ", shard $shardIndex of $shardCount" })$(if ($SkipDone) { ", $skippedCount already done and skipped" }), $(($configurations | ForEach-Object { "$($_.Model)$(if ($_.Plugin) { ' with the plugin' })" }) -join ', ')"
 if ($null -ne $estimateUsd) {
     Write-BenchLog ("Estimated cost {0:N2} USD for this run{1}{2}" -f $estimateUsd,
         $(if ($tierEstimateUsd -and [math]::Abs($tierEstimateUsd - $estimateUsd) -gt 1e-9) { (', {0:N2} USD for all the tier''s configurations' -f $tierEstimateUsd) }),
@@ -609,7 +657,7 @@ if ($DryRun) {
     foreach ($t in $tasks) { Write-BenchLog "  task $($t.id)" }
     if ($Json) {
         [ordered]@{ dryRun = $true; calls = $calls; limit = $limit; tasks = @($tasks | ForEach-Object { $_.id }); configurations = $configurations.Count
-            shard = $(if ($shardCount -gt 1) { "$shardIndex/$shardCount" }); sessions = @($sessionPlan | ForEach-Object { "$($_.Task.id)#$($_.Repetition)" })
+            shard = $(if ($shardCount -gt 1) { "$shardIndex/$shardCount" }); sessions = @($sessionPlan | ForEach-Object { "$($_.Task.id)#$($_.Repetition)" }); skipped = $skippedCount; continuation = [bool]$SkipDone
             estimateUsd = $estimateUsd; tierEstimateUsd = $tierEstimateUsd; budgetUsd = $budget; overBudget = $overBudget } | ConvertTo-Json -Depth 10 -Compress
     }
     if ($overBudget) { Write-BenchLog $overMessage; exit 1 }
@@ -640,12 +688,17 @@ $responseDir = if ($SaveResponses) { New-Item -ItemType Directory -Force (Join-P
 $claudeVersion = try { (Invoke-ClaudeProcess $Claude @('--version') '' 30 $WorkDir).Stdout.Trim() } catch { 'unknown' }
 
 $rows = [System.Collections.Generic.List[object]]::new()
-$spentUsd = 0.0; $notRun = [System.Collections.Generic.List[string]]::new()
+$spentUsd = 0.0; $notRun = [System.Collections.Generic.List[string]]::new(); $notReached = [System.Collections.Generic.List[object]]::new()
+$sessionClock = [System.Diagnostics.Stopwatch]::StartNew()
 # The profile that runs first meets a cold prompt cache; the plan rotates the order each repetition to spread that cost.
 foreach ($session in $sessionPlan) {
     $modelName = $session.Configuration.Model
     $Plugin = [switch]$session.Configuration.Plugin
     $p = $session.Profile; $t = $session.Task; $r = $session.Repetition
+    # Past the time limit nothing new starts; what was not started is listed, and the run is incomplete.
+    if ($MaxMinutes -gt 0 -and $sessionClock.Elapsed.TotalMinutes -ge $MaxMinutes) {
+        $notReached.Add([ordered]@{ configuration = (Get-ConfigurationName $modelName ([bool]$Plugin)); profile = $p.id; task = $t.id; repetition = $r }); continue
+    }
     # Past the ceiling nothing new starts; what was not run is listed, and the run is incomplete.
     if ($null -ne $budget -and $spentUsd -ge $budget) { $notRun.Add("$($p.id) $($t.id) #$r $modelName$(if ($Plugin) { ' + plugin' })"); continue }
     $row = Invoke-BenchmarkCell $spec $p $t $r $modelName $responseDir
@@ -672,11 +725,14 @@ $meta = [ordered]@{ runId = $runId; spec = (Resolve-Path -LiteralPath $SpecPath)
     estimateUsd = $estimateUsd; budgetUsd = $budget; spentUsd = [Math]::Round($spentUsd, 6); notRun = $notRun.ToArray(); isolated = [bool]$isolating
     # Only the standard tier, unnarrowed and complete, can set a class (the label tool checks this). A shard alone is
     # not the run: it says which part it is and whether all n parts together would be.
-    standard = $false; shard = $(if ($shardCount -gt 1) { "$shardIndex/$shardCount" }); partOfStandard = $false }
-$meetsStandard = [bool]($Tier -and $Tier -eq 'mid' -and -not ($Genre -or $Stage -or $Language -or $TaskId -or $ProfileId) -and $Repeat -eq 0 -and $notRun.Count -eq 0)
+    standard = $false; shard = $(if ($shardCount -gt 1) { "$shardIndex/$shardCount" }); partOfStandard = $false
+    # A continuation holds only the sessions an earlier run did not; the whole is the earlier results and these together.
+    continuation = [bool]$SkipDone; continues = @($continuesRuns | Sort-Object -Unique); skipped = $skippedCount; notReached = $notReached.Count; maxMinutes = $MaxMinutes }
+$meetsStandard = [bool]($Tier -and $Tier -eq 'mid' -and -not ($Genre -or $Stage -or $Language -or $TaskId -or $ProfileId) -and $Repeat -eq 0 -and $notRun.Count -eq 0 -and $notReached.Count -eq 0 -and -not $SkipDone)
 if ($shardCount -gt 1) { $meta.partOfStandard = $meetsStandard } else { $meta.standard = $meetsStandard }
 # The field test's spec path names nothing of the game; its meta does not hold the game's folder.
 if ($fieldMode) { $meta.field = $true; $meta.standard = $false }
+if ($notReached.Count) { ConvertTo-Json -InputObject @($notReached.ToArray()) -Depth 4 | Set-Content -LiteralPath (Join-Path $runDir 'not-reached.json') -Encoding utf8 }
 $rows | Export-Csv -LiteralPath (Join-Path $runDir 'results.csv') -NoTypeInformation -Encoding utf8
 $rows | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $runDir 'results.json') -Encoding utf8
 $document = [ordered]@{ meta = $meta; profiles = $summary.profiles; cells = $summary.cells; folder = $runDir }
@@ -697,5 +753,7 @@ if ($Json) { $document | ConvertTo-Json -Depth 6 -Compress }
 # A session that never produced an answer to grade (the network, a rate limit, the time limit) makes the run incomplete.
 $ungraded = @($rows | Where-Object infrastructure)
 if ($ungraded.Count) { Write-BenchLog "$($ungraded.Count) session(s) produced no answer to grade, even after retrying: the run is incomplete"; exit 1 }
+if ($notReached.Count) { Write-BenchLog ("{0} session(s) not started: the time limit of {1} minutes was reached (not-reached.json); the run is incomplete, exit 2" -f $notReached.Count, $MaxMinutes) }
 if ($notRun.Count) { Write-BenchLog ("{0} session(s) not run: the ceiling of {1:N2} USD was reached at {2:N2} USD; the run is incomplete" -f $notRun.Count, $budget, $spentUsd); exit 1 }
+if ($notReached.Count) { exit 2 }
 exit 0
