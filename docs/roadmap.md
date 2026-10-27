@@ -150,6 +150,21 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 - **Why CI and the owner's PC disagree** (question round note 11). No quick way to see why a run passes on one and
   fails on the other; the idea is to compare the two runs' `-Json` results side by side. Postponed by the owner on
   2026-10-26 until after the 0.1.0 release.
+- **README adoption rewrite** (the owner's adoption review, 2026-10-27; after the complete mid run). A README opening
+  that leads with the problem (an agent proves a Godot game still works, with evidence instead of trust), a quick start
+  with the right script path (`ci/godot/hyperdot.ps1`), a choose-your-path section, Core (`test`, `build`, `export`)
+  against Advanced, and a table of what Hyperdot adds on top of GUT, gdUnit4Net and GoDotTest, which it runs. Both
+  languages stay in the headline. The demo recording and a "things AI agents break in Godot" write-up need material
+  from the owner.
+- **`telemetry`: one view of the pipeline's own numbers** (from the owner's study of distributed-pipeline reading, after
+  the README work, not before). `.godot/hyperdot-history.jsonl` already holds every command's run: mean test duration,
+  export duration, bench duration, failure hot spots and flaky tests would be read from it, plus cache hit rates once
+  the input-hash cache below exists. It adds a view over data the kit keeps, not new data.
+- **A cache keyed by a hash of the inputs, for CI** (same origin, after `telemetry`). A job's inputs (the project
+  files it reads, the Godot version, the kit version) are hashed, and a job whose hash has already passed is skipped,
+  where `Select-Jobs.ps1` now selects by the paths a change touches. Open question first: a result may be reused
+  only for tests that do not flake on runners (the C# soak's memory growth has failed there twice), so each job needs a
+  note on whether its result is deterministic.
 
 ### From the label and the adversarial review (2026-10-23)
 
