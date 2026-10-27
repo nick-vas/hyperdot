@@ -97,6 +97,12 @@ else {
     if ($healthy.soak.server.metrics.clients -ne 4) { $failures += "the server reported $($healthy.soak.server.metrics.clients) clients" }
 }
 
+# A window too short for 3 memory samples reads 0 MB/h and would pass any limit: refused up front, before a process starts.
+$short = Invoke-Soak @('-Clients', '1') $fixture 0.5 1
+if ($short.ok -or $short.error.code -ne 'invalid-arguments' -or $short.error.message -notmatch '3 memory samples') {
+    $failures += "-Seconds 1 with -MaxGrowthMbPerHour should be refused as invalid-arguments: $($short.error.code) $($short.error.message)"
+}
+
 # The stop at the end: SIGTERM, as a host sends it. The GDScript fixture has no way to catch it and dies with 143; the C#
 # fixture catches it (PosixSignalRegistration), drains and quits with 0.
 if ($healthy.ok -and -not $IsWindows) {

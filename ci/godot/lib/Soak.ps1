@@ -151,6 +151,12 @@ function Invoke-Soak {
     $flood = $null
     $stop = $null
     $sampleEvery = [Math]::Max(1.0, [Math]::Min(30.0, $Seconds / 20))
+    # Growth is a slope, which needs 3 samples (Get-SlopeMbPerHour); the loop checks the clock every 0.25 s. A window too short
+    # for them would report 0 MB/h and pass any -MaxGrowthMbPerHour, so refuse it rather than gate on nothing.
+    $shortest = 2 * $sampleEvery + 0.5
+    if ($MaxGrowthMbPerHour -gt 0 -and $Seconds -lt $shortest) {
+        Stop-GodotCi "-MaxGrowthMbPerHour needs at least 3 memory samples, one every $sampleEvery s, so -Seconds of $shortest or more (not $Seconds)" 'invalid-arguments'
+    }
 
     Start-LogGroup "Soak: 1 server and $Clients client(s) for $Seconds s (port $port)$(if ($JunkPps) { ", junk flood $JunkPps pps" })"
     try {
@@ -265,6 +271,10 @@ function Invoke-Soak {
         $text = Get-SoakGrowthWarning $r.name ([pscustomobject]@{ Smallest = $r.memoryMb.growthPerHour; Whole = $r.memoryMb.growthWholeWindowPerHour; Second = $r.memoryMb.growthSecondHalfPerHour }) $MaxGrowthMbPerHour
         if ($text) { [ordered]@{ process = $r.name; message = $text } }
     })
+    # A run cut short (a crash, a stop) can still end with fewer than 3 samples; then growth reads 0 and gates nothing.
+    if ($MaxGrowthMbPerHour -gt 0 -and $procs[0].Samples.Count -lt 3) {
+        $growthWarnings += [ordered]@{ process = $server.name; message = "too few samples to measure growth: $($procs[0].Samples.Count) of the 3 needed, so growthPerHour is 0 and -MaxGrowthMbPerHour checked nothing" }
+    }
     $summary['warnings'] = $growthWarnings
     $summary['stop'] = $stop
     if ($stop -and -not $stop.clean) {

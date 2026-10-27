@@ -169,10 +169,17 @@ function Resolve-FailureDetail($Failure, [string[]]$LogLines) {
     return [pscustomobject]@{ Name = $Failure.Name; Message = $message; File = $file; Line = $line; Details = $detail }
 }
 
+# Text for an XML 1.0 document: drops the characters XML cannot hold (NUL, BEL, ESC and other controls, lone surrogates,
+# U+FFFE and U+FFFF), which would make Read-JUnit throw and lose the real error text. Keeps tab, LF, CR and surrogate pairs.
+function Remove-XmlInvalidChar([string]$Text) {
+    if (-not $Text) { return '' }
+    return [regex]::Replace($Text, '([\uD800-\uDBFF][\uDC00-\uDFFF])|[^\x09\x0A\x0D\x20-퟿-�]', '$1')
+}
+
 # JUnit for runners without their own report. Each case: @{ Name = ...; Failure = '' or the reason }, and optionally
 # Skipped = the reason a case could not run, ClassName (default: the suite) and Time (seconds).
 function Write-JUnitCases([string]$Path, [string]$Suite, [object[]]$Cases) {
-    $e = { param($t) [System.Security.SecurityElement]::Escape([string]$t) }
+    $e = { param($t) [System.Security.SecurityElement]::Escape((Remove-XmlInvalidChar ([string]$t))) }
     $failed = @($Cases | Where-Object { $_.Failure }).Count
     $xml = [System.Collections.Generic.List[string]]::new()
     $xml.Add('<?xml version="1.0" encoding="UTF-8"?>')
@@ -272,7 +279,7 @@ function ConvertFrom-GoDotTestLog([string]$LogFile, [string]$JUnitFile) {
             $errors[$key] = $detail -join "`n"
         }
     }
-    $e = { param($t) [System.Security.SecurityElement]::Escape($t) }
+    $e = { param($t) [System.Security.SecurityElement]::Escape((Remove-XmlInvalidChar ([string]$t))) }
     $xml = [System.Collections.Generic.List[string]]::new()
     $xml.Add('<?xml version="1.0" encoding="UTF-8"?>'); $xml.Add('<testsuites>')
     foreach ($group in $cases.Keys | Group-Object { ($_ -split '::')[0] }) {

@@ -216,6 +216,20 @@
       "locales": ["fr", "de"],
       "voiced": true
     },
+    "nofields": {
+      "file": "data/nofields.json",
+      "id": "id"
+    },
+    "badregex": {
+      "file": "data/badregex.json",
+      "id": "id",
+      "fields": {
+        "code": {
+          "type": "string",
+          "pattern": "[a-"
+        }
+      }
+    },
     "characters": {
       "file": "data/characters.json",
       "id": "id",
