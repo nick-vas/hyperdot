@@ -158,7 +158,9 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
   numbers; none is invented.
 - **Measurements postponed** (decision of the owner, 2026-10-27): all measurements except the running Haiku
   configuration wait until the owner says so: Haiku with the plugin, Sonnet, Sonnet with the plugin, Opus, and the
-  game-making label rating.- **`telemetry`: one view of the pipeline's own numbers** (from the owner's study of distributed-pipeline reading, after
+  game-making label rating.
+- **Rating a continued run**: `Get-HyperdotLabel.ps1` treats each `results.json` as one unit (one repetition of the standard programme), so a configuration finished with `-SkipDone` (benchmark/PLAN.md, section 4) would count as two units, each incomplete. It has to merge the units of a run and its continuations (`meta.continuation`) before the label can rate a continued run; until then the continued results are read apart.
+- **`telemetry`: one view of the pipeline's own numbers** (from the owner's study of distributed-pipeline reading, after
   the README work, not before). `.godot/hyperdot-history.jsonl` already holds every command's run: mean test duration,
   export duration, bench duration, failure hot spots and flaky tests would be read from it, plus cache hit rates once
   the input-hash cache below exists. It adds a view over data the kit keeps, not new data.

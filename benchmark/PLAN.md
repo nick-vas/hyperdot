@@ -304,6 +304,8 @@ A run through the subscription token counts against the plan's usage, not a bill
 A narrowed or custom run gives informative results, never a class. The EU label rates only the standard programme,
 however many others a machine has.
 
+**Finishing a run.** A run that did not complete (a usage limit, a job cancelled at its time limit) is finished, not repeated: `-SkipDone` skips each session (configuration, profile, task, repetition) that has a row which ran, before `-Shard` splits the rest, and `-MaxMinutes` ends a part cleanly (exit 2, `not-reached.json`) inside the job limit. The workflow takes both as `continue_run` and `max_minutes`. A continuation's results and the run's together are the whole; the label still reads them apart (docs/roadmap.md).
+
 ## 5. The private field test
 
 `-GameSource <folder>` runs generic templates (fix a mutant the tool plants, write tests that catch planted bugs, make

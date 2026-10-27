@@ -15,6 +15,19 @@
 # parallel jobs; the plan job checks the whole run's estimate against the tier's ceiling first, so nothing is spent on a
 # run that is over it.
 #
+# `continue_run` finishes an earlier run that did not complete (a usage limit, the job time limit, a cut-off): the id of
+# an earlier Token benchmark run of this repository (empty for none). Every job downloads that run's
+# `token-benchmark-<programme>-*` artifacts (kept 30 days) and runs only the sessions that have no result there that ran
+# (`-SkipDone`: tokens spent and not an infrastructure failure; the others run again), then shards what is left, so the plan
+# job's estimate and the parts count only the remainder. Give the same selection (programme, tier, model, plugin, repeat,
+# profiles, tasks) as the run being continued. The results are a new run of their own, never a change to the old one; the
+# classes need both runs' results together.
+#
+# `max_minutes` (300, under the job's 330) stops a job from starting new sessions after that long: the session running
+# finishes, the results and `not-reached.json` (the sessions left) are uploaded as usual and the job ends green, with a
+# notice. Continue that run with `continue_run` for the rest. A tool-programme job (120 minutes) stops 30 minutes short of
+# its limit if this is more.
+#
 # `calibrate` runs no benchmark: it calibrates the judge (benchmark/PLAN.md, section 3). For every set of the owner's
 # blind verdicts in benchmark/calibration it downloads that staged run's results and rebuilds the pairs judged on the
 # review page (checked against the answer key's hash); each candidate judge, cheapest first by cost-model.json (or the
@@ -80,7 +93,12 @@ on:
       shards:
         description: Split each configuration into this many parallel jobs (the mid tier outlasts one job's 330 minutes)
         default: '1'
-
+      continue_run:
+        description: Id of an earlier Token benchmark run of this repository to continue, running only the sessions it did not run (empty for none)
+        default: ''
+      max_minutes:
+        description: Stop starting new sessions after this many minutes, and upload what was measured (the job limit is 330)
+        default: '300'
 permissions:
   contents: read
 
@@ -89,12 +107,26 @@ jobs:
     if: ${{ !inputs.calibrate }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read   # the continued run's artifacts
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
       spec: ${{ steps.matrix.outputs.spec }}
     steps:
       - uses: actions/checkout@v7
-      # One job per configuration; with `all`, a dry run of each first: one over its share of the tier's ceiling fails
+      # The sessions an earlier run already ran, so the estimate and the parts count only the others.
+      - name: The continued run's results
+        if: inputs.continue_run != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.continue_run }}
+          PROGRAMME: ${{ inputs.programme }}
+        run: |
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]] || { echo "continue_run must be a run id (digits), got '$RUN_ID'"; exit 1; }
+          gh run download "$RUN_ID" -R "$GITHUB_REPOSITORY" -p "token-benchmark-$PROGRAMME-*" -D continued \
+            || { echo "The results of run $RUN_ID are gone or it has none for this programme (a run keeps them for 30 days)"; exit 1; }      # One job per configuration; with `all`, a dry run of each first: one over its share of the tier's ceiling fails
       # here, before any session runs.
       - name: Configurations and their estimated cost
         id: matrix
@@ -112,6 +144,7 @@ jobs:
           PROFILES: ${{ inputs.profiles }}
           TASKS: ${{ inputs.tasks }}
           SHARDS: ${{ inputs.shards }}
+          CONTINUE_RUN: ${{ inputs.continue_run }}
         run: |
           $spec = switch ($env:PROGRAMME) { 'game' { 'benchmark/game-benchmark.json' } 'staged' { 'benchmark/game-programme.json' } default { 'benchmark/token-benchmark.json' } }
           $doc = Get-Content $spec -Raw | ConvertFrom-Json -AsHashtable
@@ -126,12 +159,13 @@ jobs:
               $value = [Environment]::GetEnvironmentVariable($pair[0]); if ($value) { $params[$pair[1]] = $value }
             }
             if ($env:REPEAT) { $params.Repeat = [int]$env:REPEAT }
+            if ($env:CONTINUE_RUN) { $params.SkipDone = (Get-ChildItem continued -Directory | ForEach-Object FullName) -join ',' }
             $out = ./benchmark/Invoke-TokenBenchmark.ps1 @params
             if ($LASTEXITCODE) { throw "$($c.model)$(if ($c.plugin) { ' with the plugin' }): the dry run failed (over its ceiling, or a bad selection)" }
             $estimate = ($out | Select-Object -Last 1 | ConvertFrom-Json).estimateUsd
             if ($null -ne $estimate) { $total += $estimate }
           }
-          "Estimated cost of the whole run: $([math]::Round($total, 2)) USD over $($configs.Count) configuration(s)" | Add-Content $env:GITHUB_STEP_SUMMARY
+          "Estimated cost of the whole run$(if ($env:CONTINUE_RUN) { " (the sessions left of run $env:CONTINUE_RUN)" }): $([math]::Round($total, 2)) USD over $($configs.Count) configuration(s)" | Add-Content $env:GITHUB_STEP_SUMMARY
           # Each configuration as one job, or as n parts (Invoke-TokenBenchmark.ps1 -Shard k/n) that together are the run.
           $n = [Math]::Max(1, [int]"0$env:SHARDS")
           $jobs = @(foreach ($c in $configs) { for ($k = 1; $k -le $n; $k++) { @{ model = $c.model; plugin = [bool]$c.plugin; shard = $(if ($n -gt 1) { "$k/$n" } else { '' }); part = $(if ($n -gt 1) { "$k" } else { '' }) } } })
@@ -146,6 +180,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    permissions:
+      contents: read
+      actions: read   # the continued run's artifacts
     env:
       # An ANTHROPIC_API_KEY in the environment would take precedence over the token, so none is set here.
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -156,6 +193,17 @@ jobs:
         run: |
           if (-not $env:CLAUDE_CODE_OAUTH_TOKEN) { throw 'Add the CLAUDE_CODE_OAUTH_TOKEN repository secret (from claude setup-token) to run the benchmark' }
           npm install -g @anthropic-ai/claude-code
+      - name: The continued run's results
+        if: inputs.continue_run != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.continue_run }}
+          PROGRAMME: ${{ inputs.programme }}
+        run: |
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]] || { echo "continue_run must be a run id (digits), got '$RUN_ID'"; exit 1; }
+          gh run download "$RUN_ID" -R "$GITHUB_REPOSITORY" -p "token-benchmark-$PROGRAMME-*" -D continued \
+            || { echo "The results of run $RUN_ID are gone or it has none for this programme (a run keeps them for 30 days)"; exit 1; }
       # The game programmes' sessions run Godot, and their grader runs the game's tests; setup sets GODOT_BIN for both.
       # The staged programme has C# games too, so it takes the .NET build of Godot, which runs GDScript as well.
       - name: Godot for the game programmes
@@ -186,6 +234,10 @@ jobs:
           TASKS: ${{ inputs.tasks }}
           ISOLATE: ${{ inputs.isolate }}
           SHARD: ${{ matrix.shard }}
+          CONTINUE_RUN: ${{ inputs.continue_run }}
+          MAX_MINUTES: ${{ inputs.max_minutes }}
+          # The job's own time limit (below), for the margin the session in progress and the upload need.
+          JOB_MINUTES: ${{ inputs.programme == 'tool' && 120 || 330 }}
         run: |
           $params = @{ SpecPath = $env:SPEC; OutputDir = 'benchmark/results'; SaveResponses = $true; Model = $env:MODEL }
           if ($env:PLUGIN -eq 'true') { $params.Plugin = $true }
@@ -195,8 +247,16 @@ jobs:
           }
           if ($env:REPEAT) { $params.Repeat = [int]$env:REPEAT }
           if ($env:SHARD) { $params.Shard = $env:SHARD }
+          if ($env:CONTINUE_RUN) { $params.SkipDone = (Get-ChildItem continued -Directory | ForEach-Object FullName) -join ',' }
+          # Never later than 30 minutes before the job's limit, whatever max_minutes says.
+          $minutes = [Math]::Min([int]"0$env:MAX_MINUTES", [int]$env:JOB_MINUTES - 30)
+          if ($minutes -gt 0) { $params.MaxMinutes = $minutes }
           ./benchmark/Invoke-TokenBenchmark.ps1 @params
+          $code = $LASTEXITCODE
           Get-ChildItem benchmark/results -Recurse -Filter summary.md | Get-Content -Raw | Add-Content $env:GITHUB_STEP_SUMMARY
+          # Exit 2 is the runner's "incomplete, nothing failed": the time limit came first. The upload follows; continue_run finishes it.
+          if ($code -eq 2) { Write-Host "::notice::Stopped at the $minutes-minute limit; the sessions left are in not-reached.json. Run again with continue_run set to this run's id."; exit 0 }
+          exit $code
       - uses: actions/upload-artifact@v7
         if: always()
         with:

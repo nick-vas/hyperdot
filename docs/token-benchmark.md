@@ -148,6 +148,8 @@ list; `benchmark/GameProgramme.ps1` turns what a run selects into ordinary tasks
 | `-TaskId` | full ids, wildcards allowed (`*.fix-bug`, `*.milestone`) |
 | `-BudgetUsd` | the most the run may cost |
 | `-Shard k/n` | one of n parts of the run: its sessions are every n-th in the run's order from the k-th, with their own estimate and their share of the ceiling; the n parts together are the run (`meta.shard`, and `meta.partOfStandard` instead of `standard`) |
+| `-SkipDone <folder,...>` | continue an earlier run: every `results.json` under those folders (the artifact layout `<folder>/<time>/results.json`) is read, and each session (configuration, profile, task, repetition) with a row that ran is not run again. "Ran" means tokens spent and not an infrastructure failure; a row with `tokensTotal` 0 or `infrastructure` true is run again, a failed answer is not. The key does not include the order, so the rotation of the first profile does not matter. The skip comes before `-Shard`, so what is left splits evenly. The dry run counts and prices only the remainder (`skipped`, `continuation` in its JSON). The new run is a fresh folder; its summary says `meta.continuation`, `meta.skipped`, and `standard` and `partOfStandard` stay false: the classes need the earlier results and this run together |
+| `-MaxMinutes n` | stop starting new sessions after n minutes (fractions allowed); the session running finishes. The rest is written to `not-reached.json` (configuration, profile, task, repetition), `meta.notReached` and the summary say how many, and the exit code is 2: incomplete, nothing failed (1 stays for failed sessions and the cost ceiling) |
 
 **Cost.** `benchmark/cost-model.json` gives each kind of session an expected cost by model, plugin and kind (task or
 milestone). The runner estimates the run from it. The ceiling is `-BudgetUsd`, or the tier's `maxCostUsd` shared over
@@ -199,6 +201,16 @@ its share. Then one job per configuration runs in parallel.
 A tier that outlasts one job (the mid tier runs 135 sessions a configuration, about seven hours) takes `shards: n`:
 each configuration then runs as n parallel jobs, one per part, each with its own artifact (`-part-k`).
 
+**Finishing a run that did not complete.** A usage limit, the job's 330 minutes or a cancelled job leave sessions
+unrun. `max_minutes` (default 300) makes each job stop starting sessions at that time and end green with its results and
+`not-reached.json` uploaded, instead of being cancelled. `continue_run: <run id>` then runs only what is missing: each
+job downloads the `token-benchmark-<programme>-*` artifacts of that run (kept 30 days; the workflow's `actions: read`
+permission), passes them as `-SkipDone`, and the plan job's estimate counts only the remainder, so the shards split it
+evenly. Give the same selection as the run being continued. The old run is not changed; the new one is a continuation
+(see `-SkipDone`). A continuation can itself be continued, naming it in turn.
+
+Sizing: at about seven minutes a session, a job reaches 300 minutes after about 40 sessions. A remainder of 40 sessions
+fits one job, two give margin.
 
 ## Isolation
 
