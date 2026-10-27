@@ -140,6 +140,15 @@ try {
     Assert-True ($text -match 'too few passing runs to time' -and $text -match 'Fails often: gut test_x') 'the text says so'
 } finally { Remove-Item -LiteralPath $few -Recurse -Force -ErrorAction SilentlyContinue }
 
+# The trend needs four timed runs (two and two); three give the durations and no trend (read in-process, in a scope of its own).
+& {
+    foreach ($lib in 'Common', 'Report', 'Status', 'Telemetry') { . (Join-Path $root "ci/godot/lib/$lib.ps1") }
+    $three = Get-TelemetryDurations ([double[]]@(10, 20, 30))
+    Assert-True (-not $three.insufficient -and $three.meanSeconds -eq 20 -and $null -eq $three.trend) 'three timed runs: durations, no trend'
+    $four = Get-TelemetryDurations ([double[]]@(10, 20, 30, 40))
+    Assert-True ($null -ne $four.trend -and $four.trend.halfRuns -eq 2 -and $four.trend.ratio -eq 2.33) 'four timed runs: a trend over two and two'
+}
+
 if ($failures) { Write-Host "$($failures.Count) check(s) failed"; exit 1 }
 Write-Host 'telemetry reads the run history: per-command pass rate, mean, median, p95 and trend, slowest runners, hot spots, flaky tests, recurring errors; thin or missing history is said so'
 exit 0
