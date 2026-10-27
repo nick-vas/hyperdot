@@ -129,6 +129,8 @@ function Invoke-BenchSweep {
             p50Ms = $null; p99Ms = $null; maxMs = $null; fpsAvg = $null; low1 = $null; drawCallsAvg = $null; loadMs = $null
             result = (Join-Path $ResultsDir "bench.$runName.json") }
         Write-CiLog "Sweep $($Sweep.Name)=${value}"
+        # An earlier sweep in this folder left a file of this name: a run that fails must not report its numbers.
+        Remove-Item -LiteralPath $row.result -Force -ErrorAction SilentlyContinue
         $script:CatchStops = $true
         try {
             Invoke-Bench -Info $Info -Scene $Scene -Seconds $Seconds -Warmup $Warmup -Resolution $Resolution -Uncapped:$Uncapped -MaxFps $MaxFps `
@@ -139,7 +141,7 @@ function Invoke-BenchSweep {
             $row.message = $_.Exception.Message
             if ($row.code -in $limitCodes) { $row.withinLimits = $false } else { $row.ok = $false }
         } finally { $script:CatchStops = $false }
-        if (Test-Path -LiteralPath $row.result) {
+        if ($row.ok -and (Test-Path -LiteralPath $row.result)) {
             $r = Get-Content -LiteralPath $row.result -Raw | ConvertFrom-Json
             $row.p50Ms = $r.frameMs.p50; $row.p99Ms = $r.frameMs.p99; $row.maxMs = $r.frameMs.max; $row.fpsAvg = $r.fps.avg
             $row.low1 = $r.fps.low1; $row.drawCallsAvg = $r.drawCalls.avg; $row.loadMs = $r.loadMs

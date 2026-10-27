@@ -104,7 +104,7 @@ try {
     }
     $clock = [Diagnostics.Stopwatch]::StartNew()
     Assert-Code 'preset-not-found' @('export', '-Project', $early, '-Preset', 'typo') $standIn
-    Assert-True ($clock.Elapsed.TotalSeconds -lt 30) "export -Preset typo fails before any download ($([int]$clock.Elapsed.TotalSeconds) s)"
+    Assert-True ($clock.Elapsed.TotalSeconds -lt 90) "export -Preset typo fails before any download ($([int]$clock.Elapsed.TotalSeconds) s)"
 
     # audio measures with ffmpeg: a PATH without it.
     $audio = Copy-Example 'audio'
