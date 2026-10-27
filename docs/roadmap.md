@@ -140,15 +140,6 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
   input takes any alias), once for each plugin setting, or `configurations: all` for all six. It costs money: confirm
   first, and put the measured means into `cost-model.json` afterwards. The owner chose on 2026-10-26 to measure Opus in a
   run of its own, after the first complete mid run of the four.
-- **The tool programme's label files (0.1.0 item 8, not done).** `docs/label/` does not exist yet: the 0.1.0 rating
-  ([token-benchmark.md](token-benchmark.md#reference-runs-october-2026)) was computed from 216 sessions of GitHub Actions
-  runs 39930259189 to 39930286282, and `benchmark/Get-HyperdotLabel.ps1` reads the runs' `results.json` and `responses/`
-  folders (`-Results`), plus a coverage report (`-Coverage`, from the self-test's records). None of these is in the
-  repository, and the sandbox that tried could not download the runs' artifacts (the proxy refuses the Actions API by run
-  id; artifacts also expire after the retention period). Nothing was improvised. To finish: download those artifacts
-  (or run the tool programme again, which costs money: confirm first), collect the `coverage` job's records, then run
-  `pwsh benchmark/Get-HyperdotLabel.ps1 -Results <runs> -Coverage coverage.json -OutDir docs/label` and commit
-  `docs/label/`. From then on, commit each rated run's results (or a release asset) so the label can be rebuilt.
 - **Why CI and the owner's PC disagree** (question round note 11). No quick way to see why a run passes on one and
   fails on the other; the idea is to compare the two runs' `-Json` results side by side. Postponed by the owner on
   2026-10-26 until after the 0.1.0 release.
