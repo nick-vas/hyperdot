@@ -110,7 +110,9 @@ if (-not $IsWindows) {
     # a one-time step of 2 MB is 400 MB/h over a 20 s window (the growth ignores steps, but a longer window halves the rest).
     $cs = Invoke-Soak @('-Clients', '1', '-RequireCleanStop') (Join-Path $PSScriptRoot 'soak-fixture-cs') 15 30
     if (-not $cs.ok) { $failures += "the C# server that handles SIGTERM failed: $($cs.error.code) $($cs.error.message)" }
-    elseif (@($cs.soak.warnings).Count) { $failures += "a flat C# server should have no growth warning: $($cs.soak.warnings | ConvertTo-Json -Depth 5 -Compress)" }
+    # (Whether a flat server draws a growth warning is not asserted: the warning flags a window whose slopes disagree, which a
+    # 30 s window on a shared runner does now and then - 293 and 446 MB/h against a smallest slope of 108 - and it is only a
+    # warning. A real leak fails on the smallest slope, checked below.)
     elseif (-not $cs.soak.stop.clean -or $cs.soak.stop.exitCode -ne 0) { $failures += "the C# server should stop cleanly: $($cs.soak.stop | ConvertTo-Json -Depth 10 -Compress)" }
 }
 

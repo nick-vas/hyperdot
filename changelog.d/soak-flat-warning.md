@@ -1,0 +1,1 @@
+Fixed: the soak self-test no longer asserts that a flat C# server draws no growth warning; on a 30 s window on a shared runner the warning (slopes that disagree) appears now and then, and a real leak is still failed by the growth limit.
