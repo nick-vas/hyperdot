@@ -1,0 +1,1 @@
+Fixed: `release.yml` takes a `major_tag` input (a 0.x release names `v1` there, as games pin `@v1`; the default stays `v<major>`), leaves a version tag and release that already point at the commit as they are, and still refuses a version tag at another commit.
