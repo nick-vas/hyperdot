@@ -9,3 +9,7 @@
 - New `error.code`: add it to `docs/json.md`. Never rename one.
 - New or changed skill: keep each `SKILL.md` under 16 KB, with `name` and `description` front matter, and make sure every
   command in it runs.
+- Changelog: do not edit `CHANGELOG.md` (every pull request would conflict on its top lines). Add one fragment,
+  `changelog.d/<slug>.md`, whose first line is `<Category>: <entry>` (Added, Changed, Fixed, Removed, Deprecated or Security);
+  the format is in [changelog.d/README.md](changelog.d/README.md). The release assembles the fragments with
+  `ci/godot/tools/Update-Changelog.ps1 -Version <x.y.z>`.

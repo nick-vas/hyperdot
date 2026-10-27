@@ -116,6 +116,13 @@ test programme (cheap to lose, redundant with a nearer check) and the field test
 largest, with the least to say about a kit change). The rest stay, as the error codes, the plan's gates, the web and GPU
 checks guard contracts a pull request should not break, and a quiet sample is not a reason to stop looking.
 
+### Changelog fragments
+
+`CHANGELOG.md` is edited only at release. Each change adds `changelog.d/<slug>.md` (format: `changelog.d/README.md`) and
+`ci/godot/tools/Update-Changelog.ps1` assembles them; `tests/Test-Changelog.ps1` runs in `lint`, and a change to the fragments
+is Markdown, so it runs `lint` alone. The repository has no rule that a pull request must change the changelog, so CI does
+not require a fragment.
+
 ## Running everything locally
 
 ```
