@@ -113,6 +113,40 @@ Assert-True ($order.timeline.deadlines.demoReview -eq '2027-05-10') 'the press p
 $none = Get-ReleaseTimeline ([pscustomobject]@{ date = $null }) ([datetime]'2027-01-04')
 Assert-True ($null -eq $none.timeline -and $none.warnings.Count -eq 0) 'no release date, no timeline'
 
+# The automatic gates `ci` and `preset` (Test-PlanGate on a made-up project): a workflow or GitLab file that uses the kit
+# passes, one that only mentions godot.yml, or none, does not, and neither does a project with no export preset.
+$gateDir = Join-Path ([IO.Path]::GetTempPath()) "plan-gate-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+try {
+    New-Item -ItemType Directory -Force (Join-Path $gateDir 'plan') | Out-Null
+    Set-Content -LiteralPath (Join-Path $gateDir 'plan/plan.json') -Value '{}'
+    $gateInfo = [pscustomobject]@{ ProjectDir = $gateDir; Runners = @(); Presets = @() }
+    $ciGate = [pscustomobject]@{ id = 'prototype.setup'; check = 'ci' }
+    $workflowDir = Join-Path $gateDir '.github/workflows'
+    New-Item -ItemType Directory -Force $workflowDir | Out-Null
+    function Set-CiFile([string]$Path, [string]$Text) { Set-Content -LiteralPath (Join-Path $gateDir $Path) -Value $Text }
+    Assert-True ((Test-PlanGate $ciGate $gateInfo) -eq $false) 'the ci gate is open with no workflow'
+    Set-CiFile '.github/workflows/test.yml' "jobs:`n  t:`n    steps:`n      - run: echo godot.yml`n      - uses: actions/checkout@v4`n"
+    Assert-True ((Test-PlanGate $ciGate $gateInfo) -eq $false) 'the ci gate stays open for a workflow that only mentions godot.yml'
+    Set-CiFile '.github/workflows/other.yml' "jobs:`n  t:`n    uses: someone-else/repo/.github/workflows/godot.yml@v1`n"
+    Assert-True ((Test-PlanGate $ciGate $gateInfo) -eq $false) 'the ci gate stays open for another repository''s godot.yml'
+    Set-CiFile '.github/workflows/action.yml' "jobs:`n  t:`n    steps:`n      - uses: nick-vas/hyperdot/.github/actions/godot@v1`n"
+    Assert-True ((Test-PlanGate $ciGate $gateInfo) -eq $true) 'the ci gate passes for a workflow using the kit''s composite action'
+    Remove-Item -LiteralPath (Join-Path $workflowDir 'action.yml')
+    Set-CiFile '.github/workflows/hyperdot.yml' "jobs:`n  t:`n    uses: nick-vas/hyperdot/.github/workflows/godot.yml@v1`n"
+    Assert-True ((Test-PlanGate $ciGate $gateInfo) -eq $true) 'the ci gate passes for a workflow calling the kit''s reusable workflow'
+    Remove-Item -LiteralPath $workflowDir -Recurse -Force
+    Set-CiFile '.gitlab-ci.yml' "stages: [test]`nbuild:`n  script: [make]`n"
+    Assert-True ((Test-PlanGate $ciGate $gateInfo) -eq $false) 'the ci gate stays open for a GitLab file that does not use the kit'
+    Set-CiFile '.gitlab-ci.yml' "include:`n  - remote: https://raw.githubusercontent.com/nick-vas/hyperdot/v1/ci/gitlab/hyperdot.gitlab-ci.yml`n"
+    Assert-True ((Test-PlanGate $ciGate $gateInfo) -eq $true) 'the ci gate passes for a GitLab file including the kit''s template'
+    $presetGate = [pscustomobject]@{ id = 'x.preset'; check = 'preset' }
+    Assert-True ((Test-PlanGate $presetGate $gateInfo) -eq $false) 'the preset gate is open with no export preset'
+    $gateInfo.Presets = @('Linux')
+    Assert-True ((Test-PlanGate $presetGate $gateInfo) -eq $true) 'the preset gate passes with an export preset'
+} finally {
+    Remove-Item -LiteralPath $gateDir -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 try {
     New-Item -ItemType Directory -Force $dir | Out-Null
     Set-Content -LiteralPath (Join-Path $dir 'project.godot') -Value "config_version=5`n`n[application]`n`nconfig/name=""Plan Fixture""`n"

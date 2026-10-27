@@ -73,7 +73,7 @@
       "gates": [
         {
           "id": "prototype.setup",
-          "text": "Project builds and the kit is wired in (hyperdot init)",
+          "text": "Project builds and the kit is wired in (hyperdot init; a GitHub workflow or GitLab file that uses the kit)",
           "check": "ci"
         },
         {

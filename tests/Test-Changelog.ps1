@@ -31,12 +31,17 @@ try {
     Set-Fragment $repo 'a-fix.md' "Fixed: first fix`ncontinues here"
     Set-Fragment $repo 'new-thing.md' 'Added: a thing'
     Set-Fragment $repo 'tweak.md' 'Changed: a tweak'
+    Set-Fragment $repo 'gone.md' 'Removed: a thing'
+    Set-Fragment $repo 'old.md' 'Deprecated: a flag'
+    Set-Fragment $repo 'sec.md' 'Security: a hole'
     Set-Fragment $repo 'README.md' 'not a fragment at all'
     $r = Invoke-Tool $repo @('-Version', '0.1.0', '-Date', '2026-11-01')
     $text = Get-Content -Raw -LiteralPath (Join-Path $repo 'CHANGELOG.md')
     Assert-True ($r.Code -eq 0) "assembles: $($r.Out)"
     Assert-True ($text -match '(?s)^# Changelog\n\n## Unreleased\n\n## 0\.1\.0 - 2026-11-01\n') 'an empty Unreleased heading above the dated version'
     Assert-True ($text.IndexOf('### Added') -lt $text.IndexOf('### Changed') -and $text.IndexOf('### Changed') -lt $text.IndexOf('### Fixed')) 'categories in the fixed order'
+    $at = @('Added', 'Changed', 'Fixed', 'Removed', 'Deprecated', 'Security') | ForEach-Object { $text.IndexOf("### $_") }
+    Assert-True (@($at | Where-Object { $_ -lt 0 }).Count -eq 0 -and (($at | Sort-Object) -join ',') -eq ($at -join ',')) "all six categories in the fixed order ($($at -join ','))"
     Assert-True ($text.Contains("- first fix`n  continues here`n- second fix")) 'entries sorted by slug, continuation lines indented'
     Assert-True ($text.IndexOf('Old entry') -lt $text.IndexOf('### Added') -and $text.Contains("Second line.`n`n### Added")) 'the old Unreleased text stays first in the new section'
     Assert-True ($text.IndexOf('## 0.1.0') -lt $text.IndexOf('## Earlier') -and $text.Contains("## Earlier`nOlder things.")) 'the previous sections stay below'
@@ -90,6 +95,11 @@ try {
     $r = Invoke-Tool $repo @('-Version', '0.4.0', '-Date', '2026-12-02')
     $text = Get-Content -Raw -LiteralPath (Join-Path $repo 'CHANGELOG.md')
     Assert-True ($r.Code -eq 0 -and $text.IndexOf('## 0.4.0') -lt $text.IndexOf('## 0.3.0')) 'a later release goes above the earlier one'
+    # A version is the same section only when the whole version matches: 0.6.0 is not 0.6.01.
+    Set-Content -LiteralPath (Join-Path $repo 'CHANGELOG.md') "# Changelog`n`n## Unreleased`n`n## 0.6.01 - 2026-01-01`n- older`n"
+    Set-Fragment $repo 'six.md' 'Added: six'
+    $r = Invoke-Tool $repo @('-Version', '0.6.0', '-Date', '2026-12-03')
+    Assert-True ($r.Code -eq 0) "0.6.0 is not refused for a section named 0.6.01: $($r.Out.Trim())"
     Set-Content -LiteralPath (Join-Path $repo 'CHANGELOG.md') "# Changelog`n"
     Set-Fragment $repo 'three.md' 'Added: three'
     $r = Invoke-Tool $repo @('-Version', '0.5.0')

@@ -239,7 +239,9 @@ that on Linux:
   a link), and the game's `.git` from before the session is put back (the session's git settings could run commands when
   the grader runs git; its work stays in the files and the diff).
 
-What it does not do: the grader still runs the session's code, as the runner, when it runs the game's tests; and on
+What it does not do: isolation covers the session, not the grading step. The grader still runs the session's code (the
+game's autoloads and scripts, loaded by Godot when the tests start), as the runner, after the session user is dropped, so
+that code can read what the runner can until a second, unprivileged grading user is added (see the roadmap); and on
 Windows, on macOS or without root or passwordless sudo, `-Isolate` warns and runs the sessions as before.
 
 `tests/Test-BenchmarkIsolation.ps1` runs the one-genre test programme with the stand-in, which tries to read
@@ -322,7 +324,7 @@ for the right kind of reason, `doctor-green` on a copy whose `doctor` fails, and
 ## Reference runs (October 2026)
 
 Hyperdot 0.1.0 at commit `e4ccc2e`, Claude Code 2.1.309, three runs of every task. These are GitHub Actions runs
-39930259189 to 39930286282: 216 sessions, $5.95 by Claude Code's figure, run on a subscription. They set the label's scale
+39930259189 to 39930286282: 192 sessions (240 calls), $5.95 by Claude Code's figure, run on a subscription. They set the label's scale
 ([label.md](label.md)). The table is graded by the current grader, from the saved answers.
 
 | Model | Profile | AEI | Pass | Tokens per solved task | Cost per solved task | Class |
@@ -346,10 +348,10 @@ What they show:
 - **Sonnet fails on length, not on content.** All but one of its failed answers, across every profile, are over the
   word limit their prompt states, by 10 to 30%. Haiku keeps to the limit and passes 96% under profile A, at about a
   fifteenth of the cost per solved task.
-- **The plugin costs here and helps nothing.** Its 50 skills are about making games, and these tasks are about
+- **The plugin costs here and shows no reliable gain.** Its 50 skills are about making games, and these tasks are about
   Hyperdot's own code. Loading it adds tokens to every session: the index rises from 74.2 to 107.5 for Haiku and from
-  92.8 to 100.4 for Sonnet. Haiku's pass rate also falls, from 96% to 79%. `evals/` is where the plugin is meant to
-  help: game tasks.
+  92.8 to 100.4 for Sonnet. Haiku's pass rate falls from 96% to 79%, Sonnet's rises from 54% to 62% (two tasks of 24,
+  within noise). `evals/` is where the plugin is meant to help: game tasks.
 - **Scoping and planning do not pay on these tasks.** B (listed files, a turn limit) and C (plan, then answer) both
   cost more per solved task than A for both models. C's second step resends the whole session, and B's sessions that
   ran out of turns still spent their tokens.

@@ -18,13 +18,13 @@ Before this change a GUT failure came back as `"message": "failed", "line": null
 the 16 KB log, so an agent had to read it. Now the JSON carries `message`, `file`, `line` and `details`, for example
 `[20] expected to equal [25]:` at `test/test_score.gd:7`, or `Expecting be equal: '31' but is '30'` at `MainSceneTest.cs:28`.
 
-What every session starts with: the `AGENTS.md` template is 2.5 KB, capped at 4 KB by the skill validator, and the 50
-skill descriptions total about 9.4 KB. A skill's body loads only when it is used: the largest `SKILL.md` is 15.8 KB, under
+What every session starts with: the `AGENTS.md` template is 2.7 KB, capped at 4 KB by the skill validator, and the 51
+skill descriptions total about 9.6 KB. A skill's body loads only when it is used: the largest `SKILL.md` is 15.8 KB, under
 the validator's 16 KB limit, and seven skills keep detail in side files that load only when the skill links to them.
 
 ### First eval runs (`claude plugin eval`)
 
-Two cases (`evals/`), one run per arm, in a container where the harness runs as root. There the eval sandbox mounts the
+Two cases (`evals/` holds four now), one run per arm, in a container where the harness runs as root. There the eval sandbox mounts the
 workspace read-only, so neither arm could run Godot: both diagnosed and fixed from reading the code. Scores were equal
 (delta 0.00), and the with-plugin runs cost $0.09 and $0.10 against $0.08 and $0.09. The first run, before the prompt was
 fixed, scored 0.67 with the plugin and 1.00 without, at $0.06 and $0.08. These runs prove the kit works; they say
@@ -126,5 +126,5 @@ of which input and output were 1,947. Comparisons need the medians of repeated r
 
 ## Not adopted
 
-- Path-scoped rules in games: the `AGENTS.md` template is 2.5 KB; little to gain.
+- Path-scoped rules in games: the `AGENTS.md` template is 2.7 KB; little to gain.
 - A C# language-server plugin: nothing found showing it works with Godot projects.

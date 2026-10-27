@@ -159,6 +159,29 @@ foreach ($g in $free) {
 foreach ($p in @($gaps.PSObject.Properties)) {
     if ($p.Name -notmatch '^(.+):(pass|fail)$' -or @($free | Where-Object key -eq $Matches[1]).Count -ne 1) { Assert-True $false "gaps.json names $($p.Name), which is not a regex or tool_used grader with :pass or :fail" }
 }
+# 4. Made-up Bash commands, for what no recorded session did (these are not sessions; the gaps above say which graders they stand in for).
+function Test-BashCommand([string]$Key, [string]$Command) {
+    $g = @($free | Where-Object key -eq $Key)
+    if ($g.Count -ne 1) { Assert-True $false "$Key is not a regex or tool_used grader"; return $null }
+    return Test-Grader $g[0].type $g[0].config ([pscustomobject]@{ tools = @([pscustomobject]@{ name = 'Bash'; input = [pscustomobject]@{ command = $Command } }) }) @{}
+}
+foreach ($edit in @("sed -i 's/25/20/' test/test_score.gd", "sed --in-place 's/a/b/' score.gd", "echo x | tee score.gd", "cat > test/test_score.gd <<'EOF'`nx`nEOF",
+        "printf 'x' >> main.gd", "perl -pi -e 's/a/b/' score.gd", "git checkout -- test/test_score.gd", "git apply fix.patch")) {
+    Assert-True ((Test-BashCommand 'explain-failure/unchanged' $edit) -eq $false) "unchanged fails a session that runs: $($edit -replace '\s+', ' ')"
+}
+foreach ($read in @('"$EVAL_GODOT_BIN" --headless -s addons/gut/gut_cmdln.gd -gdir=res://test -gexit 2>&1 | tail -40', 'cat -n test/test_score.gd score.gd; git status --short',
+        '"$EVAL_GODOT_BIN" --headless --import >/dev/null 2>&1; touch ./x && rm x')) {
+    Assert-True ((Test-BashCommand 'explain-failure/unchanged' $read) -eq $true) "unchanged passes a session that only runs: $read"
+}
+foreach ($kit in @('pwsh /k/ci/godot/hyperdot.ps1 test -Json -Quiet', 'pwsh /k/ci/godot/hyperdot.ps1 -Project . test -Json', 'pwsh "/k/hyperdot.ps1" test -Runners gut')) {
+    Assert-True ((Test-BashCommand 'fix-score-bug/used-kit' $kit) -eq $true) "used-kit passes: $kit"
+}
+foreach ($other in @('pwsh /k/ci/godot/hyperdot.ps1 doctor -Json', 'ls; cat test/test_score.gd')) {
+    Assert-True ((Test-BashCommand 'fix-score-bug/used-kit' $other) -eq $false) "used-kit fails: $other"
+}
+Assert-True ((Test-BashCommand 'fix-score-bug/ran-tests' 'cat score.gd; git diff') -eq $false) 'ran-tests fails a session that never runs the tests'
+Assert-True ((Test-BashCommand 'fix-score-bug/ran-tests' '"$EVAL_GODOT_BIN" --headless -s addons/gut/gut_cmdln.gd -gexit') -eq $true) 'ran-tests passes a GUT run'
+
 Write-Host "note   $($paid.Count) model grader(s) not checked here (they need a model): $(@($paid | ForEach-Object key) -join ', ')"
 
 if ($failures.Count) { throw "$($failures.Count) eval grader check(s) failed" }

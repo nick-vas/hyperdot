@@ -37,9 +37,10 @@ menus and starts after export is a different question, and an agent that answers
 
 Hyperdot makes it show evidence. One script detects the project, installs the right Godot, builds, runs every test
 framework the project uses, plays UI flows, exports and launches the build, and answers in **JSON an agent can read**.
-The agent is done when `test -Json` says `ok: true`, not when it says so. With the Claude Code plugin, a Stop hook enforces
-that much: a turn cannot end while changed code has no passing test run (it checks only that; it does not judge the design
-or the code).
+The agent is done when `test -Json` says `ok: true`, not when it says so. With the Claude Code plugin, a Stop hook pushes
+toward that: once for each set of changes it stops Claude from ending its turn while Godot files changed since the last full
+passing test run, and tells it to run the tests. If the tests ran and failed, or Claude stops again, it lets the turn end,
+so Claude must report the result. It checks only that; it does not judge the design or the code.
 
 What the agent reads back when a test fails:
 
@@ -79,8 +80,8 @@ found and changes nothing; `doctor -Project <game>` checks the machine and the p
 
 **Use it on your game.**
 
-1. Clone the kit once, **outside** your game, and point it at the game with `-Project`. Nothing of the kit goes into your
-   game's repository or its exported builds:
+1. Clone the kit once, **outside** your game, and point it at the game with `-Project`. None of the kit's own code goes into your
+   game's repository (`init` adds only the files listed below) or its exported builds:
    ```powershell
    git clone https://github.com/nick-vas/hyperdot C:\Tools\hyperdot
    $kit = 'C:\Tools\hyperdot\ci\godot\hyperdot.ps1'
@@ -167,7 +168,7 @@ and it works with no editor bridge, no plan and no Trello. Everything under [Adv
 | **Build errors as data** | `build -Json` | `diagnostics[]` with file, line and C# error code |
 | **Coverage floor** | `-MinCoverage 60` | merged report, fails below the floor |
 | **Drive the game** | `-GameArgs '--autoplay','--seed=3'` | your game's own flags, passed to smoke runs, `export -Run`, `bench` and `shot` |
-| **Keep "done" honest** | the plugin's Stop hook | a turn cannot end while Godot files changed since the last full passing `test` run (no `-Filter`, a real test framework). It only checks that the tests passed after the last edit: it is not a design or code review |
+| **Keep "done" honest** | the plugin's Stop hook | once for each set of changes, stops Claude from ending its turn while Godot files changed since the last full passing `test` run (no `-Filter`, a real test framework), and tells it to run the tests; if the tests ran and failed, or Claude stops again, the turn ends and Claude must report the result. It only checks that the tests passed after the last edit: it is not a design or code review |
 
 ### Ship
 
@@ -179,7 +180,7 @@ and it works with no editor bridge, no plan and no Trello. Everything under [Adv
 
 `test` picks its runners from the project: `validate` and `architecture` always; `dotnet`, `godottest`, `gut`, `flows` and
 `smoke` when their tests or a main scene exist; `l10n` when there are translations. The optional runners switch on when their
-file is in the project folder: `juice.json`, `playthrough.json`, `data.json`, `textsize.json`, `layout.json`. `-Runners` picks
+file is in the project folder: `juice.json`, `playthrough.json`, `data.json`, `textsize.json`, `layout.json`, `placement.json`. `-Runners` picks
 them by hand. Every parameter: [docs/reference.md](docs/reference.md).
 
 Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotnet test`, and UI flows. Verified on Godot 4.7.2 and .NET 8.
@@ -294,7 +295,7 @@ jobs:
 ```
 Tests on every push, a results comment on pull requests, optional coverage, exports and tagged releases. `@v1` is a
 moving tag that follows the kit's releases, so a kit change reaches a game only when a release moves the tag, and a game
-moves up on purpose. The tag is created with the first release, 0.1.0; until then use `@main`
+moves up on purpose
 ([docs/usage.md](docs/usage.md#3-the-same-tests-on-a-github-linux-runner-with-a-pr-comment)). In this repository, a weekly canary tries new Godot, test-framework and GUT
 releases on both examples and opens a pull request for those that pass. Free on public repositories; Linux runners are the
 cheapest on private ones. More: [docs/usage.md](docs/usage.md) and [docs/reference.md](docs/reference.md).
@@ -352,7 +353,7 @@ It never changes your scripts or scenes. These commands write into the project:
 - `init`: the additions above (it never overwrites a file; `.mcp.json` is backed up first);
 - `plan`: `plan/plan.json` and `plan/PLAN.md`;
 - `test`, `build` and the other commands that build: GUT into `addons/gut` when the project has GUT tests and no GUT of its own;
-- `sfx`: WAV and `.bfxr` files in `sounds/sfx`, and an entry in `assets.json`;
+- `sfx`: WAV and `.bfxr` files in `sounds/sfx` and, when the project has an `assets.json`, an entry in it;
 - `credits`: `CREDITS.md`, `credits.json` and `THIRD-PARTY-NOTICES.txt`.
 
 Results, logs and exports go to folders in the current directory (`test-results`, `build`, `screenshots`...), and the run
@@ -379,7 +380,7 @@ address, built from these files on every change ([docs/site.md](docs/site.md)).
 - [docs/json.md](docs/json.md): the `-Json` contract and error codes
 - [docs/coverage.md](docs/coverage.md): which self-test covers each command, error code, kit file, tool, skill, subagent and workflow job, and the gaps
 - [docs/ci.md](docs/ci.md): what the kit's own CI runs when, what it costs, and which tests ever caught anything
-- [docs/ci-cache.md](docs/ci-cache.md): a design for a CI cache keyed by the inputs of a job, awaiting a decision
+- [docs/ci-cache.md](docs/ci-cache.md): a design for a CI cache keyed by the inputs of a job: stage 0 (hashes and markers, nothing skipped) is built; the rest awaits decisions
 - [docs/godot-pipelines.md](docs/godot-pipelines.md): test frameworks, versions, release-safe packaging
 - [docs/self-hosted-runners.md](docs/self-hosted-runners.md): the workflow on your own machines
 - [docs/plan.md](docs/plan.md): the A-to-Z plan, tasks and Trello sync

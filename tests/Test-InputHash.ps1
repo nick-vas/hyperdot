@@ -37,6 +37,11 @@ try {
     $jobs = @($inputs.Keys)
     $base = Get-Hashes
     Assert-True ($base.Count -eq $jobs.Count + 1 -and $base.ContainsKey('lint') -and @($base.Values | Where-Object { $_ -notmatch '^[0-9a-f]{32}$' }).Count -eq 0) "a hash of 32 hex characters for lint and each of the $($jobs.Count) gated jobs"
+    # What the hash is made of, spelled out for lint (the job, the event, the runner image, the PowerShell version, the tree).
+    $treeId = "$(& git -C $repo rev-parse 'HEAD^{tree}')".Trim()
+    $text = "job=lint`nevent=pull_request`nrunner=ubuntu24-1`npwsh=$($PSVersionTable.PSVersion)`ntree=$treeId"
+    $want = [System.BitConverter]::ToString([System.Security.Cryptography.SHA256]::HashData([System.Text.Encoding]::UTF8.GetBytes($text))).Replace('-', '').ToLowerInvariant().Substring(0, 32)
+    Assert-True ($base['lint'] -eq $want) "lint's hash is the sha256 of its job, event, runner image, PowerShell version and tree ($($base['lint']) against $want)"
     $again = Get-Hashes
     Assert-True ((($base.Keys | ForEach-Object { "$_=$($base[$_])" }) -join ',') -eq (($again.Keys | ForEach-Object { "$_=$($again[$_])" }) -join ',')) 'the same commit gives the same hashes'
     function Get-Changed($Before, $After) { return @($Before.Keys | Where-Object { $Before[$_] -ne $After[$_] } | Sort-Object) }

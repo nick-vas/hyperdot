@@ -17,7 +17,7 @@ $code = Invoke-Logged $pwshPath @('-NoProfile', '-Command', $hang) $log
 $seconds = $clock.Elapsed.TotalSeconds
 $text = Get-Content -LiteralPath $log -Raw
 if ($code -ne 124) { $failures += "hung program returned $code, expected 124" }
-if ($seconds -gt 30) { $failures += "hung program was stopped after $([int]$seconds) s, expected about 3" }
+if ($seconds -gt 15) { $failures += "hung program was stopped after $([int]$seconds) s, expected about 3" }
 if ($text -notmatch 'started' -or $text -notmatch 'was still running after 3 s') { $failures += "hung program's log: $text" }
 
 # A program that closes its output and then hangs: both pipes reach their end, and the wait for its exit has the limit too.
@@ -25,7 +25,7 @@ if (-not $IsWindows) {
     $clock.Restart()
     $code = Invoke-Logged sh @('-c', 'echo started; exec >/dev/null 2>&1; sleep 60') $log
     $seconds = $clock.Elapsed.TotalSeconds
-    if ($code -ne 124 -or $seconds -gt 30) { $failures += "a program that closed its output and hung returned $code after $([int]$seconds) s, expected 124 after about 3" }
+    if ($code -ne 124 -or $seconds -gt 15) { $failures += "a program that closed its output and hung returned $code after $([int]$seconds) s, expected 124 after about 3" }
 }
 
 Remove-Item Env:HYPERDOT_TIMEOUT

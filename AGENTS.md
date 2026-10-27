@@ -60,7 +60,7 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 - The `.gdignore` files at the repository root and in `ci/godot/` keep the kit out of a game it is placed inside (Godot neither
   imports nor exports it, and `Find-ProjectFiles` skips folders that have one). Do not remove them.
 - Verify with the examples: `pwsh ci/godot/hyperdot.ps1 test -Project examples/csharp/game` and `-Project examples/gdscript`
-  must be green, and `doctor` green on both. The examples have no plan, so `plan` on them gives `no-plan` as expected; check
+  must be green, and `doctor` must report no problems on both (each example keeps one gamepad warning). The examples have no plan, so `plan` on them gives `no-plan` as expected; check
   `plan` the way the Plan step of `.github/workflows/self-test.yml` does: copy `examples/gdscript` to a temporary folder,
   `git init` it, run `plan -Do init -Project <copy>`, then `plan -Json -Project <copy>` (phase `concept`, at least one next
   action). Changing a version matrix entry means re-running both on that Godot.
@@ -98,7 +98,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-Layout.ps1` | the `layout` runner (`layout-fixture`) | Godot |
 | `Test-Flows.ps1` | the `flows` runner's rotation steps (`resize`, `hold`, `release`) and errors (`flows-fixture`) | Godot |
 | `Test-Playthrough.ps1` | the `playthrough` runner (`playthrough-fixture`) | Godot; `-NoGodot` for the log part |
-| `Test-Placement.ps1` | `templates/placement_check.gd` (`placement-fixture`), from a GUT test and as the `placement` runner; limits read from GDScript and C# | Godot |
+| `Test-Placement.ps1` | `ci/godot/templates/placement_check.gd` (`placement-fixture`), from a GUT test and as the `placement` runner; limits read from GDScript and C# | Godot |
 | `Test-ReportPins.ps1` | the report pins add-on: reports saved in 3D and 2D, found once, kept to their scene, placed on the camera's screen; the editor loading it headless (a project made in a temporary folder) | Godot |
 | `Test-StaleTres.ps1` | `validate`'s stale `.tres` keys (`tres-fixture`) | Godot |
 | `Test-Flaky.ps1` | `test -Retry` and `quarantine.json` (`flaky-fixture`, GUT) | Godot; `-NoGodot` for the synthetic part |
@@ -108,7 +108,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-FailureDelta.ps1` | `test`'s failure delta against the previous run (synthetic history) | - |
 | `Test-Telemetry.ps1` | `telemetry`: per-command pass rate, mean, median, p95 and trend, the slowest runners, hot spots, flaky tests and recurring errors of a synthetic history (temporary projects); a missing file, a damaged line, too few runs, the window and the refusals | - |
 | `Test-TestDuration.ps1` | `status`'s test duration (synthetic history) | - |
-| `Test-Handoffs.ps1` | the handoff log: `status -Handoff` writes one line with the commit, keeps the newest 200, refuses bad arguments; `status` reads it back | git |
+| `Test-Handoffs.ps1` | the handoff log: `status -Handoff` writes one line with the commit, cuts the text at 500 and 300 characters, keeps the newest 200, refuses bad arguments; `status` reads it back | git |
 | `Test-ProcessTimeout.ps1` | the process time limit | - |
 | `Test-CrashRetry.ps1` | the repeat of a crashed import or export (pwsh stands in for Godot) | - |
 | `Test-DownloadFailed.ps1` | the `download-failed` code (about 15 s) | - |
@@ -132,9 +132,9 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-RepoHygiene.ps1` | `doctor`'s repository checks (a broken project made in a temporary folder, since reserved names or case twins committed here would break Windows checkouts) | - |
 | `Test-Help.ps1` | `help` and `docs/help.md`: an entry for every command, skill and subagent, none for what does not exist, quoted calls that bind | - |
 | `Test-Context.ps1` | `doctor`'s check of agent instructions; holds the template, skills and docs to the kit's real flags | - |
-| `Test-Plan.ps1` | the plan template's gates (only test frameworks count as tests), the release timeline, `plan` under a day-first culture, `init` keeping an existing starter test and pinning its workflow at `@v1`, `init -Plugin` writing `docs/kit-notes.md`, a plan `plan` and `status` cannot read, `plan -Do reopen`, the risk, optional budget and placeholder gates, the jam plan sized in days, `status`'s first-session steps (tests, stubs, warnings) | - |
+| `Test-Plan.ps1` | the plan template's gates (only test frameworks count as tests), the release timeline, `plan` under a day-first culture, `init` keeping an existing starter test and pinning its workflow at `@v1`, `init -Plugin` writing the kit notes (`ci/godot/templates/kit-notes.md`) into the game, a plan `plan` and `status` cannot read, `plan -Do reopen`, the risk, optional budget and placeholder gates, the jam plan sized in days, `status`'s first-session steps (tests, stubs, warnings) | - |
 | `Test-TrelloSync.ps1` | `plan -Do sync` against a stand-in Trello (local moves, custom lists, a failure halfway, an unreachable API, an empty board, cards added on the board, removed tasks, list names as columns, connector ARIs); `-Live` against the real one | `-Live`: `TRELLO_KEY`, `TRELLO_TOKEN` |
-| `Test-Playtest.ps1` | `playtest`'s report and heat maps (`playtest-fixture`, synthetic sessions) | - |
+| `Test-Playtest.ps1` | `playtest`'s report and heat maps (`playtest-fixture`, synthetic sessions), and the limits of the shipped event definitions | - |
 | `Test-BuildSize.ps1` | `export -Json`'s size breakdown: a synthetic pack read as a file, embedded and zipped; a real Linux export of a copy of `examples/gdscript` | Godot's templates; `-NoGodot` for the synthetic part |
 | `Test-GitLabTemplate.ps1` | the GitLab CI template: parsed, held to GitLab's keywords, its report paths matched against the kit's JUnit (TRX converted) and Cobertura files, its variables against the action's inputs | - |
 | `Test-GameVersion.ps1` | `export -GameVersion auto`, Android version codes, download names (temporary git repositories) | git |
@@ -144,7 +144,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-DocLinks.ps1` | links and quoted paths in the docs and skills | - |
 | `Test-Site.ps1` | the GitHub Pages site: a page for every Markdown source, every internal link, anchor and repository link resolving, no `.md` links left, one h1, a title, lang and the viewport meta on every page, nothing fetched from another host, the label SVGs shown, the colours at WCAG 2.2 AA in light and dark; a made-up repository with a broken link and anchor, and the builder's fixes where Markdig differs from GitHub (`-Site` checks a built site) | - |
 | `Test-CoverageMap.ps1` | `docs/coverage.md` has a row for every command, error code, lib file, tool, skill, subagent and workflow job; `-Check` catches missing, stale and wrong rows; records are credited to the test they name | - |
-| `Test-LibNames.ps1` | function names across `ci/godot` (unique, no alias clashes) | - |
+| `Test-LibNames.ps1` | function names across `ci/godot` (unique, also inside blocks; no clash with a built-in alias, cmdlet or function) | - |
 | `Test-PowerShellPatterns.ps1` | every tracked `.ps1` free of the anti-patterns of `docs/powershell.md` that have no use left (`continue` in a pipeline block, `Resolve-Path` without `-LiteralPath`, unquoted `Start-Process -ArgumentList`, an interpolated `-replace` replacement, `ConvertTo-Json` without `-Depth`, a path cmdlet without `-LiteralPath`, a parameter given twice, a command that does not exist, a child `pwsh` without `-NonInteractive`, `$null` on the right, `Invoke-Expression`, `[IO.Path]::Combine`, `$PSBoundParameters.Name`, a lowered `$ErrorActionPreference`, relative literal paths to .NET, `-Version Latest`, Windows-only aliases, one file read and written in one pipeline), read from the syntax tree; each check fires on its file in `powershell-patterns-fixture` and not on its clean file | - |
 | `Test-KitPaths.ps1` | the kit run from a folder named `kit [v2]` (a runner finds its tool), a `$` in project.godot's version line and `solution_directory` | Godot; `-NoGodot` for the text part |
 | `Test-OldState.ps1` | the one-time move of state from the names before Hyperdot (history, GUT stamp, tools folder, workflow, plugin entry) | - |

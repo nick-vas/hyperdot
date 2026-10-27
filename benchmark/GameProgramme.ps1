@@ -227,6 +227,21 @@ function Test-KeptFile([string]$Path, [string]$Original) {
     return $at -eq $was.Count
 }
 
+# Files in a game's project folder that change which tests the kit's runners find. A session may write them (a
+# .gutconfig.json whose directories hold no test makes the GUT runner skip its own search, so the hidden tests would never
+# run and a failing suite would pass). Before the deciding suite they go back to what the game started with, or are removed
+# when the game had none. Not covered: settings inside project.godot, which a session may edit for good reasons.
+function Restore-TestDiscovery([string]$GameDir, [string]$ProjectDir) {
+    $names = @('.gutconfig.json') + @(Get-ChildItem -LiteralPath $ProjectDir -File -Filter '*.runsettings' -Force | ForEach-Object Name)
+    foreach ($name in $names) {
+        $path = Join-Path $ProjectDir $name
+        $relative = [System.IO.Path]::GetRelativePath($GameDir, $path) -replace '\\', '/'
+        & git -C $GameDir cat-file -e "HEAD:$relative" 2>$null
+        if ($LASTEXITCODE -eq 0) { [void](Invoke-GameGit $GameDir @('checkout', 'HEAD', '--', $relative)) }
+        elseif (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path -Force }
+    }
+}
+
 # Why a game session's work does not count; empty when it does.
 function Test-GameResult($TaskSpec, $Game) {
     $rules = $TaskSpec.game
@@ -280,6 +295,7 @@ function Test-GameResult($TaskSpec, $Game) {
         $want = -not ($check.Contains('expect') -and $check.expect -eq 'fail')
         if ($result.Ok -ne $want) { $reasons.Add("$($check.command) $(@(if ($check.Contains('args')) { $check.args }) -join ' '): $(if ($want) { $result.Why } else { 'passed, expected to fail' })".Trim()) }
     }
+    Restore-TestDiscovery $Game.Dir (Get-GameProjectDir $rules $Game.Dir)
     $hidden = @(if ($rules.Contains('hidden')) { $rules.hidden })
     foreach ($file in $hidden) {
         $target = Join-Path $Game.Dir (Get-HiddenTarget $file)

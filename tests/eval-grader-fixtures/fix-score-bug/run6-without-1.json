@@ -10,6 +10,7 @@
   },
   "expect": {
     "fix-score-bug/fixed": true,
+    "fix-score-bug/ran-tests": true,
     "fix-score-bug/used-kit": false,
     "fix-score-bug/verified": false
   },

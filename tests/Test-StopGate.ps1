@@ -62,7 +62,10 @@ function Assert-Gate([string]$Case, $Result, [string]$Expected, [string]$ReasonP
     if ($ReasonPattern -and $Result.Reason -notmatch $ReasonPattern) { $script:failures += "${Case}: reason should match '$ReasonPattern': $($Result.Reason)" }
 }
 
-function Set-Script([string]$Path, [string]$Text) { Set-Content -LiteralPath $Path -Value $Text -NoNewline }
+function Set-Script([string]$Path, [string]$Text) {
+    New-Item -ItemType Directory -Force (Split-Path $Path) | Out-Null
+    Set-Content -LiteralPath $Path -Value $Text -NoNewline
+}
 
 try {
     $earlier = (Get-Date).AddMinutes(-30)
@@ -133,6 +136,48 @@ try {
     Add-TestRun $game $earlier
     Set-Script (Join-Path $game 'enemies.json') '{"slime": {"hp": 3}}'
     Assert-Gate '.json data' (Invoke-Gate $game) 'block' 'enemies\.json'
+
+    # Output folders are skipped at the project root only: a game's own scripts/build/ or levels/bin/ are game content.
+    $game = New-Game 'nested-build'
+    # The example ignores build/ at any depth, which would hide this folder from git: anchor it.
+    Set-Script (Join-Path $game ".gitignore") "`.godot/`naddons/gut/`ntest-results/`n/build/`n"
+    & git -C $game -c user.name=ci -c user.email=ci@example.com commit -qam gitignore
+    Add-TestRun $game $earlier
+    Set-Script (Join-Path $game 'scripts/build/placer.gd') "extends Node`n"
+    Assert-Gate 'scripts/build/ is game code' (Invoke-Gate $game) 'block' 'placer\.gd'
+    $game = New-Game 'nested-bin'
+    Add-TestRun $game $earlier
+    Set-Script (Join-Path $game 'levels/bin/x.tscn') "[gd_scene format=3]`n"
+    Assert-Gate 'levels/bin/ is game content' (Invoke-Gate $game) 'block' 'x\.tscn'
+    foreach ($case in 'build/x.gd', 'addons/gut/x.gd', 'test-results/x.json', 'plan/plan.json') {
+        $game = New-Game ('out-' + ($case -replace '\W', '-'))
+        Add-TestRun $game $earlier
+        Set-Script (Join-Path $game $case) "{}`n"
+        Assert-Gate "$case at the project root is not game code" (Invoke-Gate $game) 'allow'
+    }
+    # C# build output: bin/ and obj/ next to a project file.
+    $game = New-Game 'csharp-bin'
+    New-Item -ItemType Directory (Join-Path $game 'Foo') | Out-Null
+    Set-Script (Join-Path $game 'Foo/Foo.csproj') '<Project />'
+    & git -C $game -c user.name=ci -c user.email=ci@example.com add -A
+    & git -C $game -c user.name=ci -c user.email=ci@example.com commit -qm csproj
+    Add-TestRun $game $earlier
+    Set-Script (Join-Path $game 'Foo/bin/x.json') '{}'
+    Assert-Gate 'bin/ next to a .csproj is build output' (Invoke-Gate $game) 'allow'
+    # Files of the repository outside the game (a monorepo's root) are not the game's.
+    $mono = Join-Path $temp 'mono'
+    $inner = New-Game 'mono-game'
+    New-Item -ItemType Directory (Join-Path $mono 'game') -Force | Out-Null
+    Copy-Item -Path (Join-Path $inner '*') -Destination (Join-Path $mono 'game') -Recurse -Force
+    Remove-Item -LiteralPath (Join-Path $mono "game/.git") -Recurse -Force -ErrorAction Ignore
+    & git -C $mono init -q
+    & git -C $mono -c user.name=ci -c user.email=ci@example.com add -A
+    & git -C $mono -c user.name=ci -c user.email=ci@example.com commit -qm base
+    Add-TestRun (Join-Path $mono 'game') $earlier
+    Set-Script (Join-Path $mono 'package.json') '{}'
+    Assert-Gate 'monorepo root package.json' (Invoke-Gate (Join-Path $mono 'game')) 'allow'
+    Set-Script (Join-Path $mono 'game/score.gd') "extends RefCounted`n"
+    Assert-Gate 'game file in a monorepo' (Invoke-Gate (Join-Path $mono 'game')) 'block' 'Game files changed'
 
     # No hook input at all: the working folder is the current one, and the gate still applies.
     $game = New-Game 'empty-input'

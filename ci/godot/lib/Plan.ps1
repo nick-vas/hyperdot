@@ -66,9 +66,12 @@ function Test-PlanGate($Gate, $Info) {
         '^preset$' { return $Info.Presets.Count -gt 0 }
         # The runner is set up for the project (detected or listed), so every CI run enforces it.
         '^runner:(?<runner>[a-z0-9]+)$' { return @($Info.Runners) -contains $Matches.runner }
+        # A GitHub workflow that calls the kit's reusable workflow or composite action, or a GitLab file that includes the kit's template.
         '^ci$' {
             $files = @(Get-ChildItem -LiteralPath (Join-Path $root '.github/workflows') -File -ErrorAction SilentlyContinue)
-            return @($files | Where-Object { (Get-Content -LiteralPath $_.FullName -Raw) -match '(hyperdot|Godot_TestSuite)/\.github/workflows/godot\.yml' }).Count -gt 0
+            if (@($files | Where-Object { (Get-Content -LiteralPath $_.FullName -Raw) -match '(hyperdot|Godot_TestSuite)/\.github/(workflows/godot\.yml|actions/godot)' }).Count -gt 0) { return $true }
+            $gitlab = Join-Path $root '.gitlab-ci.yml'
+            return (Test-Path -LiteralPath $gitlab -PathType Leaf) -and (Get-Content -LiteralPath $gitlab -Raw) -match 'hyperdot\.gitlab-ci\.yml|Invoke-Hyperdot'
         }
         # A folder, or a file with something in it: an empty docs/RISKS.md is not a risk log.
         '^file:(?<path>.+)$' {

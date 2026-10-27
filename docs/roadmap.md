@@ -42,10 +42,10 @@ instead of 1.0: see [Versions](#versions).
 5. **Benchmark.** Evals with 3 runs per arm (the first run where all four cases can run commands), the token benchmark
    (costs money: confirm first) and `bench` on the C# example. Done for the token benchmark, with the Hyperdot label
    ([label.md](label.md)): an adversarial review of every area (62 findings: 59 fixed with regression tests), a grader
-   that cannot be fooled, sessions that cannot read the test, and the 0.1.0 rating from 216 sessions.
+   that cannot be fooled, sessions that cannot read the test, and the 0.1.0 rating from 192 sessions.
 6. **Retro** over all of the above: [retro.md](retro.md).
 7. **Release 0.1.0**: changelog, version, tag `v0.1.0`; create and keep a moving `v1` tag with `release.yml` (dispatch it: [ci.md](ci.md#releasing); `init` and the docs already
-   write `@v1`, which does not resolve until then), a
+   write `@v1`; the tags `v0.1.0` and `v1` exist, so this step is done), a
    start-here page for working on a game (first use: Breakout Roguelike, `nick-vas/BreakoutTheBreakout`, in a new chat
    with the kit cloned beside it), and the GitHub Pages site (added to 0.1.0 by the owner on 2026-10-26; the owner turns
    on Pages with GitHub Actions as its source).
@@ -111,8 +111,8 @@ a removed task's card, which only the mock has seen.
    content follows the same rule: a lesson cites its evidence, a pattern cites the Godot API it uses, a version is tested.
 4. **Upkeep budget.** The validator fails a `SKILL.md` at 16 KB (warns from 15.5 KB), a description over 1,024
    characters and the `AGENTS.md` template over 4 KB; detail goes to side files in the skill's folder, whose kit commands
-   it checks too. There is no limit on the total: the 50 skills come to about 540 KB with their side files, but only the
-   descriptions (about 9.4 KB) load into every session. A new skill that shares a trigger with an old one is merged into
+   it checks too. There is no limit on the total: the 51 skills come to about 550 KB with their side files, but only the
+   descriptions (about 9.6 KB) load into every session. A new skill that shares a trigger with an old one is merged into
    it instead; every command has a self-test; a feature nobody used for three months is proposed for removal.
 5. **The owner sees the reasoning.** Plans, assessments and decisions are written to files in the game repository and mirrored
    to Trello, not left in a chat transcript.
@@ -145,6 +145,17 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
   that is missing: per job and step, runs and failures over 60 days or about 100 runs (pull request and `main` apart),
   failures first seen after merge, and runner-minutes. It needs `gh run list` and `gh run view --json jobs`, which the
   session that wrote the page could not reach. Nothing was demoted without it.
+
+### Needs network access
+
+- **Verify Godot download checksums.** `Save-Download` in `ci/godot/lib/Setup.ps1` trusts HTTPS alone. Godot publishes a
+  `SHA512-SUMS.txt` beside each release: download it, compare the editor and export-template archives against it, and fail
+  with a stable code on a mismatch. Needs network access to read the current files and to test against them; the session
+  that found this had none.
+- **Pin the two npx packages.** `init -Mcp` writes `npx -y @satelliteoflove/godot-mcp` and
+  `npx -y @ryanmazzolini/minimal-godot-mcp` (`ci/godot/lib/Init.ps1`) with no version. Pin both to the current published
+  version (`@name@x.y.z`) and add them to `ci/godot/tools/Update-Versions.ps1` so the weekly canary keeps them current, as it
+  does for the `uvx` server. Needs network access to read the current versions.
 
 ### After 0.1.0
 
@@ -196,6 +207,19 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
   `benchmark/PLAN.md` holds the owner's decisions and the design: ten genres, four stages each (prototype, alpha, beta,
   release candidate), GDScript and C#, everyday tasks and milestone runs as two results, grading from hard checks to a
   pinned model judge and human review, min/mid/max tiers, a private field test, and sessions isolated as a separate user.
+- **Grading runs the session's code as the runner (open).** After a session, `Exit-IsolatedSession`
+  (`benchmark/Isolation.ps1`) takes the game back for the runner user, and `Test-GameResult` and `Invoke-GameSuite`
+  (`benchmark/GameProgramme.ps1`) then run the kit's `test` on it: Godot loads the game's own autoloads, scenes and
+  scripts, so whatever the session wrote in them runs with the runner's privileges, outside the isolation. Such code can
+  read everything the runner can (the checkout including `benchmark/` and the hidden tests, the runner's credentials
+  and home, the grader's other game copies) and can write to the runner's files, so it could read the answers or change
+  a later result. The session itself is contained; the grading step is not. Proposed design: a second unprivileged
+  grading user made like the session user (`useradd`, no shell), to which the game copy is handed over for grading (chown,
+  mode 700) together with a copy of the hidden tests and the kit without `benchmark/`; the runner starts `hyperdot.ps1
+  test` through `runuser` or `sudo` as that user with the same narrow environment, reads the JUnit and TRX files it
+  leaves in a results folder it can write, and then stops that user's processes and takes the copy back, as
+  `Exit-IsolatedSession` does for the session. Mutants and kit-command checks (`doctor`, `export -Run`) run the same way.
+  Until then the benchmark's isolation is a protection of the tests from the session's commands, not from its code.
 - **Hold-out tasks.** The verification procedure could also run tasks that are not in the published spec, as market
   surveillance may test beyond the declared programme. That needs a private spec, and somewhere private to keep it.
 - **The last two binding errors as JSON.** A flag left without its value (`-Project` as the last word) and a value of the

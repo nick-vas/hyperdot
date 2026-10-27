@@ -51,6 +51,22 @@ function Get-ChangeTime([string]$Path) {
     return $item.LastWriteTimeUtc
 }
 
+# Whether a file is game content: $Full is its absolute path. Paths outside the project (a monorepo's root files), the
+# kit's and the engine's output folders at the project root, and C# build output (bin/ or obj/ below a .csproj) are not.
+function Test-GameFile([string]$Full, [string]$ProjectDir, [string]$CodePattern, [string]$SkipPattern) {
+    if ($Full -notmatch $CodePattern) { return $false }
+    $rel = [System.IO.Path]::GetRelativePath($ProjectDir, $Full) -replace '\\', '/'
+    if ($rel -eq '..' -or $rel.StartsWith('../') -or [System.IO.Path]::IsPathRooted($rel)) { return $false }
+    if ($rel -match $SkipPattern) { return $false }
+    $parts = @($rel -split '/')
+    for ($i = 0; $i -lt $parts.Count - 1; $i++) {
+        if ($parts[$i] -notin 'bin', 'obj') { continue }
+        $above = if ($i -eq 0) { $ProjectDir } else { Join-Path $ProjectDir ($parts[0..($i - 1)] -join '/') }
+        if (@(Get-ChildItem -LiteralPath $above -Filter '*.csproj' -File -ErrorAction SilentlyContinue).Count -gt 0) { return $false }
+    }
+    return $true
+}
+
 # The paths of NUL-separated git output (-z): no quoting, so names with spaces or non-ASCII letters come through as they are.
 function Split-GitPaths([object[]]$Output) {
     return @(($Output -join "`n") -split "`0" | Where-Object { $_ })
@@ -110,7 +126,9 @@ try {
     # What changed: files git reports as modified, new or deleted, plus those committed since the last passing run (its
     # history line records the commit), or, outside git, every source file.
     $codePattern = '\.(cs|gd|tscn|scn|tres|res|gdshader|gdshaderinc|csproj|sln|cfg|godot|json|csv|po)$'
-    $skipPattern = '(^|[\\/])(\.godot|addons|test-results|bench-results|audio-results|soak-results|screenshots|build|bin|obj)([\\/]|$)'
+    # Output folders of the kit and the engine, at the project's root only: scripts/build/ or levels/bin/ are the game's own.
+    # plan/ is the kit's plan (`plan -Do done` rewrites plan/plan.json). bin/ and obj/ are C# build output only beside a .csproj.
+    $skipPattern = '^(\.godot|addons|plan|test-results|bench-results|audio-results|soak-results|screenshots|build)(/|$)'
     $files = @()
     $root = @(& git -C $cwd rev-parse --show-toplevel 2>$null)
     if ($LASTEXITCODE -eq 0 -and $root.Count -gt 0) {
@@ -128,12 +146,11 @@ try {
             $committed = @(Split-GitPaths @(& git -C $root -c core.quotePath=false diff --name-only -z $since[0].commit HEAD -- 2>$null))
             if ($LASTEXITCODE -eq 0) { foreach ($p in $committed) { $paths.Add($p) } }
         }
-        $files = @($paths | Sort-Object -Unique | Where-Object { $_ -match $codePattern -and $_ -notmatch $skipPattern } |
-            ForEach-Object { Join-Path $root $_ })
+        $files = @($paths | Sort-Object -Unique | ForEach-Object { Join-Path $root $_ } |
+            Where-Object { Test-GameFile $_ $projectDir $codePattern $skipPattern })
     } else {
         $files = @(Get-ChildItem -LiteralPath $projectDir -Recurse -File -ErrorAction SilentlyContinue |
-            Where-Object { $_.FullName -match $codePattern -and $_.FullName.Substring($projectDir.Length) -notmatch $skipPattern } |
-            ForEach-Object FullName)
+            Where-Object { Test-GameFile $_.FullName $projectDir $codePattern $skipPattern } | ForEach-Object FullName)
     }
     if ($files.Count -eq 0) { Exit-Allow }
     $newest = (@($files | ForEach-Object { Get-ChangeTime $_ } | Where-Object { $_ }) | Measure-Object -Maximum).Maximum
@@ -158,7 +175,7 @@ try {
     })
     $more = if ($files.Count -gt 5) { " and $($files.Count - 5) more" } else { '' }
     $when = if ($lastOk.Count -gt 0) { "since the last passing full test run ($($lastOk[0].time))" } else { 'and no passing full test run is recorded' }
-    $reason = "Godot files changed $when`: $($shown -join ', ')$more. Run pwsh `"$kit`" test -Json -Quiet$projectArg (without -Filter, " +
+    $reason = "Game files changed $when`: $($shown -join ', ')$more. Run pwsh `"$kit`" test -Json -Quiet$projectArg (without -Filter, " +
         "and with the game's tests among the runners) and fix what fails before finishing. If the tests cannot run here, say so " +
         "and why instead of reporting the work as done."
     [ordered]@{ decision = 'block'; reason = $reason } | ConvertTo-Json -Depth 10 -Compress

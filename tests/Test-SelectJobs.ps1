@@ -49,6 +49,9 @@ $cases = @(
     @{ File = 'ci/godot/lib/Measure.ps1'; Runs = 'measure', 'web', 'init'; Not = @() }
     @{ File = 'ci/godot/tools/bench.gd'; Runs = 'measure', 'web', 'init'; Not = 'field-test', 'game-benchmark' }
     @{ File = 'ci/godot/lib/Web.ps1'; Runs = 'web'; Not = 'measure', 'field-test', 'game-benchmark' }
+    @{ File = 'ci/godot/lib/Audio.ps1'; Runs = 'measure', 'game-benchmark'; Not = 'web', 'field-test' }
+    @{ File = 'ci/godot/lib/BuildSize.ps1'; Runs = 'web'; Not = 'measure', 'game-benchmark', 'field-test' }
+    @{ File = 'ci/godot/lib/Addons.ps1'; Runs = 'game-benchmark'; Not = 'measure', 'web', 'field-test' }
     @{ File = 'ci/godot/lib/Sfx.ps1'; Runs = 'init', 'zero-config'; Not = 'measure', 'web', 'field-test', 'game-benchmark' }
     @{ File = 'ci/godot/lib/Doctor.ps1'; Runs = 'game-benchmark'; Not = 'field-test' }
     @{ File = 'ci/godot/lib/Common.ps1'; Runs = $gated | Where-Object { $_ -ne 'field-test' }; Not = 'field-test' }

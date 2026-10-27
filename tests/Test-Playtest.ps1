@@ -249,6 +249,30 @@ try {
     $bad = Invoke-PlaytestCommand $copy @('-Results', (Join-Path $work 'bad'))
     Assert-Equal "$($bad.ok) $($bad.error.code)" 'False invalid-playtest-config' 'a screenshot without bounds'
     if ("$($bad.error.message)" -notmatch 'image needs bounds') { $failures.Add("the error should say the image needs bounds: $($bad.error.message)") }
+
+    # The limits of the shipped event definitions, read by Get-PlaytestEventProblem: a value at its maximum fits, one past it
+    # does not; a label of 64 characters fits, 65 does not; a label from an allowed list is case-sensitive; no fields is a problem.
+    . (Join-Path $root 'ci/godot/lib/Playtest.ps1')
+    $schema = Get-Content -LiteralPath (Join-Path $root 'ci/godot/templates/playtest-events.json') -Raw | ConvertFrom-Json -AsHashtable
+    $death = $schema['events']['death']
+    $okFields = [ordered]@{ level = 'hub'; x = 1; y = 2; z = 0; level_seconds = 3; checkpoint = 0 }
+    function Test-EventFits($Definition, $Fields) { return (-not (Get-PlaytestEventProblem $Definition $Fields)) }
+    function Get-FieldsWith([string]$Key, $Value) { $copy = [ordered]@{} + $okFields; $copy[$Key] = $Value; return $copy }
+    Assert-Equal (Test-EventFits $death $okFields) 'True' 'a valid death event'
+    Assert-Equal (Test-EventFits $death (Get-FieldsWith 'x' 1000000)) 'True' 'a number at its maximum'
+    Assert-Equal (Test-EventFits $death (Get-FieldsWith 'x' 1000001)) 'False' 'a number past its maximum'
+    Assert-Equal (Test-EventFits $death (Get-FieldsWith 'checkpoint' 100000)) 'True' 'an integer at its maximum'
+    Assert-Equal (Test-EventFits $death (Get-FieldsWith 'checkpoint' 100001)) 'False' 'an integer past its maximum'
+    Assert-Equal (Test-EventFits $death (Get-FieldsWith 'level' ('a' * 64))) 'True' 'a label of 64 characters'
+    Assert-Equal (Test-EventFits $death (Get-FieldsWith 'level' ('a' * 65))) 'False' 'a label of 65 characters'
+    Assert-Equal (Test-EventFits $death $null) 'False' 'no fields'
+    $withResult = @($schema['events'].Values | Where-Object { $_['fields'].Contains('result') })[0]
+    $resultFields = [ordered]@{}
+    foreach ($key in $withResult['fields'].Keys) { $resultFields[$key] = ($key -eq 'result') ? 'finished' : 1 }
+    if ($resultFields.Contains('level')) { $resultFields['level'] = 'hub' }
+    Assert-Equal (Test-EventFits $withResult $resultFields) 'True' 'an allowed result'
+    $resultFields['result'] = 'Finished'
+    Assert-Equal (Test-EventFits $withResult $resultFields) 'False' 'an allowed value in the wrong case'
 } catch {
     $failures.Add("$_ ($($_.InvocationInfo.PositionMessage))")
 } finally {

@@ -1,11 +1,11 @@
 # Usage scenarios
 
-Ten ways to use the kit. The [README](../README.md) has the short version.
+Eleven ways to use the kit. The [README](../README.md) has the short version.
 
 ### 1. Add the kit to an existing game
 
-Keep the kit outside your game and point it at the game with `-Project`; then nothing of it ends up in your repository or
-your exported builds:
+Keep the kit outside your game and point it at the game with `-Project`; then none of the kit's own code ends up in your
+repository or your exported builds (`init` adds only the files listed below):
 ```powershell
 git clone https://github.com/nick-vas/hyperdot C:\Tools\hyperdot
 pwsh C:\Tools\hyperdot\ci\godot\hyperdot.ps1 init -Project 'C:\path\to\your\game'
@@ -15,7 +15,7 @@ With the kit outside, `init -Agents` writes its full path into `AGENTS.md`, so a
 To share one pinned version with everyone on the game's repository instead, add it as a submodule:
 `git submodule add https://github.com/nick-vas/hyperdot tools/hyperdot`. Its folders carry a `.gdignore` file, so
 Godot never imports or exports them, and the kit's own detection ignores them. If you copy only the `ci/godot` folder,
-keep its `.gdignore`: without it, the kit's `.gd` tool scripts (nine in `ci/godot/tools`, and the templates' `placement_check.gd`) would be exported with your game.
+keep its `.gdignore`: without it, the kit's `.gd` tool scripts (ten in `ci/godot/tools`, and the templates' `placement_check.gd`) would be exported with your game.
 `init` only adds things and never overwrites a file, so it's safe to run again. It adds:
 - a starter test: gdUnit4Net for C# projects (packages kept out of release builds), GUT for GDScript;
 - `.gitignore` entries and test-folder exclusions in your export presets;
@@ -67,8 +67,7 @@ pinned to the `@ref` you use.
 
 `@v1` is what `init` writes. It is a moving tag on this repository that points at the release games should run, so a
 change on the kit's `main` reaches no game until a release moves the tag, and a game moves up (to another tag, or a commit)
-on purpose, in a commit of its own. The tag is created with the first release, 0.1.0; until then `@v1` does not resolve, so
-a game set up before it uses `@main` by hand. A workflow `init` wrote earlier keeps the ref it has.
+on purpose, in a commit of its own. A workflow `init` wrote earlier keeps the ref it has.
 
 ### 4. A GDScript-only game with GUT
 
