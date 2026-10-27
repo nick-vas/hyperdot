@@ -17,6 +17,7 @@ on:
 
 permissions:
   contents: write
+  actions: read   # to find the commit's successful Self-test run
 
 # One release at a time; never cancel one halfway through its tags.
 concurrency:
