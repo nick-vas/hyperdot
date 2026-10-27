@@ -38,9 +38,11 @@ foreach ($doc in $docs) {
     $where = [System.IO.Path]::GetRelativePath($root, $doc.FullName) -replace '\\', '/'
     $text = [System.IO.File]::ReadAllText($doc.FullName)
     $prose = [regex]::Replace($text, '(?ms)^\s*```.*?^\s*```', '')   # links in code blocks are examples
-    foreach ($m in [regex]::Matches($prose, '\]\(([^)\s]+)\)')) {
+    # Inline links, with an optional "title" or <angle brackets>, and reference definitions ([ref]: target).
+    $linkMatches = @([regex]::Matches($prose, '\]\(\s*<?([^)\s>]+)>?(?:\s+"[^"]*")?\s*\)')) + @([regex]::Matches($prose, '(?m)^ {0,3}\[[^\]]+\]:\s*<?([^\s>]+)>?'))
+    foreach ($m in $linkMatches) {
         $target = $m.Groups[1].Value
-        if ($target -match '^(https?|mailto):' -or $target -match '^<') { continue }
+        if ($target -match '^(https?|mailto):') { continue }
         $checked++
         $path, $anchor = $target -split '#', 2
         $file = if ($path) { [System.IO.Path]::GetFullPath((Join-Path $doc.DirectoryName ([uri]::UnescapeDataString($path)))) } else { $doc.FullName }
