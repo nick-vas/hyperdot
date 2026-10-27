@@ -1,0 +1,1 @@
+Added: `docs/retro.md` looks back over the 0.1.0 effort from the repository's records: what went well, what cost time (git's background maintenance, the ENet relay race, the usage limit that stopped run 44, CI growth, the `unchanged` rule, the judge calibration), numbers, lessons and what to change in 0.2. It names what the repository does not record.
