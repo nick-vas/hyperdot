@@ -44,12 +44,13 @@ param(
     # playtest: per-level counts, medians and heat maps (PNG) from a folder of playtest telemetry sessions; no Godot needed.
     # help: one line for each command, skill and subagent, or the page of one (help <name>); no project needed.
     # deck: the Steam Deck check at 1280x800: textsize, layout, shot and bench with a Deck budget, one verdict.
+    # telemetry: one read-only view of the project's run history: per command the runs, pass rate and mean, median and p95 duration, and for test the slowest runners, failure hot spots and flaky tests; no Godot needed.
     # The sets of values (here and for -Retry, -Mcp, -Do and -Profile) are [ArgumentCompletions], which PowerShell does not
     # enforce while binding: Assert-KitArguments checks them in the script, so a wrong value still gives a JSON result.
     [Parameter(Position = 0)]
-    [ArgumentCompletions('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx', 'playtest', 'help', 'deck')]
+    [ArgumentCompletions('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx', 'playtest', 'help', 'deck', 'telemetry')]
     [string]$Command = 'test',
-    # help: the command, skill or subagent to show the page of, e.g. help shot.
+    # help: the command, skill or subagent to show the page of, e.g. help shot. telemetry: the command to report on, e.g. telemetry test.
     [Parameter(Position = 1)]
     [string]$Topic,
 
@@ -213,6 +214,8 @@ param(
     [string]$Handoff,
     [string]$Checked,
     [string]$Verdict,
+    # telemetry: how many of each command's newest runs to read (default 50).
+    [int]$Last = 50,
     # Print one JSON document on stdout (schema hyperdot/1) and send all logs to stderr. For agents and scripts.
     [switch]$Json,
     # Keep tool output (Godot, dotnet) off the console; it still goes to hyperdot.log in the results folder. Pair it with -Json
@@ -226,7 +229,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons', 'Playtest', 'Palette', 'BuildSize', 'Help', 'Deck', 'Placement') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons', 'Playtest', 'Palette', 'BuildSize', 'Help', 'Deck', 'Placement', 'Telemetry') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 Start-KitCoverage $Command
 if ($Json) {
     Enable-JsonMode $Command
@@ -237,7 +240,8 @@ trap { Stop-GodotCi $_.Exception.Message 'unexpected-error' }
 Assert-KitArguments $MyInvocation.MyCommand.ScriptBlock.Ast.ParamBlock $PSBoundParameters
 
 # help needs no project: it is answered before one is looked for.
-if ($Topic -and $Command -ne 'help') { Stop-GodotCi "'$Topic' is not a parameter of $Command; only help takes a name (help $Topic)" 'invalid-arguments' }
+if ($Topic -and $Command -notin 'help', 'telemetry') { Stop-GodotCi "'$Topic' is not a parameter of $Command; only help and telemetry take a name (help $Topic)" 'invalid-arguments' }
+if ($PSBoundParameters.ContainsKey('Last') -and $Command -ne 'telemetry') { Stop-GodotCi '-Last is for telemetry (how many runs of each command to read)' 'invalid-arguments' }
 if ($Command -eq 'help') {
     Invoke-Help $Topic
     Write-JsonResult
@@ -389,9 +393,12 @@ function Invoke-Tests {
     if (Test-Path -LiteralPath $resultsDir) {
         Get-ChildItem -LiteralPath $resultsDir -Force | Where-Object { $_.Name -ne 'hyperdot.log' } | Remove-Item -Recurse -Force
     }
+    $runnerSeconds = [ordered]@{}   # per runner, retries included: telemetry's slowest runners
     $runs = @(foreach ($runner in $info.Runners) {
+        $runnerWatch = [System.Diagnostics.Stopwatch]::StartNew()
         Invoke-TestRunnerWithRetry -Runner $runner -Info $info -ResultsDir (Join-Path $resultsDir $runner) -Retry $Retry -Quarantine $quarantine.Entries `
             -Filter $Filter -Coverage ($collect -and $runner -notin 'gut', 'smoke', 'validate', 'flows', 'architecture', 'juice', 'playthrough', 'l10n', 'data', 'textsize', 'layout', 'placement') -Frames $Frames -GameArgs $GameArgs -FixedFps $FixedFps
+        $runnerSeconds[$runner] = [math]::Round($runnerWatch.Elapsed.TotalSeconds, 1)
     })
     $percent = if ($collect) { Merge-Coverage $resultsDir } else { $null }
     Write-RunSummary $resultsDir $info $runs $percent $MinCoverage
@@ -405,7 +412,7 @@ function Invoke-Tests {
     $quarantinedIds = @(foreach ($r in $runs) { foreach ($q in $r.Quarantined) { "$($r.Runner)|$($q.Name)" } })
     $delta = Get-FailureDelta $failing.Ids $failing.Truncated $scope @(Read-RunHistory $info.ProjectDir) @($flakyIds + $quarantinedIds)
     Set-TestRunHistory $scope $failing @($runs | Where-Object { -not $_.Ok } | ForEach-Object Runner) -Extra ([ordered]@{
-        retry = $Retry; flaky = @($flakyIds | Select-Object -First $script:FailureIdCap); quarantined = @($quarantinedIds | Select-Object -First $script:FailureIdCap) })
+        retry = $Retry; runnerSeconds = $runnerSeconds; flaky = @($flakyIds | Select-Object -First $script:FailureIdCap); quarantined = @($quarantinedIds | Select-Object -First $script:FailureIdCap) })
     $deltaLine = Format-FailureDelta $delta
     if ($deltaLine) { Write-CiLog $deltaLine }
     Set-JsonField resultsDir $resultsDir
@@ -656,6 +663,7 @@ switch ($Command) {
     }
     'plan' { Invoke-Plan $info $Do $Id $Game $Title $Column $Board $Feature $Card $PlanProfile }
     'status' { if ($Handoff) { Add-Handoff $info.ProjectDir $Handoff $Checked $Verdict } else { Invoke-Status $info } }
+    'telemetry' { Invoke-Telemetry $info $Topic $Last }
     'setup' { Invoke-Setup -WithTemplates:$Templates }
     'build' { Invoke-Setup; Invoke-Build }
     'test' { Invoke-Setup; Invoke-Build; Invoke-Tests }

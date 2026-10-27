@@ -392,15 +392,18 @@ function Get-FailureIds([object[]]$Runs, [int]$Cap = $script:FailureIdCap) {
 
 # Every readable line of the project's run history, oldest first. A damaged line is skipped; a missing or unreadable file
 # gives none, which only means there is nothing to compare with.
-function Read-RunHistory([string]$ProjectDir) {
+function Read-RunHistory([string]$ProjectDir, [ref]$SkippedLines) {
     $file = Join-Path $ProjectDir '.godot/hyperdot-history.jsonl'
+    $skipped = 0
     try {
         if (-not (Test-Path -LiteralPath $file)) { return @() }
         # A try per line is about four times faster than Test-Json on a long history.
-        return @(foreach ($line in Get-Content -LiteralPath $file) {
+        $entries = @(foreach ($line in Get-Content -LiteralPath $file) {
             if (-not $line.Trim()) { continue }
-            try { ConvertFrom-Json -InputObject $line } catch { Write-RunLog "[hyperdot] Skipped a damaged line in ${file}" }
+            try { ConvertFrom-Json -InputObject $line } catch { $skipped++; Write-RunLog "[hyperdot] Skipped a damaged line in ${file}" }
         })
+        if ($SkippedLines) { $SkippedLines.Value = $skipped }
+        return $entries
     } catch {
         Write-RunLog "[hyperdot] Could not read ${file}: $_"
         return @()
