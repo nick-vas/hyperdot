@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+
+## 0.1.0 - 2026-10-27
 - **PowerShell review: six bugs fixed, four new syntax-tree checks.** `bench -Sweep 'particles=100 0',5000` named `' '`
   instead of the values (`$Matches` was overwritten before the message); eleven `Resolve-Path` calls on the kit's own
   tools now take `-LiteralPath` (a kit under a folder with `[ ]` found nothing); `Start-Process -ArgumentList` in four
@@ -1240,6 +1242,12 @@
 - Nine agent skills in `.agents/skills`, `AGENTS.md`/`CLAUDE.md` templates, and `init -Agents` to install them.
 - Godot 4.7.2 as the default and example target; GUT is reinstalled when the Godot minor changes (stamped copies only).
 - Docs reorganised: usage, reference, json, plan, strategies.
+
+### Added
+- Changes add a fragment under `changelog.d/` instead of editing `CHANGELOG.md`, and `ci/godot/tools/Update-Changelog.ps1` assembles them at release; `tests/Test-Changelog.ps1` covers it.
+- Opus joins the staged programme as two more configurations, `opus` and `opus` with the plugin, marked `measuredApart`: they share a tier ceiling with each other only, so the standard four stay under the mid tier's $120. `cost-model.json` prices Opus tasks and milestones as estimates (2.2 times Sonnet, to be replaced by measured means). The dry run prices the mid tier at $43.20 for Opus and $61.65 for Opus with the plugin; no Opus session has run.
+- `docs/retro.md` looks back over the 0.1.0 effort from the repository's records: what went well, what cost time (git's background maintenance, the ENet relay race, the usage limit that stopped run 44, CI growth, the `unchanged` rule, the judge calibration), numbers, lessons and what to change in 0.2. It names what the repository does not record.
+- `docs/label/` holds the information sheets, JSON and label SVGs of the 0.1.0 tool programme for Haiku (D), Haiku with the plugin (G), Sonnet (F) and Sonnet with the plugin (F), rebuilt with `benchmark/Get-HyperdotLabel.ps1` from the 216 recorded sessions, which `benchmark/reference-runs/` now keeps. They reproduce the recorded indices exactly, and the tested class is A (97.2).
 
 ## Earlier
 Interchangeable pipelines, gdUnit4Net/GoDotTest/GUT runners, coverage, PowerShell 7 rewrite with a Linux workflow, `doctor`,
