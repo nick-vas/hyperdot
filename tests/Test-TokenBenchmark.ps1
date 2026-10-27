@@ -159,10 +159,8 @@ try {
     Assert-True ($cutRows.Count -ge 1 -and $left.Count -ge 1 -and $cutRows.Count + $left.Count -eq 12) "the session running finishes: $($cutRows.Count) ran and $($left.Count) are listed in not-reached.json, together all 12"
     Assert-True ($left.Count -gt 0 -and $left[0].PSObject.Properties.Name -contains 'configuration' -and $left[0].PSObject.Properties.Name -contains 'profile' -and $left[0].PSObject.Properties.Name -contains 'task' -and $left[0].PSObject.Properties.Name -contains 'repetition') 'not-reached.json names each session by configuration, profile, task and repetition'
     Assert-True ($cut.Json.meta.notReached -eq $left.Count -and $cut.Json.meta.standard -eq $false -and (Get-Content -LiteralPath (Join-Path $cut.Json.folder 'summary.md') -Raw) -match 'Stopped at the time limit') 'the summary says how many were not reached'
-    $before = @(Get-Content -LiteralPath $env:FAKE_CLAUDE_LOG).Count
     $rest = Invoke-Bench ($pick + @('-SkipDone', $cut.Json.folder))
     $restRows = @(& $readRows $rest.Json.folder)
-    $restCalls = @(Get-Content -LiteralPath $env:FAKE_CLAUDE_LOG | Select-Object -Skip $before)
     Assert-True ($rest.Code -eq 0 -and $restRows.Count -eq $left.Count -and $rest.Json.folder -ne $cut.Json.folder) 'the continuation runs exactly the sessions not reached, in a fresh folder'
     $cutKeys = @($cutRows | ForEach-Object { & $key $_ })
     $restKeys = @($restRows | ForEach-Object { & $key $_ })
