@@ -571,7 +571,14 @@ if ($costModel) {
     $judgeModel = if ($spec.Contains('programme') -and $spec.programme.Contains('judge')) { $spec.programme.judge.model } else { '' }
     $estimateUsd = 0.0
     foreach ($c in $configurations) { $estimateUsd += Get-RunEstimateUsd $costModel $tasks $profiles $repeatCount $c.Model $c.Plugin $judgeModel }
-    $tierConfigurations = @(if ($spec.Contains('programme') -and $spec.programme.Contains('configurations')) { $spec.programme.configurations })
+    # A configuration marked "measuredApart" (Opus) is a run of its own: it shares a ceiling with the other marked ones
+    # only, so adding it does not push the standard four configurations over the tier's ceiling.
+    $allConfigurations = @(if ($spec.Contains('programme') -and $spec.programme.Contains('configurations')) { $spec.programme.configurations })
+    $apartRun = $false
+    foreach ($c in $configurations) {
+        foreach ($k in $allConfigurations) { if ($k.model -eq $c.Model -and [bool]$k.plugin -eq $c.Plugin -and $k.Contains('measuredApart') -and $k.measuredApart) { $apartRun = $true } }
+    }
+    $tierConfigurations = @($allConfigurations | Where-Object { ($_.Contains('measuredApart') -and [bool]$_.measuredApart) -eq $apartRun })
     $tierEstimateUsd = 0.0
     foreach ($c in $tierConfigurations) { $tierEstimateUsd += Get-RunEstimateUsd $costModel $tasks $profiles $repeatCount $c.model ([bool]$c.plugin) $judgeModel }
     if ($tierEstimateUsd -le 0) { $tierEstimateUsd = $estimateUsd }
