@@ -60,6 +60,15 @@ try {
     $read = @($r.Doc.handoffs)
     Assert-True ($r.Code -eq 0 -and $read.Count -eq 20) "status returns the 20 newest handoffs: $($read.Count)"
     Assert-True ($read[0].checked -eq 'export -Preset Linux -Run' -and $read[1].checked -eq 'design 205') 'newest first, the damaged line skipped'
+
+    # A history line that is valid JSON but not a run ({"foo":1}, 5, "x", null) is skipped; status stays ok and still
+    # finds the real runs around it.
+    $history = Join-Path $dir '.godot/hyperdot-history.jsonl'
+    [System.IO.File]::WriteAllLines($history, [string[]]@(
+            '{"time":"2026-10-21T09:00:00Z","command":"test","ok":false,"code":"tests-failed","seconds":1}', '{"foo":1}', '5', '"x"', 'null', '[1,2]',
+            '{"time":"2026-10-21T10:00:00Z","command":"test","ok":true,"code":"","seconds":2}'))
+    $r = Invoke-Kit @('status')
+    Assert-True ($r.Code -eq 0 -and $r.Doc.ok -and $r.Doc.runs.test.ok -eq $true -and @($r.Doc.runs.PSObject.Properties).Count -eq 1) "status skips history lines that are not runs: $($r.Doc.runs | ConvertTo-Json -Compress -Depth 3)"
 } finally {
     Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
 }

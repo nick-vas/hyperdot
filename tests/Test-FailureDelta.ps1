@@ -122,6 +122,23 @@ try {
     $clean = Remove-XmlInvalidChar $pair
     if ($clean -ne "ok $([char]::ConvertFromUtf32(0x1F600)) loneend") { $failures += "surrogate handling: $clean" }
 } finally { Remove-Item -LiteralPath $junitDir -Recurse -Force }
+
+# The run history is cut to the newest 2,000 lines once it passes 2,500.
+$trimProject = Join-Path ([IO.Path]::GetTempPath()) "hd-trim-$([guid]::NewGuid().ToString('N'))"
+New-Item -ItemType Directory -Path (Join-Path $trimProject '.godot') -Force | Out-Null
+try {
+    $trimFile = Join-Path $trimProject '.godot/hyperdot-history.jsonl'
+    [System.IO.File]::WriteAllLines($trimFile, [string[]]@(1..3000 | ForEach-Object { '{"time":"2026-01-01T00:00:00Z","command":"test","ok":true,"code":"","seconds":' + $_ + '}' }))
+    Start-RunHistory 'build' $trimProject
+    Add-RunHistory $true ''
+    $trimmed = @(Get-Content -LiteralPath $trimFile)
+    if ($trimmed.Count -gt 2000) { $failures += "history should be cut to 2000 lines: $($trimmed.Count)" }
+    if ($trimmed.Count -ge 1 -and ($trimmed[-1] | ConvertFrom-Json).command -ne 'build') { $failures += 'the newest line should be the run just recorded' }
+    if ($trimmed.Count -ge 2 -and ($trimmed[0] | ConvertFrom-Json).seconds -ne 1002) { $failures += "the oldest kept line should be #1002: $($trimmed[0])" }
+    Start-RunHistory 'build' $trimProject
+    Add-RunHistory $true ''
+    if (@(Get-Content -LiteralPath $trimFile).Count -ne 2001) { $failures += 'under 2500 lines nothing is cut' }
+} finally { Remove-Item -LiteralPath $trimProject -Recurse -Force }
 if ($failures) { $failures | ForEach-Object { Write-Host "FAIL $_" -ForegroundColor Red }; exit 1 }
 Write-Host 'failureDelta classes failures as new, still failing and fixed against the last run of the same scope, ignores other scopes and damaged lines, and keeps 200 ids'
 exit 0

@@ -639,6 +639,18 @@ if ($Command -eq 'deck' -and $Resolution -and $Resolution -ne '1280x800') {
 if (($Command -in @('bench', 'deck') -or ($Command -eq 'audio' -and $Mix)) -and $Seconds -le 0) {
     Stop-GodotCi "-Seconds must be above 0 for $Command, not $Seconds" 'invalid-arguments'
 }
+# -Frames 0 would pass Godot --quit-after 0, which never quits, and a negative count means nothing.
+if ($Command -in 'test', 'shot', 'deck' -or ($Command -eq 'export' -and $Run)) {
+    if ($Frames -lt 1) { Stop-GodotCi "-Frames must be 1 or more for $Command, not $Frames" 'invalid-arguments' }
+}
+# export -Preset, checked against the project's presets before Godot's export templates are downloaded.
+if ($Command -eq 'export') {
+    if ($presets.Count -eq 0) { Stop-GodotCi "No export presets in $(Join-Path $info.ProjectDir 'export_presets.cfg')" 'no-presets' }
+    $knownPresets = Get-ExportPresetDetails $info.ProjectDir
+    foreach ($name in $presets) {
+        if (-not $knownPresets.Contains($name)) { Stop-GodotCi "Preset '$name' not found; the project has: $($info.Presets -join ', ')" 'preset-not-found' }
+    }
+}
 # Each command's results folder, which also holds its run log: -Results (test-results) for setup, build, test, export and
 # credits; bench, soak and audio default to their own folder, and shot writes to -Output (screenshots).
 $commandDefaults = @{ bench = 'bench-results'; soak = 'soak-results'; audio = 'audio-results'; deck = 'deck-results' }
