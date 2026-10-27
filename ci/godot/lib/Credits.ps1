@@ -246,7 +246,13 @@ function Invoke-Credits($Info, [string]$OutputDir) {
     $tool = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../tools/notices.gd')).Path -replace '\\', '/'
     $log = [System.IO.Path]::GetTempFileName()
     $code = Invoke-Logged $env:GODOT_BIN @('--headless', '--path', $Info.ProjectDir, '-s', $tool, '--', $engineJson) $log
-    if ($code -ne 0 -or -not (Test-Path -LiteralPath $engineJson)) { Write-CiLog "Could not read the engine's notices (Godot exited with $code)" }
+    if ($code -ne 0 -or -not (Test-Path -LiteralPath $engineJson)) {
+        # Godot's MIT text must ship with the game: nothing is written, so an earlier complete THIRD-PARTY-NOTICES.txt survives.
+        $tail = @(Get-Content -LiteralPath $log -Tail 5 | Where-Object { $_ }) -join ' | '
+        Remove-Item -LiteralPath $log -ErrorAction SilentlyContinue
+        Stop-GodotCi "Could not read the engine's notices (Godot exited with $code$(if ($tail) { ": $tail" })); no credits files were written" 'engine-notices-failed'
+    }
+    Remove-Item -LiteralPath $log -ErrorAction SilentlyContinue
     $dotnet = if ($Info.IsCSharp) { Find-DotnetNotices } else { $null }
     $projectGodot = Get-Content -LiteralPath (Join-Path $Info.ProjectDir 'project.godot') -Raw
     $name = [regex]::Match($projectGodot, '(?m)^config/name="([^"]*)"').Groups[1].Value

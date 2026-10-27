@@ -247,6 +247,10 @@ function Test-ResponseTable([string]$ProjectDir, $Spec, [object[]]$Records, $Con
     return @{ Problems = $problems.ToArray(); Warnings = $warnings.ToArray() }
 }
 
+function Test-DataPattern($Pattern) {
+    try { [void][regex]::new([string]$Pattern); return $true } catch { return $false }
+}
+
 # One value against its field rule; the problem as text, or $null.
 function Test-DataValue($Value, $Rule, [bool]$FromCsv) {
     $type = if ($Rule.Contains('type')) { $Rule['type'] } else { $null }
@@ -316,7 +320,8 @@ function Test-DataValue($Value, $Rule, [bool]$FromCsv) {
         if ($Rule.Contains('max') -and $number -gt [double]$Rule['max']) { return "is $number, above the maximum $($Rule['max'])" }
     }
     if ($Rule.Contains('enum') -and "$Value" -cnotin @($Rule['enum'])) { return "is '$Value', not one of: $(@($Rule['enum']) -join ', ')$(Format-DidYouMean "$Value" @($Rule['enum']))" }
-    if ($Rule.Contains('pattern') -and "$Value" -cnotmatch $Rule['pattern']) { return "'$Value' does not match $($Rule['pattern'])" }
+    # A pattern that is not a regular expression is reported once, against data.json (Get-DataCases); here it matches nothing.
+    if ($Rule.Contains('pattern') -and (Test-DataPattern $Rule['pattern']) -and "$Value" -cnotmatch $Rule['pattern']) { return "'$Value' does not match $($Rule['pattern'])" }
     return $null
 }
 
@@ -373,6 +378,8 @@ function Get-DataCases([string]$ProjectDir) {
     $responses = [System.Collections.Generic.List[string]]::new(); $softlocks = [System.Collections.Generic.List[string]]::new()
     foreach ($name in $tables.Keys) {
         $spec = $tables[$name]
+        # A table that lists no fields still has its ids checked.
+        if (-not $spec.Contains('fields') -or -not $spec['fields']) { $spec['fields'] = [ordered]@{} }
         if (-not $spec.Contains('kind')) { continue }
         $kind = $spec['kind']
         if ($kind -cnotin 'responses', 'softlock') { $configProblems += "table '$name': kind '$kind' is unknown (the kinds are responses and softlock)$(Format-DidYouMean "$kind" @('responses', 'softlock'))"; continue }
@@ -406,6 +413,11 @@ function Get-DataCases([string]$ProjectDir) {
     foreach ($name in $tables.Keys) {
         foreach ($field in $tables[$name]['fields'].Keys) {
             $ref = $tables[$name]['fields'][$field]['ref']
+            $pattern = $tables[$name]['fields'][$field]['pattern']
+            if ($null -ne $pattern) {
+                try { [void][regex]::new([string]$pattern) }
+                catch { $configProblems += "table '$name' field '$field' has a pattern that is not a valid regular expression: $pattern ($($_.Exception.InnerException ? $_.Exception.InnerException.Message : $_.Exception.Message))" }
+            }
             if ($ref -and -not $tables.Contains($ref)) { $configProblems += "table '$name' field '$field' refers to table '$ref', which data.json does not list$(Format-DidYouMean $ref @($tables.Keys))" }
             if ($tables[$name]['fields'][$field]['acyclic'] -and $ref -ne $name) { $configProblems += "table '$name' field '$field' is acyclic, which needs a ref to its own table ('$name')" }
         }

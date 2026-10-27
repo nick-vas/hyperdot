@@ -45,6 +45,29 @@ try {
     Assert-True ($rows.Count -eq 3 -and $rows[0].ok -and -not $rows[1].ok -and $rows[2].ok -and $null -ne $rows[2].p99Ms) "the values after it still ran: $(@($rows | ForEach-Object { "$($_.value)=$($_.ok)" }) -join ', ')"
     Assert-True ($null -eq $d.sweep.lastWithinLimits -or "$($d.sweep.lastWithinLimits)" -eq '0') "lastWithinLimits stops at the failed value: $($d.sweep.lastWithinLimits)"
 
+    # A failing sweep in a folder that already holds an earlier sweep's results must not report that sweep's numbers.
+    # A Godot stand-in refuses only the benchmark run (the import and the rest go to the real one).
+    if (-not $IsWindows) {
+        foreach ($lib in 'Common', 'Setup') { . (Join-Path $root "ci/godot/lib/$lib.ps1") }
+        $realGodot = $env:GODOT_BIN
+        if (-not $realGodot) {
+            $detected = pwsh -NoProfile -NonInteractive -File $kit detect -Json -Project $fixture 2>$null | ConvertFrom-Json
+            $version, $release = $detected.godotVersion -split '-', 2
+            $realGodot = (Get-GodotPaths $version ($release ? $release : 'stable') ([bool]$detected.csharp)).Bin
+        }
+        $wrapper = Join-Path $temp 'godot-no-bench.sh'
+        Set-Content -LiteralPath $wrapper -Value "#!/bin/sh`ncase `"`$*`" in *--bench-seconds*) exit 1;; esac`nexec '$realGodot' `"`$@`"" -Encoding ascii
+        chmod +x $wrapper
+        $savedBin = $env:GODOT_BIN; $savedInstalled = $env:HYPERDOT_INSTALLED
+        try {
+            $env:GODOT_BIN = $wrapper; $env:HYPERDOT_INSTALLED = $null
+            $d = Invoke-Sweep $results @('-Sweep', 'cost=0,10')
+        } finally { $env:GODOT_BIN = $savedBin; $env:HYPERDOT_INSTALLED = $savedInstalled }
+        $rows = if ($d -and $d.PSObject.Properties['sweep']) { @($d.sweep.rows) } else { @() }
+        Assert-True ($d -and $d.error.code -eq 'bench-sweep-failed' -and $rows.Count -eq 2) "a sweep whose runs all fail fails: $(if ($d) { $d.error | ConvertTo-Json -Depth 10 -Compress })"
+        Assert-True (@($rows | Where-Object { $_.ok -or $null -ne $_.p99Ms -or $null -ne $_.result }).Count -eq 0) "failed rows carry no numbers from the earlier sweep: $($rows | ConvertTo-Json -Depth 5 -Compress)"
+    }
+
     # Refused before any setup.
     foreach ($bad in @('cost', 'cost=', '=1,2', 'cost=1,1', 'bench-seconds=1,2')) {
         $d = Invoke-Sweep (Join-Path $temp 'bad') @('-Sweep', $bad)

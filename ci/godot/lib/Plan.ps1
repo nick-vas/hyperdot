@@ -14,7 +14,13 @@ function Read-Plan([string]$Path) {
     catch { Stop-GodotCi "$Path is not valid JSON: $($_.Exception.Message)" 'invalid-plan' }
     $problems = @(Get-PlanProblems $plan)
     if ($problems.Count) { Stop-GodotCi "${Path}: $($problems -join '; ')" 'invalid-plan' }
+    Add-PlanDefaults $plan
     return $plan
+}
+
+# A plan without a "tasks" list has no tasks: give it the (empty) list, so reading and adding work, and plan -Do add saves it.
+function Add-PlanDefaults($Plan) {
+    if (-not $Plan.PSObject.Properties['tasks'] -or $null -eq $Plan.tasks) { $Plan | Add-Member -NotePropertyName tasks -NotePropertyValue @() -Force }
 }
 
 # What would stop the plan being read, as messages: `plan` fails with invalid-plan on them, `status` reports them as a
@@ -564,7 +570,7 @@ function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string
             # -Profile jam: a game jam of 2 to 9 days, phases sized in days with the jam's gates (templates/plan-jam.json).
             $template = $PlanProfile -eq 'jam' ? 'plan-jam.json' : 'plan.json'
             $plan = Get-Content -LiteralPath (Join-Path $PSScriptRoot "../templates/$template") -Raw | ConvertFrom-Json -Depth 10
-            $plan.game = $Game ? $Game : $Info.Name
+            $plan.game = $Game ? $Game : ($Info.DisplayName.Trim() ? $Info.DisplayName.Trim() : $Info.Name)
             $plan.phases[0] | Add-Member -NotePropertyName startedAt -NotePropertyValue ([datetime]::UtcNow.ToString('o'))
             Save-Plan $plan $path
             Write-PlanMarkdown $plan (Get-PlanState $plan $Info) (Join-Path $dir 'PLAN.md')

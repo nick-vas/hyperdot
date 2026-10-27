@@ -225,6 +225,22 @@ try {
     Assert-Equal $names 'Cave=Cave.death.png, cave=cave-2.death.png, cave-2=cave-2-2.death.png' 'level ids that differ in case get their own heat maps'
     Assert-Equal "$(@(Get-ChildItem -LiteralPath (Join-Path $work 'cased-results/heatmaps') -Filter '*.png').Count)" '3' 'three heat map files'
 
+    # 4c. A cell that is tiny gives a grid too large for an int: invalid-playtest-config, not a crash; -HotspotCell 0 or below
+    # is refused as invalid-arguments, and a tiny cell in playtest.json is the same config problem.
+    $tiny = Invoke-PlaytestCommand $fixture @('-Results', (Join-Path $work 'tiny'), '-HotspotCell', '0.000000001')
+    Assert-Equal "$($tiny.ok) $($tiny.error.code)" 'False invalid-playtest-config' '-HotspotCell 0.000000001'
+    foreach ($badCell in '-5', '0') {
+        $refused = Invoke-PlaytestCommand $fixture @('-Results', (Join-Path $work 'refused'), '-HotspotCell', $badCell)
+        Assert-Equal "$($refused.ok) $($refused.error.code)" 'False invalid-arguments' "-HotspotCell $badCell"
+    }
+    $tinyJson = Join-Path $work 'tiny-json'
+    Copy-Item -LiteralPath $fixture -Destination $tinyJson -Recurse
+    $tinyConfig = Get-Content -LiteralPath (Join-Path $tinyJson 'playtest.json') -Raw | ConvertFrom-Json -AsHashtable
+    $tinyConfig['levels']['cave']['cell'] = 0.000000001
+    $tinyConfig | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $tinyJson 'playtest.json')
+    $tinyResult = Invoke-PlaytestCommand $tinyJson @('-Results', (Join-Path $work 'tiny-json-results'))
+    Assert-Equal "$($tinyResult.ok) $($tinyResult.error.code)" 'False invalid-playtest-config' 'a tiny cell in playtest.json'
+
     # 5. Errors.
     $none = Invoke-PlaytestCommand $fixture @('-Results', (Join-Path $work 'none'), '-Sessions', (Join-Path $work 'no-such-folder'))
     Assert-Equal "$($none.ok) $($none.error.code)" 'False no-playtest-sessions' 'a missing sessions folder'

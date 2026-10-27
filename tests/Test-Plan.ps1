@@ -356,8 +356,37 @@ try {
         $s = pwsh -NoProfile -NonInteractive -File $ci status -Json -Project $broken 2>$null | ConvertFrom-Json
         Assert-True ($s.ok -and $null -eq $s.plan -and @($s.warnings | Where-Object { $_ -match 'cannot be read' -and $_ -match $case[2] }).Count -eq 1) "status with $($case[0]) warns and reports no plan: $(if ($s.ok) { $s.warnings -join ' | ' } else { $s.error.message })"
     }
+
+    # A plan.json with no "tasks" is a plan with none: plan, plan -Do add and status work, and add creates the list.
+    $noTasks = $good | ConvertFrom-Json -Depth 10
+    $noTasks.PSObject.Properties.Remove('tasks')
+    Set-Content -LiteralPath $brokenPath -Value ($noTasks | ConvertTo-Json -Depth 10) -Encoding utf8
+    $d = pwsh -NoProfile -NonInteractive -File $ci plan -Json -Project $broken 2>$null | ConvertFrom-Json
+    Assert-True ($d.ok -and @($d.tasks).Count -eq 0) "plan with no tasks property works: $(if ($d.ok) { 'ok' } else { $d.error.message })"
+    $s = pwsh -NoProfile -NonInteractive -File $ci status -Json -Project $broken 2>$null | ConvertFrom-Json
+    Assert-True ($s.ok -and $null -ne $s.plan) "status with no tasks property reads the plan: $(if ($s.ok) { $s.warnings -join ' | ' } else { $s.error.message })"
+    $d = pwsh -NoProfile -NonInteractive -File $ci plan -Do add -Title 'First task' -Json -Project $broken 2>$null | ConvertFrom-Json
+    Assert-True ($d.ok) "plan -Do add on a plan with no tasks property works: $(if ($d.ok) { 'ok' } else { $d.error.message })"
+    $after = Get-Content -LiteralPath $brokenPath -Raw | ConvertFrom-Json -Depth 10
+    Assert-True (@($after.tasks).Count -eq 1 -and $after.tasks[0].title -eq 'First task') 'add created the tasks list'
 } finally {
     Remove-Item -LiteralPath $broken -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+# The plan names the game as its project does: "My Game" stays "My Game" (the file-name slug is My-Game), and a name with
+# no ASCII letters is not emptied.
+foreach ($gameName in 'My Game', 'ゲーム') {
+    $named = Join-Path ([IO.Path]::GetTempPath()) "plan-name-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+    try {
+        New-Item -ItemType Directory -Force $named | Out-Null
+        Set-Content -LiteralPath (Join-Path $named 'project.godot') -Value "config_version=5`n`n[application]`n`nconfig/name=""$gameName""`n" -Encoding utf8
+        pwsh -NoProfile -NonInteractive -File $ci plan -Do init -Project $named 2>$null | Out-Null
+        $namedPlan = Get-Content -LiteralPath (Join-Path $named 'plan/plan.json') -Raw | ConvertFrom-Json -Depth 10
+        $title = (Get-Content -LiteralPath (Join-Path $named 'plan/PLAN.md') -TotalCount 1)
+        Assert-True ($namedPlan.game -eq $gameName -and $title -eq "# $gameName plan") "plan.game keeps the project's name '$gameName': '$($namedPlan.game)', $title"
+    } finally {
+        Remove-Item -LiteralPath $named -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }
 
 # init sets up the project the plan's gates check: it adds a starter test, but never over a file the user already has
