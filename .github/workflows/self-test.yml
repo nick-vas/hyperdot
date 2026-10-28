@@ -862,7 +862,10 @@ jobs:
   web:
     needs: changes
     if: needs.changes.outputs.web == 'true'
-    runs-on: ubuntu-latest
+    # Not ubuntu-latest: on 26.04 the Vulkan validation layer reports Godot 4.7.2's own host-access barriers
+    # (vkCmdPipelineBarrier srcAccessMask VK_ACCESS_2_HOST_READ_BIT) as errors, which fails Test-GpuValidation's clean
+    # scenes. Playwright itself works there since 1.64 (docs/roadmap.md, "CI supply chain").
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -879,15 +882,20 @@ jobs:
         id: browser-packages
         shell: pwsh
         run: |
-          $plan = npx --yes playwright@1.56.1 install-deps --dry-run chromium firefox 2>&1 | Out-String
-          $match = [regex]::Match($plan, 'apt-get install -y --no-install-recommends (?<p>[^"\r\n]+)')
-          if (-not $match.Success) { throw "Could not read Playwright's package list: $plan" }
-          "packages=$($match.Groups['p'].Value.Trim()) xvfb libgl1-mesa-dri mesa-vulkan-drivers vulkan-validationlayers" >> $env:GITHUB_OUTPUT
+          # --dry-run simulates apt-get and lists what is missing on this image (it exits 1 when something is, so the
+          # step ends with exit 0: GitHub's pwsh wrapper would take that code).
+          $plan = npx --yes playwright@1.64.1 install-deps --dry-run chromium firefox 2>&1 | Out-String
+          $header = [regex]::Match($plan, 'Missing system dependencies \(\d+\):\r?\n(?<list>(?:  \S+\r?\n?)+)')
+          if ($header.Success) { $missing = @([regex]::Matches($header.Groups['list'].Value, '(?m)^  (\S+)') | ForEach-Object { $_.Groups[1].Value }) }
+          elseif ($plan -match 'All system dependencies are installed') { $missing = @() }
+          else { throw "Could not read Playwright's package list: $plan" }
+          "packages=$($missing -join ' ') xvfb libgl1-mesa-dri mesa-vulkan-drivers vulkan-validationlayers" >> $env:GITHUB_OUTPUT
+          exit 0
       - uses: ./.github/actions/apt
         with:
           packages: ${{ steps.browser-packages.outputs.packages }}
       - name: Playwright's Chromium and Firefox
-        run: npx --yes playwright@1.56.1 install chromium firefox
+        run: npx --yes playwright@1.64.1 install chromium firefox
       - name: export -Run starts web builds, serves threads builds isolated and catches script errors
         shell: pwsh
         run: ./tests/Test-Web.ps1 -Browser chromium,msedge

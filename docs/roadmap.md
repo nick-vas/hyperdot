@@ -124,6 +124,12 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 
 ### CI supply chain (found in the review of the CI configuration)
 
+- **Move the `web` job back to `ubuntu-latest`.** It runs on `ubuntu-24.04` since `ubuntu-latest` became 26.04: there the
+  Vulkan validation layer reports Godot 4.7.2's own host-access barriers (`vkCmdPipelineBarrier()`, `srcAccessMask`
+  `VK_ACCESS_2_HOST_READ_BIT` not supported by `VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT`, with no VUID) in a clean `shot`, and
+  `Test-GpuValidation.ps1` fails on it (the clean `export -Run` is not affected). To do: find out whether newer Godot or the
+  layer fixes it, or whether the check should ignore these messages by text (`HYPERDOT_IGNORE_ERRORS` matches a VUID, and
+  these carry none), then move the job back.
 - **Windows and macOS image versions in the input hash.** `Get-InputHash.ps1 -RunnerByJob` takes a label for the jobs that run
   elsewhere (`windows-latest`, set in `self-test.yml`), which does not move when the hosted image does. Reading
   `ImageVersion` on those runners needs a step on them (the exports inside `csharp` run in `godot.yml`): to do, if the cache

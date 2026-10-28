@@ -122,6 +122,11 @@ try {
     $intro = Invoke-Label @('-Results', "$good,$poor,$fail,$hang,$best", '-Introduce')
     Assert-True ($intro.Json.standardTokensPerSolvedTask.T1 -eq 1000 -and $intro.Json.standardTokensPerSolvedTask.T2 -eq 2000) 'a new scale''s standard tokens are the median over the market, to the nearest 1,000'
     Assert-True ($intro.Json.topClassEmpty -eq $false) 'a new scale reports when its top class would not start empty'
+    # Exactly halfway between two thousands (2,000 and 3,000 tokens give a median of 2,500) rounds up, as the judge's median does.
+    $halfA = New-Run 'half-a' 'm-half-a' @(@('T1', 2000, 'alpha'), @('T1', 2000, 'alpha'), @('T1', 2000, 'alpha'), @('T2', 1000, 'beta'), @('T2', 1000, 'beta'), @('T2', 1000, 'beta'))
+    $halfB = New-Run 'half-b' 'm-half-b' @(@('T1', 3000, 'alpha'), @('T1', 3000, 'alpha'), @('T1', 3000, 'alpha'), @('T2', 1000, 'beta'), @('T2', 1000, 'beta'), @('T2', 1000, 'beta'))
+    $half = Invoke-Label @('-Results', "$halfA,$halfB", '-Introduce')
+    Assert-True ($half.Json.standardTokensPerSolvedTask.T1 -eq 3000) "a median of 2,500 tokens is introduced as 3,000, not rounded to the even 2,000 (got $($half.Json.standardTokensPerSolvedTask.T1))"
 
     # The quality factor (layer 4): the plugin's side-by-side win rate divides its index by 0.75 + 0.5 x win rate; the
     # configuration without the plugin is the reference, at a factor of 1.
