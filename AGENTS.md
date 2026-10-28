@@ -71,6 +71,10 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 - Changelog: add a fragment, `changelog.d/<slug>.md`, whose first line is `Added|Changed|Fixed|Removed|Deprecated|Security: <entry>`,
   instead of editing `CHANGELOG.md` (every pull request would conflict on its top lines); the format is in `changelog.d/README.md`.
 - Commit as the repository owner. Do not add AI attribution trailers to commits or PR descriptions.
+- After a push or a merge, list the queued and in-progress workflow runs and cancel the ones a newer push has made redundant:
+  older runs of the same branch or pull request, and push runs of main commits that a later merge supersedes. Keep the run of
+  the newest head and the one that gates a pending merge. Redundant runs crowd the runners and delay the checks that matter;
+  say what you cancelled.
 - Do not rewrite pushed history.
 - Blocked access (a site, tool, credential or permission out of reach) is never a reason to drop a good idea: ask the
   owner for help, do what does not depend on it, and write down what could not be done and why in `docs/roadmap.md`.
