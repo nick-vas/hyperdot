@@ -114,7 +114,7 @@ jobs:
       matrix: ${{ steps.matrix.outputs.matrix }}
       spec: ${{ steps.matrix.outputs.spec }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # The sessions an earlier run already ran, so the estimate and the parts count only the others.
       - name: The continued run's results
         if: inputs.continue_run != ''
@@ -192,7 +192,7 @@ jobs:
       # An ANTHROPIC_API_KEY in the environment would take precedence over the token, so none is set here.
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Claude Code
         shell: pwsh
         run: |
@@ -267,7 +267,7 @@ jobs:
           # Exit 2 is the runner's "incomplete, nothing failed": the time limit came first. The upload follows; continue_run finishes it.
           if ($code -eq 2) { Write-Host "::notice::Stopped at the $minutes-minute limit; the sessions left are in not-reached.json. Run again with continue_run set to this run's id."; exit 0 }
           exit $code
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: token-benchmark-${{ inputs.programme }}-${{ matrix.model }}${{ matrix.plugin && '-plugin' || '' }}${{ matrix.part && format('-part-{0}', matrix.part) || '' }}
@@ -284,7 +284,7 @@ jobs:
     env:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Claude Code
         shell: pwsh
         run: |
@@ -341,7 +341,7 @@ jobs:
           if (-not $judge) { throw "No candidate judge ($($candidates -join ', ')) met the owner's rule (see the table)" }
           "The judge: $judge (the bar: $($d.minAgreementSource))" | Add-Content $env:GITHUB_STEP_SUMMARY
           exit 0
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: judge-calibration

@@ -45,7 +45,7 @@ jobs:
     steps:
       # The workflow's own commit (the tip of main) is checked out, so the scripts below exist even when the commit to release
       # is older than they are; the files of the commit to release are read with `git show`.
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
       - name: The commit is on main and its Self-test push run succeeded
