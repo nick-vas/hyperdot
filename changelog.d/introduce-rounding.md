@@ -1,0 +1,1 @@
+Fixed: `Get-HyperdotLabel.ps1 -Introduce` rounds a median that is exactly halfway between two thousands up (2,500 to 3,000), as the judge's median does, instead of to the even thousand; the docs now say how to keep two versions of a model's sheets apart across folders, and count 51 skills

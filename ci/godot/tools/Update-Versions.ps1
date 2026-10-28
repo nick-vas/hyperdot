@@ -1,8 +1,8 @@
 #Requires -Version 7.6
 <#
 .SYNOPSIS
-    Compares the versions the kit pins (Godot, the test-framework packages, GUT, and the aseprite-mcp commit and MCP SDK
-    that init -McpAseprite writes) with the newest stable releases, and with -Apply rewrites every pin so the kit, its
+    Compares the versions the kit pins (Godot, the test-framework packages, GUT, the aseprite-mcp commit and MCP SDK
+    that init -McpAseprite writes, the Claude Code CLI and uv the workflows install, and the npx MCP servers init -Mcp writes) with the newest stable releases, and with -Apply rewrites every pin so the kit, its
     examples, skills and docs move together.
 
 .DESCRIPTION
@@ -54,8 +54,28 @@ $initText = Read-Text 'ci/godot/lib/Init.ps1'
 $current['aseprite-mcp'] = [regex]::Match($initText, 'github\.com/diivi/aseprite-mcp@(?<c>[0-9a-f]{40})').Groups['c'].Value
 $current['mcp'] = [regex]::Match($initText, "'mcp\[cli\]==(?<v>[\d.]+)'").Groups['v'].Value
 foreach ($pin in 'aseprite-mcp', 'mcp') { if (-not $current[$pin]) { throw "Update-Versions: no $pin pin found in ci/godot/lib/Init.ps1; update the pattern in Update-Versions.ps1" } }
+# Tools installed or started by version: the workflows' CLI and uv (jobs that hold a token) and the two npx MCP servers init writes. Pinned, so a new release of one cannot reach those jobs unread.
+# Each is read from one file, rewritten in all its files, and looked up with its own scriptblock.
+$toolPins = @(
+    @{ Name = 'claude-code'; Read = '.github/workflows/evals.yml'; Pattern = 'npm install -g @anthropic-ai/claude-code@(?<v>[\d.]+)'
+       Files = @('.github/workflows/evals.yml', '.github/workflows/token-benchmark.yml'); Edit = '@anthropic-ai/claude-code@{v}'
+       Latest = { (Get-Json 'https://registry.npmjs.org/@anthropic-ai/claude-code/latest').version } }
+    @{ Name = 'godot-mcp'; Read = 'ci/godot/lib/Init.ps1'; Pattern = '@satelliteoflove/godot-mcp@(?<v>[\d.]+)'
+       Files = @('ci/godot/lib/Init.ps1', 'docs/mcp.md'); Edit = '@satelliteoflove/godot-mcp@{v}'
+       Latest = { (Get-Json 'https://registry.npmjs.org/@satelliteoflove/godot-mcp/latest').version } }
+    @{ Name = 'minimal-godot-mcp'; Read = 'ci/godot/lib/Init.ps1'; Pattern = '@ryanmazzolini/minimal-godot-mcp@(?<v>[\d.]+)'
+       Files = @('ci/godot/lib/Init.ps1', 'docs/mcp.md'); Edit = '@ryanmazzolini/minimal-godot-mcp@{v}'
+       Latest = { (Get-Json 'https://registry.npmjs.org/@ryanmazzolini/minimal-godot-mcp/latest').version } }
+    @{ Name = 'uv'; Read = '.github/workflows/canary.yml'; Pattern = 'pipx install uv==(?<v>[\d.]+)'
+       Files = @('.github/workflows/canary.yml'); Edit = 'uv=={v}'
+       Latest = { (Get-Json 'https://pypi.org/pypi/uv/json').info.version } }
+)
+foreach ($pin in $toolPins) {
+    $current[$pin.Name] = [regex]::Match((Read-Text $pin.Read), $pin.Pattern).Groups['v'].Value
+    if (-not $current[$pin.Name]) { throw "Update-Versions: no pinned $($pin.Name) found in $($pin.Read); update the pattern in Update-Versions.ps1" }
+}
 # Pins that are not NuGet packages.
-$nonNuGet = 'godot', 'gut', 'aseprite-mcp', 'mcp'
+$nonNuGet = @('godot', 'gut', 'aseprite-mcp', 'mcp') + @($toolPins | ForEach-Object { $_.Name })
 
 # --- What is newest ----------------------------------------------------------------------------------------------
 function Get-Json([string]$Url) {
@@ -109,6 +129,13 @@ if ($LatestFile) {
     foreach ($name in @($current.Keys | Where-Object { $_ -notin $nonNuGet })) { $latest[$name] = Get-NuGetLatest $name }
     $latest['aseprite-mcp'] = try { Get-AsepriteMcpHead } catch { $notes.Add("Could not read aseprite-mcp's newest commit: $($_.Exception.Message)"); $current['aseprite-mcp'] }
     $latest['mcp'] = try { Get-McpSdkLatest $current['mcp'] } catch { $notes.Add("Could not read the MCP SDK's releases on PyPI: $($_.Exception.Message)"); $current['mcp'] }
+    foreach ($pin in $toolPins) {
+        $latest[$pin.Name] = try {
+            $version = [string](& $pin.Latest)
+            if ($version -notmatch '\A[0-9]+\.[0-9]+\.[0-9]+\z') { throw "'$version' is not a stable release number" }
+            $version
+        } catch { $notes.Add("Could not read the newest $($pin.Name): $($_.Exception.Message)"); $current[$pin.Name] }
+    }
     $gut = try { Get-GutFor (& $minor $latest['godot']) } catch { $notes.Add("Could not read GUT releases: $($_.Exception.Message)"); $null }
     $latest['gut'] = if ($gut) { $gut } else { $current['gut'] }
 }
@@ -195,6 +222,10 @@ if ($Apply) {
             }
             'mcp' {
                 foreach ($file in 'ci/godot/lib/Init.ps1', 'docs/mcp.md') { Update-Pin $file 'mcp\[cli\]=={v}' $u.current $u.latest }
+            }
+            { $_ -in @($toolPins | ForEach-Object { $_.Name }) } {
+                $pin = $toolPins | Where-Object { $_.Name -eq $u.name }
+                foreach ($file in $pin.Files) { Update-Pin $file $pin.Edit $u.current $u.latest }
             }
             default {
                 $id = [regex]::Escape($u.name)

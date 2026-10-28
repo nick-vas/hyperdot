@@ -29,7 +29,7 @@ The values of `hyperdot.ps1`'s `-Command`, and the self-tests and workflow steps
 | `setup` | `Test-BenchmarkIsolation.ps1`, `Test-DownloadFailed.ps1`, `Test-FieldTest.ps1`, `Test-GameBenchmark.ps1`, `Test-GameProgramme.ps1`, `Test-InstallLock.ps1`, self-test.yml field-test: Godot, self-test.yml game-benchmark: Godot and 1 more |
 | `detect` | `Test-ErrorCodes.ps1`, `Test-Localization.ps1`, `Test-OldState.ps1`, `Test-Playthrough.ps1`, `Test-StopGate.ps1`, `Test-Telemetry.ps1`, self-test.yml init: The juice runner passes timely feedback and fails late feedback, self-test.yml init: The kit inside a game stays out of it and 1 more |
 | `doctor` | `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-EvalGraders.ps1`, `Test-Flaky.ps1` and 8 more |
-| `init` | `Test-ErrorCodes.ps1`, `Test-ErrorKeys.ps1`, `Test-OldState.ps1`, `Test-Plan.ps1`, self-test.yml init: Agent efficiency, self-test.yml init: step 3, self-test.yml local-windows: MCP config is written |
+| `init` | `Test-ErrorCodes.ps1`, `Test-ErrorKeys.ps1`, `Test-OldState.ps1`, `Test-Plan.ps1`, `Test-UpdatePins.ps1`, self-test.yml init: Agent efficiency, self-test.yml init: step 3, self-test.yml local-windows: MCP config is written |
 | `plan` | `Test-ErrorCodes.ps1`, `Test-Plan.ps1`, `Test-TrelloSync.ps1`, self-test.yml lint: status reads the GDD, self-test.yml local-windows: Plan |
 | `bench` | `Test-BenchHotspots.ps1`, `Test-BenchSweep.ps1`, `Test-ErrorCodes.ps1`, `Test-GpuValidation.ps1`, `Test-SceneCount.ps1`, self-test.yml measure: bench |
 | `shot` | `Test-BenchSweep.ps1`, `Test-Capture.ps1`, `Test-ColorVision.ps1`, `Test-ErrorCodes.ps1`, `Test-GpuValidation.ps1`, `Test-Palette.ps1`, `Test-ShotChanged.ps1`, self-test.yml measure: shot and 1 more |
@@ -175,7 +175,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `textsize.gd` | `Test-Deck.ps1`, `Test-TextSize.ps1` |
 | `Update-AddonStatus.ps1` | `Test-Addons.ps1` |
 | `Update-Changelog.ps1` | `Test-Changelog.ps1` |
-| `Update-Versions.ps1` | `Test-UpdatePins.ps1` |
+| `Update-Versions.ps1` | `Test-UpdatePins.ps1`, `Test-WorkflowLint.ps1` |
 | `validate_logger.gd` | Test-Deck.ps1 (through validate.gd), Test-ErrorCodes.ps1 (through validate.gd), Test-ErrorKeys.ps1 (through validate.gd), Test-Flaky.ps1 (through validate.gd), Test-Flows.ps1 (through validate.gd), Test-Layout.ps1 (through validate.gd), Test-Localization.ps1 (through validate.gd), Test-MonoAudio.ps1 (through validate.gd) and 7 more |
 | `validate.gd` | `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Flows.ps1`, `Test-Layout.ps1`, `Test-Localization.ps1`, `Test-MonoAudio.ps1` and 7 more |
 | `web-smoke.mjs` | `Test-ErrorCodes.ps1` |

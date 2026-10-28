@@ -10,7 +10,8 @@
     again, so one broken release does not hold back the others. Needs a clean git working tree; it resets the tree
     between attempts. -LatestFile is passed to Update-Versions.ps1 (for tests). The aseprite-mcp commit and MCP SDK pins
     touch no game: they are tried by starting the server through uvx with the new pins and listing its tools (-Uvx names
-    the uvx to run, for tests), not on the example projects.
+    the uvx to run, for tests), not on the example projects. The Claude Code CLI and uv pins of the workflows and the pins of the two npx MCP servers are not tried at all
+    (the job has no token to run the CLI, and the servers need an editor): the pull request that proposes them is where a bump is read.
 #>
 [CmdletBinding()]
 param(
@@ -73,7 +74,7 @@ function Test-Updates([string[]]$Selected) {
     $skills = & pwsh -NoProfile -NonInteractive -File (Join-Path $tools 'Test-Skills.ps1') -Root $Root -Json | ConvertFrom-Json
     if (-not $skills.ok) { $problems += "skill validator: $(@($skills.findings | Where-Object level -eq 'error' | ForEach-Object message) -join '; ')" }
     # Pins that touch no game do not need the example projects.
-    $gamePins = @($Selected | Where-Object { $_ -notin 'aseprite-mcp', 'mcp' })
+    $gamePins = @($Selected | Where-Object { $_ -notin 'aseprite-mcp', 'mcp', 'claude-code', 'uv', 'godot-mcp', 'minimal-godot-mcp' })
     foreach ($project in @(if ($gamePins.Count -gt 0) { $Projects })) {
         $results = Join-Path ([System.IO.Path]::GetTempPath()) "canary-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
         $out = & pwsh -NoProfile -NonInteractive -File (Join-Path $Root 'ci/godot/hyperdot.ps1') test -Json -Quiet -Project (Join-Path $Root $project) -Results $results 2>$null

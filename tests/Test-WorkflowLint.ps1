@@ -77,13 +77,14 @@ Assert-True ($leftovers.Count -eq 0) "no version is matched with ^\d+\.\d+\.\d+ 
 $benchmark = Get-Workflow 'token-benchmark.yml'
 Assert-True ($benchmark -match 'Get-BenchmarkMinutes\.ps1' -and $benchmark -notmatch 'if \(\$minutes -gt 0\)') '-MaxMinutes is always set, by Get-BenchmarkMinutes.ps1'
 
-# Not pinned, in the jobs that hold a Claude token (a report: the versions cannot be read offline; docs/roadmap.md, "To do").
+# The Claude Code CLI and uv are installed at a version, in every job that holds a Claude token (Update-Versions.ps1 keeps them current).
 foreach ($name in 'evals.yml', 'token-benchmark.yml', 'canary.yml') {
     $text = Get-Workflow $name
-    foreach ($match in [regex]::Matches($text, '(?m)npm install -g @anthropic-ai/claude-code(?!@)|pipx install uv(?!==)')) {
-        Write-Host "note $name installs unpinned: $($match.Value)"
-    }
+    $unpinned = @([regex]::Matches($text, '(?m)npm install -g @anthropic-ai/claude-code(?!@[0-9]+\.[0-9]+\.[0-9]+\b)|pipx install uv(?!==[0-9]+\.[0-9]+\.[0-9]+\b)') | ForEach-Object { $_.Value })
+    Assert-True ($unpinned.Count -eq 0) "$name installs the Claude Code CLI and uv at a version (found unpinned: $($unpinned -join '; '))"
 }
+$pinned = (Get-Workflow 'evals.yml') + (Get-Workflow 'token-benchmark.yml') + (Get-Workflow 'canary.yml')
+Assert-True ([regex]::Matches($pinned, 'npm install -g @anthropic-ai/claude-code@').Count -eq 3 -and [regex]::Matches($pinned, 'pipx install uv==').Count -eq 1) 'the three CLI installs and the uv install are all there to be checked'
 
 if ($failures.Count) { Write-Host "`n$($failures.Count) failed" -ForegroundColor Red; exit 1 }
 Write-Host "`nAll passed"

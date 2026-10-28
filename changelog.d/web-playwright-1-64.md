@@ -1,0 +1,1 @@
+Fixed: The Web self-test job runs on ubuntu-24.04, because the Vulkan validation layer on 26.04 reports Godot 4.7.2's own host-access barriers and fails the GPU validation test; Playwright is 1.64.1, which works on 26.04
