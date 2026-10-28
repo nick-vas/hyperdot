@@ -124,13 +124,11 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 
 ### CI supply chain (found in the review of the CI configuration)
 
-- **Pin the Claude Code CLI and `uv`, and pin actions by commit SHA.** `npm install -g @anthropic-ai/claude-code`
-  (`evals.yml`, `token-benchmark.yml` twice) and `pipx install uv` (`canary.yml`, the `try` job) install whatever is
-  newest into jobs that hold `CLAUDE_CODE_OAUTH_TOKEN` (the canary job holds no token since it was split from `propose`).
-  Blocked: the session that found it had no network, so it could not read the current versions, and none was invented.
-  To do: read them, pin `@anthropic-ai/claude-code@<version>` and `uv==<version>`, pin the third-party actions by SHA, and
-  have `Update-Versions.ps1` or the canary propose the bumps. `tests/Test-WorkflowLint.ps1` already lists the unpinned
-  installs (it does not fail); make it fail once they are pinned.
+- **Pin third-party actions by commit SHA.** The Claude Code CLI (`@anthropic-ai/claude-code@x.y.z`) and `uv` (`uv==x.y.z`)
+  are pinned in the workflows that hold `CLAUDE_CODE_OAUTH_TOKEN`, `Update-Versions.ps1` reads the newest of each and the
+  weekly canary proposes the bump (it cannot try the CLI: its `try` job has no token, so a bump is read in the pull
+  request). `tests/Test-WorkflowLint.ps1` fails on an unpinned install. Still open: pin the third-party actions by commit
+  SHA, which needs the tag-to-commit lookup of each action (`git ls-remote`).
 - **Move the `web` job back to `ubuntu-latest`.** It runs on `ubuntu-24.04` since `ubuntu-latest` became 26.04: there the
   Vulkan validation layer reports Godot 4.7.2's own host-access barriers (`vkCmdPipelineBarrier()`, `srcAccessMask`
   `VK_ACCESS_2_HOST_READ_BIT` not supported by `VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT`, with no VUID) in a clean `shot`, and

@@ -1,0 +1,1 @@
+Security: The Claude Code CLI and uv that the workflows install into jobs holding a token are pinned to a version; `Update-Versions.ps1` and the weekly canary propose bumps, and the workflow lint fails on an unpinned install
