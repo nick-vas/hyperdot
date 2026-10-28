@@ -411,6 +411,9 @@ try {
     Add-Content -LiteralPath $notes -Value '2026-10-23 test: a note'
     $again = pwsh -NoProfile -NonInteractive -File $ci init -Plugin -Json -Project $starter 2>$null | ConvertFrom-Json
     Assert-True ((Get-Content -LiteralPath $notes -Raw) -match 'a note' -and @($again.steps | Where-Object { $_.message -match 'kit-notes\.md exists' }).Count -eq 1) 'a second init keeps the notes'
+    # And docs/kit-help.md, the kit's help as one Markdown page; an existing one is left for /kit to rewrite.
+    $kitHelp = Join-Path $starter 'docs/kit-help.md'
+    Assert-True ((Test-Path -LiteralPath $kitHelp) -and (Get-Content -LiteralPath $kitHelp -Raw) -match '(?m)^\| `test` \| ' -and @($again.steps | Where-Object { $_.message -match 'kit-help\.md exists' }).Count -eq 1) 'init -Plugin writes docs/kit-help.md once'
 } finally {
     Remove-Item -LiteralPath $starter -Recurse -Force -ErrorAction SilentlyContinue
 }

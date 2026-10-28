@@ -1,6 +1,7 @@
-# `help`: one line for each command, skill and subagent, or the page of one. The text lives in docs/help.md, which the
-# /kit skill prints through this command too, so there is one source; a skill's or subagent's page adds the "when to use
-# it" line of its own file. Needs no project and no Godot.
+# `help`: a Markdown reference of every command, skill and subagent (written to docs/kit-help.md of the game, which `init`
+# also puts there), or the page of one. The text lives in docs/help.md, which the /kit skill shows through this command
+# too, so there is one source; a skill's or subagent's page adds the "when to use it" line of its own file. Needs no
+# project and no Godot.
 
 # The kit's own folder (two levels above ci/godot/lib).
 function Get-HelpKitRoot { return Split-Path (Split-Path (Split-Path $PSScriptRoot)) }
@@ -34,6 +35,19 @@ function Read-HelpEntries([string]$Path) {
     }
     & $finish
     return @($entries)
+}
+
+# docs/help.md's "## Skill groups": "- **Group**: `skill`, `skill`" bullets, as ordered { name; skills[] } in file order.
+function Read-HelpGroups([string]$Path) {
+    $groups = [System.Collections.Generic.List[object]]::new()
+    $inside = $false
+    foreach ($line in [System.IO.File]::ReadAllLines($Path)) {
+        if ($line -match '^##\s+(?<s>.+?)\s*$') { $inside = $Matches.s -eq 'Skill groups'; continue }
+        if ($inside -and $line -match '^-\s+\*\*(?<g>[^*]+)\*\*:\s*(?<l>.+)$') {
+            $groups.Add([ordered]@{ name = $Matches.g.Trim(); skills = @([regex]::Matches($Matches.l, '`([a-z0-9-]+)`') | ForEach-Object { $_.Groups[1].Value }) })
+        }
+    }
+    return @($groups)
 }
 
 # The front matter of a skill or subagent file as a hashtable of its "key: value" lines.
@@ -79,23 +93,77 @@ function Get-HelpEntryDetails($Entry) {
     return $details
 }
 
-function Invoke-Help([string]$Topic) {
+# The reference as Markdown: a table each for the commands, skills and subagents. No date or version in it, so a second
+# run writes the same bytes and a game's copy only changes when the kit's text does.
+function New-HelpMarkdown($Entries, $Groups) {
+    $cell = { param([string]$Text) $Text.Replace('|', '\|') }
+    $sections = @(
+        [ordered]@{ kind = 'command'; title = 'Commands'; head = 'Command'; intro = 'Run as `pwsh <kit>/ci/godot/hyperdot.ps1 <command> [-Json]`.'; label = { param($n) "``$n``" } }
+        [ordered]@{ kind = 'skill'; title = 'Skills'; head = 'Skill'; intro = 'Type `/<name>` in Claude Code.'; label = { param($n) "``/$n``" } }
+        [ordered]@{ kind = 'subagent'; title = 'Subagents'; head = 'Subagent'; intro = 'Claude hands slow or verbose work to them; or ask for one by name.'; label = { param($n) "``$n``" } }
+    )
+    $out = [System.Collections.Generic.List[string]]::new()
+    $out.Add('# Hyperdot kit help')
+    $out.Add('')
+    $out.Add('Written by `hyperdot.ps1 help` from the kit''s `docs/help.md`; the kit rewrites it, so change the text there. One page: `/kit <name>` or `hyperdot.ps1 help <name>`. Every parameter: the kit''s `docs/reference.md`.')
+    foreach ($section in $sections) {
+        $ofKind = @($Entries | Where-Object kind -eq $section.kind)
+        if ($ofKind.Count -eq 0) { continue }
+        $out.Add('')
+        $out.Add("## $($section.title) ($($ofKind.Count))")
+        $out.Add('')
+        $out.Add($section.intro)
+        # Skills come in the groups docs/help.md names; one it does not place goes last, under "Other".
+        $parts = @([ordered]@{ title = $null; entries = $ofKind })
+        if ($section.kind -eq 'skill' -and @($Groups).Count -gt 0) {
+            $placed = @($Groups | ForEach-Object { $_.skills })
+            $parts = @(foreach ($g in $Groups) { [ordered]@{ title = $g.name; entries = @($g.skills | ForEach-Object { $n = $_; $ofKind | Where-Object { $_.name -eq $n } }) } })
+            $rest = @($ofKind | Where-Object { $_.name -notin $placed })
+            if ($rest.Count -gt 0) { $parts += [ordered]@{ title = 'Other'; entries = $rest } }
+        }
+        foreach ($part in $parts) {
+            $partEntries = @($part.entries)
+            if ($partEntries.Count -eq 0) { continue }
+            $out.Add('')
+            if ($part.title) { $out.Add("### $($part.title) ($($partEntries.Count))"); $out.Add('') }
+            $out.Add("| $($section.head) | What it does |")
+            $out.Add('|---|---|')
+            foreach ($e in $partEntries) { $out.Add("| $(& $section.label $e.name) | $(& $cell $e.summary) |") }
+        }
+    }
+    return (($out -join "`n") + "`n")
+}
+
+# Writes the reference to $Path (creating its folder) and returns the number of entries; the same bytes every time.
+function Write-HelpFile([string]$Path) {
+    $source = Join-Path (Get-HelpKitRoot) 'docs/help.md'
+    if (-not (Test-Path -LiteralPath $source)) { Stop-GodotCi "help reads $source, which is missing; it comes with the kit's repository" 'failed' }
+    $entries = @(Read-HelpEntries $source)
+    $folder = Split-Path -Path $Path
+    if ($folder) { New-Item -ItemType Directory -Force -Path $folder | Out-Null }
+    [System.IO.File]::WriteAllText($Path, (New-HelpMarkdown $entries (Read-HelpGroups $source)), [System.Text.UTF8Encoding]::new($false))
+    return $entries.Count
+}
+
+# Where `help` writes: docs/kit-help.md of the game it is given (-Project) or run in, else a file in the temp folder.
+function Get-HelpFilePath([string]$Project) {
+    $base = if ($Project) { [System.IO.Path]::GetFullPath($Project, (Get-Location).ProviderPath) }
+        elseif (Test-Path -LiteralPath (Join-Path (Get-Location).ProviderPath 'project.godot')) { (Get-Location).ProviderPath }
+        else { $null }
+    if ($base) { return Join-Path $base 'docs/kit-help.md' }
+    return Join-Path ([System.IO.Path]::GetTempPath()) 'hyperdot-kit-help.md'
+}
+
+function Invoke-Help([string]$Topic, [string]$Project) {
     $path = Join-Path (Get-HelpKitRoot) 'docs/help.md'
     if (-not (Test-Path -LiteralPath $path)) { Stop-GodotCi "help reads $path, which is missing; it comes with the kit's repository" 'failed' }
     $entries = @(Read-HelpEntries $path)
-    $titles = [ordered]@{ command = 'Commands: pwsh <kit>/ci/godot/hyperdot.ps1 <command> [-Json]'; skill = 'Skills: /<name> in Claude Code'; subagent = 'Subagents' }
     if (-not $Topic) {
         Set-JsonField entries @($entries | ForEach-Object { [ordered]@{ name = $_.name; kind = $_.kind; summary = $_.summary } })
-        if (-not $script:JsonMode) {
-            foreach ($kind in $titles.Keys) {
-                $ofKind = @($entries | Where-Object kind -eq $kind)
-                $width = (@($ofKind | ForEach-Object { $_.name.Length }) + @(1) | Measure-Object -Maximum).Maximum
-                Write-Console $titles[$kind]
-                foreach ($e in $ofKind) { Write-Console ("  {0}  {1}" -f $e.name.PadRight($width), $e.summary) }
-                Write-Console ''
-            }
-            Write-Console 'hyperdot.ps1 help <name> (or /kit <name>) shows one page. Every parameter: docs/reference.md.'
-        }
+        $file = Get-HelpFilePath $Project
+        $null = Write-HelpFile $file
+        Set-JsonField path $file
+        Write-Console "Kit help written to $file ($(@($entries | Where-Object kind -eq 'command').Count) commands, $(@($entries | Where-Object kind -eq 'skill').Count) skills, $(@($entries | Where-Object kind -eq 'subagent').Count) subagents). Open it, or ask for one page: hyperdot.ps1 help <name> (or /kit <name>)."
         return
     }
     $name = $Topic.Trim().TrimStart('/').ToLowerInvariant()

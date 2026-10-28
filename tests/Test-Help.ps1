@@ -1,8 +1,8 @@
 #!/usr/bin/env pwsh
 # Self-test of `help` and its one source, docs/help.md: every command in hyperdot.ps1's -Command set, every skill in
 # .agents/skills and every subagent in agents/ has an entry there with a one-line summary, and no entry names one that
-# does not exist; the kit calls its pages quote bind. Then `help` itself, from a folder with no project: the list, a
-# command's, a skill's and a subagent's page, an unknown name and a name given to another command. No Godot needed.
+# does not exist; the kit calls its pages quote bind. Then `help` itself, from a folder with no project: the Markdown page
+# (a row per entry, the same bytes twice, docs/kit-help.md with -Project), a command's, a skill's and a subagent's page, an unknown name and a name given to another command. No Godot needed.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -23,6 +23,14 @@ foreach ($kind in $subjects.Keys) {
     Assert-True ($missing.Count -eq 0) "every $kind has an entry in docs/help.md$(if ($missing) { ": add ### $($missing -join ', ### ') under its section" })"
     Assert-True ($stale.Count -eq 0) "every $kind entry exists$(if ($stale) { ": $($stale -join ', ') no longer does" })"
 }
+# Every skill sits in exactly one group of "## Skill groups", and a group names only skills that exist.
+$groups = @(Read-HelpGroups $helpFile)
+$grouped = @($groups | ForEach-Object { $_.skills })
+$ungrouped = @($subjects.skill | Where-Object { $_ -notin $grouped })
+$unknown = @($grouped | Where-Object { $_ -notin $subjects.skill })
+$doubled = @($grouped | Group-Object | Where-Object Count -gt 1 | ForEach-Object Name)
+Assert-True ($groups.Count -gt 0 -and $ungrouped.Count -eq 0) "every skill is in a group of docs/help.md$(if ($ungrouped) { ": add $($ungrouped -join ', ') under ## Skill groups" })"
+Assert-True ($unknown.Count -eq 0 -and $doubled.Count -eq 0) "each group lists real skills, each once$(if ($unknown -or $doubled) { ": $(@($unknown) + @($doubled) -join ', ')" })"
 $twice = @($entries | ForEach-Object { $_.name } | Group-Object | Where-Object Count -gt 1 | ForEach-Object Name)
 Assert-True ($twice.Count -eq 0) "no name has two entries$(if ($twice) { ": $($twice -join ', ')" })"
 $noSummary = @($entries | Where-Object { -not $_.summary -or $_.summary.Length -gt 200 } | ForEach-Object name)
@@ -48,9 +56,24 @@ try {
     Assert-True ($r.Code -eq 0 -and $d.ok -and $d.command -eq 'help' -and @($d.entries).Count -eq $total) "help -Json lists all $total entries without a project: $(@($d.entries).Count)"
     Assert-True (@($d.entries | Where-Object { $_.name -eq 'shot' -and $_.kind -eq 'command' -and $_.summary }).Count -eq 1) 'each entry has a name, kind and summary'
 
+    # Without a name the list is a Markdown file: in the temp folder from here (no project), in docs/ of a project.
     $r = Invoke-Help @('help')
-    $absent = @(foreach ($e in $entries) { if ($r.Text -notmatch "(?m)^  $([regex]::Escape($e.name))\s{2,}\S") { $e.name } })
-    Assert-True ($r.Code -eq 0 -and $absent.Count -eq 0) "help prints one line per entry$(if ($absent) { ": missing $($absent -join ', ')" })"
+    $file = Join-Path ([System.IO.Path]::GetTempPath()) 'hyperdot-kit-help.md'
+    Assert-True ($r.Code -eq 0 -and $r.Text -match 'Kit help written to ' -and (Test-Path -LiteralPath $file)) 'help writes the Markdown page and prints where'
+    $md = [System.IO.File]::ReadAllText($file)
+    $absent = @(foreach ($e in $entries) { $mark = if ($e.kind -eq 'skill') { "/$($e.name)" } else { $e.name }; if ($md -notmatch "(?m)^\| ``$([regex]::Escape($mark))`` \| \S") { $e.name } })
+    Assert-True ($absent.Count -eq 0) "the page has a table row per entry$(if ($absent) { ": missing $($absent -join ', ')" })"
+    Assert-True ($md -match '(?m)^## Commands \(\d+\)$' -and $md -match '(?m)^## Skills \(\d+\)$' -and $md -match '(?m)^## Subagents \(\d+\)$' -and $md -notmatch '\r') 'the page has a table each for commands, skills and subagents, with LF line ends'
+    $groupLines = @($groups | Where-Object { $md -notmatch "(?m)^### $([regex]::Escape($_.name)) \($($_.skills.Count)\)$" } | ForEach-Object name)
+    Assert-True ($groupLines.Count -eq 0 -and $md -notmatch '### Other') "the skills are under one heading per group, each with its count$(if ($groupLines) { ": missing $($groupLines -join ', ')" })"
+    $before = (Get-FileHash -LiteralPath $file).Hash
+    $d = (Invoke-Help @('help', '-Json')).Text | ConvertFrom-Json
+    Assert-True ($d.path -eq $file -and (Get-FileHash -LiteralPath $file).Hash -eq $before) 'help -Json names the file, and a second run writes the same bytes'
+    $game = Join-Path $empty 'game'
+    New-Item -ItemType Directory -Force $game | Out-Null
+    Set-Content -LiteralPath (Join-Path $game 'project.godot') -Value 'config_version=5'
+    $d = (Invoke-Help @('help', '-Json', '-Project', $game)).Text | ConvertFrom-Json
+    Assert-True ((Test-Path -LiteralPath (Join-Path $game 'docs/kit-help.md')) -and $d.path -eq (Join-Path $game 'docs/kit-help.md')) 'with -Project the page goes to docs/kit-help.md of the game'
 
     $d = (Invoke-Help @('help', 'shot', '-Json')).Text | ConvertFrom-Json
     Assert-True ($d.ok -and $d.entry.kind -eq 'command' -and $d.entry.page -match 'hyperdot\.ps1 shot ') "help shot returns the command's page: $($d.entry | ConvertTo-Json -Depth 10 -Compress)"

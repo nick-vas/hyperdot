@@ -1,7 +1,8 @@
 # Help
 
-What `hyperdot.ps1 help` and the `/kit` skill print: one line for each command, skill and subagent, and a short page for
-one of them (`hyperdot.ps1 help shot`, `/kit shot`). This file is the only source of that text. Each entry is a `###`
+What `hyperdot.ps1 help` and the `/kit` skill show: a Markdown page with a table each for the commands, skills and
+subagents, the skills in groups (written to `docs/kit-help.md` of the game, which `init -Agents` and `init -Plugin` also put there), and a short
+page for one of them (`hyperdot.ps1 help shot`, `/kit shot`). This file is the only source of that text. Each entry is a `###`
 heading with the name, one line saying what it does, then its page. A skill's or subagent's page also gets the "when to
 use it" line of its own file. `tests/Test-Help.ps1` fails when a command, skill or subagent has no entry here, or an entry
 names one that does not exist. Every parameter: [reference.md](reference.md); every JSON field: [json.md](json.md).
@@ -58,7 +59,7 @@ Wire the kit into a game: a starter test, a CI workflow pinned at @v1, .gitignor
 
     hyperdot.ps1 init [-Agents | -Plugin] [-Mcp godot-mcp] [-McpDiagnostics] [-McpAseprite <path>]
 
--Agents adds AGENTS.md, CLAUDE.md, docs/kit-notes.md, the skills and the subagents; -Plugin enables the kit as a Claude
+-Agents adds AGENTS.md, CLAUDE.md, docs/kit-notes.md, docs/kit-help.md (the kit's help as one Markdown page), the skills and the subagents; -Plugin enables the kit as a Claude
 Code plugin instead of copying skills. It never overwrites a file and is safe to run again.
 
 ### plan
@@ -306,6 +307,19 @@ Age ratings, privacy policy, licences, loot boxes and agreements.
 
 ### godot-console-cert
 Console ports and certification, Steam Deck reviews and publisher quality checks.
+
+## Skill groups
+
+How the page `help` writes sorts the skills. One bullet per group, in the order shown; every skill is in exactly one
+(`tests/Test-Help.ps1` checks). Not an entry: `help` takes no group name.
+
+- **Session and reviews**: `game`, `kit`, `look`, `retro`, `weekly-review`, `kit-review`
+- **Test and verify**: `godot-test-loop`, `godot-verify-before-done`, `godot-ui-flows`, `godot-diagnose`, `godot-pitfalls`, `godot-automation-hooks`, `godot-debug-tools`, `godot-editor-bridge`
+- **Plan and design**: `godot-game-plan`, `godot-game-design`, `godot-playtest`, `godot-progression`, `godot-narrative`
+- **Code and systems**: `godot-patterns`, `godot-math`, `godot-algorithms`, `godot-procgen`, `godot-game-ai`, `godot-data`, `godot-saves`, `godot-input`, `godot-determinism`, `godot-addons`, `godot-llm`
+- **Look and feel**: `godot-juice`, `godot-camera`, `godot-animation`, `godot-shaders-vfx`, `godot-asset-pipeline`, `godot-audio`, `godot-ui-accessibility`, `godot-localization`
+- **Performance and online**: `godot-performance`, `godot-multiplayer`, `godot-servers`, `godot-anti-cheat`, `godot-telemetry`, `godot-modding`
+- **Ship and sell**: `godot-export-release`, `godot-release-readiness`, `godot-mobile-web`, `godot-steam`, `godot-store-page`, `godot-legal`, `godot-console-cert`
 
 ## Subagents
 
