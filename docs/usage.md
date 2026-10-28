@@ -26,6 +26,27 @@ With `-Agents` or `-Plugin` it also writes `AGENTS.md`, `CLAUDE.md` and `docs/ki
 time the kit got in the way). Start every Claude Code session in the game with `/game`: it reads where the game stands and
 ends with the next tasks to pick from ([plan.md](plan.md#the-gdd-status-and-game)).
 
+**One script for the whole setup, and a second working copy for a parallel chat.** `ci/godot/tools/Initialize-HyperdotGame.ps1`
+checks the game's Git repository, git and the .NET 8 SDK, finds the kit, runs `doctor`, adds the kit on a branch
+(`init -Plugin`), runs the tests, commits and merges the branch, and makes a Git worktree on a new branch so a second
+Claude Code chat can work on the game while you keep working in the editor:
+```powershell
+pwsh C:\Tools\hyperdot\ci\godot\tools\Initialize-HyperdotGame.ps1 -Game 'C:\path\to\your\game' -DryRun   # prints what it would do
+pwsh C:\Tools\hyperdot\ci\godot\tools\Initialize-HyperdotGame.ps1 -Game 'C:\path\to\your\game'
+```
+It looks for local copies before it downloads anything, and downloads nothing unless you pass `-AllowDownload`:
+- the kit: `-Kit`, the clone the script is in, `HYPERDOT_KIT`, `C:\Tools\hyperdot`, `~/hyperdot` (never updated unless `-UpdateKit`);
+- Godot: `GODOT_BIN`, the kit's own folder `~/.hyperdot`, then Godot executables in `-GodotSearchPath` (several: separate with commas)
+  and the usual folders (`-NoDefaultSearch` leaves those out). Each is run with `--version`, and only a copy of the
+  game's version is kept (the .NET build for a C# game; on Windows the `_console.exe`). One match is used. Several are
+  listed with their paths and you choose, or pass `-GodotChoice <number>` or `-Godot <path>`. None: it stops before
+  changing anything, and with `-AllowDownload` lets the kit download the version on its first run.
+
+A Godot found outside the kit's folder is written to `.claude/settings.local.json` (`env.GODOT_BIN`) in the game and in the
+worktree, and that file is excluded in `.git/info/exclude`; `GODOT_BIN` is not set for the machine, because the kit uses it
+without checking its version. A second run skips what is done. In the Claude desktop app, open a local session on the
+worktree folder the script prints and send `/game`.
+
 ### 2. Run the tests locally, and check your setup
 
 ```powershell

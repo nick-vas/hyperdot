@@ -90,6 +90,7 @@ found and changes nothing; `doctor -Project <game>` checks the machine and the p
    pwsh $kit init -Agents -Mcp godot-mcp -Project $game      # once: tests, CI, AGENTS.md, skills, editor bridge
    pwsh $kit test -Json -Quiet -Project $game                # every time: build + every test, one JSON result
    ```
+   `ci/godot/tools/Initialize-HyperdotGame.ps1 -Game $game` does these steps, finds a local Godot of your game's version before downloading anything, and makes a second working copy for a parallel Claude chat ([docs/usage.md](docs/usage.md#1-add-the-kit-to-an-existing-game)).
    `init` adds a starter test, a GitHub workflow, `.gitignore` lines, test exclusions in the export presets, `AGENTS.md`,
    `CLAUDE.md`, `docs/kit-notes.md`, the skills, both subagents and `.mcp.json`. It never overwrites a file and prints each change. The full list,
    and how to keep the kit in the game as a submodule instead: [docs/usage.md](docs/usage.md).
