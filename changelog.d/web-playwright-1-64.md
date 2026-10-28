@@ -1,1 +1,1 @@
-Fixed: The Web self-test job failed on Ubuntu 26.04 runners (Playwright 1.56.1 had no package list for it); Playwright is now 1.64.1 in the kit and the workflow, and the job reads the new `install-deps --dry-run` output
+Fixed: The Web self-test job runs on ubuntu-24.04, because the Vulkan validation layer on 26.04 reports Godot 4.7.2's own host-access barriers and fails the GPU validation test; Playwright is 1.64.1, which works on 26.04

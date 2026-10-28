@@ -862,7 +862,10 @@ jobs:
   web:
     needs: changes
     if: needs.changes.outputs.web == 'true'
-    runs-on: ubuntu-latest
+    # Not ubuntu-latest: on 26.04 the Vulkan validation layer reports Godot 4.7.2's own host-access barriers
+    # (vkCmdPipelineBarrier srcAccessMask VK_ACCESS_2_HOST_READ_BIT) as errors, which fails Test-GpuValidation's clean
+    # scenes. Playwright itself works there since 1.64 (docs/roadmap.md, "CI supply chain").
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
