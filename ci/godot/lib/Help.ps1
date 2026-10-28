@@ -37,6 +37,19 @@ function Read-HelpEntries([string]$Path) {
     return @($entries)
 }
 
+# docs/help.md's "## Skill groups": "- **Group**: `skill`, `skill`" bullets, as ordered { name; skills[] } in file order.
+function Read-HelpGroups([string]$Path) {
+    $groups = [System.Collections.Generic.List[object]]::new()
+    $inside = $false
+    foreach ($line in [System.IO.File]::ReadAllLines($Path)) {
+        if ($line -match '^##\s+(?<s>.+?)\s*$') { $inside = $Matches.s -eq 'Skill groups'; continue }
+        if ($inside -and $line -match '^-\s+\*\*(?<g>[^*]+)\*\*:\s*(?<l>.+)$') {
+            $groups.Add([ordered]@{ name = $Matches.g.Trim(); skills = @([regex]::Matches($Matches.l, '`([a-z0-9-]+)`') | ForEach-Object { $_.Groups[1].Value }) })
+        }
+    }
+    return @($groups)
+}
+
 # The front matter of a skill or subagent file as a hashtable of its "key: value" lines.
 function Get-HelpFrontMatter([string]$Path) {
     $fields = @{}
@@ -82,7 +95,7 @@ function Get-HelpEntryDetails($Entry) {
 
 # The reference as Markdown: a table each for the commands, skills and subagents. No date or version in it, so a second
 # run writes the same bytes and a game's copy only changes when the kit's text does.
-function New-HelpMarkdown($Entries) {
+function New-HelpMarkdown($Entries, $Groups) {
     $cell = { param([string]$Text) $Text.Replace('|', '\|') }
     $sections = @(
         [ordered]@{ kind = 'command'; title = 'Commands'; head = 'Command'; intro = 'Run as `pwsh <kit>/ci/godot/hyperdot.ps1 <command> [-Json]`.'; label = { param($n) "``$n``" } }
@@ -100,10 +113,23 @@ function New-HelpMarkdown($Entries) {
         $out.Add("## $($section.title) ($($ofKind.Count))")
         $out.Add('')
         $out.Add($section.intro)
-        $out.Add('')
-        $out.Add("| $($section.head) | What it does |")
-        $out.Add('|---|---|')
-        foreach ($e in $ofKind) { $out.Add("| $(& $section.label $e.name) | $(& $cell $e.summary) |") }
+        # Skills come in the groups docs/help.md names; one it does not place goes last, under "Other".
+        $parts = @([ordered]@{ title = $null; entries = $ofKind })
+        if ($section.kind -eq 'skill' -and @($Groups).Count -gt 0) {
+            $placed = @($Groups | ForEach-Object { $_.skills })
+            $parts = @(foreach ($g in $Groups) { [ordered]@{ title = $g.name; entries = @($g.skills | ForEach-Object { $n = $_; $ofKind | Where-Object { $_.name -eq $n } }) } })
+            $rest = @($ofKind | Where-Object { $_.name -notin $placed })
+            if ($rest.Count -gt 0) { $parts += [ordered]@{ title = 'Other'; entries = $rest } }
+        }
+        foreach ($part in $parts) {
+            $partEntries = @($part.entries)
+            if ($partEntries.Count -eq 0) { continue }
+            $out.Add('')
+            if ($part.title) { $out.Add("### $($part.title) ($($partEntries.Count))"); $out.Add('') }
+            $out.Add("| $($section.head) | What it does |")
+            $out.Add('|---|---|')
+            foreach ($e in $partEntries) { $out.Add("| $(& $section.label $e.name) | $(& $cell $e.summary) |") }
+        }
     }
     return (($out -join "`n") + "`n")
 }
@@ -115,7 +141,7 @@ function Write-HelpFile([string]$Path) {
     $entries = @(Read-HelpEntries $source)
     $folder = Split-Path -Path $Path
     if ($folder) { New-Item -ItemType Directory -Force -Path $folder | Out-Null }
-    [System.IO.File]::WriteAllText($Path, (New-HelpMarkdown $entries), [System.Text.UTF8Encoding]::new($false))
+    [System.IO.File]::WriteAllText($Path, (New-HelpMarkdown $entries (Read-HelpGroups $source)), [System.Text.UTF8Encoding]::new($false))
     return $entries.Count
 }
 
