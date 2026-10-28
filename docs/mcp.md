@@ -25,12 +25,13 @@ lower Godot version. Pick godot-ai for its tool breadth or if you already use it
 ```powershell
 pwsh ci/godot/hyperdot.ps1 init -Agents -Mcp godot-mcp     # adds godot-mcp to .mcp.json; existing servers are kept
 ```
-Not pinned: the `npx -y` entries `init -Mcp` writes for `@satelliteoflove/godot-mcp` (and `@ryanmazzolini/minimal-godot-mcp`)
-fetch the latest published package each time the server starts; only the `uvx` Aseprite server below is pinned
-(see the To do list in [roadmap.md](roadmap.md)).
+Pinned: the `npx -y` entries `init -Mcp` writes name a version (`@satelliteoflove/godot-mcp@4.1.11`, `@ryanmazzolini/minimal-godot-mcp@0.1.6`),
+as the `uvx` Aseprite server below does, so a new release cannot reach a project unread. `Update-Versions.ps1` reads the
+newest of each from the npm registry and the weekly canary proposes the bump; to move one by hand, edit the version in
+`ci/godot/lib/Init.ps1` and here. Entries already in a project's `.mcp.json` are never edited: change the version there yourself.
 
 `init` never edits an existing server entry and backs up `.mcp.json` as `.mcp.json.bak` before adding one. It then prints the steps it
-does not run: install the addon (`npx @satelliteoflove/godot-mcp --install-addon <project>`), enable it under
+does not run: install the addon (`npx @satelliteoflove/godot-mcp@4.1.11 --install-addon <project>`), enable it under
 Project Settings > Plugins, restart the agent. `-Mcp godot-ai` prints the manual steps, because that server configures clients from its own dock.
 
 ## Companion: GDScript diagnostics and the game console

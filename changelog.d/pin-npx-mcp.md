@@ -1,0 +1,1 @@
+Security: `init -Mcp` and `-McpDiagnostics` write the npx servers at a pinned version (`@satelliteoflove/godot-mcp@4.1.11`, `@ryanmazzolini/minimal-godot-mcp@0.1.6`) instead of whatever is newest; `Update-Versions.ps1` and the weekly canary propose the bumps
