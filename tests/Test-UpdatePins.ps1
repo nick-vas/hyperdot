@@ -214,6 +214,25 @@ Write-Output '@@tools 123'
         @($report.passing).Count -or (Get-Content -LiteralPath (Join-Path $canaryAddons 'ci/godot/addons-status.json') -Raw) -notmatch ('d' * 40)) {
         $failures += "the canary should apply and report the add-on that moved: $($out -join ' ')"
     }
+
+    # The Claude Code CLI and uv the workflows install: read from the workflows, rewritten in every file that installs them,
+    # proposed by the canary without a trial (nothing runs the CLI there).
+    $toolOld = (Get-Content -LiteralPath (Join-Path $root '.github/workflows/evals.yml') -Raw)
+    $cliOld = [regex]::Match($toolOld, 'npm install -g @anthropic-ai/claude-code@(?<v>[\d.]+)').Groups['v'].Value
+    $uvOld = [regex]::Match((Get-Content -LiteralPath (Join-Path $root '.github/workflows/canary.yml') -Raw), 'pipx install uv==(?<v>[\d.]+)').Groups['v'].Value
+    $latestTools = Join-Path $temp 'latest-tools.json'
+    @{ 'claude-code' = '9.8.7'; uv = '9.8.6' } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $latestTools
+    $toolCopy = New-RepoCopy 'tools'
+    $c = Invoke-CanaryCopy $toolCopy $latestTools
+    if (-not $cliOld -or -not $uvOld -or -not $c.report) { $failures += "the CLI and uv pins should be read from the workflows ($cliOld, $uvOld): $($c.text)" }
+    elseif ((@($c.report.passing | ForEach-Object name | Sort-Object) -join ',') -ne 'claude-code,uv') { $failures += "the canary should propose both tool pins: $($c.text)" }
+    else {
+        $allText = foreach ($f in '.github/workflows/evals.yml', '.github/workflows/token-benchmark.yml', '.github/workflows/canary.yml') { Get-Content -LiteralPath (Join-Path $toolCopy $f) -Raw }
+        $joined = $allText -join "`n"
+        if ([regex]::Matches($joined, 'claude-code@9\.8\.7').Count -ne 3 -or $joined -notmatch 'uv==9\.8\.6' -or $joined -match [regex]::Escape("claude-code@$cliOld") -or $joined -match [regex]::Escape("uv==$uvOld")) {
+            $failures += 'the three CLI installs and the uv install should all carry the new versions and none the old'
+        }
+    }
 } finally {
     Remove-Item -Recurse -Force $temp -ErrorAction SilentlyContinue
 }

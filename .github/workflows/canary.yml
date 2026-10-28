@@ -36,7 +36,7 @@ jobs:
           persist-credentials: false
       # uvx starts aseprite-mcp with new pins, as init -McpAseprite's .mcp.json entry does.
       - name: Install uv
-        run: pipx install uv
+        run: pipx install uv==0.13.6
       - name: Try the newest releases on both examples
         shell: pwsh
         run: |
