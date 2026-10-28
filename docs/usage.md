@@ -22,7 +22,8 @@ keep its `.gdignore`: without it, the kit's `.gd` tool scripts (ten in `ci/godot
 - `solution_directory` in `project.godot` when your `.sln` lives outside the project folder;
 - `.github/workflows/hyperdot.yml`.
 
-With `-Agents` or `-Plugin` it also writes `AGENTS.md`, `CLAUDE.md` and `docs/kit-notes.md` (where the agent notes each
+With `-Agents` or `-Plugin` it also writes `AGENTS.md`, `CLAUDE.md`, `docs/kit-help.md` (every command, skill and subagent as one
+Markdown page; `/kit` rewrites and shows it) and `docs/kit-notes.md` (where the agent notes each
 time the kit got in the way). Start every Claude Code session in the game with `/game`: it reads where the game stands and
 ends with the next tasks to pick from ([plan.md](plan.md#the-gdd-status-and-game)).
 

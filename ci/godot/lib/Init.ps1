@@ -249,6 +249,11 @@ function Add-AgentFiles($Info, [string]$SuiteScript, [bool]$Plugin) {
         Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../templates/kit-notes.md') -Destination $notes
         Write-InitStep added 'docs/kit-notes.md (one line each time the kit gets in the way)'
     }
+    # docs/kit-help.md: every command, skill and subagent in one Markdown page, what /kit shows. /kit and `help` rewrite it
+    # from the kit's text, so a copy from an older kit is brought up to date the next time it is used.
+    $helpFile = Join-Path $root 'docs/kit-help.md'
+    if (Test-Path -LiteralPath $helpFile) { Write-InitStep skipped 'docs/kit-help.md exists (/kit rewrites it)' }
+    else { $null = Write-HelpFile $helpFile; Write-InitStep added 'docs/kit-help.md (the kit''s commands, skills and subagents; /kit shows it)' }
     # With the plugin, skills, the verifier subagent and the Stop hook come from the kit itself and stay up to date;
     # copies would only duplicate them.
     if ($Plugin) { Add-PluginSettings $root $suiteRoot; return }

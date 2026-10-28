@@ -2,7 +2,7 @@
 
 **Script** (`ci/godot/hyperdot.ps1`): commands `test` (default), `build`, `export`, `setup`, `detect`,
 `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest`, `help`, `deck` and `telemetry`
-(`help [name]`: one line per command, skill and subagent, or the page of one, from [help.md](help.md)).
+(`help [name]`: a Markdown page of every command, skill and subagent, or the page of one, from [help.md](help.md)).
 
 **`deck`** is the Steam Deck check in one run, at 1280x800: the `textsize` runner (its resolutions forced to 1280x800),
 the `layout` runner on the `steam_deck` profile with the `off-screen` check only, `shot`, and `bench` with `-BudgetMs`,
@@ -75,9 +75,9 @@ this machine at the Deck's resolution, not a Deck's speed.
 | `-McpDiagnostics` | off | `init`: also register minimal-godot-mcp (GDScript diagnostics, game console) |
 | `-McpAseprite` | none | `init`: also register aseprite-mcp for this Aseprite (the program, or its folder such as `C:\Program Files\Aseprite`) |
 | `-Mcp` | `none` | `init`: `godot-mcp` registers that editor MCP server; `godot-ai` prints its steps |
-| `-Agents` | off | `init`: also add AGENTS.md, CLAUDE.md, `docs/kit-notes.md` (one line each time the kit gets in the way), the skills and the subagents (`godot-verifier`, `godot-architect`) |
+| `-Agents` | off | `init`: also add AGENTS.md, CLAUDE.md, `docs/kit-notes.md` (one line each time the kit gets in the way), `docs/kit-help.md` (the kit's help as one Markdown page), the skills and the subagents (`godot-verifier`, `godot-architect`) |
 | `-Templates` | off | `setup`: also install the export templates (`export` installs them when it needs them) |
-| `-Plugin` | off | `init`: AGENTS.md, CLAUDE.md and `docs/kit-notes.md`, and enable this kit as a Claude Code plugin in `.claude/settings.json` instead of copying skills |
+| `-Plugin` | off | `init`: AGENTS.md, CLAUDE.md, `docs/kit-notes.md` and `docs/kit-help.md`, and enable this kit as a Claude Code plugin in `.claude/settings.json` instead of copying skills |
 
 **Environment variables**, all optional:
 

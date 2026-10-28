@@ -27,7 +27,7 @@
 .EXAMPLE
     ./ci/godot/hyperdot.ps1 playtest -Sessions playtests/sessions   # per-level counts and medians, heat maps of stalls and deaths
 .EXAMPLE
-    ./ci/godot/hyperdot.ps1 help shot     # one line per command, skill and subagent; with a name, its page (docs/help.md)
+    ./ci/godot/hyperdot.ps1 help shot     # with a name, its page; without, a Markdown reference of everything (docs/kit-help.md of the game)
     ./ci/godot/hyperdot.ps1 deck -Scene res://levels/Boss.tscn   # text size, layout, a screenshot and a 30 fps budget at 1280x800
 #>
 [CmdletBinding()]
@@ -42,7 +42,7 @@ param(
     # credits: CREDITS.md, credits.json and THIRD-PARTY-NOTICES.txt from assets.json and the engine's notices; fails on missing credit details.
     # sfx: placeholder sound effects from a seed (bfxr's synth: coin, laser, explosion, powerup, hit, jump, blip), as WAV and .bfxr.
     # playtest: per-level counts, medians and heat maps (PNG) from a folder of playtest telemetry sessions; no Godot needed.
-    # help: one line for each command, skill and subagent, or the page of one (help <name>); no project needed.
+    # help: a Markdown reference of every command, skill and subagent (docs/kit-help.md), or the page of one (help <name>); no project needed.
     # deck: the Steam Deck check at 1280x800: textsize, layout, shot and bench with a Deck budget, one verdict.
     # telemetry: one read-only view of the project's run history: per command the runs, pass rate and mean, median and p95 duration, and for test the slowest runners, failure hot spots and flaky tests; no Godot needed.
     # The sets of values (here and for -Retry, -Mcp, -Do and -Profile) are [ArgumentCompletions], which PowerShell does not
@@ -243,7 +243,7 @@ Assert-KitArguments $MyInvocation.MyCommand.ScriptBlock.Ast.ParamBlock $PSBoundP
 if ($Topic -and $Command -notin 'help', 'telemetry') { Stop-GodotCi "'$Topic' is not a parameter of $Command; only help and telemetry take a name (help $Topic)" 'invalid-arguments' }
 if ($PSBoundParameters.ContainsKey('Last') -and $Command -ne 'telemetry') { Stop-GodotCi '-Last is for telemetry (how many runs of each command to read)' 'invalid-arguments' }
 if ($Command -eq 'help') {
-    Invoke-Help $Topic
+    Invoke-Help $Topic $Project
     Write-JsonResult
     exit 0
 }

@@ -1,7 +1,8 @@
 # Help
 
-What `hyperdot.ps1 help` and the `/kit` skill print: one line for each command, skill and subagent, and a short page for
-one of them (`hyperdot.ps1 help shot`, `/kit shot`). This file is the only source of that text. Each entry is a `###`
+What `hyperdot.ps1 help` and the `/kit` skill show: a Markdown page with a table each for the commands, skills and
+subagents (written to `docs/kit-help.md` of the game, which `init -Agents` and `init -Plugin` also put there), and a short
+page for one of them (`hyperdot.ps1 help shot`, `/kit shot`). This file is the only source of that text. Each entry is a `###`
 heading with the name, one line saying what it does, then its page. A skill's or subagent's page also gets the "when to
 use it" line of its own file. `tests/Test-Help.ps1` fails when a command, skill or subagent has no entry here, or an entry
 names one that does not exist. Every parameter: [reference.md](reference.md); every JSON field: [json.md](json.md).
@@ -58,7 +59,7 @@ Wire the kit into a game: a starter test, a CI workflow pinned at @v1, .gitignor
 
     hyperdot.ps1 init [-Agents | -Plugin] [-Mcp godot-mcp] [-McpDiagnostics] [-McpAseprite <path>]
 
--Agents adds AGENTS.md, CLAUDE.md, docs/kit-notes.md, the skills and the subagents; -Plugin enables the kit as a Claude
+-Agents adds AGENTS.md, CLAUDE.md, docs/kit-notes.md, docs/kit-help.md (the kit's help as one Markdown page), the skills and the subagents; -Plugin enables the kit as a Claude
 Code plugin instead of copying skills. It never overwrites a file and is safe to run again.
 
 ### plan

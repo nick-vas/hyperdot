@@ -1,0 +1,1 @@
+Changed: `help` without a name writes a Markdown page (a table each for commands, skills and subagents) to `docs/kit-help.md` of the game, or to the temp folder outside one, and prints its path (`path` in `-Json`) instead of a console list; `init -Agents` and `init -Plugin` put the page in the game, and `/kit` shows the file. `help <name>` is unchanged.

@@ -391,7 +391,8 @@ and `noticesFile`.
 **init**: `steps[]`: `status` (added/updated/skipped), `message`.
 
 **help** (no project needed): without a name, `entries[]` (`name`, `kind`: command, skill or subagent, `summary`: one
-line); with one (`help shot`, `help /game`), `entry` with `name`, `kind`, `summary`, `page` (the rest of its text in
+line) and `path`, the Markdown page it wrote (`docs/kit-help.md` of the game given by `-Project` or run in, else
+`hyperdot-kit-help.md` in the temp folder); with one (`help shot`, `help /game`), `entry` with `name`, `kind`, `summary`, `page` (the rest of its text in
 [help.md](help.md)), and for a skill or subagent `when` (its description), `start` (how it starts) and `file`. A name
 help does not know, or a name given to another command, fails with `invalid-arguments`.
 
