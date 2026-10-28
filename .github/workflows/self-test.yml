@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # Every kit run in this job records the functions it entered and the error code it stopped with; the coverage job
       # at the end adds them up (tests/Get-KitCoverage.ps1).
       - name: Record what the kit reaches
@@ -304,7 +304,7 @@ jobs:
           ./actionlint -color
       - name: Keep what this job's kit runs reached
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: coverage-lint
           path: ${{ runner.temp }}/hyperdot-coverage
@@ -361,7 +361,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # Every kit run in this job records the functions it entered and the error code it stopped with; the coverage job
       # at the end adds them up (tests/Get-KitCoverage.ps1).
       - name: Record what the kit reaches
@@ -489,7 +489,7 @@ jobs:
           exit 0   # the last run failed on purpose; see the step above
       - name: Keep what this job's kit runs reached
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: coverage-init
           path: ${{ runner.temp }}/hyperdot-coverage
@@ -504,7 +504,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # Every kit run in this job records the functions it entered and the error code it stopped with; the coverage job
       # at the end adds them up (tests/Get-KitCoverage.ps1).
       - name: Record what the kit reaches
@@ -632,7 +632,7 @@ jobs:
         run: ./tests/Test-ErrorCodes.ps1
       - name: Keep what this job's kit runs reached
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: coverage-measure
           path: ${{ runner.temp }}/hyperdot-coverage
@@ -648,7 +648,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # Every kit run in this job records the functions it entered and the error code it stopped with; the coverage job
       # at the end adds them up (tests/Get-KitCoverage.ps1).
       - name: Record what the kit reaches
@@ -672,7 +672,7 @@ jobs:
         run: ./tests/Test-BenchmarkIsolation.ps1
       - name: Keep what this job's kit runs reached
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: coverage-game-benchmark
           path: ${{ runner.temp }}/hyperdot-coverage
@@ -727,7 +727,7 @@ jobs:
       hash-web: ${{ steps.hash.outputs.web }}
       hit-web: ${{ steps.lookup-web.outputs.cache-hit }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Which jobs and which genre and language pairs does this change need?
         id: select
         shell: pwsh
@@ -744,67 +744,67 @@ jobs:
           RUNNER_BY_JOB: '{"local-windows":"windows-latest","csharp":"ubuntu-latest+windows-latest+macos-latest"}'
         run: ./.github/scripts/Get-InputHash.ps1
       - id: lookup-lint
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ runner.temp }}/ci-marker
           key: ci-job-lint-${{ steps.hash.outputs.lint }}
           lookup-only: true
       - id: lookup-zero-config
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ runner.temp }}/ci-marker
           key: ci-job-zero-config-${{ steps.hash.outputs.zero-config }}
           lookup-only: true
       - id: lookup-csharp
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ runner.temp }}/ci-marker
           key: ci-job-csharp-${{ steps.hash.outputs.csharp }}
           lookup-only: true
       - id: lookup-explicit-runners
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ runner.temp }}/ci-marker
           key: ci-job-explicit-runners-${{ steps.hash.outputs.explicit-runners }}
           lookup-only: true
       - id: lookup-action
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ runner.temp }}/ci-marker
           key: ci-job-action-${{ steps.hash.outputs.action }}
           lookup-only: true
       - id: lookup-local-windows
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ runner.temp }}/ci-marker
           key: ci-job-local-windows-${{ steps.hash.outputs.local-windows }}
           lookup-only: true
       - id: lookup-init
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ runner.temp }}/ci-marker
           key: ci-job-init-${{ steps.hash.outputs.init }}
           lookup-only: true
       - id: lookup-measure
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ runner.temp }}/ci-marker
           key: ci-job-measure-${{ steps.hash.outputs.measure }}
           lookup-only: true
       - id: lookup-game-benchmark
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ runner.temp }}/ci-marker
           key: ci-job-game-benchmark-${{ steps.hash.outputs.game-benchmark }}
           lookup-only: true
       - id: lookup-field-test
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ runner.temp }}/ci-marker
           key: ci-job-field-test-${{ steps.hash.outputs.field-test }}
           lookup-only: true
       - id: lookup-web
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ runner.temp }}/ci-marker
           key: ci-job-web-${{ steps.hash.outputs.web }}
@@ -821,7 +821,7 @@ jobs:
       matrix:
         include: ${{ fromJSON(needs.changes.outputs.pairs) }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Godot (.NET build), for GODOT_BIN
         shell: pwsh
         run: ./ci/godot/hyperdot.ps1 setup -Project examples/csharp/game
@@ -839,7 +839,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Record what the kit reaches
         shell: pwsh
         run: '"HYPERDOT_COVERAGE=$env:RUNNER_TEMP/hyperdot-coverage" >> $env:GITHUB_ENV'
@@ -851,7 +851,7 @@ jobs:
         run: ./tests/Test-FieldTest.ps1
       - name: Keep what this job's kit runs reached
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: coverage-field-test
           path: ${{ runner.temp }}/hyperdot-coverage
@@ -868,7 +868,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # Every kit run in this job records the functions it entered and the error code it stopped with; the coverage job
       # at the end adds them up (tests/Get-KitCoverage.ps1).
       - name: Record what the kit reaches
@@ -924,7 +924,7 @@ jobs:
           ./tests/Test-GpuValidation.ps1
       - name: Keep what this job's kit runs reached
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: coverage-web
           path: ${{ runner.temp }}/hyperdot-coverage
@@ -938,7 +938,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # Every kit run in this job records the functions it entered and the error code it stopped with; the coverage job
       # at the end adds them up (tests/Get-KitCoverage.ps1).
       - name: Record what the kit reaches
@@ -951,7 +951,7 @@ jobs:
 
       - name: Keep what this job's kit runs reached
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: coverage-action
           path: ${{ runner.temp }}/hyperdot-coverage
@@ -965,7 +965,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # Every kit run in this job records the functions it entered and the error code it stopped with; the coverage job
       # at the end adds them up (tests/Get-KitCoverage.ps1).
       - name: Record what the kit reaches
@@ -1032,7 +1032,7 @@ jobs:
         run: ./ci/godot/hyperdot.ps1 export -Project examples/csharp/game -Preset Windows -Run
       - name: Keep what this job's kit runs reached
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: coverage-local-windows
           path: ${{ runner.temp }}/hyperdot-coverage
@@ -1049,8 +1049,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           pattern: coverage-*
           path: ${{ runner.temp }}/coverage
@@ -1082,7 +1082,7 @@ jobs:
         if: always()
         shell: pwsh
         run: ./tests/Get-CoverageMap.ps1 -From "$env:RUNNER_TEMP/coverage" -Output "$env:RUNNER_TEMP/coverage.md"
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: kit-coverage
@@ -1100,7 +1100,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: What the hashes say about this run
         id: observe
         shell: pwsh
@@ -1109,61 +1109,61 @@ jobs:
           MAY_WRITE: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         run: ./.github/scripts/Write-CacheObservations.ps1
       - if: ${{ steps.observe.outputs.save-lint == 'true' }}
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ runner.temp }}/ci-marker
           key: ci-job-lint-${{ needs.changes.outputs.hash-lint }}
       - if: ${{ steps.observe.outputs.save-zero-config == 'true' }}
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ runner.temp }}/ci-marker
           key: ci-job-zero-config-${{ needs.changes.outputs.hash-zero-config }}
       - if: ${{ steps.observe.outputs.save-csharp == 'true' }}
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ runner.temp }}/ci-marker
           key: ci-job-csharp-${{ needs.changes.outputs.hash-csharp }}
       - if: ${{ steps.observe.outputs.save-explicit-runners == 'true' }}
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ runner.temp }}/ci-marker
           key: ci-job-explicit-runners-${{ needs.changes.outputs.hash-explicit-runners }}
       - if: ${{ steps.observe.outputs.save-action == 'true' }}
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ runner.temp }}/ci-marker
           key: ci-job-action-${{ needs.changes.outputs.hash-action }}
       - if: ${{ steps.observe.outputs.save-local-windows == 'true' }}
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ runner.temp }}/ci-marker
           key: ci-job-local-windows-${{ needs.changes.outputs.hash-local-windows }}
       - if: ${{ steps.observe.outputs.save-init == 'true' }}
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ runner.temp }}/ci-marker
           key: ci-job-init-${{ needs.changes.outputs.hash-init }}
       - if: ${{ steps.observe.outputs.save-measure == 'true' }}
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ runner.temp }}/ci-marker
           key: ci-job-measure-${{ needs.changes.outputs.hash-measure }}
       - if: ${{ steps.observe.outputs.save-game-benchmark == 'true' }}
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ runner.temp }}/ci-marker
           key: ci-job-game-benchmark-${{ needs.changes.outputs.hash-game-benchmark }}
       - if: ${{ steps.observe.outputs.save-field-test == 'true' }}
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ runner.temp }}/ci-marker
           key: ci-job-field-test-${{ needs.changes.outputs.hash-field-test }}
       - if: ${{ steps.observe.outputs.save-web == 'true' }}
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ runner.temp }}/ci-marker
           key: ci-job-web-${{ needs.changes.outputs.hash-web }}
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: cache-observations
           path: ${{ runner.temp }}/cache-observations.jsonl

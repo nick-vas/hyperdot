@@ -86,5 +86,16 @@ foreach ($name in 'evals.yml', 'token-benchmark.yml', 'canary.yml') {
 $pinned = (Get-Workflow 'evals.yml') + (Get-Workflow 'token-benchmark.yml') + (Get-Workflow 'canary.yml')
 Assert-True ([regex]::Matches($pinned, 'npm install -g @anthropic-ai/claude-code@').Count -eq 3 -and [regex]::Matches($pinned, 'pipx install uv==').Count -eq 1) 'the three CLI installs and the uv install are all there to be checked'
 
+# Every action from another repository is pinned to a commit (a tag can be moved), with its version in a comment so a person
+# and Dependabot (.github/dependabot.yml) can read it. Local actions and reusable workflows (./...) are this repository's own.
+$unpinnedActions = @(foreach ($file in @(Get-ChildItem -LiteralPath (Join-Path $root '.github/workflows') -Filter '*.yml') + @(Get-ChildItem -LiteralPath (Join-Path $root '.github/actions') -Recurse -Filter 'action.yml')) {
+    foreach ($line in Get-Content -LiteralPath $file.FullName) {
+        if ($line -match '^\s*(?:-\s*)?uses:\s*(?<ref>\S+)' -and $Matches['ref'] -notlike './*' -and $Matches['ref'] -notmatch '@[0-9a-f]{40}\z') { "$($file.Name): $($Matches['ref'])" }
+    }
+})
+Assert-True ($unpinnedActions.Count -eq 0) "every action from another repository is pinned to a commit SHA (found: $($unpinnedActions -join '; '))"
+$pinnedActions = @(foreach ($file in Get-ChildItem -LiteralPath (Join-Path $root '.github/workflows') -Filter '*.yml') { Select-String -LiteralPath $file.FullName -Pattern '^\s*(?:-\s*)?uses:\s*\S+@[0-9a-f]{40} # v\d+' })
+Assert-True ($pinnedActions.Count -gt 20) "the pinned actions each carry their version in a comment ($($pinnedActions.Count) found in the workflows)"
+
 if ($failures.Count) { Write-Host "`n$($failures.Count) failed" -ForegroundColor Red; exit 1 }
 Write-Host "`nAll passed"

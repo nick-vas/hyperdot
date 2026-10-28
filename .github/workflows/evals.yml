@@ -28,7 +28,7 @@ jobs:
       # The eval sandbox cannot read the home directory, so Godot is installed outside it.
       GODOT_TOOLS_DIR: /opt/hyperdot
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # The eval sandbox (Claude Code runs Bash under bubblewrap), from the Actions cache when it can.
       - uses: ./.github/actions/apt
         with:
@@ -100,7 +100,7 @@ jobs:
           # A run whose commands the sandbox refused graded the environment, not the plugin.
           if ((Get-Content evals/results/result.json -Raw) -match 'bwrap: |Read-only file system') { throw 'A case reports bwrap or read-only file system errors: the sandbox refused its commands, so these scores do not measure the plugin' }
           exit 0
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: eval-results

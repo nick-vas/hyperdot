@@ -1,0 +1,14 @@
+# Keeps the commit-pinned actions current: one pull request a week per action, each moving the SHA and its "# vN" comment.
+# The pins are checked by tests/Test-WorkflowLint.ps1; remove this file to take the updates by hand.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directories:
+      - /
+      - /.github/actions/*
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns:
+          - '*'

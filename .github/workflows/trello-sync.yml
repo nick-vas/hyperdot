@@ -27,7 +27,7 @@ jobs:
       TRELLO_KEY: ${{ secrets.TRELLO_KEY }}
       TRELLO_TOKEN: ${{ secrets.TRELLO_TOKEN }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: plan -Do sync against live Trello
         shell: pwsh
         run: |

@@ -1,0 +1,1 @@
+Security: Every action the workflows use from another repository (`actions/checkout`, `cache`, `upload-artifact` and the rest) is pinned to a commit SHA with its version in a comment, `tests/Test-WorkflowLint.ps1` fails on an unpinned one, and a Dependabot config proposes the weekly bumps

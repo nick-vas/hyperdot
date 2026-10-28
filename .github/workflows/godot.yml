@@ -226,13 +226,13 @@ jobs:
       targets: ${{ steps.exports.outputs.targets }}
     steps:
       # LFS files are pulled by the action, which keeps them in the Actions cache.
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           submodules: ${{ inputs.submodules }}
 
       # This workflow's own repository at the exact commit the caller pinned, so the scripts always
       # match the workflow version without any extra input.
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: ${{ job.workflow_repository || 'nick-vas/hyperdot' }}
           ref: ${{ job.workflow_sha || 'main' }}
@@ -317,7 +317,7 @@ jobs:
 
       - name: Keep what the kit reached
         if: always() && inputs.kit-coverage != ''
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ${{ inputs.kit-coverage }}-test
           path: ${{ runner.temp }}/hyperdot-coverage
@@ -338,12 +338,12 @@ jobs:
         target: ${{ fromJSON(needs.test.outputs.targets) }}
     steps:
       # game-version auto counts commits since the last tag, so it needs the whole history and the tags.
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           submodules: ${{ inputs.submodules }}
           fetch-depth: ${{ inputs.game-version == 'auto' && '0' || '1' }}
 
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: ${{ job.workflow_repository || 'nick-vas/hyperdot' }}
           ref: ${{ job.workflow_sha || 'main' }}
@@ -415,7 +415,7 @@ jobs:
       # Numbered, not named after the preset: a preset name may hold characters an artifact name may not.
       - name: Keep what the kit reached
         if: always() && inputs.kit-coverage != ''
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ${{ inputs.kit-coverage }}-export-${{ strategy.job-index }}
           path: ${{ runner.temp }}/hyperdot-coverage
@@ -429,13 +429,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: ${{ inputs.timeout-minutes }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: ${{ job.workflow_repository || 'nick-vas/hyperdot' }}
           ref: ${{ job.workflow_sha || 'main' }}
           path: .godot-pipelines
 
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           pattern: ${{ needs.test.outputs.name }}-*
           path: dist
