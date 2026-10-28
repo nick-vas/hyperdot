@@ -111,7 +111,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-Handoffs.ps1` | the handoff log: `status -Handoff` writes one line with the commit, cuts the text at 500 and 300 characters, keeps the newest 200, refuses bad arguments; `status` reads it back | git |
 | `Test-ProcessTimeout.ps1` | the process time limit | - |
 | `Test-CrashRetry.ps1` | the repeat of a crashed import or export (pwsh stands in for Godot) | - |
-| `Test-DownloadFailed.ps1` | the `download-failed` code (about 15 s) | - |
+| `Test-DownloadFailed.ps1` | the `download-failed` code (about 15 s), and a download checked against Godot's `SHA512-SUMS.txt`: a match, a mismatch (`checksum-mismatch`, the file deleted), a release without the file or not listing the archive (a stand-in server on 127.0.0.1) | - |
 | `Test-InstallLock.ps1` | two installs of one Godot taking turns, a dead run freeing the lock, `install-busy` | - |
 | `Test-SceneCount.ps1` | `bench`'s and `audio`'s refusal of several scenes | - |
 | `Test-ShotChanged.ps1` | `shot -MaxChangedPercent`; scenes that share a file name get their own pictures | Godot, display |

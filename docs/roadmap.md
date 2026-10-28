@@ -145,13 +145,6 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
   failures first seen after merge, and runner-minutes. It needs `gh run list` and `gh run view --json jobs`, which the
   session that wrote the page could not reach. Nothing was demoted without it.
 
-### Needs network access
-
-- **Verify Godot download checksums.** `Save-Download` in `ci/godot/lib/Setup.ps1` trusts HTTPS alone. Godot publishes a
-  `SHA512-SUMS.txt` beside each release: download it, compare the editor and export-template archives against it, and fail
-  with a stable code on a mismatch. Needs network access to read the current files and to test against them; the session
-  that found this had none.
-
 ### After 0.1.0
 
 - **A complete mid run of the staged programme** (postponed by the owner on 2026-10-26 until after the 0.1.0 release).

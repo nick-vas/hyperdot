@@ -24,6 +24,48 @@ function Save-RequiredDownload([string]$Url, [string]$Destination) {
     catch { Stop-GodotCi "Could not download $Url after 4 attempts ($($_.Exception.Message.TrimEnd("."))). Retry later or check the network; the project is not at fault." 'download-failed' }
 }
 
+# Godot publishes a SHA512-SUMS.txt beside each release (godot-builds). A download is compared with it before it is unpacked:
+# HTTPS alone would trust whatever the server, a mirror or a proxy in the way hands over. A release without the file, or a
+# file the sums do not list, is logged and used (older releases); a mismatch is never used.
+$script:PublishedChecksums = @{}
+function Get-PublishedChecksums([string]$BaseUrl) {
+    if ($script:PublishedChecksums.ContainsKey($BaseUrl)) { return $script:PublishedChecksums[$BaseUrl] }
+    $url = "$BaseUrl/SHA512-SUMS.txt"
+    $ProgressPreference = 'SilentlyContinue'
+    $sums = $null
+    for ($attempt = 1; ; $attempt++) {
+        try {
+            $response = Invoke-WebRequest -Uri $url -MaximumRedirection 10 -SkipHttpErrorCheck
+            if ($response.StatusCode -eq 404) { break }
+            if ($response.StatusCode -ne 200) { throw "HTTP $($response.StatusCode)" }
+            $text = if ($response.Content -is [byte[]]) { [System.Text.Encoding]::UTF8.GetString($response.Content) } else { [string]$response.Content }
+            $sums = @{}
+            foreach ($line in $text -split "`r?`n") {
+                if ($line -match '^(?<hash>[0-9a-fA-F]{128})\s+\*?(?<name>\S.*?)\s*$') { $sums[$Matches['name']] = $Matches['hash'].ToLowerInvariant() }
+            }
+            if ($sums.Count -eq 0) { throw 'it lists no SHA-512 sums' }
+            break
+        } catch {
+            if ($attempt -ge 4) { Stop-GodotCi "Could not read $url after 4 attempts ($($_.Exception.Message.TrimEnd("."))), so the download cannot be checked. Retry later or check the network; the project is not at fault." 'download-failed' }
+            Start-Sleep -Seconds ([math]::Pow(2, $attempt))
+        }
+    }
+    $script:PublishedChecksums[$BaseUrl] = $sums
+    return $sums
+}
+
+function Confirm-DownloadChecksum([string]$BaseUrl, [string]$File, [string]$Path) {
+    $sums = Get-PublishedChecksums $BaseUrl
+    if ($null -eq $sums) { Write-CiLog "No SHA512-SUMS.txt is published at ${BaseUrl}: $File was not checked"; return }
+    if (-not $sums.ContainsKey($File)) { Write-CiLog "SHA512-SUMS.txt at ${BaseUrl} does not list ${File}: it was not checked"; return }
+    $actual = (Get-FileHash -Algorithm SHA512 -LiteralPath $Path).Hash.ToLowerInvariant()
+    if ($actual -ne $sums[$File]) {
+        Remove-Item -Force -LiteralPath $Path
+        Stop-GodotCi "$File does not match the SHA-512 Godot publishes for it ($BaseUrl/SHA512-SUMS.txt lists $($sums[$File]); the download is $actual). The file was deleted. Retry, and report it if it happens again: it was altered on the way or is damaged." 'checksum-mismatch'
+    }
+    Write-CiLog "$File matches the SHA-512 Godot publishes"
+}
+
 # Two runs installing the same Godot at once (parallel jobs on one machine, two agent sessions) would share the zip, and
 # one could start a half-extracted editor. An exclusive lock on a file serialises them; the system releases it when a
 # run dies, so a crash never leaves it held. The wait is bounded by HYPERDOT_TIMEOUT, like any program the kit runs.
@@ -168,6 +210,7 @@ function Install-GodotTools {
             $zip = Join-Path (Get-ToolsDir) "$($paths.Package).zip"
             New-Item -ItemType Directory -Force (Get-ToolsDir) | Out-Null
             Save-RequiredDownload "$($paths.BaseUrl)/$($paths.Package).zip" $zip
+            Confirm-DownloadChecksum $paths.BaseUrl "$($paths.Package).zip" $zip
             # Unpacked beside the final folder and renamed into place, so a run killed halfway never leaves an editor
             # that looks installed. ditto keeps what an app bundle needs (symbolic links, permissions, its code
             # signature) and ZipFile does not.
@@ -194,6 +237,7 @@ function Install-GodotTools {
             } else {
                 $tpz = Join-Path (Get-ToolsDir) $paths.TemplatesFile
                 Save-RequiredDownload "$($paths.BaseUrl)/$($paths.TemplatesFile)" $tpz
+                Confirm-DownloadChecksum $paths.BaseUrl $paths.TemplatesFile $tpz
                 $tmp = Join-Path ([IO.Path]::GetTempPath()) "godot-templates-$([guid]::NewGuid())"
                 Expand-Zip $tpz $tmp
                 New-Item -ItemType Directory -Force $paths.TemplatesDir | Out-Null
