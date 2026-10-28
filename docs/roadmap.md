@@ -150,10 +150,6 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
   `SHA512-SUMS.txt` beside each release: download it, compare the editor and export-template archives against it, and fail
   with a stable code on a mismatch. Needs network access to read the current files and to test against them; the session
   that found this had none.
-- **Pin the two npx packages.** `init -Mcp` writes `npx -y @satelliteoflove/godot-mcp` and
-  `npx -y @ryanmazzolini/minimal-godot-mcp` (`ci/godot/lib/Init.ps1`) with no version. Pin both to the current published
-  version (`@name@x.y.z`) and add them to `ci/godot/tools/Update-Versions.ps1` so the weekly canary keeps them current, as it
-  does for the `uvx` server. Needs network access to read the current versions.
 
 ### After 0.1.0
 

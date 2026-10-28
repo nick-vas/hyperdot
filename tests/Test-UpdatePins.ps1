@@ -217,20 +217,37 @@ Write-Output '@@tools 123'
 
     # The Claude Code CLI and uv the workflows install: read from the workflows, rewritten in every file that installs them,
     # proposed by the canary without a trial (nothing runs the CLI there).
+    # What init writes: the npx servers at the versions pinned in Init.ps1, and the addon step naming the same version.
+    $mcpGame = Join-Path $temp 'mcp-game'
+    Copy-Item -LiteralPath (Join-Path $root 'examples/gdscript') -Destination $mcpGame -Recurse
+    $initOut = & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') init -Mcp godot-mcp -McpDiagnostics -Project $mcpGame 2>&1
+    $mcpFile = Join-Path $mcpGame '.mcp.json'
+    $servers = if (Test-Path -LiteralPath $mcpFile) { (Get-Content -LiteralPath $mcpFile -Raw | ConvertFrom-Json).mcpServers } else { $null }
+    $initPins = Get-Content -LiteralPath (Join-Path $root 'ci/godot/lib/Init.ps1') -Raw
+    $godotMcpPin = [regex]::Match($initPins, '@satelliteoflove/godot-mcp@(?<v>[\d.]+)').Groups['v'].Value
+    $miniPin = [regex]::Match($initPins, '@ryanmazzolini/minimal-godot-mcp@(?<v>[\d.]+)').Groups['v'].Value
+    if (-not $servers -or -not $godotMcpPin -or -not $miniPin -or @($servers.'godot-mcp'.args)[-1] -ne "@satelliteoflove/godot-mcp@$godotMcpPin" -or @($servers.'minimal-godot-mcp'.args)[-1] -ne "@ryanmazzolini/minimal-godot-mcp@$miniPin") {
+        $failures += "init should write both npx servers at their pinned versions ($godotMcpPin, $miniPin): $($initOut -join ' ')"
+    }
+    if (($initOut -join "`n") -notmatch [regex]::Escape("npx @satelliteoflove/godot-mcp@$godotMcpPin --install-addon")) { $failures += "init's addon step should name the pinned version: $($initOut -join ' ')" }
     $toolOld = (Get-Content -LiteralPath (Join-Path $root '.github/workflows/evals.yml') -Raw)
     $cliOld = [regex]::Match($toolOld, 'npm install -g @anthropic-ai/claude-code@(?<v>[\d.]+)').Groups['v'].Value
     $uvOld = [regex]::Match((Get-Content -LiteralPath (Join-Path $root '.github/workflows/canary.yml') -Raw), 'pipx install uv==(?<v>[\d.]+)').Groups['v'].Value
     $latestTools = Join-Path $temp 'latest-tools.json'
-    @{ 'claude-code' = '9.8.7'; uv = '9.8.6' } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $latestTools
+    @{ 'claude-code' = '9.8.7'; uv = '9.8.6'; 'godot-mcp' = '9.1.0'; 'minimal-godot-mcp' = '9.2.0' } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $latestTools
     $toolCopy = New-RepoCopy 'tools'
     $c = Invoke-CanaryCopy $toolCopy $latestTools
     if (-not $cliOld -or -not $uvOld -or -not $c.report) { $failures += "the CLI and uv pins should be read from the workflows ($cliOld, $uvOld): $($c.text)" }
-    elseif ((@($c.report.passing | ForEach-Object name | Sort-Object) -join ',') -ne 'claude-code,uv') { $failures += "the canary should propose both tool pins: $($c.text)" }
+    elseif ((@($c.report.passing | ForEach-Object name | Sort-Object) -join ',') -ne 'claude-code,godot-mcp,minimal-godot-mcp,uv') { $failures += "the canary should propose the four tool pins: $($c.text)" }
     else {
         $allText = foreach ($f in '.github/workflows/evals.yml', '.github/workflows/token-benchmark.yml', '.github/workflows/canary.yml') { Get-Content -LiteralPath (Join-Path $toolCopy $f) -Raw }
         $joined = $allText -join "`n"
         if ([regex]::Matches($joined, 'claude-code@9\.8\.7').Count -ne 3 -or $joined -notmatch 'uv==9\.8\.6' -or $joined -match [regex]::Escape("claude-code@$cliOld") -or $joined -match [regex]::Escape("uv==$uvOld")) {
             $failures += 'the three CLI installs and the uv install should all carry the new versions and none the old'
+        }
+        foreach ($file in 'ci/godot/lib/Init.ps1', 'docs/mcp.md') {
+            $text = Get-Content -LiteralPath (Join-Path $toolCopy $file) -Raw
+            if ($text -notmatch '@satelliteoflove/godot-mcp@9\.1\.0' -or $text -notmatch '@ryanmazzolini/minimal-godot-mcp@9\.2\.0') { $failures += "$file should carry the new npx server versions" }
         }
     }
 } finally {
