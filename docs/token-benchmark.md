@@ -348,7 +348,7 @@ What they show:
 - **Sonnet fails on length, not on content.** All but one of its failed answers, across every profile, are over the
   word limit their prompt states, by 10 to 30%. Haiku keeps to the limit and passes 96% under profile A, at about a
   fifteenth of the cost per solved task.
-- **The plugin costs here and shows no reliable gain.** Its 50 skills are about making games, and these tasks are about
+- **The plugin costs here and shows no reliable gain.** Its 51 skills are about making games, and these tasks are about
   Hyperdot's own code. Loading it adds tokens to every session: the index rises from 74.2 to 107.5 for Haiku and from
   92.8 to 100.4 for Sonnet. Haiku's pass rate falls from 96% to 79%, Sonnet's rises from 54% to 62% (two tasks of 24,
   within noise). `evals/` is where the plugin is meant to help: game tasks.
