@@ -197,7 +197,7 @@ jobs:
         shell: pwsh
         run: |
           if (-not $env:CLAUDE_CODE_OAUTH_TOKEN) { throw 'Add the CLAUDE_CODE_OAUTH_TOKEN repository secret (from claude setup-token) to run the benchmark' }
-          npm install -g @anthropic-ai/claude-code
+          npm install -g @anthropic-ai/claude-code@2.1.312
       - name: The continued run's results
         if: inputs.continue_run != ''
         shell: bash
@@ -289,7 +289,7 @@ jobs:
         shell: pwsh
         run: |
           if (-not $env:CLAUDE_CODE_OAUTH_TOKEN) { throw 'Add the CLAUDE_CODE_OAUTH_TOKEN repository secret (from claude setup-token) to calibrate the judge' }
-          npm install -g @anthropic-ai/claude-code
+          npm install -g @anthropic-ai/claude-code@2.1.312
           $out = claude -p 'Reply with the single word OK.' --max-turns 1 --output-format json 2>&1
           if ($LASTEXITCODE) { throw "Claude Code rejected CLAUDE_CODE_OAUTH_TOKEN; run claude setup-token again and replace the secret: $out" }
       # Each set's pairs, rebuilt from its run and checked against the key the owner's page was made from.
