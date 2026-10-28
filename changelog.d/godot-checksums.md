@@ -1,0 +1,1 @@
+Security: Godot's editor and export-template downloads are checked against the `SHA512-SUMS.txt` Godot publishes beside each release; a mismatch deletes the file and stops with the new `checksum-mismatch` code, and a release that publishes no sums (4.0) is used with a note in the log
