@@ -131,6 +131,14 @@ The sheet also shows the other profiles, as informative values. They are not rat
 ```powershell
 # Rate the runs in these folders (the benchmark workflow's artifacts) and write the sheets and labels
 pwsh benchmark/Get-HyperdotLabel.ps1 -Results run-a,run-b -Coverage coverage.json -OutDir docs/label -Note 'adversarial review: ...'
+```
+
+A sheet's file name uses the model without its version (`hyperdot-0.1.0-tool-haiku.json`). Two versions of one model rated
+together, or rated into an `-OutDir` that already holds the other version's sheet, keep the version in the name. Rated into
+different folders and copied together afterwards, they would overwrite each other: rate every version of a model into the
+folder the sheets are published from (`-OutDir docs/label`), or check the `model` field of a sheet before copying it over another.
+
+```powershell
 
 # Check a declared label against new runs of the standard programme (one folder per unit)
 pwsh benchmark/Get-HyperdotLabel.ps1 -Results unit1 -Verify docs/label/hyperdot-0.1.0-sonnet.json        # complies / retest
