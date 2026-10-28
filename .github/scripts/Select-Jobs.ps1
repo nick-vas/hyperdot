@@ -39,12 +39,15 @@ $ErrorActionPreference = 'Stop'
 # The jobs a change can skip; lint and coverage always run.
 $gated = 'zero-config', 'csharp', 'explicit-runners', 'action', 'local-windows', 'init', 'measure', 'game-benchmark', 'field-test', 'web'
 
+# Scripts of .github/scripts/ that belong to no job: the release workflow's and the token benchmark workflow's, held by lint.
+$ownScripts = 'Get-ChangelogSection\.ps1|Test-MajorTagMove\.ps1|Get-BenchmarkMinutes\.ps1'
+
 $sample = @(@{ genre = 'platformer'; language = 'csharp' }, @{ genre = 'arena'; language = 'gdscript' }, @{ genre = 'cards'; language = 'gdscript' })
-$pairsCode = '^benchmark/templates/|^benchmark/(GameProgramme\.ps1|game-programme\.json)$|^tests/Test-GameProgramme\.ps1$|^\.github/(workflows/self-test\.yml|scripts/(?!Get-ChangelogSection\.ps1))'
+$pairsCode = '^benchmark/templates/|^benchmark/(GameProgramme\.ps1|game-programme\.json)$|^tests/Test-GameProgramme\.ps1$|^\.github/(workflows/self-test\.yml|scripts/(?!' + $ownScripts + '))'
 
 # Used by every job, so a change to them runs every job. (The release workflow and its changelog script belong to no job:
 # a change to them runs lint, which holds their test.)
-$core = '^\.github/(workflows/self-test\.yml|actions/|scripts/(?!Get-ChangelogSection\.ps1))', '^ci/godot/hyperdot\.ps1$',
+$core = ('^\.github/(workflows/self-test\.yml|actions/|scripts/(?!' + $ownScripts + '))'), '^ci/godot/hyperdot\.ps1$',
     '^ci/godot/lib/(Common|Runners|Setup|Detect|Report)\.ps1$', '^ci/godot/tools/(validate|validate_logger|flows)\.gd$',
     '^examples/', '^\.gdignore$', '^ci/godot/\.gdignore$'
 function Get-LibPattern([string[]]$Names) { return '^ci/godot/lib/(' + ($Names -join '|') + ')\.ps1$' }
@@ -111,7 +114,7 @@ function Get-TestJobs([string]$File) {
 # of the shared core: the nightly run checks it against the rest.
 function Get-FileJobs([string]$File) {
     $shared = @($core | Where-Object { $File -match $_ }).Count -gt 0
-    $forFieldTest = $File -match '^\.github/(workflows/self-test\.yml|scripts/(?!Get-ChangelogSection\.ps1))'
+    $forFieldTest = $File -match ('^\.github/(workflows/self-test\.yml|scripts/(?!' + $ownScripts + '))')
     $testJobs = if ($File -match '^tests/') { Get-TestJobs $File } else { @() }
     foreach ($job in $gated) {
         if ($shared -and ($job -ne 'field-test' -or $forFieldTest)) { $job; continue }
@@ -123,7 +126,10 @@ function Get-FileJobs([string]$File) {
 if ($Inputs) {
     $sets = [ordered]@{}
     foreach ($job in $gated) { $sets[$job] = [System.Collections.Generic.List[string]]::new() }
-    foreach ($file in @(git -C $Root ls-files)) {
+    # (-z: git prints a non-ASCII name in quotes and octal otherwise, and no regex below would match it.)
+    $tracked = (& git -C $Root ls-files -z) -join ''
+    if ($LASTEXITCODE -ne 0) { throw 'git ls-files failed' }
+    foreach ($file in $tracked.Split([char]0, [System.StringSplitOptions]::RemoveEmptyEntries)) {
         if (Test-Documentation $file) { continue }
         foreach ($job in @(Get-FileJobs $file)) { $sets[$job].Add($file) }
     }
@@ -145,9 +151,10 @@ if (-not $full) {
         $changed = @($Files | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
     } else {
         git -C $Root fetch -q --depth=1 origin $Base 2>$null
-        $listed = @(git -C $Root diff --name-only $Base HEAD 2>$null)
+        # -z: a non-ASCII name is listed as it is, not quoted. --no-renames: a file moved out of a gated path lists its old path.
+        $listed = (& git -C $Root diff --name-only --no-renames -z $Base HEAD 2>$null) -join ''
         # Not fetched (a force push, a deleted base): check everything rather than skip.
-        if ($LASTEXITCODE -ne 0) { $full = $true } else { $changed = $listed }
+        if ($LASTEXITCODE -ne 0) { $full = $true } else { $changed = @($listed.Split([char]0, [System.StringSplitOptions]::RemoveEmptyEntries)) }
     }
 }
 

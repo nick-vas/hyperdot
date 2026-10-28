@@ -88,7 +88,7 @@ function Get-AsepriteMcpHead {
 # The newest stable mcp release on PyPI within the pinned major; a newer major is a note, not an update.
 function Get-McpSdkLatest([string]$Current) {
     $releases = (Get-Json 'https://pypi.org/pypi/mcp/json').releases
-    $stable = @($releases.PSObject.Properties | Where-Object { $_.Name -match '^\d+\.\d+\.\d+$' -and @($_.Value | Where-Object { -not $_.yanked }).Count -gt 0 } |
+    $stable = @($releases.PSObject.Properties | Where-Object { $_.Name -match '\A[0-9]+\.[0-9]+\.[0-9]+\z' -and @($_.Value | Where-Object { -not $_.yanked }).Count -gt 0 } |
         ForEach-Object Name | Sort-Object { [version]$_ })
     $major = [int]($Current -split '\.')[0]
     $newer = @($stable | Where-Object { [int]($_ -split '\.')[0] -gt $major })

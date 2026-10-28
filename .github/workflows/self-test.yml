@@ -23,7 +23,7 @@ permissions:
 # merge to main, each nightly run and each run started by hand has a group of its own (the run id), since a group lets only
 # one run wait and would drop the one in between.
 concurrency:
-  group: self-test-${{ github.event_name == 'pull_request' && github.head_ref || github.run_id }}
+  group: self-test-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # git 2.54+ runs background maintenance after a commit, which packs and deletes loose objects, and has raced tests that
@@ -101,6 +101,9 @@ jobs:
       - name: The release notes are the changelog section of exactly that version
         shell: pwsh
         run: ./tests/Test-ReleaseNotes.ps1
+      - name: The workflows hold what cannot be run here - a pull request's own concurrency group, a release that cannot end green without exports, the canary's upstream code with no write token, whole-string version matches
+        shell: pwsh
+        run: ./tests/Test-WorkflowLint.ps1
       - name: The selection of what a change runs (the sample of pairs, the pairs of a changed game, everything on main) holds
         shell: pwsh
         run: ./tests/Test-SelectJobs.ps1
@@ -736,6 +739,9 @@ jobs:
       - name: Input hash of each job (git object ids of the files it reads, the runner image, the event)
         id: hash
         shell: pwsh
+        env:
+          # The jobs that do not run on this ubuntu image get their runner label in the key instead of its image version.
+          RUNNER_BY_JOB: '{"local-windows":"windows-latest","csharp":"ubuntu-latest+windows-latest+macos-latest"}'
         run: ./.github/scripts/Get-InputHash.ps1
       - id: lookup-lint
         uses: actions/cache/restore@v6

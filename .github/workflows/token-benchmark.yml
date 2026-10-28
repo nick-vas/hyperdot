@@ -23,9 +23,9 @@
 # profiles, tasks) as the run being continued. The results are a new run of their own, never a change to the old one; the
 # classes need both runs' results together.
 #
-# `max_minutes` (300, under the job's 330) stops a job from starting new sessions after that long: the session running
+# `max_minutes` (285, under the job's 330 less 45 minutes for a milestone session; empty or 0 mean that cap) stops a job from starting new sessions after that long: the session running
 # finishes, the results and `not-reached.json` (the sessions left) are uploaded as usual and the job ends green, with a
-# notice. Continue that run with `continue_run` for the rest. A tool-programme job (120 minutes) stops 30 minutes short of
+# notice. Continue that run with `continue_run` for the rest. A tool-programme job (120 minutes) stops 45 minutes short of
 # its limit if this is more.
 #
 # `calibrate` runs no benchmark: it calibrates the judge (benchmark/PLAN.md, section 3). For every set of the owner's
@@ -97,8 +97,8 @@ on:
         description: Id of an earlier Token benchmark run of this repository to continue, running only the sessions it did not run (empty for none)
         default: ''
       max_minutes:
-        description: Stop starting new sessions after this many minutes, and upload what was measured (the job limit is 330)
-        default: '300'
+        description: Stop starting new sessions after this many minutes, and upload what was measured (the job limit is 330; at most 45 minutes less, empty or 0 for that)
+        default: '285'
 permissions:
   contents: read
 
@@ -258,9 +258,9 @@ jobs:
           if ($env:REPEAT) { $params.Repeat = [int]$env:REPEAT }
           if ($env:SHARD) { $params.Shard = $env:SHARD }
           if ($env:CONTINUE_RUN) { $params.SkipDone = (Get-ChildItem continued -Directory | ForEach-Object FullName) -join ',' }
-          # Never later than 30 minutes before the job's limit, whatever max_minutes says.
-          $minutes = [Math]::Min([int]"0$env:MAX_MINUTES", [int]$env:JOB_MINUTES - 30)
-          if ($minutes -gt 0) { $params.MaxMinutes = $minutes }
+          # Never later than 45 minutes (a milestone session) before the job's limit, whatever max_minutes says, and always set.
+          $minutes = [int](./.github/scripts/Get-BenchmarkMinutes.ps1 -MaxMinutes $env:MAX_MINUTES -JobMinutes ([int]$env:JOB_MINUTES))
+          $params.MaxMinutes = $minutes
           ./benchmark/Invoke-TokenBenchmark.ps1 @params
           $code = $LASTEXITCODE
           Get-ChildItem benchmark/results -Recurse -Filter summary.md | Get-Content -Raw | Add-Content $env:GITHUB_STEP_SUMMARY

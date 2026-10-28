@@ -102,7 +102,7 @@ this machine at the Deck's resolution, not a Deck's speed.
 | `pr-comment` | `true` | Results comment on pull requests (needs `pull-requests: write`) |
 | `exports` | none | `all`, or a comma list of preset names |
 | `run-exports` | `false` | Launch each export on a runner of its own OS |
-| `release` | `false` | Publish exports as a GitHub Release on tags (needs `contents: write`); exports of a tag carry its version (`-GameVersion`) |
+| `release` | `false` | Publish exports as a GitHub Release on tags (needs `contents: write`; with no `exports` the run fails rather than ending green without a release); exports of a tag carry its version (`-GameVersion`) |
 | `runs-on` | `ubuntu-latest` | `windows-latest` also works. iOS presets always export on `macos-latest` |
 | `lfs` | `false` | Pull Git LFS files; the action keeps `.git/lfs` in the Actions cache (keyed on `git lfs ls-files -l`), so only new objects are downloaded |
 | `submodules`, `retention-days` | | Checkout option and artifact retention |

@@ -15,6 +15,10 @@ param(
     [string]$EventName = $env:GITHUB_EVENT_NAME,
     # The runner image, as the apt action keys it ($env:ImageOS-$env:ImageVersion on a hosted runner).
     [string]$Runner = $(if ($env:ImageOS) { "$($env:ImageOS)-$($env:ImageVersion)" } else { "$($env:RUNNER_OS)-$($env:RUNNER_ARCH)" }),
+    # A job that runs on another runner than this one, as JSON: {"local-windows": "windows-latest"}. Its hash then uses that
+    # string instead of -Runner (the hosted image version of a runner this job is not on cannot be read here, so give a label
+    # that is changed by hand, or a version, when the runner matters).
+    [string]$RunnerByJob = $env:RUNNER_BY_JOB,
     # Job -> files, as Select-Jobs.ps1 -Inputs prints it (default: asked of it).
     [string]$InputsPath,
     [switch]$Json
@@ -30,8 +34,12 @@ function Get-Sha256Hex([string]$Text) {
 $inputs = if ($InputsPath) { Get-Content -LiteralPath $InputsPath -Raw | ConvertFrom-Json -AsHashtable }
           else { (& pwsh -NoProfile -NonInteractive -File (Join-Path $PSScriptRoot 'Select-Jobs.ps1') -Root $Root -Inputs) -join "`n" | ConvertFrom-Json -AsHashtable }
 
-# One listing of the commit's tree: path -> "mode oid". (-z: a path with a space or a quote is not escaped.)
-$tree = @{}
+$runnerOf = @{}
+if ($RunnerByJob) { foreach ($property in ($RunnerByJob | ConvertFrom-Json).PSObject.Properties) { $runnerOf[$property.Name] = [string]$property.Value } }
+
+# One listing of the commit's tree: path -> "mode oid". (-z: a path with a space or a quote is not escaped.) Ordinal: two
+# tracked files whose names differ in case are two files.
+$tree = [System.Collections.Generic.Dictionary[string, string]]::new([System.StringComparer]::Ordinal)
 $listing = (& git -C $Root ls-tree -r -z $Commit) -join ''
 if ($LASTEXITCODE -ne 0) { throw "git ls-tree $Commit failed" }
 foreach ($entry in $listing.Split([char]0, [System.StringSplitOptions]::RemoveEmptyEntries)) {
@@ -48,7 +56,7 @@ $hashes = [ordered]@{}
 $jobs = @('lint') + @($inputs.Keys)
 foreach ($job in $jobs) {
     $lines = [System.Collections.Generic.List[string]]::new()
-    $lines.Add("job=$job"); $lines.Add("event=$kind"); $lines.Add("runner=$Runner"); $lines.Add("pwsh=$pwshVersion")
+    $lines.Add("job=$job"); $lines.Add("event=$kind"); $lines.Add("runner=$(if ($runnerOf.ContainsKey($job)) { $runnerOf[$job] } else { $Runner })"); $lines.Add("pwsh=$pwshVersion")
     if ($job -eq 'lint') { $lines.Add("tree=$treeId") }
     else {
         foreach ($file in @($inputs[$job] | Sort-Object { $_ } -CaseSensitive)) {

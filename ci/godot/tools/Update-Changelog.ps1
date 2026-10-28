@@ -71,7 +71,7 @@ $assembled = $groups -join "`n`n"
 
 if ($Check) { Write-Host "$($fragments.Count) fragment(s) are valid:`n`n$assembled"; return }
 
-if ($Version -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') { throw "-Version must be a semantic version such as 0.1.0, not '$Version'" }
+if ($Version -notmatch '\A[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?\z') { throw "-Version must be a semantic version such as 0.1.0, not '$Version'" }
 if ($Date -notmatch '^\d{4}-\d{2}-\d{2}$') { throw "-Date must be yyyy-MM-dd, not '$Date'" }
 
 $text = [System.IO.File]::ReadAllText($changelog).Replace("`r`n", "`n")

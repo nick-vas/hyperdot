@@ -122,6 +122,23 @@ a removed task's card, which only the mock has seen.
 What was left open by the research passes (`docs/studio-lessons.md`, `docs/valve.md`, `docs/art.md`, `docs/audio.md`
 and the other topic pages), grouped by what it waits for. Done items are in `CHANGELOG.md`.
 
+### CI supply chain (found in the review of the CI configuration)
+
+- **Pin the Claude Code CLI and `uv`, and pin actions by commit SHA.** `npm install -g @anthropic-ai/claude-code`
+  (`evals.yml`, `token-benchmark.yml` twice) and `pipx install uv` (`canary.yml`, the `try` job) install whatever is
+  newest into jobs that hold `CLAUDE_CODE_OAUTH_TOKEN` (the canary job holds no token since it was split from `propose`).
+  Blocked: the session that found it had no network, so it could not read the current versions, and none was invented.
+  To do: read them, pin `@anthropic-ai/claude-code@<version>` and `uv==<version>`, pin the third-party actions by SHA, and
+  have `Update-Versions.ps1` or the canary propose the bumps. `tests/Test-WorkflowLint.ps1` already lists the unpinned
+  installs (it does not fail); make it fail once they are pinned.
+- **Windows and macOS image versions in the input hash.** `Get-InputHash.ps1 -RunnerByJob` takes a label for the jobs that run
+  elsewhere (`windows-latest`, set in `self-test.yml`), which does not move when the hosted image does. Reading
+  `ImageVersion` on those runners needs a step on them (the exports inside `csharp` run in `godot.yml`): to do, if the cache
+  ever skips those jobs (stage 1 or later).
+- **`try` of the canary has no token**, so `Update-Versions.ps1` and `Update-AddonStatus.ps1` call the GitHub API without
+  one (60 requests an hour per address on a hosted runner). If the weekly run hits that limit, give `try` a token with
+  `contents: read` only, as the one exception.
+
 ### CI history needed to demote more self-test jobs
 
 - **Which self-test jobs may move to the nightly run.** `docs/ci.md` ("Demoting more to the nightly run") lists the data

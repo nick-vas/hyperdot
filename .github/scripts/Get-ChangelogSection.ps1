@@ -12,7 +12,7 @@
     pwsh .github/scripts/Get-ChangelogSection.ps1 -Version 0.1.0
 #>
 param(
-    [Parameter(Mandatory)][ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version,
+    [Parameter(Mandatory)][ValidatePattern('\A[0-9]+\.[0-9]+\.[0-9]+\z')][string]$Version,
     [string]$Changelog = (Join-Path (Split-Path (Split-Path $PSScriptRoot)) 'CHANGELOG.md')
 )
 Set-StrictMode -Version 3.0
