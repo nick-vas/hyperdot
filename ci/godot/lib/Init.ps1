@@ -343,10 +343,10 @@ function Add-McpConfig($Info, [string]$Server, [bool]$Diagnostics, [string]$Asep
     }
     $wanted = [ordered]@{}
     if ($Server -eq 'godot-mcp') {
-        $wanted['godot-mcp'] = [ordered]@{ command = 'npx'; args = @('-y', '@satelliteoflove/godot-mcp') }
+        $wanted['godot-mcp'] = [ordered]@{ command = 'npx'; args = @('-y', '@satelliteoflove/godot-mcp@4.1.11') }
     }
     if ($Diagnostics) {
-        $wanted['minimal-godot-mcp'] = [ordered]@{ command = 'npx'; args = @('-y', '@ryanmazzolini/minimal-godot-mcp') }
+        $wanted['minimal-godot-mcp'] = [ordered]@{ command = 'npx'; args = @('-y', '@ryanmazzolini/minimal-godot-mcp@0.1.6') }
     }
     if ($Aseprite) {
         $wanted['aseprite'] = [ordered]@{
@@ -375,7 +375,7 @@ function Add-McpConfig($Info, [string]$Server, [bool]$Diagnostics, [string]$Asep
     if ($changed) { $config | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $file -Encoding utf8 }
 
     if ($wanted.Contains('godot-mcp')) {
-        Write-Console "           next: npx @satelliteoflove/godot-mcp --install-addon `"$($Info.ProjectDir)`""
+        Write-Console "           next: npx @satelliteoflove/godot-mcp@4.1.11 --install-addon `"$($Info.ProjectDir)`""
         Write-Console '           then enable it: Project > Project Settings > Plugins > Godot MCP, and restart your agent'
     }
     if ($wanted.Contains('aseprite')) {

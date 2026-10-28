@@ -2,7 +2,7 @@
 <#
 .SYNOPSIS
     Compares the versions the kit pins (Godot, the test-framework packages, GUT, the aseprite-mcp commit and MCP SDK
-    that init -McpAseprite writes, and the Claude Code CLI and uv the workflows install) with the newest stable releases, and with -Apply rewrites every pin so the kit, its
+    that init -McpAseprite writes, the Claude Code CLI and uv the workflows install, and the npx MCP servers init -Mcp writes) with the newest stable releases, and with -Apply rewrites every pin so the kit, its
     examples, skills and docs move together.
 
 .DESCRIPTION
@@ -54,12 +54,18 @@ $initText = Read-Text 'ci/godot/lib/Init.ps1'
 $current['aseprite-mcp'] = [regex]::Match($initText, 'github\.com/diivi/aseprite-mcp@(?<c>[0-9a-f]{40})').Groups['c'].Value
 $current['mcp'] = [regex]::Match($initText, "'mcp\[cli\]==(?<v>[\d.]+)'").Groups['v'].Value
 foreach ($pin in 'aseprite-mcp', 'mcp') { if (-not $current[$pin]) { throw "Update-Versions: no $pin pin found in ci/godot/lib/Init.ps1; update the pattern in Update-Versions.ps1" } }
-# Tools the workflows install into jobs that hold a token: pinned, so a new release of one cannot reach those jobs unread.
+# Tools installed or started by version: the workflows' CLI and uv (jobs that hold a token) and the two npx MCP servers init writes. Pinned, so a new release of one cannot reach those jobs unread.
 # Each is read from one file, rewritten in all its files, and looked up with its own scriptblock.
 $toolPins = @(
     @{ Name = 'claude-code'; Read = '.github/workflows/evals.yml'; Pattern = 'npm install -g @anthropic-ai/claude-code@(?<v>[\d.]+)'
        Files = @('.github/workflows/evals.yml', '.github/workflows/token-benchmark.yml'); Edit = '@anthropic-ai/claude-code@{v}'
        Latest = { (Get-Json 'https://registry.npmjs.org/@anthropic-ai/claude-code/latest').version } }
+    @{ Name = 'godot-mcp'; Read = 'ci/godot/lib/Init.ps1'; Pattern = '@satelliteoflove/godot-mcp@(?<v>[\d.]+)'
+       Files = @('ci/godot/lib/Init.ps1', 'docs/mcp.md'); Edit = '@satelliteoflove/godot-mcp@{v}'
+       Latest = { (Get-Json 'https://registry.npmjs.org/@satelliteoflove/godot-mcp/latest').version } }
+    @{ Name = 'minimal-godot-mcp'; Read = 'ci/godot/lib/Init.ps1'; Pattern = '@ryanmazzolini/minimal-godot-mcp@(?<v>[\d.]+)'
+       Files = @('ci/godot/lib/Init.ps1', 'docs/mcp.md'); Edit = '@ryanmazzolini/minimal-godot-mcp@{v}'
+       Latest = { (Get-Json 'https://registry.npmjs.org/@ryanmazzolini/minimal-godot-mcp/latest').version } }
     @{ Name = 'uv'; Read = '.github/workflows/canary.yml'; Pattern = 'pipx install uv==(?<v>[\d.]+)'
        Files = @('.github/workflows/canary.yml'); Edit = 'uv=={v}'
        Latest = { (Get-Json 'https://pypi.org/pypi/uv/json').info.version } }
