@@ -311,7 +311,7 @@ if ($Introduce) {
     $groups = @($sessions | Group-Object model, plugin, profile)
     foreach ($task in $tasks) {
         $values = @(foreach ($g in $groups) { $e = (Get-TaskEnergy $g.Group)[$task]; if ($null -ne $e) { $e } })
-        $standard[$task] = [math]::Round((Get-Median $values) / 1000) * 1000
+        $standard[$task] = [math]::Round((Get-Median $values) / 1000, [System.MidpointRounding]::AwayFromZero) * 1000
     }
     $prog.standardTokensPerSolvedTask = $standard
     $rated = @(foreach ($g in $groups) {
