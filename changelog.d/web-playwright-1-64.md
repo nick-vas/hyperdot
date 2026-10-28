@@ -1,0 +1,1 @@
+Fixed: The Web self-test job failed on Ubuntu 26.04 runners (Playwright 1.56.1 had no package list for it); Playwright is now 1.64.1 in the kit and the workflow, and the job reads the new `install-deps --dry-run` output

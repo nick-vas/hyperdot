@@ -1,7 +1,7 @@
 # Web exports: their download size, and `export -Run` in real browsers (tools/web-smoke.mjs through Playwright).
 # Godot 4.7.2's engine alone is about 38 MB of WebAssembly, 9.7 MB gzipped; what a game adds is mostly its .pck.
 
-$script:PlaywrightVersion = '1.56.1'
+$script:PlaywrightVersion = '1.64.1'
 
 # Raw and gzip sizes of a web export folder (gzip is what GitHub Pages and most hosts send; itch.io sends files as they are).
 function Get-WebBuildSize([string]$Dir) {
