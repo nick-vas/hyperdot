@@ -140,10 +140,17 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 
 ### CI history needed to demote more self-test jobs
 
-- **Which self-test jobs may move to the nightly run.** `docs/ci.md` ("Demoting more to the nightly run") lists the data
-  that is missing: per job and step, runs and failures over 60 days or about 100 runs (pull request and `main` apart),
-  failures first seen after merge, and runner-minutes. It needs `gh run list` and `gh run view --json jobs`, which the
-  session that wrote the page could not reach. Nothing was demoted without it.
+- **Which self-test jobs may move to the nightly run: the history is collected (29 October 2026), the decision is the
+  owner's.** `docs/ci.md` ("Demoting more to the nightly run") has the table: all 842 runs of `self-test.yml` from 5 to 28
+  October, every job and step read, runs and failures by pull request, `main` and branch push, flaky failures, the 20 that
+  appeared only after merge, and runner-minutes, with a recommendation (the field test, the error-code step and a few
+  display-bound steps of `measure` may move; `lint`, `init`, `local-windows`, the reusable-workflow jobs, `web`, `coverage`
+  and the pairs' sample stay). Nothing was demoted. What remains: (1) the owner's decision, then the change to
+  `self-test.yml` and `Test-SelectJobs.ps1`; (2) the history is 23 days, not the 60 the criterion asks for, and one day (22
+  October) holds half the failures: collect again on about 4 December 2026 (the method is in `docs/ci.md`; the collector was
+  a throwaway script and is not in the repository); (3) "zero failures in runs that included its files" was not shown, as it
+  needs each run's changed files; (4) failure logs were not read, so flaky is only "passed on a re-run of the same commit"
+  (7 runs were re-run).
 
 ### After 0.1.0
 
