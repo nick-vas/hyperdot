@@ -58,13 +58,14 @@ Each uses only the rules above; where the sources give no number, the check repo
   demo misses its 3-week (5 with the press preview) deadline, or Next Fest falls on or after release; a note once the
   date is locked. Warnings only: a plan is advice.
 - **Trailers** (`doctor`, `store/steam/trailer*` with a video extension, read with `ffprobe`; without it, one warning
-  says they were not checked): warns on video other than H.264, audio other than AAC or at a rate other than 44.1 or
-  48 kHz, a frame rate other than 30 or 60 (29.97 and 59.94 count), and a size over 1920x1080, as `godot-store-page`
-  quotes the trailer page. Container, length and size are reported as INFO. The trailer page does name containers (.mov, .wmv,
-  .mp4), a high bitrate (5,000+ Kbps), 16:9 preferred with 4:3 accepted, and H.264 video with AAC audio as preferred
-  because Steam "can transcode from many formats"; it gives no length.
-- **Tags** (`doctor`, `store/steam/tags.txt`, one tag per line): warns on fewer than 5 (before launch), more than 20,
-  a tag listed twice (any case) and a line that looks like several tags (a comma, semicolon, bar or tab); "Indie" in
+  says they were not checked): warns on audio at a rate other than 44.1 or 48 kHz, a frame rate other than 30 or 60
+  (29.97 and 59.94 count) and a size over 1920x1080, which the trailer page names as the commonest failures. Another video
+  codec than H.264 or audio codec than AAC, a bitrate under 5,000 Kbps and an aspect ratio other than 16:9 or 4:3 are INFO,
+  and so are the container and length. The trailer page does name containers (.mov, .wmv, .mp4), a high bitrate (5,000+
+  Kbps), 16:9 preferred with 4:3 accepted, and H.264 video with AAC audio as preferred because Steam "can transcode from
+  many formats"; it gives no length.
+- **Tags** (`doctor`, `store/steam/tags.txt`, one tag per line): warns on fewer than 5 (before launch), more than 20
+  (Steam shows and counts only the first 20), a tag listed twice (any case) and a line that looks like several tags (a comma, semicolon, bar or tab); "Indie" in
   the first five is INFO (Zukowski).
 - **Privacy policy** (`doctor`): the policy is `store/privacy-policy.md` (or `.txt`, `.html`) or `PRIVACY.md` in the
   project. It warns when the game collects player data with none (Sentry's addon, `[sentry]` settings or `SentrySdk`, the kit's
