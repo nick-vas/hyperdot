@@ -552,8 +552,8 @@ function Invoke-ExportPresets {
         Stop-LogGroup
         if ($code -ne 0) {
             Set-EngineErrors @(Get-GodotErrorDetails @(Get-Content -LiteralPath $log))
-            $template = Select-String -LiteralPath $log -Pattern 'No export template found at the expected path: (?<path>.+?)\s*$' | Select-Object -First 1
-            if ($template) { Stop-GodotCi "Export '$name' has no export template at $($template.Matches[0].Groups['path'].Value); install Godot's export templates for this version and platform" 'export-template-missing' }
+            $template = Get-MissingExportTemplate $log
+            if ($template) { Stop-GodotCi "Export '$name' has no export template at $template; install Godot's export templates for this version and platform" 'export-template-missing' }
             Stop-GodotCi "Export '$name' exited with $code$(if ($run.Retries) { " after $($run.Retries) retries of a crash" })" 'export-failed'
         }
         if (-not (Test-Path -LiteralPath $file)) { Stop-GodotCi "Export '$name' finished but $file was not created" 'export-failed' }

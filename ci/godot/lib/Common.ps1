@@ -388,6 +388,13 @@ function Select-GodotErrors([string[]]$Lines) {
     return $errors
 }
 
+# The path Godot says it looked at for a missing export template ("No export template found at the expected path: ..."),
+# or $null when the log does not say so.
+function Get-MissingExportTemplate([string]$LogFile) {
+    $hit = Select-String -LiteralPath $LogFile -Pattern 'No export template found at the expected path: (?<path>.+?)\s*$' | Select-Object -First 1
+    return $hit ? $hit.Matches[0].Groups['path'].Value : $null
+}
+
 # Always wrap calls in @(...): an empty result comes back as nothing.
 function Get-GodotLogErrors([string]$LogFile) { return Select-GodotErrors @(Get-Content -LiteralPath $LogFile) }
 

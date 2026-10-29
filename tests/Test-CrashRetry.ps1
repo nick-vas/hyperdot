@@ -72,26 +72,27 @@ if (-not $IsWindows) {
         }
     }
 
-    # export: an empty export_path stops before anything runs; a Godot that has no export template for the preset gives
-    # export-template-missing with the path it looked at, and engineErrors[] carries the line under "configuration errors:".
+    # export: an empty export_path stops before anything runs, with no Godot involved. (A missing export template cannot be
+    # played with a stand-in: once templates are needed the kit installs its own Godot, so that is tested on the log reader.)
     $export = Join-Path $dir 'export-game'
     New-Item -ItemType Directory -Force $export | Out-Null
     Copy-Item -LiteralPath (Join-Path $game 'project.godot') -Destination $export
-    $presetText = "[preset.0]`n`nname=`"Linux`"`nplatform=`"Linux`"`nrunnable=true`nexport_path=`"EXPORT_PATH`"`n`n[preset.0.options]`n`n"
-    Set-Content -LiteralPath $stand -NoNewline -Value "#!/bin/sh`ncase `"`$*`" in *--version*) echo '4.7.2.stable.official.abc'; exit 0;; esac`ncase `"`$*`" in *--export-release*)`n echo 'ERROR: Cannot export project with preset `"Linux`" due to configuration errors:'`n echo 'No export template found at the expected path: /opt/templates/4.7.2.stable/linux_release.x86_64'`n exit 1;; esac`nexit 0`n"
-    chmod +x $stand
-    foreach ($case in @(@{ Path = ''; Code = 'export-no-path' }, @{ Path = 'build/game.x86_64'; Code = 'export-template-missing' })) {
-        Set-Content -LiteralPath (Join-Path $export 'export_presets.cfg') -Value ($presetText -creplace 'EXPORT_PATH', $case.Path) -NoNewline
-        $saved = $env:GODOT_BIN; $env:GODOT_BIN = $stand
-        try { $json = & $pwshPath -NoProfile -NonInteractive -File (Join-Path $PSScriptRoot '../ci/godot/hyperdot.ps1') export -Json -Project $export 2>$null } finally { $env:GODOT_BIN = $saved }
-        $result = ($json -join "`n") | ConvertFrom-Json
-        $code = if ($result.PSObject.Properties['error']) { $result.error.code } else { '' }
-        if ($code -ne $case.Code) { $failures += "export with path '$($case.Path)': error '$code', expected $($case.Code)" }
-        if ($case.Code -eq 'export-template-missing') {
-            if ($result.error.message -notmatch '/opt/templates/4\.7\.2\.stable/linux_release\.x86_64') { $failures += "export-template-missing should name the path: $($result.error.message)" }
-            if (@($result.engineErrors | Where-Object { $_.message -match 'configuration errors: No export template found' }).Count -ne 1) { $failures += 'engineErrors should hold the reason under "configuration errors:"' }
-        }
-    }
+    $presetText = @'
+[preset.0]
+
+name="Linux"
+platform="Linux"
+runnable=true
+export_path=""
+
+[preset.0.options]
+
+'@
+    Set-Content -LiteralPath (Join-Path $export 'export_presets.cfg') -Value $presetText -NoNewline
+    $json = & $pwshPath -NoProfile -NonInteractive -File (Join-Path $PSScriptRoot '../ci/godot/hyperdot.ps1') export -Json -Project $export 2>$null
+    $result = ($json -join "`n") | ConvertFrom-Json
+    $code = if ($result.PSObject.Properties['error']) { $result.error.code } else { '' }
+    if ($code -ne 'export-no-path') { $failures += "export with an empty path: error '$code', expected export-no-path" }
 }
 
 Remove-Item -LiteralPath $dir -Recurse -Force

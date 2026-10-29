@@ -99,6 +99,16 @@ try {
     if (-not $location -or $location.File -ne 'addons/ggt-core/ggt.gd' -or $location.Line -ne 20) {
         $failures += "a startup error of an autoload should name its file and line, got '$($startup | ForEach-Object { $_.Failure })'"
     }
+    # An export that cannot find its template: the path is read from the log, and the lines under "configuration errors:" join
+    # the error's message.
+    $exportLog = Join-Path $dir 'export.log'
+    Set-Content -LiteralPath $exportLog -Value @('ERROR: Cannot export project with preset "Linux" due to configuration errors:',
+        'No export template found at the expected path: /opt/templates/4.7.2.stable/linux_release.x86_64', 'Project export for preset "Linux" failed.')
+    if ((Get-MissingExportTemplate $exportLog) -ne '/opt/templates/4.7.2.stable/linux_release.x86_64') { $failures += 'the missing template path should be read from the log' }
+    $details = @(Get-GodotErrorDetails @(Get-Content -LiteralPath $exportLog))
+    if ($details.Count -lt 1 -or $details[0].Text -notmatch 'configuration errors: No export template found at the expected path: /opt') { $failures += "the error should carry the line under it, got '$($details | ForEach-Object Text)'" }
+    Set-Content -LiteralPath $exportLog -Value 'ERROR: something else'
+    if ($null -ne (Get-MissingExportTemplate $exportLog)) { $failures += 'a log without the message should give no template path' }
     # A runner that found no test says so in `Reason`, and a normal failing run has none.
     $empty = Join-Path $dir 'empty-results'
     New-Item -ItemType Directory -Force -Path $empty | Out-Null
