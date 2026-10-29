@@ -98,12 +98,12 @@ session (quaternius.com, game-icons.net, polyhaven.com) was not read.
     per-asset terms were read, so record the source URL per asset.
   - RespawnStack: a ledger of AI tools' commercial-use terms (61 tools), not an asset source; its quotes were not checked
     against the vendors.
-  - Poly Pizza: the page answers 403 to a script (a bot check), so its per-model licences are still unread.
+  - Poly Pizza: dropped by the owner (2026-10-29); its site blocks scripts and its licences were never read.
   The skill `godot-asset-pipeline` names none of these sources, so nothing there changed.
 
 ## Not done
 
-- Poly Pizza's per-model licences (its site blocks scripts) and per-asset terms of GameAsset.net and SFXMint.
+- Per-asset terms of GameAsset.net and SFXMint.
 - Reading learn-gamedev, game datasets, game engine development, a11y and gametalks entry by entry.
 - An `addons-status.json` entry for godot-luaAPI: its folder name has to be confirmed from a release zip first, as the other
   entries were (`roadmap.md`).

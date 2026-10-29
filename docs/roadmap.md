@@ -255,7 +255,7 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
   real code. Needs a machine with Godot; the
   owner decides.
 - **The rest of the awesome lists.** `docs/awesome-lists.md` names the five lists still judged from descriptions only (learn-gamedev,
-  game datasets, game engine development, a11y, gametalks), and Poly Pizza's licences.
+  game datasets, game engine development, a11y, gametalks).
 - **`-GpuValidation` beyond Vulkan on Linux.** Tested with Mesa's lavapipe under Xvfb only. Not run: a real GPU, Windows
   (Vulkan SDK layer), D3D12 (Godot's debug-layer messages are read by the same pattern as Vulkan's debug-utils ones, from
   the source, never seen in a log) and Metal; on D3D12 and Metal `layerLoaded` is `null` because their logs do not say.
