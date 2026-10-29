@@ -1,0 +1,1 @@
+Added: `doctor` warns about godot-luaAPI (`addons/luaAPI`, `luaAPI.gdextension`) as archived and points to lua-gdextension, from an entry in the known-status list written from its repository; the release zip and GitHub's archived flag are left for the weekly canary.
