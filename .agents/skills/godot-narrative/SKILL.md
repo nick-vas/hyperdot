@@ -141,6 +141,21 @@ of four letters or more are checked; the same word in capitals is fine.
                             "giver": { "ref": "characters" }, "critical": { "type": "bool" } } }
 ```
 
+## A dialogue tool
+
+The kit's choice is Dialogue Manager 4 (v4.1.0, MIT, Godot 4.6 or newer, a `DialogueManagerRuntime` wrapper for C#); why, and
+how the other four compare, is in `${CLAUDE_PLUGIN_ROOT}/docs/dialogue-tools.md` (read from the repositories on
+2026-10-29; none has been run here). Use it unless the game already has another.
+
+- Dialogue lives in `dialogue/*.dialogue`, plain text. Put `"files": ["dialogue/*.dialogue"]` in the `names` rule so the
+  `data` runner checks character spellings in it.
+- Give lines static IDs (`[ID:GUARD_PASS]`) and export them through Project Settings > Localization; the `l10n` runner
+  reads the CSV or PO that results.
+- The runtime keeps no state: expose game state through autoloads, `[GlobalClass]` types or `DialogueStateContext` nodes and
+  save it with the game's save.
+- A wrong name in a condition or mutation fails when the line plays, so play every `.dialogue` file once headless before a
+  release. Pin the add-on to a tag; do not take `main`.
+
 ## In a review
 
 - New text checked against the bible, the timeline and `reserved.md`; contradictions logged in `decisions.md`.
