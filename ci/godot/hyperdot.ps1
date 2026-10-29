@@ -216,6 +216,9 @@ param(
     [string]$Verdict,
     # telemetry: how many of each command's newest runs to read (default 50).
     [int]$Last = 50,
+    # doctor: when kit files are not committed in the game's repository, show the issue for the kit's repository about it and, after
+    # a yes, create it with gh. Without this flag doctor only warns; it never posts anything by itself.
+    [switch]$ReportIssue,
     # Print one JSON document on stdout (schema hyperdot/1) and send all logs to stderr. For agents and scripts.
     [switch]$Json,
     # Keep tool output (Godot, dotnet) off the console; it still goes to hyperdot.log in the results folder. Pair it with -Json
@@ -241,6 +244,7 @@ Assert-KitArguments $MyInvocation.MyCommand.ScriptBlock.Ast.ParamBlock $PSBoundP
 
 # help needs no project: it is answered before one is looked for.
 if ($Topic -and $Command -notin 'help', 'telemetry') { Stop-GodotCi "'$Topic' is not a parameter of $Command; only help and telemetry take a name (help $Topic)" 'invalid-arguments' }
+if ($PSBoundParameters.ContainsKey('ReportIssue') -and $Command -ne 'doctor') { Stop-GodotCi '-ReportIssue is for doctor (it offers to file an issue about kit files that are not committed)' 'invalid-arguments' }
 if ($PSBoundParameters.ContainsKey('Last') -and $Command -ne 'telemetry') { Stop-GodotCi '-Last is for telemetry (how many runs of each command to read)' 'invalid-arguments' }
 if ($Command -eq 'help') {
     Invoke-Help $Topic $Project
@@ -670,7 +674,7 @@ if ($Command -in 'setup', 'build', 'test', 'export', 'bench', 'shot', 'audio', '
 if ($Command -in 'bench', 'shot', 'audio', 'soak', 'deck') { Add-OutputGdignore $commandResultsDir $info.ProjectDir }
 $script:ExportVersion = if ($Command -eq 'export' -and $GameVersion) { Resolve-ExportVersion } else { $null }
 switch ($Command) {
-    'doctor' { Invoke-Doctor $info }
+    'doctor' { Invoke-Doctor $info -ReportIssue:$ReportIssue }
     'init' {
         Initialize-Project $info
         if ($Agents -or $Plugin) { Add-AgentFiles $info $PSCommandPath ([bool]$Plugin) }

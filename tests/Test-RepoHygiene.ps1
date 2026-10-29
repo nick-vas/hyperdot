@@ -59,7 +59,87 @@ if (-not $IsWindows) {
 foreach ($pattern in $expect) { if (-not ($messages -match $pattern)) { $failures += "doctor should report /$pattern/; got: $($messages -join ' | ')" } }
 if ($messages -match 'local\.p12') { $failures += "an uncommitted key was reported: $($messages -match 'p12')" }
 
-Remove-Item -Recurse -Force $clean, $broken
+
+# Files the kit wrote that are not committed (and doctor -ReportIssue, with a stand-in gh that logs what it is asked).
+function Invoke-DoctorJson([string]$Dir, [string]$Stdin, [string[]]$Extra = @()) {
+    $out = $Stdin | & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') doctor -Project $Dir -Json @Extra 2>$null
+    return ($out | Out-String | ConvertFrom-Json)
+}
+$kit = New-Project 'kitfiles'
+& git -C $kit add -A
+& git -C $kit -c user.name=t -c user.email=t@example.com commit -q -m start
+$d = Invoke-DoctorJson $kit ''
+if (@($d.checks | Where-Object message -match 'kit wrote are not committed').Count) { $failures += 'a committed project was told its kit files are uncommitted' }
+if (@($d.uncommittedKitFiles).Count) { $failures += "uncommittedKitFiles should be empty: $($d.uncommittedKitFiles | ConvertTo-Json -Depth 5 -Compress)" }
+Set-Content -LiteralPath (Join-Path $kit 'AGENTS.md') "Run pwsh C:/source/repos/hyperdot/ci/godot/hyperdot.ps1 test`n"
+New-Item -ItemType Directory -Force (Join-Path $kit '.claude') | Out-Null
+Set-Content -LiteralPath (Join-Path $kit '.claude/settings.json') '{ "enabledPlugins": { "hyperdot@hyperdot": true } }'
+Set-Content -LiteralPath (Join-Path $kit '.claude/settings.local.json') '{ "env": { "GODOT_BIN": "C:/Godot/godot.exe" } }'
+$d = Invoke-DoctorJson $kit ''
+$warn = @($d.checks | Where-Object { $_.status -eq 'WARN' -and $_.message -match 'kit wrote are not committed' })
+$paths = @($d.uncommittedKitFiles | ForEach-Object path)
+if ($warn.Count -ne 1 -or $warn[0].message -notmatch 'AGENTS\.md' -or $warn[0].message -notmatch '\.claude/settings\.json') { $failures += "doctor should warn about AGENTS.md and .claude/settings.json: $($warn.message)" }
+if ($paths -contains '.claude/settings.local.json' -or $warn[0].message -match 'settings\.local\.json is') { if ($paths -contains '.claude/settings.local.json') { $failures += 'the machine-local settings file was listed' } }
+$agents = @($d.uncommittedKitFiles | Where-Object path -eq 'AGENTS.md')
+$settings = @($d.uncommittedKitFiles | Where-Object path -eq '.claude/settings.json')
+if ($agents.Count -ne 1 -or -not $agents[0].machinePath -or $agents[0].status -ne 'untracked') { $failures += "AGENTS.md names a drive path and is untracked: $($agents | ConvertTo-Json -Depth 5 -Compress)" }
+if ($settings.Count -ne 1 -or $settings[0].machinePath) { $failures += "settings.json holds no machine path: $($settings | ConvertTo-Json -Depth 5 -Compress)" }
+if ($warn.Count -eq 1 -and $warn[0].message -notmatch 'AGENTS\.md name') { $failures += "the warning should say AGENTS.md names a path of this machine: $($warn[0].message)" }
+
+if (-not $IsWindows) {
+    $bin = Join-Path ([System.IO.Path]::GetTempPath()) "fakegh-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
+    New-Item -ItemType Directory -Force $bin | Out-Null
+    $log = Join-Path $bin 'calls.log'
+    $existing = Join-Path $bin 'existing.json'
+    Set-Content -LiteralPath $existing '[]'
+    Set-Content -LiteralPath (Join-Path $bin 'gh') @'
+#!/bin/sh
+echo "$@" >> "$FAKE_GH_LOG"
+case "$1 $2" in
+  "auth status") exit 0 ;;
+  "issue list") cat "$FAKE_GH_EXISTING" ;;
+  "issue create")
+    while [ $# -gt 0 ]; do if [ "$1" = "--body-file" ]; then cp "$2" "$FAKE_GH_LOG.body"; fi; shift; done
+    echo "https://github.com/nick-vas/hyperdot/issues/999" ;;
+esac
+'@
+    & chmod +x (Join-Path $bin 'gh')
+    $oldPath = $env:PATH; $env:FAKE_GH_LOG = $log; $env:FAKE_GH_EXISTING = $existing
+    $env:PATH = "$bin$([System.IO.Path]::PathSeparator)$oldPath"
+    try {
+        $d = Invoke-DoctorJson $kit '' @('-ReportIssue')
+        $calls = if (Test-Path -LiteralPath $log) { Get-Content -LiteralPath $log -Raw } else { '' }
+        if ($calls -match 'issue create') { $failures += "-ReportIssue created an issue without a yes: $calls" }
+        if ($d.issue.created -or $d.issue.open -notmatch '^https://github\.com/nick-vas/hyperdot/issues/new\?title=') { $failures += "without a yes the link to file it by hand is returned: $($d.issue | ConvertTo-Json -Depth 5 -Compress)" }
+
+        $d = Invoke-DoctorJson $kit 'n' @('-ReportIssue')
+        if ((Get-Content -LiteralPath $log -Raw) -match 'issue create') { $failures += 'an n created an issue' }
+
+        $d = Invoke-DoctorJson $kit 'y' @('-ReportIssue')
+        $calls = Get-Content -LiteralPath $log -Raw
+        $body = if (Test-Path -LiteralPath "$log.body") { Get-Content -LiteralPath "$log.body" -Raw } else { '' }
+        if ($calls -notmatch 'issue create --repo nick-vas/hyperdot --title doctor: files the kit wrote are not committed in a game' -or -not $d.issue.created -or $d.issue.url -ne 'https://github.com/nick-vas/hyperdot/issues/999') { $failures += "a y should create the issue: $($d.issue | ConvertTo-Json -Depth 5 -Compress); calls: $calls" }
+        if ($body -notmatch 'AGENTS\.md' -or $body -match [regex]::Escape($kit) -or $body -match 'C:/source|hyperdot@hyperdot|GODOT_BIN') { $failures += "the issue text should name the files only, no paths, contents or the game folder: $body" }
+
+        Remove-Item -LiteralPath $log, "$log.body" -Force
+        Set-Content -LiteralPath $existing '[{"number":7,"url":"https://github.com/nick-vas/hyperdot/issues/7"}]'
+        $d = Invoke-DoctorJson $kit 'y' @('-ReportIssue')
+        if ((Get-Content -LiteralPath $log -Raw) -match 'issue create' -or $d.issue.url -ne 'https://github.com/nick-vas/hyperdot/issues/7' -or $d.issue.created) { $failures += "an open issue with the title should be shown, not duplicated: $($d.issue | ConvertTo-Json -Depth 5 -Compress)" }
+    } finally {
+        $env:PATH = $oldPath
+        Remove-Item Env:FAKE_GH_LOG, Env:FAKE_GH_EXISTING -ErrorAction SilentlyContinue
+        Remove-Item -Recurse -Force $bin
+    }
+}
+& git -C $kit add -A -- AGENTS.md .claude/settings.json
+& git -C $kit -c user.name=t -c user.email=t@example.com commit -q -m kit
+$d = Invoke-DoctorJson $kit ''
+if (@($d.uncommittedKitFiles).Count -or @($d.checks | Where-Object message -match 'kit wrote are not committed').Count) { $failures += 'committed kit files were still reported' }
+$bad = Invoke-DoctorJson $clean '' @('-Runners', 'none')
+$flag = (& pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') test -ReportIssue -Json 2>$null | Out-String | ConvertFrom-Json)
+if ($flag.error.code -ne 'invalid-arguments') { $failures += "-ReportIssue on another command should be invalid-arguments: $($flag.error | ConvertTo-Json -Depth 5 -Compress)" }
+
+Remove-Item -Recurse -Force $clean, $broken, $kit
 if ($failures) { $failures | ForEach-Object { Write-Host "FAIL $_" -ForegroundColor Red }; exit 1 }
-Write-Host 'doctor reports LFS pointers, committed keys, Windows-reserved names, case twins and res:// paths in the wrong case, and nothing on a clean project'
+Write-Host 'doctor reports LFS pointers, committed keys, Windows-reserved names, case twins, res:// paths in the wrong case and uncommitted kit files (and files an issue only after a yes), and nothing on a clean project'
 exit 0

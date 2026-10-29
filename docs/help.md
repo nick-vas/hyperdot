@@ -48,11 +48,13 @@ Print what the kit found: project, Godot version, solution, test runners, export
 ### doctor
 Check the machine and the project; each problem comes with a fix.
 
-    hyperdot.ps1 doctor -Json
+    hyperdot.ps1 doctor -Json [-ReportIssue]
 
 Covers tools, solution_directory, tests in release builds, GUT files, add-ons and GDExtensions, store art, Steam,
 Web and Android presets, the repository, and agent instructions that name flags or files that do not exist. Run it
-after changing a csproj, project.godot or export presets.
+after changing a csproj, project.godot or export presets. It also warns about files the kit wrote that are not
+committed (`AGENTS.md`, `.claude/settings.json` and the like); -ReportIssue shows the issue it would file in the kit's
+repository about them and creates it with gh only after a yes.
 
 ### init
 Wire the kit into a game: a starter test, a CI workflow pinned at @v1, .gitignore lines and export exclusions.
