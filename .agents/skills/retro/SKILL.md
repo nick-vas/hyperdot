@@ -71,4 +71,20 @@ otherwise print the branch and the compare URL). Never merge it.
 
 Remove promoted lessons from auto memory, so they are not loaded twice. Add each kit PR's link at the end of the
 `docs/kit-notes.md` lines it answers; delete lines the user chose to drop. Report: lessons recorded, PRs opened with links,
-candidates dropped and why.
+candidates dropped and why, kit files committed or left (step 7).
+
+## 7. Leave the game clean
+
+The kit writes files into the game (`AGENTS.md`, `CLAUDE.md`, `docs/kit-help.md`, `.claude/settings.json`, the workflow and
+the like), and a fresh clone lacks them until they are committed. Read what git sees as new or changed:
+
+```powershell
+pwsh <kit>/ci/godot/hyperdot.ps1 doctor -Json -Quiet -Project <game>
+```
+
+`uncommittedKitFiles[]` in the result is empty: say so and stop. Otherwise ask one multiple-choice question that lists the
+files, marks each with `machinePath: true` as naming a path of this machine, and offers "Commit them on a `bugfix/` branch",
+"Keep them local" and "Leave them". Commit only the files without a machine path, plus any the user names; commit as the user
+with no AI attribution and do not push. Keep a file local with a line in `.git/info/exclude`. Never commit
+`.claude/settings.local.json`. To tell the kit's maintainers, `doctor -ReportIssue` shows the issue and files it only after a
+yes: run it when the user asks, not by yourself.

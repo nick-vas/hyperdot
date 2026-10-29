@@ -95,7 +95,11 @@ Branch on `error.code`; `message` can change.
 
 **doctor**: `checks[]` (`status` OK/INFO/WARN/FAIL, `message`, `fix`), `problems`, `warnings`. Checks are messages, not
 codes; the Steamworks, trailer, tag and privacy checks are described in [steam.md](steam.md#kit-checks) and
-[store-and-legal.md](store-and-legal.md#kit-checks).
+[store-and-legal.md](store-and-legal.md#kit-checks). `uncommittedKitFiles[]` (when the game is in a git repository)
+lists the files the kit wrote that git sees as new or changed: `path` (relative to the project), `status` (`untracked` or
+`modified`) and `machinePath` (the file names a drive or a home folder of this machine). With `-ReportIssue`, `issue`:
+`created`, `url` (the issue created, or the open one that already has the title) and `open` (the link that files it by
+hand), when no issue was created.
 
 **build** (and `test`, `export`): `importRetried` (1 or 2) is present when Godot crashed during import and the kit retried; a crash is an exit code of 128 or more, or a negative one (a Windows crash such as -1073741819, an access violation); ordinary failures are never retried. On failure `diagnostics[]`: `file`, `line`, `column`, `code` (e.g. `CS1525`, or `NU1605` for a restore error, which has no line or column), `message`;
 or `engineErrors[]`: `message`, `file` (`res://...` when Godot named one, on the line or in the `at:`/backtrace lines

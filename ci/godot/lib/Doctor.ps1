@@ -199,7 +199,97 @@ function Test-MaxFpsAtTickRate([string]$ProjectDir, [string]$ProjectGodot) {
     return $false
 }
 
-function Invoke-Doctor($Info) {
+# The files `init` and the kit's skills write into a game, as git pathspecs from the project folder. Never
+# .claude/settings.local.json: that file is the machine's own.
+$script:KitManagedFiles = @('AGENTS.md', 'CLAUDE.md', 'docs/kit-notes.md', 'docs/kit-help.md', '.claude/settings.json', '.mcp.json',
+    '.github/workflows/hyperdot.yml', '.claude/skills', '.claude/agents', '.agents/skills')
+
+# Kit files that git sees as new or changed, relative to the project folder: path, status (untracked, modified) and
+# machinePath (the file names a drive or a home folder, so committing it would point other checkouts at this machine).
+function Get-UncommittedKitFiles([string]$ProjectDir) {
+    $found = [System.Collections.Generic.List[object]]::new()
+    $gitRoot = Get-GitRoot $ProjectDir
+    if (-not $gitRoot) { return @() }
+    $prefix = ("$(& git -C $ProjectDir rev-parse --show-prefix 2>$null)").Trim()
+    $raw = & git -C $ProjectDir status --porcelain=v1 -z --untracked-files=all -- @($script:KitManagedFiles) 2>$null | Out-String
+    foreach ($entry in @($raw -split "`0" | Where-Object { $_.Length -gt 3 })) {
+        $state = $entry.Substring(0, 2)
+        $path = $entry.Substring(3)
+        if ($prefix -and $path.StartsWith($prefix)) { $path = $path.Substring($prefix.Length) }
+        $full = Join-Path $ProjectDir $path
+        $machine = $false
+        if ((Test-Path -LiteralPath $full -PathType Leaf) -and (Get-Item -LiteralPath $full).Length -lt 200KB) {
+            $machine = [System.IO.File]::ReadAllText($full) -match '(?i)\b[A-Z]:[\\/]|/home/[^/\s"'']+/|/Users/[^/\s"'']+/'
+        }
+        $found.Add([pscustomobject]@{ path = $path; status = $(if ($state -eq '??') { 'untracked' } else { 'modified' }); machinePath = [bool]$machine })
+    }
+    return @($found | Sort-Object path)
+}
+
+# y or yes on the keyboard, or on a line piped in; anything else, no keyboard and no input are a no.
+function Read-KitConfirmation([string]$Question) {
+    Write-Console "$Question [y/N] " -NoNewline
+    $answer = $null
+    try {
+        if ([Console]::IsInputRedirected) { $answer = [Console]::In.ReadLine() } else { $answer = Read-Host }
+    } catch { $answer = $null }
+    Write-Console ''
+    return ("$answer").Trim() -match '^(y|yes)$'
+}
+
+# doctor -ReportIssue: the issue for the kit's repository about kit files that are not committed. Shows the title and text
+# first and creates nothing without a yes; names only paths relative to the game, never file contents, absolute paths or
+# the game's name. If an open issue with the title exists, it is shown instead.
+function Invoke-KitFilesIssueReport($Files) {
+    $repo = 'nick-vas/hyperdot'
+    if (@($Files).Count -eq 0) { Write-Console 'Nothing to report: no kit file is uncommitted.'; return }
+    $version = try { (Get-Content -LiteralPath (Join-Path (Get-HelpKitRoot) '.claude-plugin/plugin.json') -Raw | ConvertFrom-Json).version } catch { 'unknown' }
+    $title = 'doctor: files the kit wrote are not committed in a game'
+    $rows = @($Files | ForEach-Object { "| ``$($_.path)`` | $($_.status) | $($_.machinePath ? 'yes' : 'no') |" })
+    $body = (@(
+        '`hyperdot.ps1 doctor` found files the kit wrote into a game that are not committed in its repository.', '',
+        "Kit version: $version", '',
+        '| File | State | Names a path of the machine it was written on |', '|---|---|---|') + $rows + @('',
+        'No file contents, absolute paths or game name are included. Reported with `doctor -ReportIssue`, after the user said yes.')) -join "`n"
+    Write-Console ''
+    Write-Console "Issue for ${repo}: $title"
+    Write-Console $body
+    $url = "https://github.com/$repo/issues/new?title=$([uri]::EscapeDataString($title))&body=$([uri]::EscapeDataString($body))"
+    $gh = Get-Command gh -ErrorAction SilentlyContinue
+    if ($gh) { & gh auth status *> $null }
+    if (-not $gh -or $LASTEXITCODE -ne 0) {
+        Write-Console "Not created: the GitHub CLI (gh) is missing or not logged in. File it by hand: $url"
+        Set-JsonField issue ([ordered]@{ created = $false; url = $null; open = $url })
+        return
+    }
+    $existing = @(& gh issue list --repo $repo --state open --search "$title in:title" --json number,url --limit 3 2>$null | ConvertFrom-Json)
+    if ($existing.Count -gt 0) {
+        Write-Console "Not created: an open issue with this title exists, $($existing[0].url). Add your case there if it differs."
+        Set-JsonField issue ([ordered]@{ created = $false; url = $existing[0].url; open = $null })
+        return
+    }
+    if (-not (Read-KitConfirmation "Create this issue in ${repo}?")) {
+        Write-Console "Not created. To file it later: $url"
+        Set-JsonField issue ([ordered]@{ created = $false; url = $null; open = $url })
+        return
+    }
+    $bodyFile = [System.IO.Path]::GetTempFileName()
+    try {
+        [System.IO.File]::WriteAllText($bodyFile, $body, [System.Text.UTF8Encoding]::new($false))
+        $created = @(& gh issue create --repo $repo --title $title --body-file $bodyFile 2>&1)
+        $ok = $LASTEXITCODE -eq 0
+    } finally { Remove-Item -LiteralPath $bodyFile -Force }
+    $createdUrl = @($created | ForEach-Object { "$_" } | Where-Object { $_ -match '^https://github\.com/' }) | Select-Object -First 1
+    if ($ok -and $createdUrl) {
+        Write-Console "Created: $createdUrl"
+        Set-JsonField issue ([ordered]@{ created = $true; url = $createdUrl; open = $null })
+    } else {
+        Write-Console "gh could not create the issue ($(($created | ForEach-Object { "$_" }) -join ' ')). File it by hand: $url"
+        Set-JsonField issue ([ordered]@{ created = $false; url = $null; open = $url })
+    }
+}
+
+function Invoke-Doctor($Info, [switch]$ReportIssue) {
     $checks = [System.Collections.Generic.List[object]]::new()
     function Add-Check([string]$Status, [string]$Message, [string]$Fix = '') {
         $checks.Add([pscustomobject]@{ Status = $Status; Message = $Message; Fix = $Fix })
@@ -515,6 +605,19 @@ function Invoke-Doctor($Info) {
         Add-Check WARN 'The git repository has no remote, so the only copy is on this disk' 'git remote add origin <url>; git push -u origin HEAD'
     }
 
+    # Files the kit wrote that are not committed: a fresh clone of the game would lack the instructions, skills and
+    # workflow its agents rely on.
+    $kitFiles = @()
+    if ($gitRoot) {
+        $kitFiles = @(Get-UncommittedKitFiles $project)
+        Set-JsonField uncommittedKitFiles @($kitFiles | ForEach-Object { [ordered]@{ path = $_.path; status = $_.status; machinePath = $_.machinePath } })
+        if ($kitFiles.Count) {
+            $machine = @($kitFiles | Where-Object machinePath | ForEach-Object path)
+            $caution = if ($machine) { "; $(& $first $machine) name$(if ($machine.Count -eq 1) { 's' }) a path of this machine, so check or keep $(if ($machine.Count -eq 1) { 'it' } else { 'them' }) local (.claude/settings.local.json is the machine's own) before committing" } else { '' }
+            Add-Check WARN "Files the kit wrote are not committed: $(& $first @($kitFiles | ForEach-Object path))$caution" 'Review them with git diff, then commit on a branch (git switch -c bugfix/kit-files; git add <files>; git commit). doctor -ReportIssue offers to tell the kit''s maintainers'
+        }
+    }
+
     # --- Tests ------------------------------------------------------------------------------------
     $testRunners = @($Info.Runners | Where-Object { $_ -in $script:TestFrameworkRunners })
     if ($testRunners.Count -eq 0) {
@@ -605,6 +708,7 @@ function Invoke-Doctor($Info) {
     Set-JsonField checks @($checks | ForEach-Object { [ordered]@{ status = $_.Status; message = $_.Message; fix = $_.Fix ? $_.Fix : $null } })
     Set-JsonField problems $fails
     Set-JsonField warnings $warns
+    if ($ReportIssue) { Invoke-KitFilesIssueReport @($kitFiles) }
     if ($fails -gt 0) {
         Set-JsonField ok $false
         Set-JsonField error ([ordered]@{ code = 'doctor-problems'; message = "$fails problem(s) found" })
