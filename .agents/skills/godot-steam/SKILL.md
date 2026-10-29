@@ -52,14 +52,14 @@ public override void _Process(double delta) { if (Ready) SteamAPI.RunCallbacks()
 
 - `SetAchievement` and `SetStat` change Steam's memory; `StoreStats` uploads and shows the popup. Store at checkpoints
   (a level cleared, the run ended), "on the order of minutes", never per frame. `RequestCurrentStats` is gone: Steam loads
-  stats before launch (`steam-removed-api` rule).
+  stats before launch (`steam-removed-api` rule); Valve's stats guide still teaches it, and that page is stale.
 - `IndicateAchievementProgress` only shows a popup; it never unlocks.
 - A game with quality presets can tell Steam the chosen preset and render resolution with `SetGamePerformanceSetting` and
   `SetGameRenderResolution` (SDK 1.65, not in the pinned package); Steam adds them to anonymous frame-rate data only for
   players who opted in. Steam Timeline (SDK 1.60) is optional: events for a boss kill or a death, phases for a run.
 - Leaderboards: `KeepBest` or `ForceUpdate`; at most 10 uploads per 10 minutes and one in flight; upload at the end of a
   run. Scores that matter come from your server on a "Trusted" board (`godot-anti-cheat`).
-- Rich presence: at most 20 keys, keys up to 64 characters, values up to 256. `steam_display` names a token from the
+- Rich presence: Valve's docs say at most 20 keys and SDK 1.65's header says 30, so design for 20; keys up to 64 characters, values up to 256. `steam_display` names a token from the
   localization file uploaded to Steamworks (`#Status_Floor` = `"Floor %floor%"`); a missing token or unset `%key%` shows
   nothing, with no error. Test on `steamcommunity.com/dev/testrichpresence`.
 - Keep copies of what you upload in `steam/` (with a `.gdignore`): the rich presence `.vdf`, `achievements.json`
@@ -83,7 +83,8 @@ dialogs, glyphs, keyboards, DLC.
 
 - Auto-Cloud needs no code: in App Admin give a root per OS where Godot's `user://` lives (`WinAppDataRoaming`,
   `LinuxXdgDataHome`, `MacAppSupport`, plus the project's `config/custom_user_dir_name`) and a pattern matching the save
-  files only, not temporary or backup files. Set a per-user quota. Check the paths with `testappcloudpaths <AppId>` in
+  files only, not temporary or backup files. Leave each root's OS Restriction on Cross-Platform and use Root Overrides where the
+  folder differs per OS. Set a per-user byte quota and a file-count quota. Check the paths with `testappcloudpaths <AppId>` in
   the Steam console before release (the mapping was not tested end to end).
 - Steam's own conflict dialog shows dates, and no documented API tells the game which side the player chose. Keep the lineage inside the
   save and a local record of the last save this device wrote; after Steam's sync, decide with
