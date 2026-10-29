@@ -445,6 +445,7 @@ function Invoke-Tests {
         [ordered]@{ runner = $r.Runner; name = $q.Name; message = $q.Message; owner = $q.Owner; until = $q.Until; reason = $q.Reason } } })
     Set-JsonField runnerResults @(foreach ($result in $runs) {
         $entry = [ordered]@{ runner = $result.Runner; ok = $result.Ok; total = $result.Total; passed = $result.Passed; failed = $result.Failed
+            reason = $(if ($result.PSObject.Properties['Reason']) { $result.Reason } else { $null })
             skipped = $result.Skipped; failures = @(foreach ($f in $result.Failures) {
                 [ordered]@{ name = $f.Name; message = $f.Message; file = $f.File; line = $f.Line; details = $f.Details; new = (Get-FailureNewFlag $delta $result.Runner $f.Name) } })
             warnings = @($result.Warnings | Where-Object { $_ } | ForEach-Object { [ordered]@{ rule = $_.rule; file = $_.file; line = $_.line; message = $_.message } })
@@ -454,7 +455,7 @@ function Invoke-Tests {
         if ($result.PSObject.Properties['Glyphs']) { $entry['glyphs'] = $result.Glyphs }
         $entry })
 
-    $failed = @($runs | Where-Object { -not $_.Ok } | ForEach-Object Runner)
+    $failed = @($runs | Where-Object { -not $_.Ok } | ForEach-Object { $_.Runner + $(if ($_.PSObject.Properties['Reason'] -and $_.Reason) { " ($($_.Reason))" }) })
     if ($failed.Count -gt 0) { Stop-GodotCi "Failed runners: $($failed -join ', ') (results in $resultsDir)" 'tests-failed' }
     if ($MinCoverage -gt 0) {
         if ($null -eq $percent) { Stop-GodotCi "-MinCoverage $MinCoverage was set, but no coverage was collected" 'no-coverage' }
@@ -538,7 +539,7 @@ function Invoke-ExportPresets {
     foreach ($name in $presets) {
         if (-not $details.Contains($name)) { Stop-GodotCi "Preset '$name' not found; the project has: $($info.Presets -join ', ')" 'preset-not-found' }
         $preset = $details[$name]
-        if (-not $preset.ExportPath) { Stop-GodotCi "Preset '$name' has no export_path" 'export-failed' }
+        if (-not $preset.ExportPath) { Stop-GodotCi "Preset '$name' has no export path; set it in Project > Export (export_path in export_presets.cfg)" 'export-no-path' }
         $dir = Join-Path ([System.IO.Path]::GetFullPath($Output)) (ConvertTo-SafeName $name)
         New-Item -ItemType Directory -Force $dir | Out-Null
         $file = Join-Path $dir (Split-Path $preset.ExportPath -Leaf)
@@ -551,6 +552,8 @@ function Invoke-ExportPresets {
         Stop-LogGroup
         if ($code -ne 0) {
             Set-EngineErrors @(Get-GodotErrorDetails @(Get-Content -LiteralPath $log))
+            $template = Select-String -LiteralPath $log -Pattern 'No export template found at the expected path: (?<path>.+?)\s*$' | Select-Object -First 1
+            if ($template) { Stop-GodotCi "Export '$name' has no export template at $($template.Matches[0].Groups['path'].Value); install Godot's export templates for this version and platform" 'export-template-missing' }
             Stop-GodotCi "Export '$name' exited with $code$(if ($run.Retries) { " after $($run.Retries) retries of a crash" })" 'export-failed'
         }
         if (-not (Test-Path -LiteralPath $file)) { Stop-GodotCi "Export '$name' finished but $file was not created" 'export-failed' }
@@ -674,6 +677,8 @@ if ($Command -eq 'export') {
     $knownPresets = Get-ExportPresetDetails $info.ProjectDir
     foreach ($name in $presets) {
         if (-not $knownPresets.Contains($name)) { Stop-GodotCi "Preset '$name' not found; the project has: $($info.Presets -join ', ')" 'preset-not-found' }
+        # Checked here, before Godot, templates and the solution cost minutes: the export names its file after the preset's path.
+        if (-not $knownPresets[$name].ExportPath) { Stop-GodotCi "Preset '$name' has no export path; set it in Project > Export (export_path in export_presets.cfg)" 'export-no-path' }
     }
 }
 # Each command's results folder, which also holds its run log: -Results (test-results) for setup, build, test, export and

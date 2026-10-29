@@ -45,6 +45,8 @@ Branch on `error.code`; `message` can change.
 | `coverage-below-minimum` | Line coverage under `-MinCoverage` | `coverage` |
 | `no-coverage` | `-MinCoverage` set but nothing was collected | - |
 | `export-failed`, `no-presets`, `preset-not-found` | Export problems | `exports[]` (completed so far) |
+| `export-no-path` | A preset to export has an empty `export_path`; found before anything is built or downloaded | |
+| `export-template-missing` | Godot has no export template for the preset's platform and version (the path it looked at is in the message) | `engineErrors[]`, `exports[]` |
 | `unsafe-results-dir` | `-Results` would delete the project or cwd, or a non-empty folder inside the project that holds no `summary.json` or `hyperdot.log` of the kit's | - |
 | `doctor-problems` | `doctor` found `FAIL` checks | `checks[]` |
 | `invalid-arguments` | Any command: a parameter or environment variable the kit cannot use (an unknown command, flag or runner, a value outside a parameter's set, a word that belongs to no parameter, several `-Scene`s for `bench` or `audio`, `-Seconds` of 0 or less for `bench`, `deck` or `audio -Mix`, `-Frames` below 1 for `test`, `shot`, `deck` or `export -Run`, `-HotspotCell` of 0 or less for `playtest`, `-MaxGrowthMbPerHour` with a `soak` `-Seconds` too short for 3 memory samples, two `sfx` sounds that would share a file, a malformed `-Sweep` or one on another command, a bad `HYPERDOT_TIMEOUT` or `HYPERDOT_IGNORE_ERRORS`, an out-of-range percentage, a misspelt sound); checked before the work starts where it can be | `error.message` |
@@ -107,7 +109,7 @@ under it), `line`, `key` (the error key, see the run history below).
 
 **test**: `resultsDir`, `junitDir` (every runner's results as JUnit, `<results>/junit/<runner>-<file>.junit.xml`: JUnit
 copied, TRX converted, failed `-Retry` attempts left out; for CI systems such as GitLab; absent when no runner wrote a
-report), `coverage` (`linePercent`, `minimum`), `runnerResults[]`:
+report), `coverage` (`linePercent`, `minimum`), `runnerResults[]` (`reason` says why a runner failed with no failing test: it reported no test results, or exited non-zero and recorded no failure; null otherwise, and the `tests-failed` message names it):
 
 ```json
 { "runner": "gut", "ok": false, "total": 3, "passed": 2, "failed": 1, "skipped": 0,
