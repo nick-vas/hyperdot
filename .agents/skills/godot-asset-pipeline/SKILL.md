@@ -116,6 +116,9 @@ tool or the editor and commit it. Check the result with `bench`: `drawCalls` bef
 | Freesound | per sound: CC0, CC-BY, CC-BY-NC | as listed; never BY-NC in a game you sell |
 | jsfxr (sfxr.me) | Unlicense; the sounds you make are yours | `own` |
 | Sonniss GDC bundles | the bundle's own royalty-free licence (read its License.pdf) | `LicenseRef-Sonniss-GDC` |
+| Quaternius (quaternius.com) | its own Quaternius Asset License v1.0 since 2026-08-28: free in commercial games, no credit, no reselling the assets as assets; older downloads may be CC0, check the file | `LicenseRef-Quaternius-QAL-1.0` (`CC0-1.0` only for a CC0 download) |
+| Poly Haven (polyhaven.com): HDRIs, textures, models | CC0 | `CC0-1.0` |
+| game-icons.net | CC BY 3.0: credit the author in the game | `CC-BY-3.0` |
 
 Every file that did not start in the project gets an entry in `assets.json`, with its source and licence, as soon as it is
 added (format in `docs/reference.md`). `doctor` warns about files without one, non-commercial and GPL licences, and counts
