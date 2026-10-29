@@ -122,12 +122,28 @@ the fix. Each name was confirmed on 2026-10-23 from the add-on's repository at i
 | Godot-PerfBullets | `addons/PerfBullets` | `spawner.gdextension` | `spawner_library_init` | `addons/PerfBullets/bin/spawner.gdextension` (no tags or releases) |
 | py4godot | `addons/py4godot` | `python.gdextension` | `initialize_pythonscript` | `create_plugin.py`, `build_resources/gdextension_template.gdextension` |
 
-Not confirmed here: the release zips themselves (GitHub's release downloads and API answered 403 from this sandbox, so
-the folder names come from the files and build scripts that make the releases), and whether Godot Jolt, PerfBullets and
-py4godot are archived (`archived` is `null` until the canary reads it). The weekly canary runs
-`ci/godot/tools/Update-AddonStatus.ps1`: it records each repository's newest commit (`head`) and `archived`, checks that
-the file each entry names still holds its `entry_symbol`, and opens an issue for what needs a person, such as new commits
-on an add-on that may now support Godot 4.7. Statuses are changed by hand.
+On 2026-10-29 the names were checked again against the newest release zip of each add-on that has one (listed with Python's
+`zipfile`, never extracted or run; the `releaseZip` field of each entry records the tag, the asset, the folder prefix
+inside the zip and the date): `godot-jolt_v0.16.0-stable.zip` holds `addons/godot-jolt/godot-jolt.gdextension`,
+`godot-steam-audio-v0.3.1.zip` holds `addons/godot-steam-audio/bin/libgodot-steam-audio.gdextension`, and `py4godot.zip`
+(4.7-alpha21, 243 MB) holds `install_dir/addons/py4godot/python.gdextension`, so the folder to copy sits under a wrapper
+folder (`prefix` is `install_dir/`). Each `entry_symbol` read from the zip's `.gdextension` is the recorded one. Godot-PerfBullets
+has no tags or releases, so its names stay those of the repository.
+
+Not confirmed: whether Godot Jolt, Godot-PerfBullets and py4godot are archived. From the sandbox that ran the check GitHub's
+API and the repository pages answered 403 (only `raw.githubusercontent.com`, `git` and release downloads by their exact URL
+were reachable), so `archived` is `null` until the canary reads it. Nor could the newest release be looked up there: the
+asset names above were found by trying the names the repositories' own workflows suggest.
+
+The weekly canary runs `ci/godot/tools/Update-AddonStatus.ps1`: it records each repository's newest commit (`head`) and
+`archived`, checks that the file each entry names still holds its `entry_symbol`, and reads the newest release's zip. It
+downloads the asset the entry's `releaseZip.asset` names (`{tag}` stands for the release's tag, up to 600 MB, to a new
+temporary folder that is deleted after), lists its files and compares them with the entry: a folder under another prefix is
+applied, a new tag whose zip still matches is applied (`releaseZip.tag`, `checked`), and a missing `addons/<name>/` folder or
+`.gdextension` file, an asset that is gone, or a repository that now has a release and no `releaseZip` is reported. It builds
+the download URL from the repository, tag and asset name, not from the API's answer. Without a token the API allows 60 calls
+an hour, which is enough; an API or download that fails is a note and the entry stays as it was. It opens an issue for what needs a
+person, such as new commits on an add-on that may now support Godot 4.7. Statuses are changed by hand.
 
 Not add-ons: [gdext](https://github.com/godot-rust/gdext) (Rust, 5,319 stars, MPL-2.0), [graphics.gd](https://github.com/quaadgras/graphics.gd)
 (Go), [godot-cpp-template](https://github.com/godotengine/godot-cpp-template) (the reference for writing a GDExtension;

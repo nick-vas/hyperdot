@@ -221,11 +221,11 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 
 ### Kit features not built
 
-- **Add-on status from release zips and the API.** `ci/godot/addons-status.json`'s names were confirmed from each
-  repository's files and build scripts with git, because GitHub's release downloads and API answered 403 in the sandbox
-  that built it; Godot Jolt's, PerfBullets' and py4godot's `archived` are still `null`. The canary's first run fills
-  `archived` in; checking the folder inside each release zip needs a run where `github.com/<repo>/releases/download` is
-  reachable.
+- **Add-on `archived` flags.** Godot Jolt's, PerfBullets' and py4godot's `archived` in `ci/godot/addons-status.json` are
+  still `null`: on 2026-10-29 GitHub's API and repository pages answered 403 in the sandbox that checked the release zips
+  (the folders inside them are confirmed, `docs/addons.md`). The canary's first run with API access fills them in; or run
+  `gh api repos/<owner>/<repo> --jq .archived` for each from a machine that can. Godot-PerfBullets has no release, so no zip
+  is checked for it until it gets one (the canary reports that).
 - **`-GpuValidation` beyond Vulkan on Linux.** Tested with Mesa's lavapipe under Xvfb only. Not run: a real GPU, Windows
   (Vulkan SDK layer), D3D12 (Godot's debug-layer messages are read by the same pattern as Vulkan's debug-utils ones, from
   the source, never seen in a log) and Metal; on D3D12 and Metal `layerLoaded` is `null` because their logs do not say.
