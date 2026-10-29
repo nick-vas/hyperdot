@@ -148,6 +148,84 @@ function Get-GdextensionProblems([string]$ProjectDir, $Presets, [string]$GodotVe
     return @($problems | Group-Object Message | ForEach-Object { $_.Group[0] })
 }
 
+# Every .gdextension against the machine the kit runs on, as the editor and `test` use it (tags: this OS, editor, debug, this
+# architecture): a key must pick a library and the file must exist, or Godot prints "GDExtension dynamic library not found"
+# and the run fails. Returns { Status, Message, Fix } objects; the export presets are checked by Get-GdextensionProblems.
+function Get-GdextensionHostProblems([string]$ProjectDir) {
+    $problems = [System.Collections.Generic.List[object]]::new()
+    $os = if ($IsWindows) { 'windows' } elseif ($IsMacOS) { 'macos' } else { 'linux' }
+    $arch = switch ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant()) {
+        'x64' { 'x86_64' } 'arm64' { 'arm64' } 'x86' { 'x86_32' } 'arm' { 'arm32' } default { 'x86_64' } }
+    $tags = @('pc', $os, 'editor', 'debug', 'single', $arch) + @(switch ($os) { 'linux' { 'linuxbsd' } 'macos' { 'universal' } })
+    $features = [System.Collections.Generic.HashSet[string]]::new([string[]]$tags)
+    $files = @(Get-ChildItem -LiteralPath $ProjectDir -Recurse -File -Filter '*.gdextension' -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -notmatch '[\\/]\.godot[\\/]' })
+    foreach ($file in $files) {
+        $res = ConvertTo-ResPath $ProjectDir $file.FullName
+        $ext = Read-GdextensionFile $file.FullName
+        $keys = @($ext.Libraries.Keys)
+        if ($keys.Count -eq 0) { continue }
+        $key = Select-GdextensionKey $keys $features
+        if (-not $key) {
+            $problems.Add([pscustomobject]@{ Status = 'WARN'; Message = "$res has no library for this machine ($os, $arch), so Godot cannot load it here and the editor and tests print errors"
+                Fix = "Use an add-on release that ships $os.$arch libraries, or remove the extension on this platform" })
+        } elseif (-not (Test-Path -LiteralPath (Resolve-GdextensionPath $ProjectDir $file.FullName $ext.Libraries[$key]))) {
+            $problems.Add([pscustomobject]@{ Status = 'FAIL'; Message = "$res gives this machine ($os, $arch) $key = $($ext.Libraries[$key]), which does not exist, so Godot cannot load the extension and the editor and tests print errors"
+                Fix = "Build or download the add-on's native library into that path (its release page or README says how), or remove the extension" })
+        }
+    }
+    return @($problems)
+}
+
+# C# files in a project with no .csproj or .sln: nothing compiles them, and the editor still writes a .cs.uid file for each.
+function Get-CsWithoutProjectProblem([string]$ProjectDir, [bool]$HasProject) {
+    if ($HasProject) { return $null }
+    $skip = '[\\/](\.godot|\.git|bin|obj|node_modules)[\\/]'
+    $cs = @(Get-ChildItem -LiteralPath $ProjectDir -Recurse -File -Filter '*.cs' -ErrorAction SilentlyContinue | Where-Object { $_.FullName -notmatch $skip })
+    if ($cs.Count -eq 0) { return $null }
+    return [pscustomobject]@{ Status = 'WARN'; Message = "$($cs.Count) C# file(s), the first $(ConvertTo-ResPath $ProjectDir $cs[0].FullName), but the project has no .csproj or .sln, so they never compile (the editor writes a .cs.uid file for each)"
+        Fix = 'Create the C# solution (Project > Tools > C# > Create C# solution) if the game needs them, or remove the .cs files' }
+}
+
+# The Godot.NET.Sdk pin in a csproj against the project's Godot: another minor is a mismatch; another patch is rewritten by the
+# editor when it opens the project (a diff in the csproj the kit's runs leave behind).
+function Get-SdkPinProblem([string]$Csproj, [string]$GodotVersion, [string]$Name) {
+    $pin = [regex]::Match($Csproj, 'Sdk="Godot\.NET\.Sdk/(?<v>\d+\.\d+(\.\d+)?)')
+    $engine = [regex]::Match($GodotVersion, '^\d+\.\d+(\.\d+)?')
+    if (-not $pin.Success -or -not $engine.Success) { return $null }
+    $pinned = $pin.Groups['v'].Value
+    $minor = { param($v) ($v -split '\.')[0..1] -join '.' }
+    if ((& $minor $pinned) -ne (& $minor $engine.Value)) {
+        return [pscustomobject]@{ Status = 'WARN'; Message = "$Name pins Godot.NET.Sdk/$pinned, but the project is on Godot $($engine.Value): the editor rewrites the pin when it opens the project"
+            Fix = "Set the Sdk to Godot.NET.Sdk/$($engine.Value) in $Name" }
+    }
+    if ($pinned -ne $engine.Value -and ($pinned -split '\.').Count -eq 3) {
+        return [pscustomobject]@{ Status = 'INFO'; Message = "$Name pins Godot.NET.Sdk/$pinned and the project runs on Godot $($engine.Value): the editor rewrites the pin when it opens the project, so expect a changed $Name"
+            Fix = "Set the Sdk to Godot.NET.Sdk/$($engine.Value) to keep the file unchanged" }
+    }
+    return $null
+}
+
+# Workflow files that pin another Godot minor than the project, and disabled ones (a name ending .disabled).
+function Get-CiVersionProblems([string]$ProjectDir, [string]$GodotVersion) {
+    $problems = [System.Collections.Generic.List[object]]::new()
+    $engine = [regex]::Match($GodotVersion, '^(?<m>\d+\.\d+)')
+    $dir = Join-Path $ProjectDir '.github/workflows'
+    if (-not $engine.Success -or -not (Test-Path -LiteralPath $dir)) { return @() }
+    foreach ($file in @(Get-ChildItem -LiteralPath $dir -File | Where-Object { $_.Name -match '\.(ya?ml)(\.disabled)?$' })) {
+        $disabled = $file.Name -match '\.disabled$'
+        $text = Get-Content -LiteralPath $file.FullName -Raw
+        foreach ($m in [regex]::Matches($text, '(?m)^\s*godot-version:\s*[''"]?(?<v>\d+\.\d+)')) {
+            if ($m.Groups['v'].Value -ne $engine.Groups['m'].Value) {
+                $problems.Add([pscustomobject]@{ Status = 'WARN'; Message = ".github/workflows/$($file.Name)$(if ($disabled) { ' (disabled)' }) pins godot-version $($m.Groups['v'].Value), and the project is on Godot $($engine.Groups['m'].Value)"
+                    Fix = "Set godot-version to $($engine.Groups['m'].Value) in that workflow, or remove the file" })
+                break
+            }
+        }
+    }
+    return @($problems)
+}
+
 # "4.5" -> "4.5.0"; with -Upper, "4.6" -> "4.6.99999" (a maximum of 4.6 includes every 4.6.x).
 function ConvertTo-FullVersion([string]$Version, [switch]$Upper) {
     $parts = @($Version.Trim('"') -split '\.' | Where-Object { $_ -match '^\d+$' })
