@@ -1,6 +1,6 @@
 ---
 name: godot-store-page
-description: Use when preparing a Steam, itch.io or Epic store page for a Godot game: capsule art, screenshots, a trailer, the short description, tags, wishlists, Steam Next Fest, the dates between paying for the page and release, a press kit and review keys for press and streamers, or a marketing schedule and early releases before launch.
+description: "Use when preparing a Steam, itch.io or Epic store page for a Godot game: capsule art, screenshots, a trailer, the short description, tags, wishlists, Steam Next Fest, the dates between paying for the page and release, a press kit and review keys for press and streamers, or a marketing schedule and early releases before launch."
 ---
 
 # The store page

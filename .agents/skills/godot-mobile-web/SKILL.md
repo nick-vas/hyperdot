@@ -1,6 +1,6 @@
 ---
 name: godot-mobile-web
-description: Use when a Godot game targets phones, tablets or browsers: touch controls, notches and safe areas, screen sizes and orientation, battery and pausing, Android or iOS exports, web builds, hosting on itch.io or GitHub Pages, or testing in Chrome, Firefox and Edge.
+description: "Use when a Godot game targets phones, tablets or browsers: touch controls, notches and safe areas, screen sizes and orientation, battery and pausing, Android or iOS exports, web builds, hosting on itch.io or GitHub Pages, or testing in Chrome, Firefox and Edge."
 ---
 
 # Phones, tablets and browsers
