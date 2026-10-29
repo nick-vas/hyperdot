@@ -54,7 +54,7 @@ try {
     Assert-True ([bool]((Get-DoctorChecks $other) -match $physics)) 'Engine.max_fps at another rate still warns'
 
     # Input actions: the mouse wheel has no gamepad equivalent to ask for; a key-only action is still named.
-    $input = New-FixtureCopy 'input' { param($t) $t + "`n[input]`n`nzoom_in={`n`"deadzone`": 0.5,`n`"events`": [Object(InputEventMouseButton,`"resource_local_to_scene`":false,`"button_index`":4,`"pressed`":true,`"canceled`":false)]`n}`nfire={`n`"deadzone`": 0.5,`n`"events`": [Object(InputEventKey,`"resource_local_to_scene`":false,`"physical_keycode`":32,`"echo`":false)]`n}`nclick_fire={`n`"deadzone`": 0.5,`n`"events`": [Object(InputEventMouseButton,`"resource_local_to_scene`":false,`"button_index`":1,`"pressed`":true,`"canceled`":false)]`n}`n" }
+    $input = New-FixtureCopy 'input' { param($t) $t -replace '(?m)^\[input\]\s*$', "[input]`n`nzoom_in={`n`"deadzone`": 0.5,`n`"events`": [Object(InputEventMouseButton,`"resource_local_to_scene`":false,`"button_index`":4,`"pressed`":true,`"canceled`":false)]`n}`nfire={`n`"deadzone`": 0.5,`n`"events`": [Object(InputEventKey,`"resource_local_to_scene`":false,`"physical_keycode`":32,`"echo`":false)]`n}`nclick_fire={`n`"deadzone`": 0.5,`n`"events`": [Object(InputEventMouseButton,`"resource_local_to_scene`":false,`"button_index`":1,`"pressed`":true,`"canceled`":false)]`n}" }
     $pad = @((Get-DoctorChecks $input) -match '^WARN Input actions with no gamepad binding')
     Assert-True ($pad.Count -eq 1 -and $pad[0] -match 'fire' -and $pad[0] -match 'click_fire' -and $pad[0] -notmatch 'zoom_in') "a wheel-only action is not asked for a gamepad binding: $pad"
 
@@ -67,9 +67,9 @@ try {
             $saved = $env:GODOT_BIN; $env:GODOT_BIN = $fake
             try { return @(Get-DoctorChecks $fixture) } finally { $env:GODOT_BIN = $saved }
         }
-        Assert-True (-not (Get-GodotBinChecks '4.7.2.stable.official.abcdef123') -match 'GODOT_BIN is Godot') 'a project pinning 4.7 accepts GODOT_BIN 4.7.2'
-        Assert-True (-not (Get-GodotBinChecks '4.7.stable.official.abcdef123') -match 'GODOT_BIN is Godot') 'a project pinning 4.7 accepts GODOT_BIN 4.7'
-        Assert-True ([bool](Get-GodotBinChecks '4.6.1.stable.official.abcdef123') -match '^FAIL GODOT_BIN is Godot 4\.6\.1') 'a project pinning 4.7 refuses GODOT_BIN 4.6.1'
+        Assert-True (-not ((Get-GodotBinChecks '4.7.2.stable.official.abcdef123') -match 'GODOT_BIN is Godot')) 'a project pinning 4.7 accepts GODOT_BIN 4.7.2'
+        Assert-True (-not ((Get-GodotBinChecks '4.7.stable.official.abcdef123') -match 'GODOT_BIN is Godot')) 'a project pinning 4.7 accepts GODOT_BIN 4.7'
+        Assert-True ([bool]((Get-GodotBinChecks '4.6.1.stable.official.abcdef123') -match '^FAIL GODOT_BIN is Godot 4\.6\.1')) 'a project pinning 4.7 refuses GODOT_BIN 4.6.1'
     }
 } finally {
     Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
