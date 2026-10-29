@@ -1,0 +1,1 @@
+Added: `docs/ci.md` has the Self-test history of 5 to 28 October 2026 (842 runs): runs, failures, flaky failures, failures found only after merge and runner-minutes per job and slow step, and a recommendation of which jobs may move to the nightly run. Nothing was demoted.
