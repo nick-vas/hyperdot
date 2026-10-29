@@ -327,6 +327,9 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
                 Add-Check WARN "GODOT_BIN is not the _console.exe build, so the kit cannot read Godot's output: $env:GODOT_BIN" 'Use the _console.exe file next to it'
             } else {
                 Add-Check OK "Godot $reported from GODOT_BIN ($env:GODOT_BIN)"
+                if (-not $isCSharp -and $reported -match '\.mono\.') {
+                    Add-Check INFO 'GODOT_BIN is the .NET build and this project is GDScript-only: Godot adds [dotnet] to project.godot and writes a .cs.uid file for each C# file it finds' 'Commit those changes, or use the standard Godot build for a GDScript-only game'
+                }
             }
         }
     } elseif (Test-Path -LiteralPath $paths.Bin) { Add-Check OK "Godot $($Info.GodotVersion) installed in $(Get-ToolsDir)" }
@@ -370,6 +373,16 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
     $exportPlatforms = @($presetDetails | ForEach-Object Platform)
     # Each GDExtension's library for each preset's builds, as Godot picks it, and add-on mistakes (lib/Addons.ps1).
     foreach ($problem in @(Get-GdextensionProblems $project $presetDetails $Info.GodotVersion)) { Add-Check $problem.Status $problem.Message $problem.Fix }
+    foreach ($problem in @(Get-GdextensionHostProblems $project)) { Add-Check $problem.Status $problem.Message $problem.Fix }
+    $csProblem = Get-CsWithoutProjectProblem $project ([bool]($isCSharp -or $Info.Solution))
+    if ($csProblem) { Add-Check $csProblem.Status $csProblem.Message $csProblem.Fix }
+    if ($isCSharp) {
+        foreach ($csproj in $csprojs) {
+            $sdkProblem = Get-SdkPinProblem (Get-Content -LiteralPath $csproj.FullName -Raw) $Info.GodotVersion $csproj.Name
+            if ($sdkProblem) { Add-Check $sdkProblem.Status $sdkProblem.Message $sdkProblem.Fix }
+        }
+    }
+    foreach ($problem in @(Get-CiVersionProblems $project $Info.GodotVersion)) { Add-Check $problem.Status $problem.Message $problem.Fix }
     foreach ($problem in @(Get-AddonProblems $project $projectGodot $presetDetails $Info.GodotVersion)) { Add-Check $problem.Status $problem.Message $problem.Fix }
     $steamProblems = Get-SteamPackageProblems $gameCsproj $exportPlatforms
     foreach ($problem in $steamProblems) { Add-Check $problem[0] $problem[1] $problem[2] }

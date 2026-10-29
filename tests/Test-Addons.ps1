@@ -278,6 +278,49 @@ try {
     Remove-Item -LiteralPath $known -Recurse -Force -ErrorAction SilentlyContinue
 }
 
+# Checks that read the machine and the project's own files (field test M1, M2, M3, D10).
+$wave = Join-Path ([System.IO.Path]::GetTempPath()) "wave3-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
+try {
+    $hostOs = if ($IsWindows) { 'windows' } elseif ($IsMacOS) { 'macos' } else { 'linux' }
+    $otherOs = if ($hostOs -eq 'windows') { 'linux' } else { 'windows' }
+    New-Item -ItemType Directory -Force (Join-Path $wave 'addons/native/bin') | Out-Null
+    Set-Content -LiteralPath (Join-Path $wave 'project.godot') "config_version=5`n"
+    $ext = Join-Path $wave 'addons/native/native.gdextension'
+    $keys = @($hostOs, 'linux', 'windows', 'macos' | Select-Object -Unique)
+    # The library key lists every platform, so it fits whichever machine runs this test; the file is what is missing.
+    Set-Content -LiteralPath $ext (@("[configuration]", 'entry_symbol = "native_init"', 'compatibility_minimum = 4.5', '', '[libraries]', '') + @(foreach ($os in $keys) { "$os.debug = `"bin/native-$os.lib`"" }))
+    $host1 = @(Get-GdextensionHostProblems $wave)
+    Assert-True ($host1.Count -eq 1 -and $host1[0].Status -eq 'FAIL' -and $host1[0].Message -match 'which does not exist') "a library missing on this machine fails: $(Get-Messages $host1)"
+    foreach ($os in $keys) { Set-Content -LiteralPath (Join-Path $wave "addons/native/bin/native-$os.lib") 'fake' }
+    Assert-True (@(Get-GdextensionHostProblems $wave).Count -eq 0) 'the library on disk passes'
+    Set-Content -LiteralPath $ext "[configuration]`nentry_symbol = `"native_init`"`ncompatibility_minimum = 4.5`n`n[libraries]`n`n$otherOs.debug = `"bin/native-$otherOs.lib`"`n"
+    $host2 = @(Get-GdextensionHostProblems $wave)
+    Assert-True ($host2.Count -eq 1 -and $host2[0].Status -eq 'WARN' -and $host2[0].Message -match 'no library for this machine') "an extension without a library for this OS warns: $(Get-Messages $host2)"
+
+    $cs = Join-Path $wave 'cs'
+    New-Item -ItemType Directory -Force (Join-Path $cs 'addons/imgui') | Out-Null
+    Set-Content -LiteralPath (Join-Path $cs 'addons/imgui/Thing.cs') 'class Thing {}'
+    $csProblem = Get-CsWithoutProjectProblem $cs $false
+    Assert-True ($csProblem -and $csProblem.Status -eq 'WARN' -and $csProblem.Message -match '1 C# file\(s\), the first res://addons/imgui/Thing\.cs') "C# files with no project warn: $($csProblem.Message)"
+    Assert-True ($null -eq (Get-CsWithoutProjectProblem $cs $true)) 'C# files with a project are fine'
+    Assert-True ($null -eq (Get-CsWithoutProjectProblem (Join-Path $wave 'addons') $false)) 'no C# files, nothing to say'
+
+    $mismatch = Get-SdkPinProblem '<Project Sdk="Godot.NET.Sdk/4.6.2">' '4.7.2' 'Game.csproj'
+    Assert-True ($mismatch -and $mismatch.Status -eq 'WARN' -and $mismatch.Message -match '4\.6\.2') 'a Godot.NET.Sdk pin of another minor warns'
+    $patch = Get-SdkPinProblem '<Project Sdk="Godot.NET.Sdk/4.7.0">' '4.7.2' 'Game.csproj'
+    Assert-True ($patch -and $patch.Status -eq 'INFO' -and $patch.Message -match 'rewrites the pin') 'a pin of another patch says the editor rewrites it'
+    Assert-True ($null -eq (Get-SdkPinProblem '<Project Sdk="Godot.NET.Sdk/4.7.2">' '4.7.2' 'Game.csproj') -and $null -eq (Get-SdkPinProblem '<Project Sdk="Godot.NET.Sdk/4.7">' '4.7.2' 'Game.csproj')) 'the matching pin, or one with only a minor, is quiet'
+
+    $ci = Join-Path $wave 'ci/.github/workflows'
+    New-Item -ItemType Directory -Force $ci | Out-Null
+    Set-Content -LiteralPath (Join-Path $ci 'build.yml.disabled') "jobs:`n  t:`n    steps:`n      - with:`n          godot-version: '4.6'`n"
+    Set-Content -LiteralPath (Join-Path $ci 'ok.yml') "jobs:`n  t:`n    steps:`n      - with:`n          godot-version: 4.7.2`n"
+    $ciProblems = @(Get-CiVersionProblems (Join-Path $wave 'ci') '4.7.2')
+    Assert-True ($ciProblems.Count -eq 1 -and $ciProblems[0].Message -match 'build\.yml\.disabled \(disabled\) pins godot-version 4\.6') "a workflow pinning another minor warns, a matching one does not: $(Get-Messages $ciProblems)"
+} finally {
+    Remove-Item -LiteralPath $wave -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 if ($failures.Count) { throw "$($failures.Count) add-on check(s) failed" }
 Write-Host 'add-on self-test passed'
 # The doctor run above failed on purpose; GitHub's pwsh wrapper would exit with its code.
