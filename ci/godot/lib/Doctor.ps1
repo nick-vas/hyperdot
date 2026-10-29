@@ -32,6 +32,8 @@ function Get-InputActionDevices([string]$ProjectGodot) {
         $actions[$m.Groups['name'].Value] = [ordered]@{
             keyboard = $events -match 'Object\(InputEvent(Key|MouseButton),'
             gamepad = $events -match 'Object\(InputEventJoypad(Button|Motion),'
+            # Only the mouse wheel (button 4 to 7): there is no useful gamepad equivalent to ask for.
+            wheelOnly = ($events -match 'Object\(InputEventMouseButton,') -and -not ($events -match 'Object\(InputEventKey,') -and -not ($events -match '"button_index":(?![4-7]\b)\d+')
         }
     }
     return $actions
@@ -431,7 +433,7 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
     # postmortem; Xbox Accessibility Guideline 107). Godot 4.7's default ui_accept and ui_cancel have no gamepad button.
     $actions = Get-InputActionDevices $projectGodot
     $custom = @($actions.Keys | Where-Object { $_ -notlike 'ui_*' })
-    $noPad = @($custom | Where-Object { $actions[$_].keyboard -and -not $actions[$_].gamepad })
+    $noPad = @($custom | Where-Object { $actions[$_].keyboard -and -not $actions[$_].gamepad -and -not $actions[$_].wheelOnly })
     $noKeys = @($custom | Where-Object { $actions[$_].gamepad -and -not $actions[$_].keyboard })
     if ($noPad) { Add-Check WARN "Input actions with no gamepad binding: $($noPad -join ', ')" 'Project Settings > Input Map: add a joypad button or axis to each (godot-input)' }
     if ($noKeys) { Add-Check WARN "Input actions with no keyboard or mouse binding: $($noKeys -join ', ')" 'Project Settings > Input Map: add a key to each (godot-input)' }

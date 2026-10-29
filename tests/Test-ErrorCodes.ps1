@@ -120,6 +120,7 @@ try {
     # --- Godot ---
     Assert-Code 'no-coverage' @('test', '-Project', (Copy-Example 'nocov'), '-Runners', 'gut', '-MinCoverage', '50')
     Assert-Code 'no-presets' @('export', '-Project', (Copy-Example 'nopresets'))
+    Assert-Code 'no-presets' @('export', '-Project', (Copy-Example 'nopresets'), '-Preset', 'Windows')
     $presets = Copy-Example 'presets'
     # The C# example's real preset (a hand-written one makes Godot print errors), without its export_path.
     $cfg = (Get-Content -LiteralPath (Join-Path $root 'examples/csharp/game/export_presets.cfg') -Raw) -replace 'export_path="[^"]*"', 'export_path=""'
