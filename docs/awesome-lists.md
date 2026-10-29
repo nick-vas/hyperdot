@@ -88,13 +88,22 @@ session (quaternius.com, game-icons.net, polyhaven.com) was not read.
   2026-10-24), LDtk (MIT, 2026-10-06), Tiled (GPL app, BSD-2 library, 2026-10-24) and Folded Paper Engine (MIT, an MVP): these are
   in [addons.md](addons.md). Pages only: Evidence-Based Scheduling (Joel Spolsky) and Game Programming Patterns, which fit
   `docs/plan.md` and an architecture reading list but were not read here.
-- **Not added, licence unread:** Quaternius (the list says CC0), Poly Pizza (per-model licences), Games-Icons (the list says free;
-  its terms were not read), TextureHaven/Poly Haven, GameAsset.net and SFXMint (the list says CC0), RespawnStack (AI-tool terms).
-  They go into `godot-asset-pipeline` once their licence pages have been read.
+- **Asset sources, licence pages read on 2026-10-29** (the sites' own statements; no file was downloaded or checked):
+  - Quaternius: the list says CC0, but the site now carries the Quaternius Asset License v1.0 (updated 2026-08-28): free for
+    personal, educational and commercial games, no credit required, no reselling or redistributing the assets as assets. Not
+    CC0, so `assets.json` should record it as its own licence. Older downloads may be CC0; check the file you took.
+  - Game-icons.net: CC BY 3.0, so credit the author in the game (`credits` must list it), not "free" without terms.
+  - Poly Haven: all assets CC0.
+  - GameAsset.net and SFXMint: the sites state CC0 / public domain. These are claims on the front page; no licence file or
+    per-asset terms were read, so record the source URL per asset.
+  - RespawnStack: a ledger of AI tools' commercial-use terms (61 tools), not an asset source; its quotes were not checked
+    against the vendors.
+  - Poly Pizza: the page answers 403 to a script (a bot check), so its per-model licences are still unread.
+  The skill `godot-asset-pipeline` names none of these sources, so nothing there changed.
 
 ## Not done
 
-- The licence pages of the asset sources named above, which need their hosts allowed in the session's network settings.
+- Poly Pizza's per-model licences (its site blocks scripts) and per-asset terms of GameAsset.net and SFXMint.
 - Reading learn-gamedev, game datasets, game engine development, a11y and gametalks entry by entry.
 - An `addons-status.json` entry for godot-luaAPI: its folder name has to be confirmed from a release zip first, as the other
   entries were (`roadmap.md`).
