@@ -5,7 +5,7 @@
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
-foreach ($lib in 'Common', 'Report') { . (Join-Path $root "ci/godot/lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Report', 'Runners') { . (Join-Path $root "ci/godot/lib/$lib.ps1") }
 $failures = @()
 $dir = Join-Path ([System.IO.Path]::GetTempPath()) "notrun-$PID"
 New-Item -ItemType Directory -Force -Path $dir | Out-Null
@@ -86,6 +86,22 @@ try {
         $at = Get-FailureLocation $trace
         if (-not $at -or $at.Line -ne 7 -or $at.File -notlike '*ScoreTest.cs') { $failures += "no file and line in: $trace" }
     }
+
+    # An error an autoload prints at startup is outside every file: the project-startup case keeps the "at:" line under it, so
+    # the failure names the add-on's file and line. The testing frameworks' own frames still name nothing.
+    $startupLog = Join-Path $dir 'validate.log'
+    Set-Content -LiteralPath $startupLog -Value @(
+        'SCRIPT ERROR: Invalid access to property or key ''scene_file_path'' on a base object of type ''null instance''.',
+        '          at: _ready (res://addons/ggt-core/ggt.gd:20)',
+        '@@validate begin res://main.tscn', '@@validate end res://main.tscn ok')
+    $startup = @(ConvertFrom-ValidateLog $startupLog | Where-Object { $_.Name -eq 'project startup' })
+    $location = if ($startup.Count -eq 1) { Get-FailureLocation $startup[0].Failure } else { $null }
+    if (-not $location -or $location.File -ne 'addons/ggt-core/ggt.gd' -or $location.Line -ne 20) {
+        $failures += "a startup error of an autoload should name its file and line, got '$($startup | ForEach-Object { $_.Failure })'"
+    }
+    if (Get-FailureLocation 'at: _run (res://addons/gut/gut.gd:100)') { $failures += 'a GUT frame should not be a failure location' }
+    $own = Get-FailureLocation "at: _run (res://addons/gut/gut.gd:100)`nat: f (res://game/player.gd:5)"
+    if (-not $own -or $own.File -ne 'game/player.gd') { $failures += 'a project frame should win over an add-on frame' }
 } finally {
     Remove-Item -Recurse -Force -LiteralPath $dir -ErrorAction SilentlyContinue
 }

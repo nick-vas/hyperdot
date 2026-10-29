@@ -101,7 +101,7 @@ lists the files the kit wrote that git sees as new or changed: `path` (relative 
 `created`, `url` (the issue created, or the open one that already has the title) and `open` (the link that files it by
 hand), when no issue was created.
 
-**build** (and `test`, `export`): `importRetried` (1 or 2) is present when Godot crashed during import and the kit retried; a crash is an exit code of 128 or more, or a negative one (a Windows crash such as -1073741819, an access violation); ordinary failures are never retried. On failure `diagnostics[]`: `file`, `line`, `column`, `code` (e.g. `CS1525`, or `NU1605` for a restore error, which has no line or column), `message`;
+**build** (and `test`, `export`): `importRepeated` is `true` when the import printed errors and ran once more on the imported cache before they were judged (a fresh checkout prints errors the import itself resolves; a real error is printed again and fails as `engine-errors`). `importRetried` (1 or 2) is present when Godot crashed during import and the kit retried; a crash is an exit code of 128 or more, or a negative one (a Windows crash such as -1073741819, an access violation); ordinary failures are never retried. On failure `diagnostics[]`: `file`, `line`, `column`, `code` (e.g. `CS1525`, or `NU1605` for a restore error, which has no line or column), `message`;
 or `engineErrors[]`: `message`, `file` (`res://...` when Godot named one, on the line or in the `at:`/backtrace lines
 under it), `line`, `key` (the error key, see the run history below).
 

@@ -50,6 +50,29 @@ foreach ($case in $cases) {
     if ((Get-Content -LiteralPath $log -Raw) -match 'stale output present') { $failures += "$($case.Name): a repeat found the crashed run's file" }
 }
 
+# The build's import judges errors after one more import: a stand-in Godot (a shell script) that prints an error only on its
+# first run passes with importRepeated; one that prints it every time still fails with engine-errors. Not on Windows.
+if (-not $IsWindows) {
+    $game = Join-Path $dir 'game'
+    New-Item -ItemType Directory -Force $game | Out-Null
+    Set-Content -LiteralPath (Join-Path $game 'project.godot') -Value "config_version=5`n[application]`nconfig/name=`"x`"`nconfig/features=PackedStringArray(`"4.7`")`n"
+    $stand = Join-Path $dir 'fake-godot'
+    $count = Join-Path $dir 'imports.txt'
+    foreach ($case in @(@{ Name = 'an error only on the first import'; Every = 0; Ok = $true }, @{ Name = 'an error on every import'; Every = 1; Ok = $false })) {
+        Set-Content -LiteralPath $count -Value 0
+        Set-Content -LiteralPath $stand -NoNewline -Value "#!/bin/sh`ncase `"`$*`" in *--version*) echo '4.7.2.stable.official.abc'; exit 0;; esac`nn=`$((`$(cat '$count') + 1)); echo `$n > '$count'`nif [ `$n = 1 ] || [ $($case.Every) = 1 ]; then echo `"ERROR: Cannot open file 'res://.godot/imported/font.fontdata'.`"; fi`nexit 0`n"
+        chmod +x $stand
+        $saved = $env:GODOT_BIN; $env:GODOT_BIN = $stand
+        try { $json = & $pwshPath -NoProfile -NonInteractive -File (Join-Path $PSScriptRoot '../ci/godot/hyperdot.ps1') build -Json -Project $game 2>$null } finally { $env:GODOT_BIN = $saved }
+        $result = ($json -join "`n") | ConvertFrom-Json
+        $code = if ($result.PSObject.Properties['error']) { $result.error.code } else { '' }
+        $repeated = $result.PSObject.Properties['importRepeated'] -and $result.importRepeated
+        if ($result.ok -ne $case.Ok -or -not $repeated -or (-not $case.Ok -and $code -ne 'engine-errors')) {
+            $failures += "$($case.Name): ok $($result.ok), importRepeated $repeated, error '$code'; expected ok $($case.Ok), a second import"
+        }
+    }
+}
+
 Remove-Item -LiteralPath $dir -Recurse -Force
 if ($failures) {
     foreach ($failure in $failures) { Write-Host "FAIL $failure" }
