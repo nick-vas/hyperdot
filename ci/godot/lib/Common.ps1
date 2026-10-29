@@ -388,6 +388,13 @@ function Select-GodotErrors([string[]]$Lines) {
     return $errors
 }
 
+# The path Godot says it looked at for a missing export template ("No export template found at the expected path: ..."),
+# or $null when the log does not say so.
+function Get-MissingExportTemplate([string]$LogFile) {
+    $hit = Select-String -LiteralPath $LogFile -Pattern 'No export template found at the expected path: (?<path>.+?)\s*$' | Select-Object -First 1
+    return $hit ? $hit.Matches[0].Groups['path'].Value : $null
+}
+
 # Always wrap calls in @(...): an empty result comes back as nothing.
 function Get-GodotLogErrors([string]$LogFile) { return Select-GodotErrors @(Get-Content -LiteralPath $LogFile) }
 
@@ -433,7 +440,17 @@ function Get-GodotErrorDetails([string[]]$Lines, [switch]$Lenient) {
             $at = if ($own) { $own[0] } elseif ($frames) { $frames[0] } else { $at }
         }
         $file = $at.Success ? $at.Groups['file'].Value : $null
-        [pscustomobject]@{ Text = $line.Trim(); File = $file; Line = $at.Success ? [int]$at.Groups['line'].Value : $null; Key = (Get-ErrorKey $line $file); Index = $i }
+        # "Cannot export project with preset ... due to configuration errors:" says why on the lines under it, which carry no ERROR prefix.
+        $text = $line.Trim()
+        if ($line -match 'configuration errors:\s*$') {
+            $why = @(for ($j = $i + 1; $j -lt [math]::Min($Lines.Count, $i + 6); $j++) {
+                $next = ($Lines[$j] -replace "`e\[[0-9;]*m", '').Trim()
+                if (-not $next -or $next -cmatch $script:GodotErrorPattern) { break }
+                $next
+            })
+            if ($why) { $text = "$text $($why -join ' ')" }
+        }
+        [pscustomobject]@{ Text = $text; File = $file; Line = $at.Success ? [int]$at.Groups['line'].Value : $null; Key = (Get-ErrorKey $line $file); Index = $i }
     }
 }
 

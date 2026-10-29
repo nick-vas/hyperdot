@@ -126,7 +126,7 @@ try {
     $cfg = (Get-Content -LiteralPath (Join-Path $root 'examples/csharp/game/export_presets.cfg') -Raw) -replace 'export_path="[^"]*"', 'export_path=""'
     Set-Content -LiteralPath (Join-Path $presets 'export_presets.cfg') -Value $cfg -NoNewline
     Assert-Code 'preset-not-found' @('export', '-Project', $presets, '-Preset', 'Nope')
-    Assert-Code 'export-failed' @('export', '-Project', $presets, '-Preset', 'Windows')
+    Assert-Code 'export-no-path' @('export', '-Project', $presets, '-Preset', 'Windows')
     Assert-Code 'no-asset-manifest' @('credits', '-Project', (Copy-Example 'credits'))
     # A project.godot Godot cannot parse: the import exits with 1.
     $unparsable = New-Item -ItemType Directory -Force (Join-Path $temp 'unparsable') | ForEach-Object FullName

@@ -71,6 +71,28 @@ if (-not $IsWindows) {
             $failures += "$($case.Name): ok $($result.ok), importRepeated $repeated, error '$code'; expected ok $($case.Ok), a second import"
         }
     }
+
+    # export: an empty export_path stops before anything runs, with no Godot involved. (A missing export template cannot be
+    # played with a stand-in: once templates are needed the kit installs its own Godot, so that is tested on the log reader.)
+    $export = Join-Path $dir 'export-game'
+    New-Item -ItemType Directory -Force $export | Out-Null
+    Copy-Item -LiteralPath (Join-Path $game 'project.godot') -Destination $export
+    $presetText = @'
+[preset.0]
+
+name="Linux"
+platform="Linux"
+runnable=true
+export_path=""
+
+[preset.0.options]
+
+'@
+    Set-Content -LiteralPath (Join-Path $export 'export_presets.cfg') -Value $presetText -NoNewline
+    $json = & $pwshPath -NoProfile -NonInteractive -File (Join-Path $PSScriptRoot '../ci/godot/hyperdot.ps1') export -Json -Project $export 2>$null
+    $result = ($json -join "`n") | ConvertFrom-Json
+    $code = if ($result.PSObject.Properties['error']) { $result.error.code } else { '' }
+    if ($code -ne 'export-no-path') { $failures += "export with an empty path: error '$code', expected export-no-path" }
 }
 
 Remove-Item -LiteralPath $dir -Recurse -Force
