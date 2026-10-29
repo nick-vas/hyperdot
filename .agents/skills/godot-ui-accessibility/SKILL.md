@@ -151,6 +151,9 @@ Godot 4.7 talks to screen readers through AccessKit; its own controls report the
   before the scene with a way to pause or hide it, and are listed on the store page too (the Dead Space remake). A phobia
   option is a graded slider (Grounded's spiders, down to a blob), since the trigger differs per person. Control prompts
   can stay on screen; saving works at any moment, so a hard part is never replayed.
+- Add-ons that cover part of this (`docs/addons.md`, read from their repositories, none run on 4.7.2): GATO (MPL-2.0; remapper,
+  TTS, colour-blind filters; GDScript), Subtitles Importer (MIT; timed subtitle files) and ThemeGen (MIT; a Theme written from code,
+  which `textsize` and `layout` check like any `.tres`). Scale and contrast still come from the settings above.
 - A tested model (defaults, presets, `IsChanged`, reset; it saves only changed values, so a default improved in a patch
   reaches players who never touched it): `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Settings/GameSettings.cs`.
 

@@ -76,6 +76,9 @@ In 3D the child camera gets `Rotation = new Vector3(pitch, yaw, roll) * shake` f
 stays where the pivot put it. A tested trauma and noise core:
 `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Feel/CameraShake.cs`. Smoothing a follow camera: `godot-math`.
 
+Juicee (MIT, v2.0.0 of 2026-10-13, a C# singleton API) ships shake, hit stop and camera effects (`docs/addons.md`). If a game
+uses it, the shake still scales with the player's settings slider; it is young, so pin its tag.
+
 ## Make it checkable
 
 1. Log one line per gameplay event and per feedback, with game time in milliseconds:

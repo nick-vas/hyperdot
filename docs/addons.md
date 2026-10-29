@@ -5,7 +5,7 @@ checks in a game that uses them. The list started from a user's list of 25 repos
 [garciamarquez.dev's ranking](https://garciamarquez.dev/posts/godot-popular-assets/) (Asset Library entries by GitHub
 stars, November 2024). Stars, licences and releases were read from GitHub and Codeberg that day; READMEs and
 `.gdextension` files from the repositories. Library matching was measured on Godot 4.7.2 (below). Nothing else was
-installed or run.
+installed or run. A second pass over [awesome-godot](https://github.com/Calinou/awesome-godot) added the section [More add-ons, from awesome-godot](#more-add-ons-from-awesome-godot); [awesome-lists.md](awesome-lists.md) says how.
 
 ## How Godot picks a GDExtension's library (measured on 4.7.2)
 
@@ -107,6 +107,72 @@ Do not use on Godot 4.7:
 - **Godot-PerfBullets** ([Moonzel/Godot-PerfBullets](https://github.com/Moonzel/Godot-PerfBullets)): "works with Godot 4.1
   and 4.2", Windows builds only. Use a `MultiMeshInstance2D` in the game's own code.
 - **py4godot** ([niklas2902/py4godot](https://github.com/niklas2902/py4godot)): "don't use this for bigger projects".
+
+### More add-ons, from awesome-godot
+
+The names come from [Calinou/awesome-godot](https://github.com/Calinou/awesome-godot) (the list is CC BY 4.0), checked
+against what this page already covered. Everything below was read from each repository on 2026-10-29: the licence file, the
+newest tag, the last commit, the Godot version it states and its `.gdextension` or `plugin.cfg`. Dates are the commit date of
+the newest tag, not a release page. **Nothing was built or run, so "works on 4.7.2" is unverified for every row**, and the C#
+column is judged from `.cs` files and READMEs.
+
+Systems a game ships:
+
+| Add-on | Licence | Latest (date) | Godot | C# | Use it for |
+|---|---|---|---|---|---|
+| [Input Helper](https://github.com/nathanhoad/godot_input_helper) | MIT | v4.7.0 (2025-06-08) | project 4.4 | `InputHelper.cs`, `using NathanHoad;` | Device detection and rebinding; last commit June 2025, so check it on 4.7 first. Overlaps what `godot-input` teaches |
+| [Questify](https://github.com/TheWalruzz/godot-questify) | MIT | 1.6.0 (2025-07-03) | 4.4 in the README, 4.5 in the project | `Questify.cs` wrapper | A graph quest editor and runtime; the best C# quest option of five |
+| [DotnetQuestSystem](https://github.com/TRUINGLol/DotnetQuestSystem) | MIT | v1.1.0 (2025-05-08) | 4.4 | C# first, with a `test/` project | A quest system as a .NET library with a thin Godot layer, which `dotnet test` can run without the engine (its tests were not opened) |
+| [Health, HitBoxes, HurtBoxes, HitScans](https://github.com/cluttered-code/godot-health-hitbox-hurtbox) | MIT | v5.0.4 (2026-07-21) | 4.5+ | GDScript only | Composable damage nodes in 2D and 3D; about 72 gdUnit4 test files, which run through the kit's `gdunit4` runner |
+| [Maaack's Game Template](https://github.com/Maaack/Godot-Game-Template) (with its Menus Template and Scene Loader) | MIT | v1.7.1 (2026-10-28) | 4.7 | GDScript only | Main, options, pause and credits menus, a loading screen and a scene loader; `flows` can drive the menus |
+| [Scene Manager](https://github.com/glass-brick/Scene-Manager) | MIT | v2.1.0 (2026-08-20) | 4.7 | GDScript only | Scene transitions through an autoload; its GUT suite runs headless in its CI |
+| [GATO](https://github.com/Nokorpo/gato-godot-accessibility-toolkit) | MPL-2.0 (file-level copyleft; graphics under a CC licence; the name is a trademark) | no tags (2026-10-15) | 4.6 | GDScript only | Accessibility parts: input remapper, text to speech, colour-blind filters. `credits` ships the MPL-2.0 text. Pin it by commit |
+| [ThemeGen](https://github.com/Inspiaaa/ThemeGen) | MIT | v1.4.0 (2026-05-02) | "4.x" | GDScript at build time | A Theme written as code; the `.tres` it produces is checked by `textsize` and `layout` like any other |
+| [Juicee](https://github.com/Kelpekk/Juicee) | MIT | v2.0.0 (2026-10-13) | 4.3 | `csharp/Juicee.cs` singleton | Shake, hit stop and camera effects; young, pin the tag. Overlaps `godot-juice` |
+| [NobodyWho](https://github.com/nobodywho-ooo/nobodywho) | EUPL-1.2 (copyleft) | `nobodywho-godot-v12.1.0` (2026-10-09, from its changelog) | 4.6+ | GDScript API, no C# wrapper found | A language model that runs on the player's machine (Rust GDExtension); needs model files. See `godot-llm` |
+| [Subtitles Importer](https://github.com/Rubonnek/subtitles-importer) | MIT | v1.1.4 (2026-07-05) | 4.2 | GDScript only | Timed subtitle formats with `AnimationPlayer` links |
+| [friflo ECS](https://github.com/friflo/Friflo.Engine.ECS) | MIT | `engine-v4.0.0-preview.2` (2026-05-01); the newest non-preview is `engine-v3.6.0` (date not fetched) | Godot listed, .NET Standard 2.1 to .NET 10 | C# only | An entity component system as a NuGet library; plain C#, so `dotnet test` reaches it |
+| [HCoroutines](https://github.com/Inspiaaa/HCoroutines) | MIT | v2.0.1 (2025-03-31) | 4.x | C# only | Coroutines for C#; idle for 19 months, not archived |
+| [Godot Google Play Game Services](https://github.com/Iakobs/godot-play-game-services) | MIT | v3.4.0 (2026-07-20) | 4.3+, Android | GDScript-facing Kotlin plugin; C# not documented | Android sign-in and achievements; needs a device and a Google account, so nothing here is CI-checkable |
+
+World, level and physics tools:
+
+| Add-on | Licence | Latest (date) | Godot | Platforms | Use it for |
+|---|---|---|---|---|---|
+| [godot-rapier-2d](https://github.com/appsinacup/godot-rapier-2d) | MIT | v0.36.0 (2026-10-02) | `compatibility_minimum` 4.7 | A Rust GDExtension for 2D and 3D physics. The checked-in `.gdextension` lists windows, linux, android and macos but no `web` or `ios` key (the README claims web through release builds, which was not read) | A physics server swap, so C# uses the normal API; the one here that changes physics for tests |
+| [TerraBrush](https://github.com/spimort/TerraBrush) | MIT | 0.15.0Beta (2026-10-20) | 4.5+ | C++ GDExtension with web (experimental), android and ios keys | Editable terrain with C# wrapper nodes; sits next to Terrain3D |
+| [godot-voxel](https://github.com/Zylann/godot_voxel) | MIT | v1.7x (2026-08-20) | the GDExtension edition needs 4.4.1+ | Mostly an engine module, which needs a custom Godot build; the GDExtension edition is "less tested", with no web in its platform list | Voxel terrain; C# with the extension is "not well defined" |
+| [YATI](https://github.com/Kiamo2/YATI) | MIT | v2.2.10 (2026-10-05) | "tested on 4.7.2", needs 4.3+ | Pure script, with a GDScript and a C# build | Tiled map import |
+| [func_godot](https://github.com/func-godot/func_godot_plugin) | MIT | 2025.12 (2025-12-27) | "Godot 4" | Pure GDScript | Quake-style `.map` levels (TrenchBroom). GodotVMF does the same for Source maps |
+| [Cyclops Level Builder](https://github.com/blackears/cyclopsLevelBuilder) | MIT-style text without a title | v1.5.2 (2026-10-24) | 1.5.x needs 4.7+ | GDScript editor plugin; the repository uses Git LFS, so clone with LFS | Brush-based level building in the editor |
+
+Developer tools, which a game must never ship:
+
+| Tool | Licence | Latest (date) | Use it for |
+|---|---|---|---|
+| [godot-gdscript-toolkit](https://github.com/Scony/godot-gdscript-toolkit) | MIT | 4.5.0 (2025-10-09) | `gdlint` and `gdformat --check` for the GDScript half, in CI; idle for a year |
+| [Godot Doctor](https://github.com/codevogel/godot_doctor) | MIT | 2.2.0 (2026-07-23) | Scene and resource validation in the editor and from a CLI, with GDScript and C# validations. It overlaps `validate` and `doctor`; `doctor` could look for `addons/godot_doctor/` |
+| [gdvm](https://gdvm.io) | GPL-3.0-or-later | v0.16.0 (2026-08-10) | A Godot version manager with C# variants and a `setup-gdvm` action. GPL is fine for a tool and wrong for a game |
+| [ShipThis](https://github.com/shipth-is/cli) | MIT | v0.1.61 (2026-10-14) | Mobile builds and store uploads through a paid hosted service (prices and terms not read); C# on 4.3+ with the .NET editor |
+
+Two things to know about all of them. The kit sets up official Godot, so a game that needs a **custom engine module**
+(godot-voxel's module edition, Voxelman, Texture Packer, Godex, FMOD GD4) cannot be tested or exported with it, and `doctor`
+finds nothing to check because such a game has no `addons/` folder for it. And where an extension lacks a platform key,
+`doctor`'s library check already reports it for the presets the game exports.
+
+Do not use: **godot-luaAPI** ([WeaselGames/godot_luaAPI](https://github.com/WeaselGames/godot_luaAPI)) says "Archived!" on its first
+README line and was built for Godot 4.1 (last commit 2024-12-28); use lua-gdextension above. Its `addons-status.json`
+entry waits for its folder name to be confirmed from a release zip (`roadmap.md`).
+
+Read and left out, with the reason: Quest Manager (Questify covers it), QuestSystem (another GDScript quest manager),
+Inventory Manager (trivial to write), Shaker (unmaintained since 2024-09), Godot Radial Menu (shader-drawn, poor for gamepad
+focus and screen readers), Nodot (pre-1.0 and too broad), Importality (the kit says to export PNGs from Aseprite),
+License Manager (`assets.json` and `credits` do this), GodotVMF (func_godot's sibling), Godot SQLite (named further down this page),
+godot-actions (pins Godot 3.5), asdf-godot, Godot Package Manager (Godot 3, abandoned since 2022), godot-launcher
+(deprecated), GodotSx, Gedis, godot-playfab (0.0.x tags, last tag 2022), Godot Shader Warmup (a Windows research
+project), Script-IDE (editor only), gd2cs.py and codetranslator (regex ports of old Godot), Godot Torrent, Godot NDI and
+spout-gd (desktop only, with their own runtimes), obs-websocket-gd (tested on 4.0.2), Polygon 2D Fracture, AntialiasedLine2D,
+SimpleGodotCRTShader, PixelPen, AnimSheet, 3D Auto Collision Generator.
 
 ### The known-status list
 

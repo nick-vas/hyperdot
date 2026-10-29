@@ -51,6 +51,10 @@ baseball "coach" demo); the provider-specific parts (Vertex, Gemini, Spanner) ar
 - Show an acceptable-use note before free text (Guess-the-Sketch's consent page), and tell players a model wrote the
   answers.
 
+- To run the model on the player's machine, NobodyWho (a Rust GDExtension, Godot 4.6+, GDScript API, no C# wrapper found) is
+  the add-on `docs/addons.md` records. Its licence is EUPL-1.2, a copyleft one: read it before shipping, and the model files
+  have their own terms and size.
+
 ## 5. Keys, cost and debugging
 
 - The API key lives on a server you control, never in the client: homerun embeds one in its JavaScript, where anyone can

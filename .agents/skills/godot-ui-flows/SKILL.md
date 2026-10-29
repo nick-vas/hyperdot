@@ -109,6 +109,12 @@ example `step 2 (...): Hud.text is 3, expected equals 0`. `file` is the flow. Co
 `hold`), `hold needs an input action name` (`hold: N` alone; frames go on an `action` step), and `the flow ended with
 <action> still held`.
 
+## Menus from an add-on
+
+Maaack's Game Template (MIT, GDScript, Godot 4.7) brings main, options, pause and credits menus and a loading screen
+(`docs/addons.md`). Its menus are ordinary scenes, so a flow drives them with Input Map actions like any other; write the
+flow before trusting its focus order, and check `doctor` for the add-on's licence entry.
+
 ## Limits
 
 - C# properties are readable (`prop: "Score"`); private ones are not. Expose what a flow needs as a public property or a method to `call`.
