@@ -221,7 +221,9 @@ function Get-AppBuildProblems($Entries, [string]$ScriptDir, [string]$Name) {
     }
     $setLive = Get-VdfValue $body 'SetLive'
     if ($setLive -and $setLive -eq 'default') {
-        $problems.Add(@('WARN', "$Name`: SetLive is 'default', but Steam cannot set a build live on the default branch automatically", 'Set a beta branch live from the script and the default branch by hand in App Admin (godot-steam)'))
+        $problems.Add(@('WARN', "$Name`: SetLive is 'default', but Steam cannot set a build live on the default branch automatically", 'Set a beta branch live from the script and the default branch by hand in App Admin (godot-steam). Even by hand, a released game asks for an authorization on the account''s Steam Mobile Authenticator or by SMS'))
+    } elseif ($setLive -and $setLive -match '\s') {
+        $problems.Add(@('FAIL', "$Name`: SetLive '$setLive' has a space, and a Steam branch name has none", 'Name the branch without spaces in App Admin and use that name (store/application/branches, godot-steam)'))
     }
 
     $depots = @(Get-VdfEntry $body 'Depots' | ForEach-Object { @($_.Children) })
@@ -259,6 +261,35 @@ function Get-AppBuildProblems($Entries, [string]$ScriptDir, [string]$Name) {
         }
     }
     return , $problems.ToArray()
+}
+
+# Valve's developer rules for reviews (store/reviews): do not ask customers to review the product from within the application,
+# and give nothing for a review (free copies to press are the exception). A line of a script, scene, resource or translation
+# file that asks for one is reported. It reads text, so a comment or a variable name that matches is a false alarm.
+function Get-ReviewPromptProblems([string]$ProjectDir) {
+    $problems = [System.Collections.Generic.List[object]]::new()
+    $patterns = @(
+        '(?i)\b(?:leave|write|post|give|submit)\s+(?:us\s+|me\s+|a\s+|an\s+|the\s+|your\s+){0,3}(?:positive\s+|honest\s+|good\s+|steam\s+|5[- ]star\s+|five[- ]star\s+)?(?:review|rating)\b',
+        '(?i)\brate\s+(?:us|this\s+game|the\s+game)\b',
+        '(?i)\breview\s+(?:us|this\s+game|the\s+game)\s+on\s+steam\b')
+    $seen = 0
+    foreach ($filter in '*.gd', '*.cs', '*.tscn', '*.tres', '*.csv', '*.po') {
+        foreach ($file in @(Find-ProjectFiles -Root $ProjectDir -Filter $filter)) {
+            $relative = [System.IO.Path]::GetRelativePath($ProjectDir, $file.FullName) -replace '\\', '/'
+            if ($relative -match '^(addons|store|steam|docs|test|tests)/') { continue }
+            $lineNumber = 0
+            foreach ($line in [System.IO.File]::ReadLines($file.FullName)) {
+                $lineNumber++
+                $code = $line.TrimStart()
+                if ($code.StartsWith('#') -or $code.StartsWith('//')) { continue }
+                if (@($patterns | Where-Object { $line -match $_ }).Count -gt 0 -and $seen -lt 5) {
+                    $seen++
+                    $problems.Add(@('WARN', "${relative}:$lineNumber asks the player for a review: Steam's developer rules forbid asking customers to review the product from within the application", 'Ask in a devlog or on social media instead, and reward nothing for a review (partner.steamgames.com/doc/store/reviews; godot-store-page)'))
+                }
+            }
+        }
+    }
+    return @($problems)
 }
 
 function Get-SteamworksProblems([string]$ProjectDir, [string[]]$CodeDirs = @()) {
