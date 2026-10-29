@@ -44,6 +44,9 @@ public override void _Process(double delta) { if (Ready) SteamAPI.RunCallbacks()
   run of a game that uses Steam. Use 480 (Valve's Spacewar) or your App ID while developing; never ship `steam_appid.txt`
   (a dedicated server is the exception, below).
 - A GodotSteam call after a failed init logs a Godot `ERROR`, which fails the kit's runs: gate every call on `Ready`.
+- SDK 1.65 added `IsRunningUnderProton()` (a Windows build played on Linux) next to `IsRunningOnSteamHardware()`: both are for
+  support and analytics, so choose behaviour by feature, not by device. Neither is in the pinned Steamworks.NET.AnyCPU
+  2026.164.4 (SDK 1.64).
 
 ## 3. Achievements, stats, leaderboards, rich presence
 
@@ -51,6 +54,9 @@ public override void _Process(double delta) { if (Ready) SteamAPI.RunCallbacks()
   (a level cleared, the run ended), "on the order of minutes", never per frame. `RequestCurrentStats` is gone: Steam loads
   stats before launch (`steam-removed-api` rule).
 - `IndicateAchievementProgress` only shows a popup; it never unlocks.
+- A game with quality presets can tell Steam the chosen preset and render resolution with `SetGamePerformanceSetting` and
+  `SetGameRenderResolution` (SDK 1.65, not in the pinned package); Steam adds them to anonymous frame-rate data only for
+  players who opted in. Steam Timeline (SDK 1.60) is optional: events for a boss kill or a death, phases for a run.
 - Leaderboards: `KeepBest` or `ForceUpdate`; at most 10 uploads per 10 minutes and one in flight; upload at the end of a
   run. Scores that matter come from your server on a "Trusted" board (`godot-anti-cheat`).
 - Rich presence: at most 20 keys, keys up to 64 characters, values up to 256. `steam_display` names a token from the

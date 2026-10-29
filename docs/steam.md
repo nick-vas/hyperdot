@@ -172,6 +172,27 @@ A Godot 4.7.2 process stopped for 3 s (SIGSTOP, then SIGCONT, on X11) received n
 no `APPLICATION_PAUSED`. Its next frame had a delta of 0.134 s against 3.013 s of wall clock, with 8 physics steps
 (`max_physics_steps_per_frame`). `Time.GetTicksMsec()` advanced through the stop.
 
+## SDK release notes 1.59 to 1.65 (the SDK's own Readme.txt)
+
+From the `Readme.txt` that ships in the Steamworks SDK (newest entry v1.65, 23 July 2026), paraphrased; the owner supplied
+the file on 2026-10-29. It lists changes only, with no licence or redistribution terms. "Pinned package" means
+Steamworks.NET.AnyCPU 2026.164.4, which `doctor` pins and which carries SDK 1.64, so a call added in 1.65 is not in it.
+
+| SDK | What changed | What it means for a Godot game (suggestions are marked) |
+|---|---|---|
+| 1.65 (23 Jul 2026) | `ISteamUtils::IsRunningUnderProton()` added: tells the game it runs under Proton on Linux. | For support and diagnostics, like `IsRunningOnSteamHardware()`; decide behaviour by feature. Not in the pinned package. |
+| 1.65 | `ISteamApps::SetGamePerformanceSetting()` and `SetGameRenderResolution()` added: the game reports the relative performance setting and render resolution the player chose; Steam adds them to anonymous frame-rate data when the player opted into sharing it. | Suggestion: call them when the player changes the quality preset or the render scale; skip them if the game has neither. Not in the pinned package. |
+| 1.65 | `ISteamMatchmakingServers::ServerFriends()` (friends who recently played on a server) and the `popularamongfriends` server filter. | Only for a game with a server browser, such as the multiplayer arena. |
+| 1.65 | Steam Input action origin values for Switch 2, Steam Controller and Steam Frame Controller. | Do not hard-code origin tables: pass the origin to the glyph and string functions, as the 1.39 notes advise, so a device added later still gets a prompt. |
+| 1.65 | Two new UGC query sort orders: by the number of items that depend on an item, and by the number of collections that contain it. | Workshop browsers only. |
+| 1.64 (11 Mar 2026) | `androidarm64` libraries link libc++ statically and use a 16 KB maximum page size (was 4 KB); `linuxarm64` libraries use 4 KB (was 64 KB). | The 16 KB size matches what Android exports need (`godot-mobile-web`). |
+| 1.64 | `ISteamApps::GetBetaInfo()` returns the last update time of a branch. UGC: `MarkDownloadedItemAsUnused()`, `GetDownloadedItems()`, `GetNumDownloadedItems()`. Remote Play: `BSessionRemotePlayTogether()`, `GetSessionGuestID()`, small, medium and large guest avatars and a callback when one has loaded. | Workshop and Remote Play Together games. |
+| 1.63 (18 Nov 2025) | First `linuxarm64` and `androidarm64` libraries. `ISteamMusicRemote` removed. Action origins for the Lenovo Legion Go and a generic controller. `GetMarketEligibility` can report a trade-cooldown reason. | Remove any use of `ISteamMusicRemote`. |
+| 1.62 (14 Mar 2025) | `ISteamFriends::SetPersonaName()` and `GetUserRestrictions()` removed. `EMouseCursor` renamed `EHTMLMouseCursor`. Remote Play Together: `BStartRemotePlayTogether()` removed (it is always available when a supported game launches), `ShowRemotePlayTogetherUI()` added, and functions to read a guest's keyboard and mouse directly instead of simulating local input. UGC: `SetSubscriptionsLoadOrder()`, `SetItemsDisabledLocally()`, and an optional flag on the subscribed-items calls to include locally disabled items. | A game cannot rename the player. Mod load order and locally disabled mods are now Steam's to store (`godot-modding`). |
+| 1.61 (8 Nov 2024) | `ISteamTimeline` calls renamed and extended: instantaneous and range events, removing an event, opening the overlay at an event, game phases. `RequestCurrentStats()` removed (above). Glyphs for the Wireless HORIPAD for Steam. | Suggestion: Steam Timeline is optional; mark moments a player might clip (a boss kill, a death) and the phases of a run. |
+| 1.60 (19 Jun 2024) | `ISteamTimeline` added (the Game Recording feature). `CSteamAPIContext` removed: use the per-interface accessors. UGC: a 64-bit total file size, supported game versions per item, `SetAdminQuery()`. `ISteamApps` can manage the active beta branches. | C++ bindings only for the accessors; C# bindings already use the static classes. |
+| 1.59 (9 Feb 2024) | `SteamAPI_InitFlat` added as an initialization method for the flat API. `ISteamUtils::DismissGamepadTextInput()`. `ISteamAppList` removed. | `InitEx` stays the call for Steamworks.NET and GodotSteam (section above). |
+
 ## Kit checks
 
 - **`textsize` runner** (`ci/godot/lib/TextSize.ps1`, `ci/godot/tools/textsize.gd`): runs Godot headless, computes the
@@ -286,6 +307,8 @@ no `APPLICATION_PAUSED`. Its next frame had a delta of 0.134 s against 3.013 s o
 
 ## Not confirmed
 
+- The SDK release-notes table above is from the `Readme.txt`, not from calls: none of those functions was run, and which of
+  the 1.65 additions each binding exposes was not checked (the pinned package has SDK 1.64).
 - Everything that needs the Steam client: overlay, popups, real `StoreStats`, leaderboards, Cloud dialogs, Dynamic Cloud
   Sync, glyphs, keyboards (including where `ShowFloatingGamepadTextInput` places itself), the relaunch and DLC.
 - steamcmd `app_info_print`, `app_update -beta` and anonymous server downloads: steamcmd could not reach Steam through
