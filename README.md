@@ -435,5 +435,12 @@ file, which credits Hyperdot and its author. The files Hyperdot copies into a ga
 tests `init` writes) are under [MIT-0](ci/godot/templates/LICENSE.md): a game owes nothing for them. Third-party parts keep
 their own licences, listed in [NOTICE](NOTICE).
 
+<p align="center">
+  <a href="https://endsoftwarepatents.org/innovating-without-patents"><img height="120" src="https://static.fsf.org/nosvn/esp/logos/innovating-without-patents.svg" alt="Innovating without patents"></a>
+  <a href="https://endsoftwarepatents.org/innovating-without-patents"><img height="45" src="https://static.fsf.org/nosvn/esp/logos/patent-free.svg" alt="Patent-free"></a>
+</p>
+
+The two banners above link to the End Software Patents campaign and are loaded from the campaign's host.
+
 Hyperdot is not affiliated with or endorsed by the Godot Foundation. Godot and the Godot logo are trademarks of the Godot
 Foundation.
