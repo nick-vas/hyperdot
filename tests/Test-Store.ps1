@@ -92,6 +92,18 @@ try {
     Remove-Item (Join-Path $ico 'shortcut_icon.ico')
     Assert-True ((@((Test-SteamStoreAssets $ico).problems | ForEach-Object { "$($_.code) $($_.asset)" }) -contains 'asset-missing shortcut_icon')) 'no shortcut icon in either format is missing'
 
+    # A project that exports for macOS also needs mac_icon.icns, and the file must be an ICNS.
+    $mac = Join-Path $work 'mac'
+    New-GoodSet $mac
+    Assert-True ((Test-SteamStoreAssets $mac).ok) 'without a macOS export no mac_icon is asked for'
+    $codes = @((Test-SteamStoreAssets $mac -MacExport).problems | ForEach-Object { "$($_.code) $($_.asset)" })
+    Assert-True ($codes -contains 'asset-missing mac_icon' -and $codes.Count -eq 1) "a macOS export with no mac_icon.icns is named: $($codes -join ' | ')"
+    [System.IO.File]::WriteAllBytes((Join-Path $mac 'mac_icon.icns'), [byte[]](0x69, 0x63, 0x6E, 0x73, 0, 0, 0, 8))
+    Assert-True ((Test-SteamStoreAssets $mac -MacExport).ok) 'an ICNS header passes'
+    Set-Content (Join-Path $mac 'mac_icon.icns') 'this is a png renamed, not an icns file'
+    $codes = @((Test-SteamStoreAssets $mac -MacExport).problems | ForEach-Object { "$($_.code) $($_.asset)" })
+    Assert-True ($codes -contains 'asset-unreadable mac_icon' -and $codes.Count -eq 1) "a file that is not an ICNS is named: $($codes -join ' | ')"
+
     # Localized screenshots end in a Steam language name (foo_japanese.jpg): they count with their screenshot and keep the size rule.
     $loc = Join-Path $work 'loc'
     New-GoodSet $loc

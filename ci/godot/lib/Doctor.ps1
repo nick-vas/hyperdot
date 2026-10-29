@@ -388,7 +388,8 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
         Add-Check WARN 'store/ has no .gdignore: Godot imports the store art and ships it inside the game' 'Add an empty store/.gdignore'
     }
     if (Test-Path -LiteralPath $steamDir) {
-        $store = Test-SteamStoreAssets $steamDir
+        $macExport = (Test-Path -LiteralPath (Join-Path $project 'export_presets.cfg')) -and ((Get-Content -LiteralPath (Join-Path $project 'export_presets.cfg') -Raw) -match '(?m)^platform="macOS"')
+        $store = Test-SteamStoreAssets $steamDir -MacExport:$macExport
         foreach ($p in $store.problems) {
             $status = if ($p.code -eq 'asset-missing') { 'WARN' } else { 'FAIL' }
             Add-Check $status "Steam store art: $($p.message)" 'Sizes: partner.steamgames.com/doc/store/assets (godot-store-page)'
