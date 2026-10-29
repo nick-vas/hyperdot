@@ -252,11 +252,11 @@ separate, headless tool.
 
 ## Skills
 
-51 skills in [`.agents/skills/`](.agents/skills). Each `SKILL.md` description says when to use it.
+52 skills in [`.agents/skills/`](.agents/skills). Each `SKILL.md` description says when to use it.
 
 - **Test and verify**: `godot-test-loop`, `godot-verify-before-done`, `godot-ui-flows`, `godot-diagnose`, `godot-pitfalls`, `godot-automation-hooks`, `godot-editor-bridge`, `godot-debug-tools`
 - **Design and plan**: `godot-game-plan`, `godot-game-design`, `godot-playtest`, `godot-progression`, `godot-narrative`
-- **Code and systems**: `godot-patterns`, `godot-math`, `godot-algorithms`, `godot-procgen`, `godot-game-ai`, `godot-data`, `godot-saves`, `godot-input`, `godot-determinism`, `godot-addons`, `godot-llm`
+- **Code and systems**: `godot-patterns`, `godot-math`, `godot-algorithms`, `godot-procgen`, `godot-game-ai`, `godot-data`, `godot-saves`, `godot-input`, `godot-xr`, `godot-determinism`, `godot-addons`, `godot-llm`
 - **Look, sound and feel**: `godot-juice`, `godot-camera`, `godot-animation`, `godot-shaders-vfx`, `godot-asset-pipeline`, `godot-audio`, `godot-ui-accessibility`, `godot-localization`, `godot-performance`
 - **Online**: `godot-multiplayer`, `godot-servers`, `godot-anti-cheat`, `godot-telemetry`, `godot-modding`
 - **Ship**: `godot-export-release`, `godot-release-readiness`, `godot-mobile-web`, `godot-steam`, `godot-store-page`, `godot-legal`, `godot-console-cert`
@@ -394,6 +394,7 @@ address, built from these files on every change ([docs/site.md](docs/site.md)).
 - [docs/audio.md](docs/audio.md): buses, adaptive music, 3D sound, ducking, loudness targets
 - [docs/wcag-ui.md](docs/wcag-ui.md): WCAG 2.2 read as rules for game menus and UI
 - [docs/input.md](docs/input.md): rebinding, controllers, button prompts, Steam Input
+- [docs/xr.md](docs/xr.md): OpenXR in Godot: the player's body, comfort, hands, throwing; what ran without a headset
 - [docs/localization.md](docs/localization.md): translations, plurals, fonts, the `l10n` runner
 - [docs/data.md](docs/data.md): game data as Resources, JSON and CSV, the `data` runner
 - [docs/saves.md](docs/saves.md): save files that survive crashes, new versions and cloud conflicts

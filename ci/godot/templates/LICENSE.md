@@ -2,7 +2,7 @@
 
 The files in this folder that `hyperdot.ps1 init`, `plan` and the agents copy into a game (`plan.json`, `plan-jam.json`,
 `AGENTS.md`, `GDD.md`, `GDD-jam.md`, `ADR.md`, `ARCHITECTURE.md`, `STYLE.md`, `TECH-DEBT.md`, `TRAILER.md`, `kit-notes.md`,
-`placement_check.gd`, `playtest-events.json` and the `addons/hyperdot_report_pins/` add-on),
+`placement_check.gd`, `xr_math.gd`, `xr_rig.gd`, `playtest-events.json` and the `addons/hyperdot_report_pins/` add-on),
 and the starter tests `init` writes, are licensed under MIT No Attribution: a game may use, change and ship them without
 credit. Not covered: `genres-uw.json` (CC BY-NC-SA 4.0), `genres.json` (CC0 1.0) and the licence texts in `licences/`; see
 the repository's NOTICE file.

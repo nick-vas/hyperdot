@@ -13,7 +13,7 @@ gives the percentages and the floors CI holds them to.
 | [Error codes](#error-codes) | 59 | 58 |
 | [Library files](#library-files) | 36 | 36 |
 | [Tools](#tools) | 22 | 22 |
-| [Skills](#skills) | 51 | 51 |
+| [Skills](#skills) | 52 | 52 |
 | [Subagents](#subagents) | 2 | 2 |
 | [Workflow jobs, actions, hooks and the GitLab template](#workflow-jobs-actions-hooks-and-the-gitlab-template) | 33 | 30 |
 
@@ -233,6 +233,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `godot-ui-accessibility` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `godot-ui-flows` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `godot-verify-before-done` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `godot-xr` | `Test-Help.ps1`, `Test-Skills.ps1`, `Test-Xr.ps1` |
 | `kit` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `kit-review` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `look` | `Test-Help.ps1`, `Test-Skills.ps1` |

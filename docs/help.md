@@ -236,6 +236,9 @@ Saving progress and settings, versioned formats, cloud sync and recovery.
 ### godot-input
 Keyboard, mouse and controller input, rebinding, prompts and forgiving timing.
 
+### godot-xr
+Headset games in Godot's OpenXR: the player's body, locomotion and comfort, hands, throwing, one-controller play, passthrough.
+
 ### godot-determinism
 The same state from the same inputs, for replays, rewind, rollback and lockstep.
 
@@ -316,7 +319,7 @@ How the page `help` writes sorts the skills. One bullet per group, in the order 
 - **Session and reviews**: `game`, `kit`, `look`, `retro`, `weekly-review`, `kit-review`
 - **Test and verify**: `godot-test-loop`, `godot-verify-before-done`, `godot-ui-flows`, `godot-diagnose`, `godot-pitfalls`, `godot-automation-hooks`, `godot-debug-tools`, `godot-editor-bridge`
 - **Plan and design**: `godot-game-plan`, `godot-game-design`, `godot-playtest`, `godot-progression`, `godot-narrative`
-- **Code and systems**: `godot-patterns`, `godot-math`, `godot-algorithms`, `godot-procgen`, `godot-game-ai`, `godot-data`, `godot-saves`, `godot-input`, `godot-determinism`, `godot-addons`, `godot-llm`
+- **Code and systems**: `godot-patterns`, `godot-math`, `godot-algorithms`, `godot-procgen`, `godot-game-ai`, `godot-data`, `godot-saves`, `godot-input`, `godot-xr`, `godot-determinism`, `godot-addons`, `godot-llm`
 - **Look and feel**: `godot-juice`, `godot-camera`, `godot-animation`, `godot-shaders-vfx`, `godot-asset-pipeline`, `godot-audio`, `godot-ui-accessibility`, `godot-localization`
 - **Performance and online**: `godot-performance`, `godot-multiplayer`, `godot-servers`, `godot-anti-cheat`, `godot-telemetry`, `godot-modding`
 - **Ship and sell**: `godot-export-release`, `godot-release-readiness`, `godot-mobile-web`, `godot-steam`, `godot-store-page`, `godot-legal`, `godot-console-cert`
