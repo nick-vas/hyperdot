@@ -243,6 +243,11 @@ Steamworks.NET.AnyCPU 2026.164.4, which `doctor` pins and which carries SDK 1.64
   last part (`BreakoutProgress.FirstFloor` is `FirstFloor`) when only one value goes by it; a name built at run time is
   not followed. The C# example keeps its `steam/` this way. Files are VDF (Valve's KeyValues text), read by
   `ConvertFrom-Vdf` without escape sequences, as steamcmd reads `"..\content\"`; a `.vdf` that does not parse warns.
+  - **Review prompts** (only in a project that uses Steam): a line of a `.gd`, `.cs`, `.tscn`, `.tres`, `.csv` or `.po`
+    file outside `addons/`, `store/`, `steam/`, `docs/` and the test folders that asks the player to leave a review or to
+    rate the game ("Leave a positive review", "Rate this game", "Review us on Steam") is a WARN with its line, at most five.
+    Valve's developer rules (`store/reviews`) forbid asking customers to review the product from within the application and
+    rewarding a review. It reads text, so a comment-like string or a variable name can be a false alarm.
   - **Rich presence**: any `.vdf` in `steam/` whose root is `"lang"`, one language per file (`"Language" "english"`
     with `"Tokens"`) or all in one (`"english" { "Tokens" { ... } }`). A `steam_display` value the code sets
     (`setRichPresence("steam_display", "#Token")` in any binding) that does not start with `#` fails, and so does a token
@@ -262,8 +267,10 @@ Steamworks.NET.AnyCPU 2026.164.4, which `doctor` pins and which carries SDK 1.64
     build script that does not exist, and a key or value that looks like a secret (a password, token, login or a
     32-character hex key; steamcmd takes the login on its command line). Warns: `AppID` 480 (Spacewar), no
     `ContentRoot` or an absolute one (one machine only), `SetLive "default"` ("you can not set the build live on the
-    default branch automatically"), and a `steam_appid.txt` in `ContentRoot` that a depot does not exclude with
-    `FileExclusion`. A `ContentRoot` that does not exist yet (the export has not run) is INFO.
+    default branch automatically", and Valve adds that a released game asks for an authorization on the account's Steam
+    Mobile Authenticator or by SMS), a `SetLive` branch name with a space (a branch name has none; FAIL), and a
+    `steam_appid.txt` in `ContentRoot` that a depot does not exclude with `FileExclusion`. A `ContentRoot` that does not
+    exist yet (the export has not run) is INFO.
 - **Self-test** `tests/Test-Steam.ps1` on `tests/steam-fixture` (laid out like GodotSteam 4.23.2, no Godot needed): a
   Linux export finds every library; adding macOS reports the two misnamed libraries and not `libsteam_api.dylib`; the
   stale copy in `.godot/` is ignored; a Windows export finds its missing library; AnyCPU 2026.165.2 fails and 2026.164.4
