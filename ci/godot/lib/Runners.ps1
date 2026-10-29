@@ -119,6 +119,12 @@ function ConvertFrom-ValidateLog([string]$LogFile, [string]$Marker = 'validate')
     # project as a whole, unless a file already reported the same error (stderr can reach the log away from its file's markers).
     $reported = ($cases | ForEach-Object { $_.Failure }) -join "`n"
     $startup = @(Select-GodotErrors $outside | Where-Object { -not $reported.Contains(($_ -replace '^\s*(SHADER ERROR|SCRIPT ERROR|ERROR):\s*', '').Trim()) })
+    # An error's "at: _ready (res://addons/x/y.gd:20)" line follows it: keep it, so the failure names its file and line.
+    $startup = @(foreach ($text in $startup) {
+        $text
+        $index = [array]::IndexOf($outside, $text)
+        if ($index -ge 0 -and $index + 1 -lt $outside.Count -and $outside[$index + 1] -match '^\s*at: ') { $outside[$index + 1].Trim() }
+    })
     if ($startup.Count -gt 0) { $cases += @{ Name = 'project startup'; Failure = ($startup -join "`n") } }
     return $cases
 }

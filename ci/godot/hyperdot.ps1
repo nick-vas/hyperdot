@@ -357,6 +357,22 @@ function Invoke-Build {
         if ($line -match "(Cannot open file '|Failed loading resource: )(?<res>res://[^']+\.translation)'?\.?\s*$" -and
             (Test-Path -LiteralPath (Join-Path $info.ProjectDir $Matches.res.Substring(6)))) { $line.Trim() }
     })
+    # A first import of a fresh checkout prints errors that the import itself resolves (a font's .fontdata, a theme that loaded
+    # before it, a class cache not built yet) and that a second import no longer prints. So errors judge the project only
+    # after one more import on the warm cache; a real error is printed again and still fails.
+    if (@(Get-GodotLogErrors $log | Where-Object { $_.Trim() -notin $madeByImport }).Count -gt 0) {
+        Write-CiLog 'Godot import printed errors; importing once more on the imported cache before judging them'
+        Set-JsonField importRepeated $true
+        $first = $log
+        $log = [System.IO.Path]::GetTempFileName()
+        $run = Invoke-GodotRetried @('--headless', '--path', $info.ProjectDir, '--import') $log 'import'
+        if ($run.Code -ne 0) {
+            Set-EngineErrors @(Get-GodotErrorDetails @(Get-Content -LiteralPath $log))
+            Stop-GodotCi "Godot import exited with $($run.Code)" 'import-failed'
+        }
+        Remove-Item -LiteralPath $first -ErrorAction SilentlyContinue
+        $madeByImport = @()
+    }
     Assert-GodotLogClean $log 'Import' -Expected $madeByImport
     Write-CiLog 'Build OK'
 }

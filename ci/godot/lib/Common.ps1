@@ -583,9 +583,15 @@ function Get-DotnetDiagnostics([string]$LogFile) {
 # the first .cs:line N.
 function Get-FailureLocation([string]$Text) {
     $pattern = '(?<![\w:/])(?<file>(?:[A-Za-z]:[\\/]|/)[^\s:]+\.(?:cs|gd))(?::line |:)(?<line>\d+)|(?<=\bin )(?<file>(?:[A-Za-z]:[\\/]|/)[^:\r\n]+?\.cs):line (?<line>\d+)|res://(?<res>[^\s:()]+\.(?:gd|cs|tscn|tres)):(?<rline>\d+)'
+    $inAddon = $null
     foreach ($m in [regex]::Matches($Text, $pattern)) {
         if ($m.Groups['res'].Success) {
-            if ($m.Groups['res'].Value -like 'addons/*') { continue }
+            if ($m.Groups['res'].Value -like 'addons/*') {
+                # Only the testing frameworks' own frames are never the failure; another add-on's file is better than none
+                # (an autoload in addons/ that fails at startup).
+                if (-not $inAddon -and $m.Groups['res'].Value -notmatch '^addons/(gut|gdUnit4|gdunit4)/') { $inAddon = [pscustomobject]@{ File = $m.Groups['res'].Value; Line = [int]$m.Groups['rline'].Value } }
+                continue
+            }
             return [pscustomobject]@{ File = $m.Groups['res'].Value; Line = [int]$m.Groups['rline'].Value }
         }
         $file = $m.Groups['file'].Value
@@ -596,7 +602,7 @@ function Get-FailureLocation([string]$Text) {
         }
         return [pscustomobject]@{ File = $file; Line = [int]$m.Groups['line'].Value }
     }
-    return $null
+    return $inAddon
 }
 
 # Edits (insert, delete, substitute, swap two neighbours) between two names, ignoring case; anything above $Max comes back
