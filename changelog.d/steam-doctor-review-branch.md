@@ -1,0 +1,1 @@
+Added: `doctor` warns, in a project that uses Steam, about a line that asks the player for a review (Valve forbids asking customers to review the game from inside it), and fails a build script whose `SetLive` branch name has a space; the default-branch warning now names the Steam Mobile Authenticator or SMS authorization a released game asks for.

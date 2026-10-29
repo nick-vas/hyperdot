@@ -376,6 +376,9 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
     $solutionDir = if ($Info.Solution) { Split-Path -Parent $Info.Solution } else { $null }
     $steamworksProblems = Get-SteamworksProblems $project @($solutionDir)
     foreach ($problem in $steamworksProblems) { Add-Check $problem[0] $problem[1] $problem[2] }
+    if (Test-UsesSteam $project) {
+        foreach ($problem in (Get-ReviewPromptProblems $project)) { Add-Check $problem[0] $problem[1] $problem[2] }
+    }
 
     # Store art for Steam, if the project keeps it in store/steam: sizes, formats, screenshots, the short description.
     $storeDir = Join-Path $project 'store'

@@ -83,6 +83,35 @@ foreach ($expected in @(
 }
 Assert-True ($lines.Count -eq 17) "nothing else from the fixture: $($lines -join ' | ')"
 
+# A branch name has no spaces (store/application/branches): a SetLive with one fails; the default-branch warning names the
+# authorization a released game asks for (store/application/builds).
+$scriptDir = Join-Path $fixture 'steam'
+# One problem comes back as a bare array that pipelines unroll, so the problems are compared as one text.
+function Get-BuildText([string]$SetLive) {
+    $problems = Get-AppBuildProblems (ConvertFrom-Vdf ('"AppBuild" { "AppID" "1000" "ContentRoot" "content" "SetLive" "' + $SetLive + '" "Depots" { "1001" "depot_build_1001.vdf" } }')) $scriptDir 'steam/test.vdf'
+    return (@($problems | ForEach-Object { $_ }) -join ' || ')
+}
+Assert-True ((Get-BuildText 'my beta') -match "FAIL \|\| steam/test\.vdf: SetLive 'my beta' has a space" -or (Get-BuildText 'my beta') -match "SetLive 'my beta' has a space") 'a SetLive branch with a space fails'
+Assert-True ((Get-BuildText 'default') -match "SetLive is 'default'.*Mobile Authenticator or by SMS") 'the default-branch warning names the authorization step'
+Assert-True ((Get-BuildText 'beta') -notmatch 'SetLive') 'a plain beta branch name passes'
+
+# Asking for a review from inside the game (store/reviews): lines of scripts, scenes and translations that do are named, with
+# their line; comments, the add-ons folder and tests are left alone.
+$review = Join-Path ([IO.Path]::GetTempPath()) "steam-review-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+try {
+    foreach ($dir in 'ui', 'addons/x', 'test') { New-Item -ItemType Directory -Force (Join-Path $review $dir) | Out-Null }
+    Set-Content (Join-Path $review 'ui/credits.gd') "extends Control`nfunc _ready():`n`t`$Label.text = `"Enjoying it? Leave a positive review on Steam!`"`n`t# Please rate us on the store page`n"
+    Set-Content (Join-Path $review 'ui/end.cs') 'public class End { string Msg = "Thanks for playing. Rate this game!"; string Ok = "Review the replay"; }'
+    Set-Content (Join-Path $review 'addons/x/a.gd') 'var t = "Leave a review"'
+    Set-Content (Join-Path $review 'test/t.gd') 'var t = "Leave a review"'
+    $found = @(Get-ReviewPromptProblems $review)
+    Assert-True ($found.Count -eq 2 -and @($found | Where-Object { $_[1] -match '^ui/credits\.gd:3 ' }).Count -eq 1 -and @($found | Where-Object { $_[1] -match '^ui/end\.cs:1 ' }).Count -eq 1) "two review prompts are named with their lines: $(@($found | ForEach-Object { $_[1] }) -join ' | ')"
+    Assert-True ($found[0][0] -eq 'WARN') 'and only warn'
+    Assert-True (@(Get-ReviewPromptProblems (Join-Path $root 'examples/gdscript')).Count -eq 0) 'the GDScript example asks for none'
+} finally {
+    Remove-Item -LiteralPath $review -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 # A solution's C# outside the Godot folder: its names count, named by path; its test projects, which pass wrong names
 # on purpose, do not.
 $solution = Join-Path ([IO.Path]::GetTempPath()) "steam-sln-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
