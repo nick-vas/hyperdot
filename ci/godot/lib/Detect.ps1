@@ -1,9 +1,9 @@
 # Works out everything about a project that would otherwise be configuration.
 
-function Find-GodotProject {
-    # The shallowest project.godot under the current folder.
-    $file = Find-ProjectFiles -Root '.' -Filter 'project.godot' | Select-Object -First 1
-    if (-not $file) { Stop-GodotCi "No project.godot found under $PWD; pass -Project" }
+function Find-GodotProject([string]$Root = '.') {
+    # The shallowest project.godot under the folder (the current one by default).
+    $file = Find-ProjectFiles -Root $Root -Filter 'project.godot' | Select-Object -First 1
+    if (-not $file) { Stop-GodotCi "No project.godot found under $(if ($Root -eq '.') { $PWD } else { $Root }); pass -Project" }
     return $file.DirectoryName
 }
 
@@ -130,6 +130,14 @@ function Get-ProjectInfo {
     param([string]$Project, [string]$Solution, [string]$GodotVersion, [string[]]$Runners)
 
     $projectDir = if ($Project) { (Resolve-Path -LiteralPath $Project).Path } else { Find-GodotProject }
+    # -Project names a repository whose project.godot is in a subfolder: use the shallowest one, as without -Project.
+    if ($Project -and -not (Test-Path -LiteralPath (Join-Path $projectDir 'project.godot'))) {
+        $inner = @(Find-ProjectFiles -Root $projectDir -Filter 'project.godot' | Select-Object -First 1)
+        if ($inner.Count -gt 0) {
+            Write-CiLog "No project.godot in $projectDir; using the one in $($inner[0].DirectoryName)"
+            $projectDir = $inner[0].DirectoryName
+        }
+    }
     if (-not (Test-Path -LiteralPath (Join-Path $projectDir 'project.godot'))) { Stop-GodotCi "No project.godot in $projectDir" }
     $projectGodot = Get-Content -LiteralPath (Join-Path $projectDir 'project.godot') -Raw
 

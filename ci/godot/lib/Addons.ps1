@@ -187,6 +187,20 @@ function Get-CsWithoutProjectProblem([string]$ProjectDir, [bool]$HasProject) {
         Fix = 'Create the C# solution (Project > Tools > C# > Create C# solution) if the game needs them, or remove the .cs files' }
 }
 
+# gdUnit4Net finds no test in a static class: a [TestSuite] that is one runs nothing, and `dotnet test` then reports no results.
+function Get-StaticTestSuiteProblem([string]$ProjectDir) {
+    $skip = '[\\/](\.godot|\.git|bin|obj|node_modules)[\\/]'
+    $found = [System.Collections.Generic.List[string]]::new()
+    foreach ($file in @(Get-ChildItem -LiteralPath $ProjectDir -Recurse -File -Filter '*.cs' -ErrorAction SilentlyContinue | Where-Object { $_.FullName -notmatch $skip })) {
+        $text = Get-Content -LiteralPath $file.FullName -Raw
+        if ($text -notmatch '\[TestSuite') { continue }
+        foreach ($m in [regex]::Matches($text, '\[TestSuite[^\]]*\]\s*(?:\[[^\]]*\]\s*)*(?:public\s+|internal\s+)?static\s+(?:partial\s+)?class\s+(?<name>\w+)')) { $found.Add($m.Groups['name'].Value) }
+    }
+    if ($found.Count -eq 0) { return $null }
+    return [pscustomobject]@{ Status = 'WARN'; Message = "$($found.Count) [TestSuite] class(es) are static ($(@($found | Select-Object -First 3) -join ', ')), and gdUnit4Net finds no test in a static class, so `dotnet test` runs none of them"
+        Fix = 'Remove static from the test classes (a [TestCase] method is an instance method)' }
+}
+
 # The Godot.NET.Sdk pin in a csproj against the project's Godot: another minor is a mismatch; another patch is rewritten by the
 # editor when it opens the project (a diff in the csproj the kit's runs leave behind).
 function Get-SdkPinProblem([string]$Csproj, [string]$GodotVersion, [string]$Name) {

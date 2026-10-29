@@ -4,7 +4,7 @@
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
-foreach ($lib in 'Common', 'Detect') { . (Join-Path $root "ci/godot/lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Detect', 'Localization', 'Architecture', 'Report', 'Runners') { . (Join-Path $root "ci/godot/lib/$lib.ps1") }
 $failures = @()
 $dir = Join-Path ([System.IO.Path]::GetTempPath()) "detect-$PID"
 $hasGit = [bool](Get-Command git -ErrorAction SilentlyContinue)
@@ -90,6 +90,19 @@ EndProject
     foreach ($name in 'B.sln', 'A.sln') { Set-Content -LiteralPath (Join-Path $two $name) -Value '"Game", "game\Game.csproj", "{6D3E5A40-6C1B-4A56-9C2B-0F3A1B2C4D5E}"' }
     $found = Get-Leaf (Find-Solution (Join-Path $two 'game'))
     if ($found -ne 'A.sln') { $failures += "of two solutions the first by name should win, got '$found'" }
+
+    # -Project naming a repository whose project.godot is in a subfolder finds the shallowest one, like running from that folder.
+    $repo = Join-Path $dir 'repo'
+    New-Item -ItemType Directory -Force -Path (Join-Path $repo 'Template/addons') | Out-Null
+    Set-Content -LiteralPath (Join-Path $repo 'Template/project.godot') "config_version=5`n"
+    Set-Content -LiteralPath (Join-Path $repo 'Template/addons/project.godot') "config_version=5`n"
+    $info = Get-ProjectInfo -Project $repo -Solution '' -GodotVersion '' -Runners @()
+    if ((Split-Path -Leaf $info.ProjectDir) -ne 'Template') { $failures += "-Project at a repository root should find Template/, got '$($info.ProjectDir)'" }
+    $none = Join-Path $dir 'empty-repo'
+    New-Item -ItemType Directory -Force -Path $none | Out-Null
+    $out = & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') detect -Json -Project $none 2>$null
+    $detected = ($out -join "`n") | ConvertFrom-Json
+    if ($detected.ok) { $failures += '-Project at a folder with no project.godot below it should still fail' }
 } finally {
     Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
 }

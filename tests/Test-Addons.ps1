@@ -305,6 +305,15 @@ try {
     Assert-True ($null -eq (Get-CsWithoutProjectProblem $cs $true)) 'C# files with a project are fine'
     Assert-True ($null -eq (Get-CsWithoutProjectProblem (Join-Path $wave 'addons') $false)) 'no C# files, nothing to say'
 
+    $suites = Join-Path $wave 'suites'
+    New-Item -ItemType Directory -Force $suites | Out-Null
+    Set-Content -LiteralPath (Join-Path $suites 'A.cs') "using GdUnit4;`n[TestSuite]`npublic static class StaticTests { }`n"
+    Set-Content -LiteralPath (Join-Path $suites 'B.cs') "[TestSuite]`npublic class GoodTests { }`n"
+    $staticProblem = Get-StaticTestSuiteProblem $suites
+    Assert-True ($staticProblem -and $staticProblem.Status -eq 'WARN' -and $staticProblem.Message -match '1 \[TestSuite\] class\(es\) are static \(StaticTests\)') "a static [TestSuite] class warns and a normal one does not: $($staticProblem.Message)"
+    Remove-Item -LiteralPath (Join-Path $suites 'A.cs')
+    Assert-True ($null -eq (Get-StaticTestSuiteProblem $suites)) 'only normal test classes: nothing to say'
+
     $mismatch = Get-SdkPinProblem '<Project Sdk="Godot.NET.Sdk/4.6.2">' '4.7.2' 'Game.csproj'
     Assert-True ($mismatch -and $mismatch.Status -eq 'WARN' -and $mismatch.Message -match '4\.6\.2') 'a Godot.NET.Sdk pin of another minor warns'
     $patch = Get-SdkPinProblem '<Project Sdk="Godot.NET.Sdk/4.7.0">' '4.7.2' 'Game.csproj'
