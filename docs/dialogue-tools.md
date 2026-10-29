@@ -29,6 +29,111 @@ means what the project's own files and README say, not a result. The roadmap kee
   character names in them, and a line's translation key can be checked as the `l10n` runner checks translations. Nothing
   here has wired that up yet.
 
+## Dialogue Manager 4 and Yarn Spinner for Godot, side by side
+
+The two current choices for a C# game on 4.7.2. The snippets follow the patterns of each project's own docs and samples
+(Dialogue Manager's `docs/*.md`, Yarn Spinner's `Samples/`); they were **not compiled or run** here.
+
+### The same scene in each
+
+Dialogue Manager, `guard.dialogue`:
+
+```
+~ start
+Guard: Halt, {{Player.Name}}. State your business.
+- Deliver a parcel [if Quest.HasParcel /]
+	Guard: Pass. [ID:GUARD_PASS]
+	$> Quest.Deliver()
+	=> END
+- Bribe the guard [if Player.Coins >= 10 /]
+	Guard: I saw nothing.
+	=> END
+- Leave
+	=> END
+```
+
+Yarn Spinner, `guard.yarn`:
+
+```
+title: Guard
+---
+<<declare $coins = 0 as number>>
+<<declare $has_parcel = false as bool>>
+Guard: Halt. State your business.    #line:guard01
+-> Deliver a parcel <<if $has_parcel>>
+    Guard: Pass, {get_random_string()}.    #line:guard02
+    <<Unlock WorldNode north_gate>>
+-> Bribe the guard <<if $coins >= 10>>
+    <<set $coins = $coins - 10>>
+    Guard: I saw nothing.    #line:guard03
+-> Leave
+===
+```
+
+### Running it from C#
+
+```csharp
+// Dialogue Manager: you walk the lines yourself (or call ShowDialogueBalloon for its example balloon).
+using DialogueManagerRuntime;
+var dialogue = GD.Load<Resource>("res://guard.dialogue");
+var line = await DialogueManager.GetNextDialogueLine(dialogue, "start");
+while (line != null)
+{
+    GD.Print($"{line.Character}: {line.Text}");
+    var next = line.Responses.Count > 0
+        ? line.Responses.First(r => r.IsAllowed).NextId     // a real UI lets the player choose
+        : line.NextId;
+    line = await DialogueManager.GetNextDialogueLine(dialogue, next);
+}
+DialogueManager.DialogueEnded += (Resource r) => GD.Print("done");
+```
+
+```csharp
+// Yarn Spinner: a DialogueRunner node drives line and option views; you start a node and listen.
+_dialogueRunner = GetNode<DialogueRunner>(_dialogueRunnerPath);
+_dialogueRunner.onDialogueComplete += OnDialogueComplete;
+_dialogueRunner.StartDialogue("Guard").Forget();
+```
+
+### Giving the dialogue game state and actions
+
+```csharp
+// Dialogue Manager: state is whatever the dialogue can reach (autoloads, DialogueStateContext nodes, [GlobalClass] types).
+[GlobalClass]
+public partial class Player : RefCounted
+{
+    public static string Name = "Mira";
+    public static int Coins = 3;
+}
+```
+
+```csharp
+// Yarn Spinner: variables live in a variable storage, actions are attributes on public methods.
+[YarnCommand]                         // <<Unlock WorldNode north_gate>>: WorldNode is the name of the node that owns the method
+public void Unlock(string doorId) { /* ... */ }
+
+[YarnFunction("get_random_string")]   // {get_random_string()} in a line
+public static string GetRandomString() => "friend";
+
+// _storage.TryGetValue<float>("$coins", out var coins);   // InMemoryVariableStorage; GetAllVariables / SetAllVariables for saves
+```
+
+### Capabilities and weaknesses
+
+| | Dialogue Manager 4.1.0 | Yarn Spinner for Godot 0.3.23 |
+|---|---|---|
+| Language | Its own script-like text: `Name: line`, `- response`, nesting by indent, `~ cue` and `=> jump`, `=> END` | The Yarn language: nodes with a `title:` header, `-> options`, `<<commands>>`, `{expressions}`; shared with Yarn Spinner for Unity |
+| Branching and logic | `if`/`elif`/`else`, `match`, `while`, conditions on a response, inline `[if]`, random lines with weights (`%`) | `<<if>>`/`<<elseif>>`, `<<set>>`, typed `<<declare>>`, `<<jump>>`, `<<once>>`, line groups (`=>`) for barks, `visited("Node")`, conditions on an option |
+| Game state | Stateless runtime: the game is the authority; dialogue reads autoloads, scene nodes and `[GlobalClass]` types by name | Variable storage (in memory by default; a SQLite sample); `GetAllVariables` / `SetAllVariables` for saving |
+| Calling the game | `$> Thing.Method()`, async C# methods that the dialogue awaits | `[YarnCommand]` and `[YarnFunction]` attributes, with a source generator; typed arguments, arrays |
+| Text effects | BBCode, `[wait=N]`, `[speed=N]`, `[next=auto]`, random inline `[[a\|b]]` | Yarn markup; BBCode only through a view that converts; a palette resource for colours |
+| Translations | Godot's own `tr` with CSV or PO files; stable keys with `[ID:KEY]`; the dialogue files join the template export | Auto-generated line IDs (`#line:...`) and a per-language CSV in Yarn Spinner's own format, not Godot's |
+| Tooling | An in-editor dialogue editor with error checking, a debugger tab with line history | A `.yarnproject` resource and import that compiles all scripts on change, a VS Code extension, per-line metadata tags |
+| UI | An example balloon scene to copy | `LineView`/`OptionsView` and several themed samples (visual novel, space, characters) |
+| C# fit | A wrapper (`DialogueManagerRuntime`) over a GDScript runtime; members are found by name at run time | Written in C# on the YarnSpinner 3.2.2 library; typed attributes |
+| **Weaknesses** | Targets Godot 4.6+ only (older Godot needs 3.10 or 3.3); a GDScript runtime inside a C# game; names are resolved at run time, so a wrong member name fails when the line plays; no visual graph; being stateless, saving dialogue progress is the game's job | Its README calls the project work in progress with no official support, and it is pre-1.0 (0.3.x); a long NuGet list (Antlr, protobuf, CsvHelper, System.Text.Json and more); scripts must be compiled by the editor plugin, so a headless import is part of CI; custom CSV, not Godot's; `[YarnCommand]` is addressed by node name in the script, which is fragile; documentation is mostly on an external site that points at the Unity docs |
+| What a check can read | The dialogue is plain text: the `data` runner's `names` rule and a line-ID check work on it; conditions are free-form GDScript-like code a check cannot evaluate | The scripts are plain text too, and each line has an ID in the file, which suits an `l10n` check; the compiler reports script errors at import |
+
 ## Not done
 
 - Building any of them in a copy of the C# example on Godot 4.7.2, importing a dialogue and playing one conversation headless.
