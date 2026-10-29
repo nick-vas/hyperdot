@@ -1,0 +1,1 @@
+Changed: `docs/roadmap.md` records what was measured about the two binding errors that print no JSON (a flag without its value, a value of the wrong type): a launcher catches both, breaks `-Switch:$false`, and the type case alone needs 23 parameters retyped; nothing was changed in the script.
