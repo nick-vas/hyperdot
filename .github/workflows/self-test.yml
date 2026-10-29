@@ -183,10 +183,10 @@ jobs:
         run: ./tests/Test-OldState.ps1
       # Nightly and on main only: it has not failed in the sampled runs (docs/ci.md), takes about 3 minutes, and only
       # plan -Do sync reaches this code.
-      - name: plan -Do sync against a stand-in Trello (cards, moves, archived cards, list names, credentials kept out of output)
+      - name: plan -Do sync and the project-sync hook against a stand-in gh (items, moves, archived items, column names, credentials kept out of output)
         if: github.event_name != 'pull_request'
         shell: pwsh
-        run: ./tests/Test-TrelloSync.ps1
+        run: ./tests/Test-ProjectSync.ps1
       - name: doctor's GDExtension, Steam package and Steamworks file checks (rich presence, achievements, build scripts), and Steam detection
         shell: pwsh
         run: ./tests/Test-Steam.ps1

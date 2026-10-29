@@ -59,17 +59,23 @@ instead of 1.0: see [Versions](#versions).
   0.2), a fix the patch. Each release is a tag `v0.x.y` and a CHANGELOG section.
 - **1.0.0-beta.n, then 1.0.0-rc.n** once all of these hold: a vertical slice of Breakout Roguelike was built with
   Hyperdot; about four weeks passed without a breaking change to the commands, the JSON or the error codes; the live
-  Trello run passes; the evals pass three runs in a row.
+  GitHub Project run passes; the evals pass three runs in a row.
 - **1.0.0**: from then on a breaking change needs 2.0.
 
 Notes from the question round: none left for 0.1.0. Note 6 (an eval grader was wrong for three runs before anyone
 looked) is `tests/Test-EvalGraders.ps1` for the graders that need no model; note 11 waits until after 0.1.0 (To do).
 Checking the model graders the same way needs a model call per check, and is not built.
 
-### Trello
+### GitHub Projects
 
-- **Live run.** `tests/Test-TrelloSync.ps1 -Live` (the Trello sync workflow) waits for the repository secrets
-  `TRELLO_KEY` and `TRELLO_TOKEN`; postponed by the owner on 2026-10-23. The mock run passes in the self-test.
+- **Live run.** `tests/Test-ProjectSync.ps1 -Live` (the Project sync workflow) waits for the repository secret
+  `HYPERDOT_PROJECT_TOKEN` (a personal access token with the `project` scope) and has not been run against GitHub: the
+  session that built it could reach neither the Projects API nor the `gh project` manual, so the calls follow the help text of
+  `gh` 2.89 (`gh project --help`). The stand-in run passes in the self-test.
+- **Board view.** The CLI cannot create or edit a project's views, so the owner sets the Board view to group by Column once.
+- **Trello removed.** The Trello sync, its test and workflow, and the `trello-*` error codes are gone; a plan from the old sync is
+  migrated by the first `plan -Do sync` (its card ids are dropped and every task gets an item). The owner's Trello board for
+  the game is untouched and can be archived by hand.
 
 The six bugs the connector test found (list names as columns, cards added on the board, `boardColumn`, removing a
 task, ARI card ids) are fixed and pass against the mock; the live run should also cover importing a card and archiving
@@ -87,9 +93,9 @@ a removed task's card, which only the mock has seen.
 | What must it survive | Godot releases, agent and tool changes, new genres and platforms, the owner's limited upkeep time | Automated canaries and self-review; the kit proposes its own updates; a size limit per skill |
 | Where the agent needed the owner most | Learning and updating the kit, transparent planning, architecture, look and feel, scope | One phase each |
 | How progress is judged | Code and scenes, a design document, test and bench results, git history | `status` collects the facts; Claude judges them against the GDD |
-| Where the plan lives | `plan.json` with gates, in the game repository ([plan.md](plan.md)) | It is the source of truth; Trello mirrors it |
-| Who owns the Trello board | Claude writes it; the owner reviews and steers by dragging cards | Owner moves always win over Claude's assessment |
-| How Trello is reached | The Trello MCP connector | No keys on disk. `plan -Do sync` (REST) stays for scripts and CI |
+| Where the plan lives | `plan.json` with gates, in the game repository ([plan.md](plan.md)) | It is the source of truth; the GitHub Project mirrors it |
+| Who owns the project board | Claude writes it; the owner reviews and steers by dragging items | Owner moves always win over Claude's assessment |
+| How the project is reached | The GitHub CLI (`plan -Do sync`) | No keys on disk; the plugin's Stop hook repeats the sync after a turn that changed the plan |
 | How much the kit updates itself | It proposes pull requests to this repository; the owner merges | Never pushes to `main`, never merges |
 | When `/retro` runs | On demand only | |
 | When reviews run | The weekly review Friday night, Athens time (Europe/Athens); the canary before it, at 18:47 UTC; `kit-review` monthly | Scheduled tasks, not CI jobs |
@@ -115,7 +121,7 @@ a removed task's card, which only the mock has seen.
    descriptions (about 9.6 KB) load into every session. A new skill that shares a trigger with an old one is merged into
    it instead; every command has a self-test; a feature nobody used for three months is proposed for removal.
 5. **The owner sees the reasoning.** Plans, assessments and decisions are written to files in the game repository and mirrored
-   to Trello, not left in a chat transcript.
+   to the GitHub Project, not left in a chat transcript.
 
 ## To do
 

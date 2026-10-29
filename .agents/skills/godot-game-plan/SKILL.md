@@ -42,11 +42,13 @@ Timeboxes are defaults for ~10 hours a week; set `weeklyHours` and resize at the
    pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 plan -Do remove -Id t1                  # a task that is no longer wanted
    ```
    Columns: `backlog, design, todo, doing, verify, done`: the solo version of a Kanban work loop, with Verify meaning
-   "tests green" (`godot-verify-before-done`), not "a person reviewed it". `-Column` also takes the board list's name ("To Do").
-6. Trello is optional and experimental (tested only against a mock); plan.json stays the source of truth. With the Trello connector, `/game` keeps the board in step
-   (the `game` skill). Without it, `plan -Do sync -Board <id or short link>` creates a card per new task, pulls back cards
-   the user dragged, adds a task for each card the user added, archives the cards of removed tasks and moves the cards of tasks moved with `plan -Do move`; it needs `TRELLO_KEY` and `TRELLO_TOKEN` in the environment, never in a file. Lists are matched by
-   prefix: Backlog, Design, To Do, Doing, Testing, Done.
+   "tests green" (`godot-verify-before-done`), not "a person reviewed it". `-Column` also takes the project column's name ("To Do").
+6. The GitHub Project is optional and experimental (tested against a stand-in `gh`); plan.json stays the source of truth.
+   `plan -Do sync -Board @me` makes a private project for the user (titled "<game> plan", linked to the game's repository, with
+   a Column field: Backlog, Design, To Do, Doing, Testing, Done); `plan -Do sync` after that creates an item per new task, pulls back
+   items the user dragged, adds a task for each item the user added, archives the items of removed tasks and moves the items
+   of tasks moved with `plan -Do move`. It uses the GitHub CLI signed in with the project scope (`gh auth refresh -s project`);
+   nothing is stored in a file. The Stop hook of the plugin repeats the sync after a turn that changed the plan.
 7. `status -Json` is the whole picture in one call: GDD features with their tagged tests, the plan, latest runs, git
    activity. The user asks for `/game` to see it judged and written to `plan/STATUS.md`.
 

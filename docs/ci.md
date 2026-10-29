@@ -40,7 +40,7 @@ the sampled runs (below), is expensive, and is redundant with a cheaper or neare
 
 | Step | Cost per run | Failures in the sample | Why it is safe to wait for main |
 |---|---|---|---|
-| `lint`: the stand-in Trello sync (`Test-TrelloSync.ps1`) | 196 s | 0 of 15 | Only `plan -Do sync` reaches it; `Test-Plan.ps1` still runs on every pull request. |
+| `lint`: the stand-in project sync (`Test-ProjectSync.ps1`; measured as the Trello sync it replaced) | 196 s | 0 of 15 | Only `plan -Do sync` reaches it; `Test-Plan.ps1` still runs on every pull request. |
 | `game-benchmark`: every task of the test programme (`Test-GameProgramme.ps1 -SpecPath ...`) | 106 s | 0 of 16 | The staged programme's pairs check the same thing on the real games, and `Test-GameBenchmark.ps1` runs the test programme through the runner. |
 | The `field-test` job, for a change outside `benchmark/` | 1031 s | 0 of 14 | It exercises the benchmark's field-test code; a kit change that breaks it shows in `game-benchmark` and the pairs. |
 
@@ -110,11 +110,11 @@ step failed 5 times only because a job before it had.
 | `action`, `csharp`, `explicit-runners`: the Godot action | 1 run, all three | looks like the network |
 
 Steps that ran in the sample and never failed, by cost per run: the `field-test` job (1031 s, 0 of 14), the game
-benchmark's test programme (106 s, 0 of 16), the stand-in Trello sync (196 s, 0 of 15), every documented error code
+benchmark's test programme (106 s, 0 of 16), the stand-in project sync (196 s as the Trello sync, 0 of 15), every documented error code
 (191 s, 0 of 11), the plan's gates (123 s, 0 of 15), Web `export -Run` (138 s, 0 of 16), `audio -Mix` (79 s, 0 of 11),
 the placement checker (66 s, 0 of 16), `-GpuValidation` (65 s, 0 of 16), Firefox under Xvfb (63 s, 0 of 16).
 
-Three days in one burst of work is a small sample, so only three were moved to the full runs: the Trello sync and the
+Three days in one burst of work is a small sample, so only three were moved to the full runs: the project sync (then the Trello sync) and the
 test programme (cheap to lose, redundant with a nearer check) and the field test for changes outside `benchmark/` (the
 largest, with the least to say about a kit change). The rest stay, as the error codes, the plan's gates, the web and GPU
 checks guard contracts a pull request should not break, and a quiet sample is not a reason to stop looking.
@@ -215,7 +215,7 @@ listed. `game-programme` is one row for its 20 pairs (22 minutes median, 15 to 3
 | `game-benchmark`: isolated sessions | 113 | 3 | 0 / 0 | 96 s | 171 |
 
 **Steps that never failed.** Steps with at least 100 runs, no failure in any of them and a median of 20 s or more, by what
-they cost on pull requests (the 15 steps cost 2,033 of the 14,174 pull request minutes, 14%; the stand-in Trello sync and the
+they cost on pull requests (the 15 steps cost 2,033 of the 14,174 pull request minutes, 14%; the stand-in project sync and the
 test programme are already full-run steps, and their pull request minutes come from before that):
 
 | Job, step | Runs | PR / `main` runs | Median | PR min | All min |
@@ -230,7 +230,7 @@ test programme are already full-run steps, and their pull request minutes come f
 | `init`: `test -Retry` and `quarantine.json` | 318 | 122 / 82 | 47 s | 101 | 265 |
 | `init`: the placement checker | 427 | 160 / 114 | 29 s | 99 | 260 |
 | `measure`: audio files and buses; `-Mix` | 104 | 39 / 40 | 85 s | 50 | 136 |
-| `lint`: stand-in Trello sync (already a full-run step) | 126 | 23 / 45 | 148 s | 40 | 283 |
+| `lint`: stand-in project sync (already a full-run step) | 126 | 23 / 45 | 148 s | 40 | 283 |
 | `measure`: `bench -Sweep` | 108 | 43 / 41 | 38 s | 27 | 68 |
 | `measure`: the palette check | 104 | 39 / 40 | 35 s | 21 | 58 |
 | `measure`: `deck` | 107 | 42 / 41 | 30 s | 20 | 51 |

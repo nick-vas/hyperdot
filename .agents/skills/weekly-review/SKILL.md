@@ -36,7 +36,7 @@ A short, written look back at the week and forward at the next one. Read the fac
 ## 3. Agree next week
 
 One multiple-choice question (multi-select) with the proposed tasks. Add the chosen ones with
-`plan -Do add -Title ... -Feature F<n> -Column todo` and put them on the Trello board (experimental) the way `game` step 5 describes.
+`plan -Do add -Title ... -Feature F<n> -Column todo` and sync them to the GitHub Project (`plan -Do sync`) the way `game` step 5 describes.
 Then one multiple-choice question per proposed kit change: "Open a kit PR", "Later", "Drop it". The owner approves
 every kit change: when this review runs as the scheduled Friday task, nobody is there to answer, so write the proposals
 under **Kit changes** in the review file and stop; the owner answers when reading it, and `/retro` opens the approved

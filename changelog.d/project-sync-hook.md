@@ -1,0 +1,1 @@
+Added: a second Stop hook in the plugin, `hooks/project-sync.ps1`, runs `plan -Do sync` after a turn that changed the plan's tasks when the plan has a GitHub Project, so the board follows without anyone asking. It keeps a hash in `.godot/hyperdot-project-sync`, never blocks the turn, and turns a failure into a one-line notice; `HYPERDOT_PROJECT_SYNC=off` disables it.

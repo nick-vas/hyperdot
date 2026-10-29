@@ -258,11 +258,11 @@ function Invoke-Status($Info) {
                 $state = Get-PlanState $planDoc $Info
                 $tasks = @($planDoc.tasks | ForEach-Object {
                     [ordered]@{ id = $_.id; title = $_.title; column = $_.column; phase = $_.phase
-                        feature = ($_.PSObject.Properties['feature'] ? $_.feature : $null); cardId = ($_.PSObject.Properties['cardId'] ? $_.cardId : $null)
+                        feature = ($_.PSObject.Properties['feature'] ? $_.feature : $null); itemId = ($_.PSObject.Properties['itemId'] ? $_.itemId : $null)
                         boardColumn = ($_.PSObject.Properties['boardColumn'] ? $_.boardColumn : $null) } })
                 $plan = [ordered]@{
                     path = $planPath
-                    board = ($planDoc.PSObject.Properties['trello'] ? $planDoc.trello.board : $null)
+                    board = (Get-PlanProjectBoard $planDoc)
                     currentPhase = ($state.current ? [ordered]@{ id = $state.current.id; name = $state.current.name; goal = $state.current.goal } : $null)
                     openGates = @($state.current ? @($state.current.gates | Where-Object { -not $_.done } | ForEach-Object { [ordered]@{ id = $_.id; text = $_.text; auto = $_.auto } }) : @())
                     wipLimit = $state.wipLimit; columns = $state.board; tasks = $tasks

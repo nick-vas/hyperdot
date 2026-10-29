@@ -1,0 +1,39 @@
+# Runs tests/Test-ProjectSync.ps1 -Live: plan -Do sync against GitHub, on a private project it creates and deletes under
+# the token's user. Needs the repository secret HYPERDOT_PROJECT_TOKEN: a personal access token with the project scope
+# (the workflow's own token cannot reach a user's projects). Runs by hand, and on a push that changes the sync code;
+# without the secret a push skips it with a notice. The self-test runs the same steps against a stand-in gh on every change.
+name: Project sync
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ci/godot/lib/Plan.ps1
+      - hooks/project-sync.ps1
+      - tests/Test-ProjectSync.ps1
+      - .github/workflows/project-sync.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: project-sync
+  cancel-in-progress: false
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ secrets.HYPERDOT_PROJECT_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: plan -Do sync against live GitHub Projects
+        shell: pwsh
+        run: |
+          if (-not $env:GH_TOKEN) {
+            $message = 'Add the HYPERDOT_PROJECT_TOKEN repository secret (a personal access token with the project scope) to run the live project test'
+            if ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch') { throw $message }
+            Write-Host "::notice::$message"; exit 0
+          }
+          ./tests/Test-ProjectSync.ps1 -Live

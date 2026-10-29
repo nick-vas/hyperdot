@@ -69,10 +69,10 @@ this machine at the Deck's resolution, not a Deck's speed.
 | `-Json` | off | One JSON document on stdout, logs on stderr ([json.md](json.md)) |
 | `-Quiet` | off | Godot and dotnet output only in `hyperdot.log` in the results folder (`-Results`, or `-Output` for `shot`), not on the console. Use with `-Json` for agents |
 | `-Do`, `-Id`, `-Game` | `status` | `plan`: `init`, `status`, `done -Id <gate>`, `reopen -Id <gate>`, `add`, `move -Id <task> -Column`, `remove -Id <task>`, `sync`, `link` |
-| `-Title`, `-Column`, `-Board` | | `plan add` title; `add`/`move` column (an id or the board list it maps to, such as "To Do"); `sync` Trello board (experimental; id, short link, URL or ARI); `link -Column` the card's list, `link -Board` the plan's board |
+| `-Title`, `-Column`, `-Board` | | `plan add` title; `add`/`move` column (an id or the board list it maps to, such as "To Do"); `sync` GitHub Project (experimental; `<owner>/<number>`, its URL, or just an owner such as `@me` to make a new project); `link -Column` the item's column, `link -Board` the plan's project |
 | `-Profile` | `full` | `plan -Do init`: `jam` writes a plan for a game jam of 2 to 9 days, sized in days (`ci/godot/templates/plan-jam.json`) instead of the seven phases |
 | `-Handoff`, `-Checked`, `-Verdict` | | `status`: record one subagent handoff (the subagent's name, what it checked, its verdict) in `.godot/hyperdot-handoffs.jsonl` instead of reporting; the newest 200 are kept and `status` returns them as `handoffs[]` ([json.md](json.md)) |
-| `-Feature`, `-Card` | | `plan add`/`link`: the GDD feature a task delivers (`F3`); `link`: the task's Trello card id (24 hex, or the Trello connector's ARI; the plain id is stored) |
+| `-Feature`, `-Item` | | `plan add`/`link`: the GDD feature a task delivers (`F3`); `link`: the task's project item id (`PVTI_...`) |
 | `-McpDiagnostics` | off | `init`: also register minimal-godot-mcp (GDScript diagnostics, game console) |
 | `-McpAseprite` | none | `init`: also register aseprite-mcp for this Aseprite (the program, or its folder such as `C:\Program Files\Aseprite`) |
 | `-Mcp` | `none` | `init`: `godot-mcp` registers that editor MCP server; `godot-ai` prints its steps |
@@ -91,7 +91,7 @@ this machine at the Deck's resolution, not a Deck's speed.
 | `HYPERDOT_IGNORE_ERRORS` | A regex for engine error lines to leave out of the error count, on top of the known noise; an invalid regex fails with `invalid-arguments` |
 | `HYPERDOT_PLAYWRIGHT`, `HYPERDOT_WEB_HEADED` | Web `export -Run`: where the playwright package is; `1` opens a browser window (see `-Browser`) |
 | `HYPERDOT_STOP_GATE` | `off` turns off the plugin's Stop hook (`hooks/stop-gate.ps1`), which, once for each set of changes, stops Claude from ending its turn while the game changed after the last full passing test run, and tells it to run the tests (after a failed run, or a second stop, it lets the turn end, so Claude must report the result). It checks only that the tests passed after the last edit, not the design |
-| `TRELLO_KEY`, `TRELLO_TOKEN` | `plan -Do sync` (experimental): the Trello API key and token, sent in a header (see [plan.md](plan.md)) |
+| `GH_TOKEN` | `plan -Do sync` (experimental): optional; the GitHub CLI reads it, and it needs the `project` scope (see [plan.md](plan.md)); `HYPERDOT_PROJECT_SYNC=off` disables the plugin's project-sync Stop hook |
 
 **Workflow inputs** (`godot.yml`), all optional:
 

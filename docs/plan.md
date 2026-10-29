@@ -12,7 +12,7 @@ Three inputs, cross-referenced:
    a studio-scale template - pre-production (2 mo), production (12 mo, four milestones), testing (3 mo, alpha then
    closed/open beta), polish and launch prep (2 mo), post-launch - with risks (technical, creative, market) and mitigations.
    Its shape is kept; its team of 15 and 19 months are scaled down to one person.
-2. **The Trello [Work Loop](https://trello.com/b/vJnMkimq/work-loop) board**: Backlog -> Design -> To Do -> Doing -> Testing -> Done
+2. **The [Work Loop](https://trello.com/b/vJnMkimq/work-loop) board (a Trello template)**: Backlog -> Design -> To Do -> Doing -> Testing -> Done
    (the template also uses Code Review, with a list limit as a signal to finish reviews before starting work). Kept as the daily
    loop: `plan.json` `tasks` use `backlog, design, todo, doing, verify, done` and `wipLimit` caps `doing`. "Verify" is where the
    test suite and an agent review replace a human code reviewer.
@@ -70,44 +70,63 @@ table of `docs/TECH-DEBT.md` has no row; with neither file, nothing says what is
   says PROCEED only for the intended experience, not a feature list or a tech demo. Volition's record across five games:
   [docs/gdc/vertical-slice-challenge.md](gdc/vertical-slice-challenge.md).
 
-## Tasks and Trello
+## Tasks and the GitHub Project
 
 Day-to-day work lives in `plan.json` `tasks`, edited with commands so an agent cannot corrupt the file:
 
 ```powershell
 pwsh ci/godot/hyperdot.ps1 plan -Do add -Title "Paddle feel pass" -Column todo
 pwsh ci/godot/hyperdot.ps1 plan -Do move -Id t1 -Column doing      # refused past wipLimit
-pwsh ci/godot/hyperdot.ps1 plan -Do move -Id t1 -Column "To Do"    # a board list name works too
+pwsh ci/godot/hyperdot.ps1 plan -Do move -Id t1 -Column "To Do"    # a column name works too
 pwsh ci/godot/hyperdot.ps1 plan -Do remove -Id t1                  # delete a task
 ```
 
-Columns map onto the Work Loop board: `backlog` Backlog, `design` Design, `todo` To Do, `doing` Doing, `verify` Testing, `done` Done.
-`-Column` (in `add`, `move` and `link`) takes a column id or the name of the board list it maps to, case-insensitive and by
-prefix as sync matches lists, so `"to do"` and `"Done 🎉"` work; `plan.json` always stores the id. `remove` deletes a task;
-a removed task's id is never given again (`lastTaskNumber`), and its card is archived by the next sync (`trello.toArchive`).
+Columns map onto the Work Loop: `backlog` Backlog, `design` Design, `todo` To Do, `doing` Doing, `verify` Testing, `done` Done.
+`-Column` (in `add`, `move` and `link`) takes a column id or the name of the project column it maps to, case-insensitive and by
+prefix as sync matches options, so `"to do"` and `"Done 🎉"` work; `plan.json` always stores the id. `remove` deletes a task;
+a removed task's id is never given again (`lastTaskNumber`), and its item is archived by the next sync (`project.toArchive`).
 
-**Trello sync** (`plan -Do sync -Board <id or short link>`) is **experimental**: it has met only a stand-in Trello so far
-(the live run waits, and the open bugs are under Trello in [roadmap.md](roadmap.md#trello)), and it uses API keys, not the
-Trello connector. It keeps the plan the source of truth and uses Trello as the place you drag things:
-- a task with no card gets one in the matching list;
-- a card you moved to another list moves its task (Trello wins on column only);
-- a task you moved in the plan (`plan -Do move`) moves its card. Each task records the list its card was in at the last
-  sync (`boardColumn`), so a card in another list was moved on the board, and a card still in that list follows the task;
-- a card that is gone (archived or deleted) is reported and left alone;
-- a card you added on the board, in a list the plan maps, becomes a task in that column (in the current phase). A card
-  whose description starts `plan task <id>` was made by the kit for a task that no task links now: it is reported, not imported;
-- the card of a task removed with `plan -Do remove` is archived; nothing is ever deleted.
+**GitHub Project sync** (`plan -Do sync`) is **experimental**: it has met only a stand-in `gh` so far (the live run waits, and
+the open items are under GitHub Projects in [roadmap.md](roadmap.md#github-projects)). It keeps the plan the source of truth
+and uses a GitHub Project as the place you drag things. It needs the GitHub CLI signed in with the `project` scope
+(`gh auth login`, then `gh auth refresh -s project`; or `GH_TOKEN` holding a token with that scope). The kit never reads or
+stores the token.
 
-Card ids are stored as Trello's plain 24-hex ids. The Trello connector gives ARIs (`ari:cloud:trello::card/workspace/<workspace id>/<card id>`):
-`plan -Do link -Card` takes one and stores the id at its end, and sync fixes an ARI an older plan stored. `-Board` takes a
-board id, a short link, a board URL (its short link is kept) or a board ARI (its id is kept).
+**Setup is one command.** `plan -Do sync -Board @me` (or `-Board <login>` for another user or an organisation) makes a private
+project titled "<game> plan", adds a single-select field **Column** with the six columns above, links the project to the game's
+GitHub repository when its git `origin` is on github.com, puts one item per task in its column, and saves `project.owner` and
+`project.number` in `plan.json`. GitHub's built-in Status field offers only Todo, In Progress and Done and the CLI cannot change
+its options, so the kit adds its own field; set the project's Board view to group by **Column** once (`gh project view <number>
+--owner <owner> --web`; the CLI cannot create or edit views). To use a project that already exists, `plan -Do link -Board
+<owner>/<number>` (a project URL works too) or `plan -Do sync -Board <owner>/<number>`.
 
-Set `TRELLO_KEY` and `TRELLO_TOKEN` in the environment: on https://trello.com/power-ups/admin, make a Power-Up (any
-name), open its API key page and copy the key (32 hex characters), then use the Token link beside it. They are sent in a request header, never in a URL,
-and never written to a file. Lists are matched by name prefix, so `Done 🎉` matches `done`; override per column under `trello.lists` in plan.json (sync and `link -Board` keep it). A task in a column the plan does not have stops the sync before any call, and the card ids made before a failed call are saved, so the next sync does not make them again.
-`tests/Test-TrelloSync.ps1` runs these steps against a stand-in Trello on every change, and with `-Live` against the
-real API on a private board it creates and deletes (the Trello sync workflow, with the `TRELLO_KEY` and `TRELLO_TOKEN`
-repository secrets).
+After that `plan -Do sync` with no arguments:
+- creates a draft item for a task with none, in the matching column;
+- moves a task when its item was moved to another column (the board wins on column only);
+- moves an item when its task was moved in the plan (`plan -Do move`). Each task records the column its item was in at the last
+  sync (`boardColumn`), so an item in another column was moved on the board, and an item still in that column follows the task;
+- reports an item that is gone (archived or deleted) and leaves it alone;
+- turns an item you added on the board, in a column the plan maps, into a task in that column (in the current phase). An item
+  whose body starts `plan task <id>` was made by the kit for a task that no task links now: it is reported, not imported;
+- archives the item of a task removed with `plan -Do remove`; nothing is ever deleted.
+
+Item ids are the project's node ids (`PVTI_...`; `gh project item-list <number> --owner <owner> --format json` shows them):
+`plan -Do link -Id <task> -Item <id> -Column <column>` ties a task to an item made by hand. Options are matched by name prefix, so
+`Done 🎉` matches `done`; override per column under `project.columns` in `plan.json` (sync and `link -Board` keep it). A task in a
+column the plan does not have stops the sync before any call.
+
+The plugin's second Stop hook (`hooks/project-sync.ps1`) runs the same sync after a turn that changed the plan's tasks and
+the plan has a project, so the board follows without anyone asking. It keeps a hash of what it last synced in
+`.godot/hyperdot-project-sync` (an unchanged plan costs no call), never blocks the turn, and turns a failure into a one-line
+notice. `HYPERDOT_PROJECT_SYNC=off` disables it.
+
+A game that used the Trello sync this replaced: the first `plan -Do sync -Board @me` drops each task's `cardId` and the
+`trello` block and gives every task an item in the column the plan has. The Trello board itself is not touched; archive it by
+hand when the project looks right.
+
+`tests/Test-ProjectSync.ps1` runs these steps (and the hook) against a stand-in `gh` on every change, and with `-Live` against
+GitHub with a private project it creates and deletes (the Project sync workflow, with a `HYPERDOT_PROJECT_TOKEN` repository
+secret: a personal access token with the `project` scope, since the workflow's own token cannot reach a user's projects).
 
 ## Release dates
 
@@ -146,8 +165,8 @@ judging anything ([json.md](json.md)). The `game` skill (`/game`) does the judgi
    architecture review: at most five problems with their evidence (features that serve no kind of fun, scope drift,
    `architecture` warnings, autoloads no decision covers, subagent verdicts nobody acted on);
 3. it adds a plan task (`plan -Do add -Feature F3`) for each feature that is not proven;
-4. through the Trello connector (experimental), it creates and moves cards. A card you moved since the last run keeps your column: each task
-   records the list its card was in (`plan -Do link -Column`), so a card that is somewhere else was moved by you;
+4. through `plan -Do sync` (experimental), it creates and moves project items. An item you moved since the last run keeps your column: each task
+   records the column its item was in (`boardColumn`), so an item that is somewhere else was moved by you;
 5. it ends with the three best next tasks to pick from.
 
 Scope rule: before building anything the GDD does not contain, the agent asks whether to add it as a feature or drop it.
@@ -157,7 +176,7 @@ It also reads `docs/kit-notes.md`, the line the agent appends each time the kit 
 `-Plugin` creates the file), and proposes up to three kit changes for you to approve; approved ones become kit pull
 requests through `/retro`, never on their own.
 Run it every Friday as a **local scheduled task in the Claude desktop app**, which can reach the game folder, the kit and the
-Trello connector at once (a cloud task gets only a fresh clone of a GitHub repository):
+GitHub CLI at once (a cloud task gets only a fresh clone of a GitHub repository):
 1. Code tab → **Scheduled** → **New task** → **Set up manually**.
 2. Name `weekly-review`; instructions: `Run the weekly review of this game (the weekly-review skill).`
 3. **Advanced settings** → turn on **Only on this computer**; **Local folder**: the game folder.
