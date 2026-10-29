@@ -414,6 +414,9 @@ jobs:
       - name: The placement checker finds an AI point off the navmesh, a torch out of reach and a blocked zip line
         shell: pwsh
         run: ./tests/Test-Placement.ps1
+      - name: The godot-xr skill's engine names exist, and its XR rig and numbers hold with no headset
+        shell: pwsh
+        run: ./tests/Test-Xr.ps1
       - name: Bug reports are saved with their place and view and pinned on their scene in the editor
         shell: pwsh
         run: ./tests/Test-ReportPins.ps1

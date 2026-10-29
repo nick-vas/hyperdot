@@ -238,7 +238,7 @@ Godot: the `STYLE.md` template's readability section; the `look` skill checks sc
 58. Playtime doubles with art: "it was not uncommon for a level to have its playtime doubled or tripled after art was
     added." (Matt Wilde)
 
-The kit has no XR skill yet (`docs/roadmap.md`).
+Godot: the `godot-xr` skill (`docs/xr.md`) uses items 53 to 57; `xr_math.gd` has the throw's peak of ten frames.
 
 ## 8. A live game and community content
 

@@ -111,7 +111,7 @@ a removed task's card, which only the mock has seen.
    content follows the same rule: a lesson cites its evidence, a pattern cites the Godot API it uses, a version is tested.
 4. **Upkeep budget.** The validator fails a `SKILL.md` at 16 KB (warns from 15.5 KB), a description over 1,024
    characters and the `AGENTS.md` template over 4 KB; detail goes to side files in the skill's folder, whose kit commands
-   it checks too. There is no limit on the total: the 51 skills come to about 550 KB with their side files, but only the
+   it checks too. There is no limit on the total: the 52 skills come to about 580 KB with their side files, but only the
    descriptions (about 9.6 KB) load into every session. A new skill that shares a trigger with an old one is merged into
    it instead; every command has a self-test; a feature nobody used for three months is proposed for removal.
 5. **The owner sees the reasoning.** Plans, assessments and decisions are written to files in the game repository and mirrored
@@ -260,8 +260,10 @@ In the example game (the C# example):
 
 In the skills:
 
-- An XR skill (Godot's OpenXR: locomotion and comfort, hands, throwing from peak hand speed, one-controller play), from
-  Half-Life: Alyx's commentary; needs an XR fixture to check its claims.
+- `godot-xr` was written (OpenXR: the player's body, locomotion and comfort, hands, throwing from the peak hand speed,
+  one-controller play, passthrough) with a headless fixture (`tests/Test-Xr.ps1`); what the fixture cannot check is in
+  "Not run or measured here". Still to write for it: hand-tracked grabbing and physics hands, XR UI (a viewport on a
+  quad, `OpenXRCompositionLayerQuad`), render models, and a seated-play section.
 
 
 - A dialogue tool for `godot-narrative` (Ink, Yarn Spinner or Dialogic): read each licence and latest release, try each in
@@ -310,6 +312,12 @@ In the skills:
 - Desktop `export -Run` of release builds, which may hide script errors as the web release build does.
 - Add-on feature flags for macOS with one architecture and Web with `variant/extensions_support` on; Dialogue Manager in
   a C# game exported without opening the editor.
+- XR (`godot-xr`): everything that needs a headset. Tracking quality and latency, optical hand tracking and controller-inferred
+  hands on any runtime, passthrough and the blend modes on a Quest or a see-through device, refresh-rate changes and the
+  physics rate match, foveation, the OpenXR vendors plugin and the Android export, SteamVR and Monado, whether the comfort
+  numbers of `xr_math.gd` (snap angle 30, vignette 0.35 and its hold and opening times, the blackout gap) suit players, and
+  whether Godot XR Tools 4.6.0 loads on Godot 4.7.2 (its README table was read, the add-on was not run). The headless
+  fixture covers the names, the no-headset rig, a tracker standing in for a controller and the numbers' shape.
 
 ### Sources and answers out of reach
 
@@ -339,6 +347,11 @@ Pasting a source, allowing a host or answering a question is enough for each.
   Signing, Azure Artifact Signing eligibility (needs the owner's account).
 - itch.io's SharedArrayBuffer checkbox (only secondary sources).
 - Kenney's PlayStation shoulder and right-stick picture names: the pack listing was cut off (`PromptGlyphs` returns text).
+- `godot-xr`: `docs.godotengine.org`, `combineoverwiki.net` (the Half-Life: Alyx commentary) and `roadtovr.com` did not resolve
+  from the session that wrote it (a host outside its allowed network). The manual was read from the `godot-docs` repository
+  instead; the Alyx quotes are the ones `docs/valve.md` section 7 already holds, not re-read. Allowing those hosts would let a
+  later pass re-check the quotes and read the XR pages of the stable manual. Not looked for: Valve's, Meta's and Sony's own VR
+  comfort guidelines and any GDC VR talks beyond the commentary.
 - W4 Games' support for Godot 4.7 (4.4 to 4.6 in October 2026): check before a console port.
 - COPPA amendment dates and the Belgian loot box report (only secondary sources); which rating bodies charge per region;
   the licence wording of older tabletop SRDs (3.5 under OGL 1.0a); WIPO publication 959 (*Mastering the Game*).
