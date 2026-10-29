@@ -135,7 +135,6 @@ esac
 & git -C $kit -c user.name=t -c user.email=t@example.com commit -q -m kit
 $d = Invoke-DoctorJson $kit ''
 if (@($d.uncommittedKitFiles).Count -or @($d.checks | Where-Object message -match 'kit wrote are not committed').Count) { $failures += 'committed kit files were still reported' }
-$bad = Invoke-DoctorJson $clean '' @('-Runners', 'none')
 $flag = (& pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') test -ReportIssue -Json 2>$null | Out-String | ConvertFrom-Json)
 if ($flag.error.code -ne 'invalid-arguments') { $failures += "-ReportIssue on another command should be invalid-arguments: $($flag.error | ConvertTo-Json -Depth 5 -Compress)" }
 
