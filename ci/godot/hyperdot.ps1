@@ -474,7 +474,7 @@ function Get-AndroidPresetNames {
 }
 
 function Invoke-Export {
-    if ($presets.Count -eq 0) { Stop-GodotCi "No export presets in $(Join-Path $info.ProjectDir 'export_presets.cfg')" 'no-presets' }
+    if ($presets.Count -eq 0 -or @($info.Presets).Count -eq 0) { Stop-GodotCi "No export presets in $(Join-Path $info.ProjectDir 'export_presets.cfg')" 'no-presets' }
     $projectFile = Join-Path $info.ProjectDir 'project.godot'
     $presetsFile = Join-Path $info.ProjectDir 'export_presets.cfg'
     $originalProject = $null
@@ -654,7 +654,7 @@ if ($Command -eq 'playtest' -and $PSBoundParameters.ContainsKey('HotspotCell') -
 }
 # export -Preset, checked against the project's presets before Godot's export templates are downloaded.
 if ($Command -eq 'export') {
-    if ($presets.Count -eq 0) { Stop-GodotCi "No export presets in $(Join-Path $info.ProjectDir 'export_presets.cfg')" 'no-presets' }
+    if ($presets.Count -eq 0 -or @($info.Presets).Count -eq 0) { Stop-GodotCi "No export presets in $(Join-Path $info.ProjectDir 'export_presets.cfg')" 'no-presets' }
     $knownPresets = Get-ExportPresetDetails $info.ProjectDir
     foreach ($name in $presets) {
         if (-not $knownPresets.Contains($name)) { Stop-GodotCi "Preset '$name' not found; the project has: $($info.Presets -join ', ')" 'preset-not-found' }

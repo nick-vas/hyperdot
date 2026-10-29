@@ -32,6 +32,8 @@ function Get-InputActionDevices([string]$ProjectGodot) {
         $actions[$m.Groups['name'].Value] = [ordered]@{
             keyboard = $events -match 'Object\(InputEvent(Key|MouseButton),'
             gamepad = $events -match 'Object\(InputEventJoypad(Button|Motion),'
+            # Only the mouse wheel (button 4 to 7): there is no useful gamepad equivalent to ask for.
+            wheelOnly = ($events -match 'Object\(InputEventMouseButton,') -and -not ($events -match 'Object\(InputEventKey,') -and -not ($events -match '"button_index":(?![4-7]\b)\d+')
         }
     }
     return $actions
@@ -317,7 +319,9 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
         } else {
             $reported = (& $env:GODOT_BIN --version 2>$null | Select-Object -Last 1) -as [string]
             $wanted = "$version.$($release ? $release : 'stable')"
-            if (-not $reported -or -not $reported.StartsWith($wanted)) {
+            # A project that pins only major.minor ("4.7") runs on any patch release of it (4.7.2 reports 4.7.2.stable...).
+            $matchesVersion = $reported -and ($reported.StartsWith($wanted) -or ($version -match '^\d+\.\d+$' -and $reported -match ('^' + [regex]::Escape($version) + '\.\d+\.' + [regex]::Escape($release ? $release : 'stable') + '(\.|$)')))
+            if (-not $matchesVersion) {
                 Add-Check FAIL "GODOT_BIN is Godot $reported, but the project needs $($Info.GodotVersion)" "Point GODOT_BIN at Godot $($Info.GodotVersion)$(if ($isCSharp) { ' (.NET)' })"
             } elseif ($isCSharp -and $reported -notmatch '\.mono\.') {
                 Add-Check FAIL "GODOT_BIN is not the .NET (mono) build of Godot, which C# projects need: $env:GODOT_BIN" 'Use the Godot .NET download'
@@ -431,7 +435,7 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
     # postmortem; Xbox Accessibility Guideline 107). Godot 4.7's default ui_accept and ui_cancel have no gamepad button.
     $actions = Get-InputActionDevices $projectGodot
     $custom = @($actions.Keys | Where-Object { $_ -notlike 'ui_*' })
-    $noPad = @($custom | Where-Object { $actions[$_].keyboard -and -not $actions[$_].gamepad })
+    $noPad = @($custom | Where-Object { $actions[$_].keyboard -and -not $actions[$_].gamepad -and -not $actions[$_].wheelOnly })
     $noKeys = @($custom | Where-Object { $actions[$_].gamepad -and -not $actions[$_].keyboard })
     if ($noPad) { Add-Check WARN "Input actions with no gamepad binding: $($noPad -join ', ')" 'Project Settings > Input Map: add a joypad button or axis to each (godot-input)' }
     if ($noKeys) { Add-Check WARN "Input actions with no keyboard or mouse binding: $($noKeys -join ', ')" 'Project Settings > Input Map: add a key to each (godot-input)' }

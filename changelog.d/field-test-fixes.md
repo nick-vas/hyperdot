@@ -1,0 +1,1 @@
+Fixed: from a field test on four other people's projects: `doctor` no longer fails a project that pins only major.minor ("4.7") when `GODOT_BIN` is a patch release of it (4.7.2), the mouse wheel is no longer listed as an action with no gamepad binding, and `export -Preset X` on a project with no export presets says `no-presets` instead of `preset-not-found`.
