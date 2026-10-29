@@ -1,6 +1,6 @@
 ---
 name: godot-steam
-description: Use when a Godot game ships on Steam or uses Steamworks: achievements, stats, leaderboards, Steam Cloud, rich presence, DLC, demos, authentication, depots or branches, or when Steam does not start or an exported build quits at once.
+description: "Use when a Godot game ships on Steam or uses Steamworks: achievements, stats, leaderboards, Steam Cloud, rich presence, DLC, demos, authentication, depots or branches, or when Steam does not start or an exported build quits at once."
 ---
 
 # Steam for Godot 4 (C#)

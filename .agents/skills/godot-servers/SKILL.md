@@ -1,6 +1,6 @@
 ---
 name: godot-servers
-description: Use when a Godot game hosts dedicated servers or its own matchmaker: running, stopping and health checks, join tokens, packet floods, matchmaking queues or chat moderation.
+description: "Use when a Godot game hosts dedicated servers or its own matchmaker: running, stopping and health checks, join tokens, packet floods, matchmaking queues or chat moderation."
 ---
 
 # Dedicated servers and matchmaking (Godot 4.7, C#)

@@ -14,5 +14,6 @@
   "Bad_Name": "name-format",
   "bad-person": "description-person",
   "bad-length": "description-length",
-  "no-skill-file": "missing-skill-file"
+  "no-skill-file": "missing-skill-file",
+  "bad-yaml": "frontmatter-yaml"
 }

@@ -94,6 +94,17 @@ foreach ($dir in $skillDirs) {
     # Description: when to use, nothing about how. A description that summarises the workflow gets followed
     # instead of the skill body.
     $description = $fields['description']
+    # Front matter is YAML, and strict parsers (Claude Code's own among them) refuse a plain value that holds ': ' or ' #',
+    # or one that opens a quote it does not close. The check above reads lines, so it would not notice.
+    foreach ($key in 'name', 'description') {
+        $value = $fields.ContainsKey($key) ? $fields[$key] : ''
+        if ($value -match '^["'']') {
+            if ($value.Length -lt 2 -or $value[-1] -ne $value[0]) { Add-Finding error $name frontmatter-yaml "$key opens a quote it does not close" }
+        } elseif ($value -match ':\s|\s#' -or $value -match '^[\[\]{}|>&*!%@`]') {
+            Add-Finding error $name frontmatter-yaml "$key is not valid YAML as a plain value (a ': ' or ' #' inside it, or a leading indicator): put it in double quotes"
+        }
+    }
+    if ($description -and $description -match '^"(?<d>.*)"$') { $description = $Matches.d }
     if (-not $description) { Add-Finding error $name frontmatter 'no description' }
     else {
         if ($description.Length -gt 1024) { Add-Finding error $name description-length "description is $($description.Length) characters (max 1024)" }
