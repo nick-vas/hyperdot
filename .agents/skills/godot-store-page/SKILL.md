@@ -43,7 +43,8 @@ glance. Facts here were read from Steamworks' pages and Chris Zukowski's (howtom
   When the genre word means different things to different players (roguelike, survival), name the parts the game has
   (permadeath, generated levels, unlocks that persist): 31% of 20XX's negative reviews came from players who did not want
   a roguelike (Christopher King, GDC).
-- **Screenshots:** the first four show the core loop (they appear when hovering the game in lists); real gameplay with
+- **Screenshots:** the first four show the core loop (Zukowski's advice; Steam's own condition for hover previews and front-page
+  placement is at least four screenshots flagged "suitable for all ages" in the page editor, and none is by default); real gameplay with
   the game's UI, which names the genre at a glance (a reticle, a health bar, a dialogue box), no concept art. Each shows a
   different place, effect or enemy, and one a menu or inventory: a few distinct shots beat many similar ones, which read as
   an asset flip. `shot -Resolution 1920x1080` takes them from real scenes, and `shot -Locale` makes
@@ -63,7 +64,7 @@ glance. Facts here were read from Steamworks' pages and Chris Zukowski's (howtom
 - **Accessibility:** a line in the description and the press kit naming the options (colour-blind mode, subtitles,
   remapping), and a page listing them, what is missing included (XAG 121). Hue's press-kit bullet reached the reviews
   that lifted it to a green Metacritic score; Dots and Flow Free had colour-blind options nobody found (Ian Hamilton, GDC).
-- **Tags:** at least 5 before launch, up to 20; the first 5 weigh most. Keep them in `store/steam/tags.txt`, one per
+- **Tags:** at least 5 before launch; Steam counts and shows the first 20, and the first 5 weigh most. Keep them in `store/steam/tags.txt`, one per
   line, in order (`doctor` names duplicates and counts out of range). Keep "Indie" and praise out of the top 5. List
   the tags of three top games of the genre and keep those all three share that fit yours; a good change shows as a
   Discovery Queue spike in Steam's traffic report. Judge page changes by wishlists per day, with a diary of each change,
@@ -80,10 +81,10 @@ Record them in plan.json's `release` block (`date`, `steamFeePaid`, `comingSoon`
 | Step | Rule |
 |---|---|
 | Steam Direct fee | US$100 per game, recouped after US$1,000 of revenue |
-| Fee paid to release | at least 21 days |
+| Fee paid to release | at least 21 days (Valve words it as the wait "before you can release your first few titles") |
 | "Coming Soon" page live | at least 2 weeks before release; Zukowski advises months |
-| Store page review, build review | 3 to 5 business days each; submit 7 business days ahead; the page before the build |
-| Release date | locked 2 weeks before it |
+| Store page review, build review | 3 to 5 business days each; submit 7 business days ahead; the page before the build. Adult-only content takes longer, and its page is reviewed only after the build is submitted too |
+| Release date | change it up to 2 weeks before; inside that window the tool locks it, and a delay of more than 24 hours drops the game from the Personal Calendar (moving it earlier does not) |
 | Release | a manual "Release App" button; approved games do not release themselves |
 | Steam Next Fest | once per game; demo review submitted 3 weeks before (5 for the press preview); February 2027: register by January 10, runs February 22 to March 1 |
 
@@ -124,7 +125,8 @@ social-platform advice and wishlist conversion figures are dated and left out: s
   outlets.
 - **When to write:** the announcement (trailer, screenshots), the release window, a new demo or a major festival only,
   then the release date, announced no more than a few months ahead.
-- **Keys:** review keys about a month before release, with an embargo date and time. The launch-day email is short:
+- **Keys:** review keys about a month before release, with an embargo date and time. Give reviewers press keys or use Curator
+  Connect: a beta-test key removes the game from the wishlist of whoever activates it (Valve, marketing tools). The launch-day email is short:
   a subject naming the genre and saying it releases today, the short description, bullets, store, press kit and press
   release links, a small GIF and a key, so nobody has to ask. Do not give keys to everyone who asks.
 
@@ -140,5 +142,7 @@ social-platform advice and wishlist conversion figures are dated and left out: s
   announced on the genre's forums and communities; then Steam and the other stores.
 - **Sales:** plan around Steam's seasonal sales and themed fests from its own calendar
   ([Upcoming Steam Events](https://partner.steamgames.com/doc/marketing/upcoming_events)); never hard-code their dates.
-- **Ask for reviews yourself**, politely, in the credits or the end screen and in posts: nobody else will. Keep the
+- **Reviews:** Valve's rule is not to ask customers to review the game from inside it (no credits-screen or end-screen prompt,
+  no pop-up), and not to reward reviews; free copies to press are the exception (store/reviews). Asking in a devlog or on social
+  media is outside that rule. Keep the
   press list (section 6) and the people who helped (playtesters, other developers) in the repository.
