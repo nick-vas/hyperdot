@@ -212,8 +212,16 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
   surveillance may test beyond the declared programme. That needs a private spec, and somewhere private to keep it.
 - **The last two binding errors as JSON.** A flag left without its value (`-Project` as the last word) and a value of the
   wrong type (`-Retry abc`) are still refused by PowerShell before `hyperdot.ps1` runs, so `-Json` prints nothing.
-  Catching them needs a process in front of the script; forwarding `@args` from a wrapper loses `-Switch:$false`, so it
-  would have to re-parse the command line itself.
+  Catching them needs a process in front of the script. Measured on pwsh 7.6 (2026-10-29), with a launcher script whose
+  only line is `try { & real.ps1 @args } catch { ... }`: it catches both errors (`ParameterBindingException` for the
+  missing value, `ParameterBindingArgumentTransformationException` for the type), and forwards `-Flag value`, `-Switch`,
+  `-List a,b`, a value with a space and a leading `-Json` exactly as a direct call does; it breaks the colon form of a
+  switch (`-Run:$false` and `-Run:$true` arrive as a parameter and a stray positional value, `A positional parameter cannot
+  be found that accepts argument 'False'`). Fixing that means re-parsing the command line (abbreviated names, positions,
+  array values, `-GameArgs` values that start with dashes), and `hyperdot.ps1` is the file `help`, `doctor`, the tests and
+  every workflow read the parameter block from. The type case alone could be fixed by declaring the 23 `[int]` and
+  `[double]` parameters as strings and converting them after `Assert-KitArguments`, but not the missing value. Left as it
+  is: two mistakes agents rarely make, against an entry point everything depends on.
 - **gdUnit4 skipping two tests on Windows, sometimes.** Self-test run 39930228730 (local-windows, the C# example with
   `-Coverage`): "gdUnit4 found 28 tests but ran 26", so the kit's guard failed the run, as it should; the next run on the
   same kit code ran all 28. The log does not say which two, and a "CLR: Assert failure ... after the .NET runtime thread
