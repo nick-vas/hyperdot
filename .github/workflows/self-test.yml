@@ -983,6 +983,14 @@ jobs:
       - name: Filtered run
         shell: pwsh
         run: ./ci/godot/hyperdot.ps1 test -Project examples/csharp/game -Runners dotnet -Filter 'FullyQualifiedName~RunState'
+      - name: Steam backend (examples/csharp) loads Steamworks.NET and falls back without a client; the build above shipped none of Valve's libraries
+        shell: pwsh
+        run: |
+          dotnet test examples/csharp/tests/Example.Steam.Tests --nologo
+          if ($LASTEXITCODE -ne 0) { throw 'the Steam backend tests failed' }
+          $built = 'examples/csharp/game/.godot/mono/temp'
+          $valve = @(if (Test-Path -LiteralPath $built) { Get-ChildItem -LiteralPath $built -Recurse -File | Where-Object { $_.Name -match '^(lib)?steam_api|^Steamworks' } })
+          if ($valve.Count -gt 0) { throw "a build without -p:Steam=true holds Steam files: $($valve.Name -join ', ')" }
       - name: A hung program is stopped after the time limit
         shell: pwsh
         run: ./tests/Test-ProcessTimeout.ps1

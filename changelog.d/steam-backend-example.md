@@ -1,0 +1,1 @@
+Added: the C# example has a Steam backend behind `IPlatformServices`: `SteamPlatform` over an `ISteamApi` seam (unit-tested with a fake), `PlatformFactory` (falls back to `LocalPlatform` and logs once when Steam is not running or its library is missing), and `SteamworksApi` on Steamworks.NET.AnyCPU 2026.164.4 in `src/Example.Steam`, built into the game only with `-p:Steam=true`.

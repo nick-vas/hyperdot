@@ -248,7 +248,8 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 
 In the example game (the C# example):
 
-- A Steam backend behind `IPlatformServices` (GodotSteam's add-on or Steamworks.NET.AnyCPU 2026.164.4 both load in 4.7.2).
+- `GamePlatform.Start()` is not called by `Main` yet (the example's `BreakoutProgress` is not wired into the scene either);
+  the Steam backend itself is built (`-p:Steam=true`, see `docs/steam.md`).
 
 In the skills:
 
@@ -287,6 +288,9 @@ In the skills:
 - Unloading C# mods from a collectible load context (the skill tells games to restart instead).
 - The C# forms of the suspend and controller-loss tests (they compile; only GDScript was run); how much the import cache
   saves on a large project.
+- The C# example's Steam backend (`SteamworksApi`) on a real client: achievements and stats shown in the overlay, leaderboard
+  upload and callbacks (`FindOrCreateLeaderboard`, `UploadLeaderboardScore`), `RestartAppIfNecessary` with your App ID, an
+  exported build's natives in `data_<name>_<platform>/`; only the no-client path ran.
 - Steam on the real client: achievements, Cloud conflicts, overlay, glyphs, keyboards, DLC, relaunch; branch deployment
   and anonymous dedicated-server downloads; GodotSteam 4.23.2 on macOS; `SteamDeck=1`, `OS.GetDistributionName()`,
   gamescope focus events and sleep on a Deck.

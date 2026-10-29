@@ -13,6 +13,14 @@
   <ItemGroup>
     <ProjectReference Include="../src/Example.Core/Example.Core.csproj" />
   </ItemGroup>
+  <!-- The Steam backend is opt-in: dotnet build -p:Steam=true (or the kit's build with that property). Without it the
+       game neither restores Steamworks.NET.AnyCPU nor ships Valve's libraries, and GamePlatform uses LocalPlatform. -->
+  <PropertyGroup Condition="'$(Steam)' == 'true'">
+    <DefineConstants>$(DefineConstants);STEAM</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(Steam)' == 'true'">
+    <ProjectReference Include="../src/Example.Steam/Example.Steam.csproj" />
+  </ItemGroup>
   <ItemGroup Condition="'$(IncludeTests)' == 'true'">
     <!-- gdUnit4Net: scene tests through `dotnet test` (test runner "gdunit4"). -->
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />

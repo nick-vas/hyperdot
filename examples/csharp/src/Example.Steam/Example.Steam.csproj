@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The real Steam binding. Not in Example.sln and referenced by the game only with -p:Steam=true, so a build without
+       Steam (itch.io, tests, CI) never restores this package or copies Valve's native libraries into its output. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- 2026.164.4 (SDK 1.64): later releases cannot load libsteam_api on Linux or macOS (docs/steam.md). MIT. -->
+    <PackageReference Include="Steamworks.NET.AnyCPU" Version="2026.164.4" />
+    <ProjectReference Include="../Example.Core/Example.Core.csproj" />
+  </ItemGroup>
+</Project>
