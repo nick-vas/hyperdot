@@ -49,7 +49,7 @@ Branch on `error.code`; `message` can change.
 | `doctor-problems` | `doctor` found `FAIL` checks | `checks[]` |
 | `invalid-arguments` | Any command: a parameter or environment variable the kit cannot use (an unknown command, flag or runner, a value outside a parameter's set, a word that belongs to no parameter, several `-Scene`s for `bench` or `audio`, `-Seconds` of 0 or less for `bench`, `deck` or `audio -Mix`, `-Frames` below 1 for `test`, `shot`, `deck` or `export -Run`, `-HotspotCell` of 0 or less for `playtest`, `-MaxGrowthMbPerHour` with a `soak` `-Seconds` too short for 3 memory samples, two `sfx` sounds that would share a file, a malformed `-Sweep` or one on another command, a bad `HYPERDOT_TIMEOUT` or `HYPERDOT_IGNORE_ERRORS`, an out-of-range percentage, a misspelt sound); checked before the work starts where it can be | `error.message` |
 | `no-plan`, `invalid-plan`, `unknown-gate`, `auto-gate`, `unknown-task`, `wip-limit` | `plan` problems (`wip-limit`: too many tasks in `doing`) | - |
-| `trello-credentials`, `trello-error`, `trello-list-missing` | `plan -Do sync` could not reach or map the board | - |
+| `project-credentials`, `project-error`, `project-column-missing` | `plan -Do sync` could not use the GitHub Project (the GitHub CLI missing or refused: sign in with the project scope; a call failed; the Column field lacks an option) | - |
 | `invalid-mcp-config` | `.mcp.json` exists but is not valid JSON | - |
 | `aseprite-not-found` | `init -McpAseprite` names no Aseprite program (a path to it or to its install folder) | - |
 | `bench-over-budget` | `bench`: the 99th-percentile frame time is above `-BudgetMs` | `bench` |
@@ -404,12 +404,12 @@ help does not know, or a name given to another command, fails with `invalid-argu
 
 **plan**: `plan` (path), `currentPhase` (`id`, `name`, `goal`, `timeboxWeeks`, `elapsedWeeks`, `timeboxDays`, `elapsedDays`; a jam plan sizes phases in days, the other plan in weeks, and both are given), `nextActions[]`
 (`id`, `text`, `auto`, `check`, `optional`: an open optional gate does not hold the phase back), `phases[]` (`id`, `name`, `complete`, `gatesDone`, `gatesTotal`), `board`
-(tasks per column), `tasks[]` (`id`, `title`, `column`, `phase`, `feature`, `cardId`, `boardColumn`), `trelloBoard`,
+(tasks per column), `tasks[]` (`id`, `title`, `column`, `phase`, `feature`, `itemId`, `boardColumn`), `projectBoard` (`<owner>/<number>` or `null`),
 `release` (`null` until plan.json's `release.date` is set: `date`, `daysLeft`, `businessDaysLeft`, `dateLocked`,
 `deadlines` with `steamFee`, `comingSoon`, `buildReview`, `dateLock`, and `storePageReview` and `demoReview` when
 `release.comingSoon` and `release.nextFest` are set; all yyyy-MM-dd), `warnings[]` (release timeline warnings included;
 see [plan.md](plan.md#release-dates)).
-`plan -Do add`, `move`, `remove` and `link` also return `task` (as in `tasks[]`; for `remove`, the task removed, whose `cardId` the Trello connector should archive); `plan -Do sync` (experimental) returns `sync` (`board`, `created`, `moved` (tasks moved to follow the board), `cardsMoved` (cards moved to follow the plan), `imported` (tasks added for cards a person added on the board), `archived` (cards of removed tasks archived), `warnings`).
+`plan -Do add`, `move`, `remove` and `link` also return `task` (as in `tasks[]`; for `remove`, the task removed, whose item the next sync archives); `plan -Do sync` (experimental) returns `sync` (`board` (`<owner>/<number>`), `created` (items made), `moved` (tasks moved to follow the board), `itemsMoved` (items moved to follow the plan), `imported` (tasks added for items a person added on the board), `archived` (items of removed tasks archived), `droppedTrelloLinks` (card ids a plan from the Trello sync lost), `madeProject` (whether this call made the project), `warnings`).
 
 **status -Handoff** `<subagent>` **-Checked** `<what>` **-Verdict** `<answer>` records one subagent handoff instead of
 reporting: one line in `.godot/hyperdot-handoffs.jsonl` (`time`, `subagent`, `checked`, `verdict`, `commit`; each text on

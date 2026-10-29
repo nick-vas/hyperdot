@@ -186,8 +186,8 @@ param(
     # init: like -Agents, but enable this kit as a Claude Code plugin (skills, verifier, Stop hook) instead of copying skills.
     [switch]$Plugin,
     # plan: status (default), init (create plan/plan.json), done (mark a manual gate done: -Id), reopen (undo done: -Id), add (a task: -Title),
-    # move (a task to -Column: -Id), remove (delete a task: -Id), sync (with a Trello -Board), link (a task to a GDD
-    # -Feature or a Trello -Card: -Id).
+    # move (a task to -Column: -Id), remove (delete a task: -Id), sync (mirror the tasks to a GitHub Project: -Board), link (a task to a GDD
+    # -Feature or a project -Item: -Id).
     [ArgumentCompletions('status', 'init', 'done', 'reopen', 'add', 'move', 'remove', 'sync', 'link')]
     [string]$Do = 'status',
     # plan -Do done|reopen: the gate, e.g. prototype.loop. plan -Do move|remove|link: the task id.
@@ -196,7 +196,8 @@ param(
     [string]$Title,
     # plan -Do add|move|link: backlog, design, todo, doing, verify or done, or the board list one maps to ("To Do").
     [string]$Column,
-    # plan -Do sync|link: the Trello board id, short link, board URL or Trello connector ARI (sync needs TRELLO_KEY and TRELLO_TOKEN).
+    # plan -Do sync|link: the GitHub Project: <owner>/<number> or its URL; sync also takes just an owner (@me or a login) to make a new project
+    # (the GitHub CLI must be signed in with the project scope).
     [string]$Board,
     # plan -Do init: the game's name (default: config/name).
     [string]$Game,
@@ -207,8 +208,8 @@ param(
     [string]$PlanProfile = 'full',
     # plan -Do add|link: the GDD feature a task delivers, e.g. F3.
     [string]$Feature,
-    # plan -Do link: a task's Trello card: its 24-hex id or the Trello connector's ARI (the plain id is stored).
-    [string]$Card,
+    # plan -Do link: a task's project item id (PVTI_...).
+    [string]$Item,
     # status -Handoff <subagent> -Checked <what> -Verdict <answer>: record one subagent handoff in the project's handoff log
     # (.godot/hyperdot-handoffs.jsonl, the newest 200 kept) instead of reporting; status reads the log back as handoffs[].
     [string]$Handoff,
@@ -681,7 +682,7 @@ switch ($Command) {
         if ($Mcp -ne 'none' -or $McpDiagnostics -or $McpAseprite) { Add-McpConfig $info $Mcp ([bool]$McpDiagnostics) $McpAseprite }
         Write-CiLog "Done. Next: $(Format-KitCommand 'doctor'), then $(Format-KitCommand 'test')"
     }
-    'plan' { Invoke-Plan $info $Do $Id $Game $Title $Column $Board $Feature $Card $PlanProfile }
+    'plan' { Invoke-Plan $info $Do $Id $Game $Title $Column $Board $Feature $Item $PlanProfile }
     'status' { if ($Handoff) { Add-Handoff $info.ProjectDir $Handoff $Checked $Verdict } else { Invoke-Status $info } }
     'telemetry' { Invoke-Telemetry $info $Topic $Last }
     'setup' { Invoke-Setup -WithTemplates:$Templates }

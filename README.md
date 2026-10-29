@@ -146,7 +146,7 @@ rivals: you keep writing your tests in them. They are test frameworks; the rows 
 ## What it gives an agent
 
 **Core** is `test`, `build` and `export`, with `detect` and `doctor` to see what the kit found. That is all most games need,
-and it works with no editor bridge, no plan and no Trello. Everything under [Advanced](#advanced) is optional.
+and it works with no editor bridge, no plan and no GitHub Project. Everything under [Advanced](#advanced) is optional.
 
 ### Understand the project
 
@@ -189,7 +189,7 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 ## Advanced
 
 Optional, and none of it is needed to run `test`, `build` or `export`: checks of the game itself, measurements, the plan and
-its Trello mirror (experimental), the editor bridge, the [skills](#skills), the two subagents and the Stop hook, and the
+its GitHub Project mirror (experimental), the editor bridge, the [skills](#skills), the two subagents and the Stop hook, and the
 benchmark and evals that measure the kit. The sections after the tables are
 [How the pieces fit](#how-the-pieces-fit), [Skills](#skills) and [The plan](#the-plan).
 
@@ -223,7 +223,7 @@ benchmark and evals that measure the kit. The sections after the tables are
 | Capability | Command | Result |
 |---|---|---|
 | **Plan A to Z** | `plan -Json` | current phase, open gates, warnings |
-| **Track tasks** | `plan -Do add\|move\|remove`, `plan -Do sync` | tasks with a work-in-progress limit; optional Trello mirror (experimental) |
+| **Track tasks** | `plan -Do add\|move\|remove`, `plan -Do sync` | tasks with a work-in-progress limit; optional GitHub Project mirror (experimental) |
 
 ### Improve the agent and the kit
 
@@ -243,7 +243,7 @@ benchmark and evals that measure the kit. The sections after the tables are
    bench / shot          measure frame pacing, look at screens                          (with a display)
    audio [-Mix]          loudness of the sound files and of the game's own mix          (ffmpeg; -Mix needs a display)
         |
-   plan -Do move/done    record progress; Trello mirrors the board
+   plan -Do move/done    record progress; the GitHub Project mirrors the board
 ```
 
 The editor is what you see; the files on disk are what CI and the export see. So the agent authors through the bridge, saves, and
@@ -281,9 +281,9 @@ Seven phases, each with gates: concept, prototype, vertical slice, production, a
 
 A phase past its timebox warns you to cut scope, never testing. Tasks live in `plan/plan.json` and move through
 Backlog, Design, To Do, Doing, Verify and Done; `move` refuses to put a task in Doing past the work-in-progress limit.
-`plan -Do sync -Board <id>` mirrors tasks to a Trello board (experimental: tested against a stand-in only; needs `TRELLO_KEY`
-and `TRELLO_TOKEN`). Where the plan comes
-from, and the Trello rules: [docs/plan.md](docs/plan.md).
+`plan -Do sync -Board @me` makes a private GitHub Project for the game and mirrors the tasks to it (experimental: tested against
+a stand-in `gh` only; needs the GitHub CLI signed in with the `project` scope). Where the plan comes
+from, and the project rules: [docs/plan.md](docs/plan.md).
 
 ## GitHub
 
@@ -309,7 +309,7 @@ What has been run, and what has not.
 |---|---|
 | Verified | Both examples (C# with every framework, GDScript with GUT) pass on Godot 4.7.2, locally and in GitHub Actions on Linux and Windows; `-Json` output for each command; `init` file handling; the self-tests in `tests/`; `bench` and `shot` under a virtual display (software OpenGL) |
 | Exports | Windows, Linux and Android builds; Web builds run in Chromium, Edge and Firefox through `export -Run` (the self-test) ([docs/mobile-web.md](docs/mobile-web.md)). Not run: macOS and iOS exports, an Android build on a phone |
-| Tested against a stand-in only | Trello sync; the live test (`Test-TrelloSync.ps1 -Live`) waits for the repository's Trello secrets |
+| Tested against a stand-in only | GitHub Project sync; the live test (`Test-ProjectSync.ps1 -Live`) waits for a repository token with the `project` scope |
 | Not run | The editor MCP servers themselves (they need the editor); `bench` and `shot` on a real GPU and on Windows |
 | Known | Godot 4.7.2 occasionally aborts during import on some machines. The kit retries the import up to twice and reports `importRetried`; the cause is not found |
 | Evals | With and without the plugin ([docs/research.md](docs/research.md)): `lost-in-level` 1.00 against 0.00 (runs 4 and 5; 0.33 against 0.00 in run 6), `review-publishing-deal` 1.00 against 0.78 (run 6, 3 runs per arm). The cases that run commands measured a broken sandbox until run 7, where `explain-failure` scored 1.00 in both arms (1 run per arm) |
@@ -341,7 +341,7 @@ Godot exits 0 after printing script errors, so the kit scans the log and fails.
 
 </details>
 <details>
-<summary><b>Do I need the editor MCP server, or Trello?</b></summary>
+<summary><b>Do I need the editor MCP server, or a GitHub Project?</b></summary>
 
 No. The CLI, flows, plan and skills work without them. See [docs/mcp.md](docs/mcp.md)
 and [docs/plan.md](docs/plan.md).
@@ -384,7 +384,7 @@ address, built from these files on every change ([docs/site.md](docs/site.md)).
 - [docs/ci-cache.md](docs/ci-cache.md): a design for a CI cache keyed by the inputs of a job: stage 0 (hashes and markers, nothing skipped) is built; the rest awaits decisions
 - [docs/godot-pipelines.md](docs/godot-pipelines.md): test frameworks, versions, release-safe packaging
 - [docs/self-hosted-runners.md](docs/self-hosted-runners.md): the workflow on your own machines
-- [docs/plan.md](docs/plan.md): the A-to-Z plan, tasks and Trello sync
+- [docs/plan.md](docs/plan.md): the A-to-Z plan, tasks and GitHub Project sync
 - [docs/mcp.md](docs/mcp.md): editor-bridge MCP servers and how they fit
 - [docs/roadmap.md](docs/roadmap.md): the plan to 0.1.0 and 1.0, decisions and the open to-do list
 - [docs/retro.md](docs/retro.md): a look back at the 0.1.0 effort: what went well, what cost time, numbers, lessons

@@ -15,7 +15,7 @@ gives the percentages and the floors CI holds them to.
 | [Tools](#tools) | 22 | 22 |
 | [Skills](#skills) | 52 | 52 |
 | [Subagents](#subagents) | 2 | 2 |
-| [Workflow jobs, actions, hooks and the GitLab template](#workflow-jobs-actions-hooks-and-the-gitlab-template) | 33 | 30 |
+| [Workflow jobs, actions, hooks and the GitLab template](#workflow-jobs-actions-hooks-and-the-gitlab-template) | 34 | 31 |
 
 ## Commands
 
@@ -23,14 +23,14 @@ The values of `hyperdot.ps1`'s `-Command`, and the self-tests and workflow steps
 
 | Command | Covered by |
 |---|---|
-| `test` | `Test-DotnetTempDir.ps1`, `Test-ErrorCodes.ps1`, `Test-ErrorKeys.ps1`, `Test-EvalGraders.ps1`, `Test-Flaky.ps1`, `Test-Flows.ps1`, `Test-Handoffs.ps1`, `Test-Help.ps1` and 19 more |
+| `test` | `Test-DotnetTempDir.ps1`, `Test-ErrorCodes.ps1`, `Test-ErrorKeys.ps1`, `Test-EvalGraders.ps1`, `Test-Flaky.ps1`, `Test-Flows.ps1`, `Test-Handoffs.ps1`, `Test-Help.ps1` and 20 more |
 | `build` | `Test-ErrorCodes.ps1` |
 | `export` | `Test-BuildSize.ps1`, `Test-ErrorCodes.ps1`, `Test-GameVersion.ps1`, `Test-GpuValidation.ps1`, `Test-Web.ps1`, self-test.yml local-windows: Export the Windows build and launch it |
 | `setup` | `Test-BenchmarkIsolation.ps1`, `Test-DownloadFailed.ps1`, `Test-FieldTest.ps1`, `Test-GameBenchmark.ps1`, `Test-GameProgramme.ps1`, `Test-InstallLock.ps1`, self-test.yml field-test: Godot, self-test.yml game-benchmark: Godot and 1 more |
 | `detect` | `Test-ErrorCodes.ps1`, `Test-Localization.ps1`, `Test-OldState.ps1`, `Test-Playthrough.ps1`, `Test-StopGate.ps1`, `Test-Telemetry.ps1`, self-test.yml init: The juice runner passes timely feedback and fails late feedback, self-test.yml init: The kit inside a game stays out of it and 1 more |
 | `doctor` | `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-EvalGraders.ps1`, `Test-Flaky.ps1` and 8 more |
 | `init` | `Test-ErrorCodes.ps1`, `Test-ErrorKeys.ps1`, `Test-InitializeGame.ps1`, `Test-OldState.ps1`, `Test-Plan.ps1`, `Test-UpdatePins.ps1`, self-test.yml init: Agent efficiency, self-test.yml init: step 3 and 1 more |
-| `plan` | `Test-ErrorCodes.ps1`, `Test-Plan.ps1`, `Test-TrelloSync.ps1`, self-test.yml lint: status reads the GDD, self-test.yml local-windows: Plan |
+| `plan` | `Test-ErrorCodes.ps1`, `Test-Plan.ps1`, `Test-ProjectSync.ps1`, self-test.yml lint: status reads the GDD, self-test.yml local-windows: Plan |
 | `bench` | `Test-BenchHotspots.ps1`, `Test-BenchSweep.ps1`, `Test-ErrorCodes.ps1`, `Test-GpuValidation.ps1`, `Test-SceneCount.ps1`, self-test.yml measure: bench |
 | `shot` | `Test-BenchSweep.ps1`, `Test-Capture.ps1`, `Test-ColorVision.ps1`, `Test-ErrorCodes.ps1`, `Test-GpuValidation.ps1`, `Test-Palette.ps1`, `Test-ShotChanged.ps1`, self-test.yml measure: shot and 1 more |
 | `status` | `Test-AssetManifest.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Handoffs.ps1`, `Test-InitializeGame.ps1`, `Test-Plan.ps1`, `Test-Telemetry.ps1`, self-test.yml lint: status reads the GDD |
@@ -61,16 +61,16 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `preset-not-found` | `Test-ErrorCodes.ps1` |
 | `unsafe-results-dir` | `Test-ResultsDir.ps1` |
 | `doctor-problems` | `Test-ErrorCodes.ps1`, `Test-Steam.ps1` |
-| `invalid-arguments` | `Test-BenchHotspots.ps1`, `Test-BenchSweep.ps1`, `Test-ColorVision.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-GameVersion.ps1`, `Test-Handoffs.ps1`, `Test-Help.ps1` and 11 more |
+| `invalid-arguments` | `Test-BenchHotspots.ps1`, `Test-BenchSweep.ps1`, `Test-ColorVision.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-GameVersion.ps1`, `Test-Handoffs.ps1`, `Test-Help.ps1` and 12 more |
 | `no-plan` | `Test-ErrorCodes.ps1` |
-| `invalid-plan` | `Test-ErrorCodes.ps1`, `Test-Plan.ps1`, `Test-TrelloSync.ps1` |
+| `invalid-plan` | `Test-ErrorCodes.ps1`, `Test-Plan.ps1`, `Test-ProjectSync.ps1` |
 | `unknown-gate` | `Test-ErrorCodes.ps1`, `Test-Plan.ps1` |
 | `auto-gate` | `Test-Plan.ps1` |
-| `unknown-task` | `Test-ErrorCodes.ps1`, `Test-TrelloSync.ps1` |
+| `unknown-task` | `Test-ErrorCodes.ps1`, `Test-ProjectSync.ps1` |
 | `wip-limit` | `Test-ErrorCodes.ps1` |
-| `trello-credentials` | `Test-TrelloSync.ps1` |
-| `trello-error` | `Test-TrelloSync.ps1` |
-| `trello-list-missing` | `Test-TrelloSync.ps1` |
+| `project-credentials` | `Test-ProjectSync.ps1` |
+| `project-error` | `Test-ProjectSync.ps1` |
+| `project-column-missing` | `Test-ProjectSync.ps1` |
 | `invalid-mcp-config` | `Test-ErrorCodes.ps1` |
 | `aseprite-not-found` | `Test-ErrorCodes.ps1`, self-test.yml local-windows: MCP config is written |
 | `bench-over-budget` | `Test-BenchSweep.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, self-test.yml measure: bench |
@@ -126,8 +126,8 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Data.ps1` | 0/20 | `Test-Data.ps1` |
 | `Deck.ps1` | 3/3 | `Test-Deck.ps1` |
 | `Detect.ps1` | 11/12 | `Test-Addons.ps1`, `Test-Steam.ps1`, `Test-Detect.ps1`, `Test-Platforms.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-BuildSize.ps1` and 37 more |
-| `Doctor.ps1` | 13/13 | `Test-Addons.ps1`, `Test-Steam.ps1`, `Test-SelectJobs.ps1`, `Test-DoctorFixture.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-ErrorCodes.ps1` and 5 more |
-| `Help.ps1` | 5/6 | `Test-Help.ps1`, `Test-ErrorCodes.ps1` |
+| `Doctor.ps1` | 13/16 | `Test-Addons.ps1`, `Test-Steam.ps1`, `Test-SelectJobs.ps1`, `Test-DoctorFixture.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-ErrorCodes.ps1` and 5 more |
+| `Help.ps1` | 5/10 | `Test-Help.ps1`, `Test-ErrorCodes.ps1` |
 | `Init.ps1` | 10/12 | `Test-KitPaths.ps1`, `Test-UpdatePins.ps1`, `Test-ErrorCodes.ps1`, `Test-OldState.ps1`, `Test-Plan.ps1` |
 | `Juice.ps1` | 1/3 | `Test-JuiceLog.ps1`, `Test-AssetManifest.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Handoffs.ps1`, `Test-Plan.ps1` |
 | `Layout.ps1` | 3/3 | `Test-Deck.ps1`, `Test-Layout.ps1` |
@@ -135,7 +135,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Measure.ps1` | 11/11 | `Test-GpuValidation.ps1`, `Test-SelectJobs.ps1`, `Test-BenchSweep.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-BenchHotspots.ps1`, `Test-Capture.ps1`, `Test-ColorVision.ps1` and 36 more |
 | `Palette.ps1` | 3/3 | `Test-Palette.ps1`, `Test-Capture.ps1`, `Test-ColorVision.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-GpuValidation.ps1`, `Test-ShotChanged.ps1` |
 | `Placement.ps1` | 2/2 | `Test-Placement.ps1` |
-| `Plan.ps1` | 26/28 | `Test-Plan.ps1`, `Test-TrelloSync.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Handoffs.ps1` |
+| `Plan.ps1` | 31/32 | `Test-Plan.ps1`, `Test-ProjectSync.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Handoffs.ps1` |
 | `Platforms.ps1` | 1/1 | `Test-Platforms.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1` and 5 more |
 | `Playtest.ps1` | 8/8 | `Test-Playtest.ps1` |
 | `Playthrough.ps1` | 3/3 | `Test-Playthrough.ps1` |
@@ -263,12 +263,13 @@ A job of `self-test.yml` is a test itself (it lists what it runs); another workf
 | godot.yml/release | self-test.yml csharp |
 | pages.yml/build | `Test-SelectJobs.ps1`, `Test-Site.ps1` |
 | pages.yml/deploy | **none**; publishes the site the build job made and `Test-Site.ps1` checked; runs on main only |
+| project-sync.yml/live | `Test-ProjectSync.ps1`; runs `Test-ProjectSync.ps1 -Live` against GitHub on a private project; needs the `HYPERDOT_PROJECT_TOKEN` secret |
 | release.yml/release | `Test-ReleaseNotes.ps1`, `Test-SelectJobs.ps1`, `Test-WorkflowLint.ps1` |
-| self-test.yml/lint | itself (on every pull request, push to main and nightly run); runs `Test-Addons.ps1`, `Test-ArchitectureFixtures.ps1`, `Test-AssetManifest.ps1`, `Test-Changelog.ps1`, `Test-Context.ps1`, `Test-CoverageMap.ps1`, `Test-CrashRetry.ps1`, `Test-Data.ps1`, `Test-Detect.ps1`, `Test-DocLinks.ps1`, `Test-DoctorFixture.ps1`, `Test-DotnetTempDir.ps1`, `Test-DownloadFailed.ps1`, `Test-EvalGraders.ps1`, `Test-FailureDelta.ps1`, `Test-GameVersion.ps1`, `Test-GitLabTemplate.ps1`, `Test-Handoffs.ps1`, `Test-Help.ps1`, `Test-HyperdotLabel.ps1`, `Test-InitializeGame.ps1`, `Test-InputHash.ps1`, `Test-InstallAddon.ps1`, `Test-InstallLock.ps1`, `Test-JuiceLog.ps1`, `Test-KitPaths.ps1`, `Test-LibNames.ps1`, `Test-OldState.ps1`, `Test-Plan.ps1`, `Test-Platforms.ps1`, `Test-Playtest.ps1`, `Test-PowerShellPatterns.ps1`, `Test-PrComment.ps1`, `Test-ProcessTimeout.ps1`, `Test-ReleaseNotes.ps1`, `Test-RepoHygiene.ps1`, `Test-ReviewPairs.ps1`, `Test-SceneCount.ps1`, `Test-SelectJobs.ps1`, `Test-Sfx.ps1`, `Test-Site.ps1`, `Test-SkillFixtures.ps1`, `Test-Steam.ps1`, `Test-StopGate.ps1`, `Test-Store.ps1`, `Test-Telemetry.ps1`, `Test-TestDuration.ps1`, `Test-TestsNotRun.ps1`, `Test-TokenBenchmark.ps1`, `Test-TrelloSync.ps1`, `Test-UpdatePins.ps1`, `Test-WorkflowLint.ps1`, `Test-Skills.ps1`, 2 step(s) of its own |
+| self-test.yml/lint | itself (on every pull request, push to main and nightly run); runs `Test-Addons.ps1`, `Test-ArchitectureFixtures.ps1`, `Test-AssetManifest.ps1`, `Test-Changelog.ps1`, `Test-Context.ps1`, `Test-CoverageMap.ps1`, `Test-CrashRetry.ps1`, `Test-Data.ps1`, `Test-Detect.ps1`, `Test-DocLinks.ps1`, `Test-DoctorFixture.ps1`, `Test-DotnetTempDir.ps1`, `Test-DownloadFailed.ps1`, `Test-EvalGraders.ps1`, `Test-FailureDelta.ps1`, `Test-GameVersion.ps1`, `Test-GitLabTemplate.ps1`, `Test-Handoffs.ps1`, `Test-Help.ps1`, `Test-HyperdotLabel.ps1`, `Test-InitializeGame.ps1`, `Test-InputHash.ps1`, `Test-InstallAddon.ps1`, `Test-InstallLock.ps1`, `Test-JuiceLog.ps1`, `Test-KitPaths.ps1`, `Test-LibNames.ps1`, `Test-OldState.ps1`, `Test-Plan.ps1`, `Test-Platforms.ps1`, `Test-Playtest.ps1`, `Test-PowerShellPatterns.ps1`, `Test-PrComment.ps1`, `Test-ProcessTimeout.ps1`, `Test-ProjectSync.ps1`, `Test-ReleaseNotes.ps1`, `Test-RepoHygiene.ps1`, `Test-ReviewPairs.ps1`, `Test-SceneCount.ps1`, `Test-SelectJobs.ps1`, `Test-Sfx.ps1`, `Test-Site.ps1`, `Test-SkillFixtures.ps1`, `Test-Steam.ps1`, `Test-StopGate.ps1`, `Test-Store.ps1`, `Test-Telemetry.ps1`, `Test-TestDuration.ps1`, `Test-TestsNotRun.ps1`, `Test-TokenBenchmark.ps1`, `Test-UpdatePins.ps1`, `Test-WorkflowLint.ps1`, `Test-Skills.ps1`, 2 step(s) of its own |
 | self-test.yml/zero-config | itself (on a pull request when the files it exercises change; always on pushes to main and in the nightly run) |
 | self-test.yml/csharp | itself (on a pull request when the files it exercises change; always on pushes to main and in the nightly run) |
 | self-test.yml/explicit-runners | itself (on a pull request when the files it exercises change; always on pushes to main and in the nightly run) |
-| self-test.yml/init | itself (on a pull request when the files it exercises change; always on pushes to main and in the nightly run); runs `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Localization.ps1`, `Test-Placement.ps1`, `Test-ReportPins.ps1`, `Test-ResultsDir.ps1`, `Test-SkillShaders.ps1`, 5 step(s) of its own |
+| self-test.yml/init | itself (on a pull request when the files it exercises change; always on pushes to main and in the nightly run); runs `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Localization.ps1`, `Test-Placement.ps1`, `Test-ReportPins.ps1`, `Test-ResultsDir.ps1`, `Test-SkillShaders.ps1`, `Test-Xr.ps1`, 5 step(s) of its own |
 | self-test.yml/measure | itself (on a pull request when the files it exercises change; always on pushes to main and in the nightly run); runs `Test-Audio.ps1`, `Test-BenchHotspots.ps1`, `Test-BenchSweep.ps1`, `Test-Capture.ps1`, `Test-ColorVision.ps1`, `Test-Credits.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-Flows.ps1`, `Test-KitPaths.ps1`, `Test-Layout.ps1`, `Test-MonoAudio.ps1`, `Test-Palette.ps1`, `Test-Playthrough.ps1`, `Test-ShotChanged.ps1`, `Test-Soak.ps1`, `Test-StaleTres.ps1`, `Test-TextSize.ps1`, 4 step(s) of its own |
 | self-test.yml/game-benchmark | itself (on a pull request when the files it exercises change; always on pushes to main and in the nightly run); runs `Test-BenchmarkIsolation.ps1`, `Test-GameBenchmark.ps1`, `Test-GameProgramme.ps1`, 1 step(s) of its own |
 | self-test.yml/changes | itself (on every pull request, push to main and nightly run) |
@@ -282,9 +283,9 @@ A job of `self-test.yml` is a test itself (it lists what it runs); another workf
 | token-benchmark.yml/plan | `Test-BenchmarkIsolation.ps1`, `Test-FieldTest.ps1`, `Test-GameBenchmark.ps1`, `Test-GameProgramme.ps1`, `Test-TokenBenchmark.ps1`; plans the matrix for the benchmark job; started by hand |
 | token-benchmark.yml/benchmark | `Test-BenchmarkIsolation.ps1`, `Test-FieldTest.ps1`, `Test-GameBenchmark.ps1`, `Test-GameProgramme.ps1`, `Test-SelectJobs.ps1`, `Test-TokenBenchmark.ps1`, `Test-WorkflowLint.ps1`; each real run costs money; `-DryRun` is what the self-test runs |
 | token-benchmark.yml/calibrate | `Test-GameBenchmark.ps1`, `Test-ReviewPairs.ps1` |
-| trello-sync.yml/live | `Test-TrelloSync.ps1`; runs `Test-TrelloSync.ps1 -Live` against the real Trello; needs `TRELLO_KEY` and `TRELLO_TOKEN` |
 | actions/apt | self-test.yml init, self-test.yml lint, self-test.yml measure, self-test.yml web |
 | actions/godot | self-test.yml action, self-test.yml csharp (through godot.yml), self-test.yml explicit-runners (through godot.yml), self-test.yml zero-config (through godot.yml) |
+| hooks/project-sync.ps1 | `Test-ProjectSync.ps1` |
 | hooks/stop-gate.ps1 | `Test-SelectJobs.ps1`, `Test-StopGate.ps1`, self-test.yml init: Agent efficiency |
 | gitlab/hyperdot.gitlab-ci.yml | `Test-GitLabTemplate.ps1`, `Test-Plan.ps1` |
 | gitlab/Invoke-Hyperdot.ps1 | `Test-GitLabTemplate.ps1` |

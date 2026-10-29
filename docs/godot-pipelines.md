@@ -117,7 +117,7 @@ ci/godot/lib/Runners.ps1            validate | dotnet | gdunit4 | godottest | gu
 ci/godot/lib/Report.ps1             JUnit/TRX -> summaries, annotations, zero-tests check, coverage
 ci/godot/lib/Doctor.ps1             `doctor`: tool and project checks with fixes
 ci/godot/lib/Init.ps1               `init`: starter tests, .gitignore, export filters, CI workflow, agent files, MCP config
-ci/godot/lib/Plan.ps1               `plan`: phases and gates, tasks, Trello sync
+ci/godot/lib/Plan.ps1               `plan`: phases and gates, tasks, GitHub Project sync
 ci/godot/lib/Measure.ps1            `bench` and `shot`
 ci/godot/lib/Palette.ps1            `shot`'s palette check against docs/STYLE.md
 ci/godot/lib/BuildSize.ps1          `export`'s size breakdown: the output folder and the pack by folder and kind of file

@@ -576,7 +576,7 @@ The ten mistakes that cost the most here: each fails silently, or only on the Li
 - **Why:** inside `-Parallel`, `$ErrorActionPreference` was `Continue` and an unset variable read as empty (re-run);
   callers' functions are "not found"; a module function sees the global preference, not its caller's. The kit's lib
   files are dot-sourced into one scope, so this matters for the thread jobs in `tests/Test-PrComment.ps1` and
-  `tests/Test-TrelloSync.ps1` and for any future module. **Verified, re-run.**
+  `tests/Test-ProjectSync.ps1` and for any future module. **Verified, re-run.**
 - **Source:** [about_Scopes](https://learn.microsoft.com/powershell/module/microsoft.powershell.core/about/about_scopes):
   "For any script or command that executes out of session, you need the `Using:` scope modifier". [On Preferences and Scopes](https://devblogs.microsoft.com/powershell-community/how-to-have-more-control-of-preferences-in-functions-and-the-role-of-modules-on-inheritance/):
   "what happens in a module stays in the module."

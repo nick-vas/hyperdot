@@ -69,11 +69,11 @@ The game's plan from concept to post-launch: the current phase, its gates, tasks
 
     hyperdot.ps1 plan -Json
     hyperdot.ps1 plan -Do init [-Profile jam] | done -Id <gate> | reopen -Id <gate> | add -Title <text> [-Feature F3]
-    hyperdot.ps1 plan -Do move -Id <task> -Column doing | remove -Id <task> | link | sync -Board <id>
+    hyperdot.ps1 plan -Do move -Id <task> -Column doing | remove -Id <task> | link | sync -Board @me
 
-The plan is plan/plan.json; -Profile jam sizes it in days for a game jam. -Column takes a column id or the board list
-it maps to ("To Do"). move refuses doing past the work-in-progress limit. sync (Trello, with TRELLO_KEY and
-TRELLO_TOKEN) is experimental. More: docs/plan.md.
+The plan is plan/plan.json; -Profile jam sizes it in days for a game jam. -Column takes a column id or the project column
+it maps to ("To Do"). move refuses doing past the work-in-progress limit. sync (a GitHub Project, through the gh CLI signed in
+with the project scope; -Board @me makes one) is experimental. More: docs/plan.md.
 
 ### bench
 Measure a scene's frame pacing: 1% and 0.1% lows, p99 and max frame time, hitches and the slowest places.
@@ -158,7 +158,7 @@ Needs no project and no Godot. In Claude Code, /kit and /kit <name> print the sa
 ## Skills
 
 ### game
-Where the game stands and what next: features marked with evidence, a short design and architecture review, the plan and Trello board.
+Where the game stands and what next: features marked with evidence, a short design and architecture review, the plan and its GitHub Project.
 
 ### kit
 List Hyperdot's commands, skills and subagents, or show the page of one.

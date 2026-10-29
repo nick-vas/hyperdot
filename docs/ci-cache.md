@@ -159,7 +159,7 @@ green result for the same hash is a green result for this one.
 | Job | Verdict | Why (from the job) |
 |---|---|---|
 | `changes` | never | It computes the selection and the keys; it must run to decide anything. About one minute. |
-| `lint` | **yes** | About 60 steps: pinned PSScriptAnalyzer 1.25.0 and actionlint 1.7.12, text and fixture self-tests, no Godot. Its inputs are most of the tree (it reads docs, tests, every `.ps1`), so its hit needs an exact tree match. The stand-in Trello sync is `main`-only already. Its network steps (`Test-DownloadFailed`, 15 s) assert a failure, not a download. |
+| `lint` | **yes** | About 60 steps: pinned PSScriptAnalyzer 1.25.0 and actionlint 1.7.12, text and fixture self-tests, no Godot. Its inputs are most of the tree (it reads docs, tests, every `.ps1`), so its hit needs an exact tree match. The stand-in project sync is `main`-only already. Its network steps (`Test-DownloadFailed`, 15 s) assert a failure, not a download. |
 | `zero-config` | **yes** | Calls `godot.yml` on the shallowest example; Godot download is pinned by version; gdscript + GUT. Skipping loses nothing but the PR comment from this run (the previous one stays). |
 | `csharp` | **yes, with a note** | Same, plus exports, a Windows launch on a Windows runner, coverage minimum 40, a release dry run. Deterministic; it posts the pull request comment, which stays from the earlier green run. Its coverage figure is a measurement but gated by a minimum, not a timing. |
 | `explicit-runners` | **yes** | The same workflow with `runners: gdunit4,gut`; no comment. |
@@ -181,7 +181,7 @@ Other workflows:
 | The nightly `Self-test` | never | The nightly run "catches what a pull request's filter let past" (`self-test.yml`); it is the periodic full run in section 5. |
 | `evals.yml` | **opt-in only** | Calls a model (`CLAUDE_CODE_OAUTH_TOKEN`), manual only, installs the unpinned `@anthropic-ai/claude-code`. A hit would *save money* (a result for identical case files and the same plugin), but model output is a sample, not a function of the inputs, and the point of a repeat is a new sample. Reuse only if the owner asks for it per run. |
 | `token-benchmark.yml` | **opt-in only** | The same. Each real run costs money (`AGENTS.md`); a repeated run is a measurement of variance. A cache would need a `reuse` input, off by default. |
-| `release.yml`, `pages.yml`, `trello-sync.yml` | never | Side effects (tags, a published site, a board), not tests. |
+| `release.yml`, `pages.yml`, `project-sync.yml` | never | Side effects (tags, a published site, a board), not tests. |
 | `godot.yml` as games call it | out of scope | A game's own CI; the same idea could be offered there later. |
 
 ## 5. Risks and their mitigations

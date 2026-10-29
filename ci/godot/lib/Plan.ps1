@@ -328,12 +328,12 @@ function Assert-FeatureId([string]$Feature) {
     if ($Feature -notmatch '^F\d+$') { Stop-GodotCi "-Feature must be a GDD feature id such as F3, not '$Feature'" 'invalid-arguments' }
 }
 
-# The board list each plan column maps to: the Work Loop's names, unless plan.json's trello.lists names another.
+# The project option each plan column maps to: the Work Loop's names, unless plan.json's project.columns names another.
 function Get-PlanListNames($Plan) {
     $names = [ordered]@{ backlog = 'Backlog'; design = 'Design'; todo = 'To Do'; doing = 'Doing'; verify = 'Testing'; done = 'Done' }
-    if ($Plan.PSObject.Properties['trello'] -and $Plan.trello -is [pscustomobject] -and $Plan.trello.PSObject.Properties['lists'] -and
-        $Plan.trello.lists -is [pscustomobject]) {
-        foreach ($p in $Plan.trello.lists.PSObject.Properties) {
+    $block = Get-PlanProjectBlock $Plan
+    if ($block -and $block.PSObject.Properties['columns'] -and $block.columns -is [pscustomobject]) {
+        foreach ($p in $block.columns.PSObject.Properties) {
             if ($p.Name -in $script:PlanColumns -and "$($p.Value)".Trim()) { $names[$p.Name] = "$($p.Value)" }
         }
     }
@@ -372,182 +372,256 @@ function Get-PlanTaskPhase($Plan, $Info) {
 
 function Get-PlanTaskJson($Task) {
     return [ordered]@{ id = $Task.id; title = $Task.title; column = $Task.column; phase = $Task.phase
-        feature = ($Task.PSObject.Properties['feature'] ? $Task.feature : $null); cardId = ($Task.PSObject.Properties['cardId'] ? $Task.cardId : $null)
+        feature = ($Task.PSObject.Properties['feature'] ? $Task.feature : $null); itemId = ($Task.PSObject.Properties['itemId'] ? $Task.itemId : $null)
         boardColumn = ($Task.PSObject.Properties['boardColumn'] ? $Task.boardColumn : $null) }
 }
 
-# A Trello id as the REST API takes it. The Trello connector returns ARIs (ari:cloud:trello::card/workspace/<workspace
-# id>/<card id>); the 24-hex id at the end is what the kit stores and sync matches. $null when the value ends in none.
-function ConvertTo-TrelloId([string]$Value) {
-    $match = [regex]::Match("$Value".Trim(), '(?:^|[:/])(?<id>[0-9a-fA-F]{24})$')
-    return $match.Success ? $match.Groups['id'].Value.ToLowerInvariant() : $null
+# The GitHub Project a plan mirrors, as -Board names it: "<owner>/<number>", a project URL
+# (https://github.com/users/<login>/projects/<number> or .../orgs/...), or just an owner ("@me", a login), which
+# stands for "make a new project for this owner". Returns owner and number ($null when the project is still to be made).
+function ConvertTo-ProjectRef([string]$Board) {
+    $text = "$Board".Trim()
+    if ($text -match '^https://github\.com/(?:users|orgs)/(?<owner>[A-Za-z0-9-]+)/projects/(?<number>\d+)(?:[/?#].*)?$') {
+        return [ordered]@{ owner = $Matches.owner; number = [int]$Matches.number }
+    }
+    if ($text -match '^(?<owner>@me|[A-Za-z0-9][A-Za-z0-9-]*)/(?<number>\d+)$') {
+        return [ordered]@{ owner = $Matches.owner; number = [int]$Matches.number }
+    }
+    if ($text -match '^(?<owner>@me|[A-Za-z0-9][A-Za-z0-9-]*)$') { return [ordered]@{ owner = $Matches.owner; number = $null } }
+    Stop-GodotCi "-Board '$Board' is not a GitHub Project: give <owner>/<number>, the project's URL, or an owner (@me or a login) to make a new project" 'invalid-arguments'
 }
 
-function ConvertTo-TrelloCardId([string]$Card) {
-    $id = ConvertTo-TrelloId $Card
-    if (-not $id) { Stop-GodotCi "-Card '$Card' is not a Trello card id: give the 24-hex id or the Trello connector's ARI (ari:cloud:trello::card/workspace/<workspace>/<card id>), not a card URL or short link" 'invalid-arguments' }
+# A project item id as the GitHub API gives it (PVTI_...).
+function ConvertTo-ProjectItemId([string]$Item) {
+    $id = "$Item".Trim()
+    if ($id -notmatch '^PVTI_[A-Za-z0-9_-]+$') {
+        Stop-GodotCi "-Item '$Item' is not a project item id: give the id that starts with PVTI_ (gh project item-list <number> --owner <owner> --format json shows it)" 'invalid-arguments'
+    }
     return $id
 }
 
-# A board as -Board takes it: an id, a short link, a board URL (its short link is kept) or a connector ARI (its id is kept).
-function ConvertTo-TrelloBoard([string]$Board) {
-    $text = "$Board".Trim()
-    if ($text -match '^ari:') {
-        $id = ConvertTo-TrelloId $text
-        if (-not $id) { Stop-GodotCi "-Board '$Board' is an ARI with no 24-hex board id at the end" 'invalid-arguments' }
-        return $id
-    }
-    if ($text -match 'trello\.com/b/(?<link>[A-Za-z0-9]+)') { return $Matches.link }
-    return $text
+function Get-PlanProjectBlock($Plan) {
+    return ($Plan.PSObject.Properties['project'] -and $Plan.project -is [pscustomobject]) ? $Plan.project : $null
 }
 
-# Card ids of removed tasks that the next sync archives (trello.toArchive).
+# The project as plan.json stores it, "<owner>/<number>", or $null.
+function Get-PlanProjectBoard($Plan) {
+    $block = Get-PlanProjectBlock $Plan
+    if ($block -and $block.PSObject.Properties['owner'] -and $block.PSObject.Properties['number'] -and $block.number) { return "$($block.owner)/$($block.number)" }
+    return $null
+}
+
+# Item ids of removed tasks that the next sync archives (project.toArchive).
 function Get-PlanArchiveList($Plan) {
-    if ($Plan.PSObject.Properties['trello'] -and $Plan.trello -is [pscustomobject] -and $Plan.trello.PSObject.Properties['toArchive']) {
-        return @(@($Plan.trello.toArchive) | Where-Object { $_ } | ForEach-Object { "$_" })
-    }
+    $block = Get-PlanProjectBlock $Plan
+    if ($block -and $block.PSObject.Properties['toArchive']) { return @(@($block.toArchive) | Where-Object { $_ } | ForEach-Object { "$_" }) }
     return @()
 }
 
-function Set-PlanArchiveList($Plan, [string[]]$CardIds) {
-    $ids = @($CardIds | Where-Object { $_ } | Select-Object -Unique)
-    $hasBlock = $Plan.PSObject.Properties['trello'] -and $Plan.trello -is [pscustomobject]
-    if (-not $hasBlock) {
+function Set-PlanArchiveList($Plan, [string[]]$ItemIds) {
+    $ids = @($ItemIds | Where-Object { $_ } | Select-Object -Unique)
+    $block = Get-PlanProjectBlock $Plan
+    if (-not $block) {
         if ($ids.Count -eq 0) { return }
-        $Plan | Add-Member -NotePropertyName trello -NotePropertyValue ([pscustomobject]@{ board = $null }) -Force
+        $Plan | Add-Member -NotePropertyName project -NotePropertyValue ([pscustomobject]@{}) -Force
+        $block = $Plan.project
     }
-    if ($ids.Count) { $Plan.trello | Add-Member -NotePropertyName toArchive -NotePropertyValue $ids -Force }
-    elseif ($Plan.trello.PSObject.Properties['toArchive']) { $Plan.trello.PSObject.Properties.Remove('toArchive') }
+    if ($ids.Count) { $block | Add-Member -NotePropertyName toArchive -NotePropertyValue $ids -Force }
+    elseif ($block.PSObject.Properties['toArchive']) { $block.PSObject.Properties.Remove('toArchive') }
 }
 
-# Calls the Trello REST API. Credentials come from TRELLO_KEY / TRELLO_TOKEN and travel in a header, never
-# in the URL, so they cannot end up in a log. TRELLO_API_URL overrides the base (for tests).
-function Invoke-Trello([string]$Method, [string]$Resource, [hashtable]$Body) {
-    if (-not $env:TRELLO_KEY -or -not $env:TRELLO_TOKEN) {
-        Stop-GodotCi 'Set TRELLO_KEY and TRELLO_TOKEN (the API key and a token from https://trello.com/power-ups/admin) to sync with Trello' 'trello-credentials'
+# Sets plan.json's project and keeps the rest of the block (a custom project.columns mapping, items waiting to be archived).
+function Set-PlanProject($Plan, $Ref) {
+    $block = Get-PlanProjectBlock $Plan
+    if (-not $block) {
+        $Plan | Add-Member -NotePropertyName project -NotePropertyValue ([pscustomobject]@{}) -Force
+        $block = $Plan.project
     }
-    $base = $env:TRELLO_API_URL ? $env:TRELLO_API_URL : 'https://api.trello.com/1'
-    $headers = @{ Authorization = "OAuth oauth_consumer_key=""$env:TRELLO_KEY"", oauth_token=""$env:TRELLO_TOKEN""" }
-    try {
-        $arguments = @{ Method = $Method; Uri = "$base/$Resource"; Headers = $headers }
-        if ($Body) { $arguments.Body = ($Body | ConvertTo-Json -Depth 10 -Compress); $arguments.ContentType = 'application/json' }
-        $result = Invoke-RestMethod @arguments
-        # Invoke-RestMethod emits a JSON array as one object; emit its items so callers can use @(...) and pipelines.
-        if ($result -is [array]) { foreach ($item in $result) { $item } } else { $result }
-        return
-    } catch {
-        # A network failure has no response (and no Response property, which strict mode would trip on).
-        $response = $_.Exception.PSObject.Properties['Response'] ? $_.Exception.Response : $null
-        $status = $response ? [int]$response.StatusCode : 0
-        Stop-GodotCi "Trello $Method $Resource failed ($(if ($response) { $status } else { "no response: $($_.Exception.Message)" }))" 'trello-error'
-    }
+    $block | Add-Member -NotePropertyName owner -NotePropertyValue $Ref.owner -Force
+    $block | Add-Member -NotePropertyName number -NotePropertyValue $Ref.number -Force
 }
 
-# Maps each plan column to a Trello list by name (case-insensitive prefix, so "Done" matches "done").
-function Get-TrelloListMap($Plan, [string]$BoardId) {
-    $lists = @(Invoke-Trello GET "boards/$BoardId/lists?filter=open&fields=name")
-    $names = Get-PlanListNames $Plan
-    $map = @{}
-    foreach ($column in $script:PlanColumns) {
-        $list = $lists | Where-Object { $_.name.StartsWith($names[$column], [StringComparison]::OrdinalIgnoreCase) } | Select-Object -First 1
-        if (-not $list) {
-            Stop-GodotCi "Trello board has no list for '$column' (looked for '$($names[$column])'; it has: $(if ($lists.Count) { @($lists | ForEach-Object name) -join ', ' } else { 'no open lists' }))" 'trello-list-missing'
+# Runs the GitHub CLI and returns its output text. The CLI holds the credentials (gh auth login; the project scope is
+# added by gh auth refresh -s project, or GH_TOKEN carries a token that has it), so the kit never sees or prints a token.
+function Invoke-GhProject([string[]]$Arguments) {
+    if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
+        Stop-GodotCi 'plan -Do sync needs the GitHub CLI (gh), signed in with the project scope: gh auth login, then gh auth refresh -s project' 'project-credentials'
+    }
+    $text = (& gh @Arguments 2>&1 | ForEach-Object { "$_" }) -join "`n"
+    $code = $LASTEXITCODE
+    if ($code -ne 0) {
+        $short = ($text -split "`n" | Where-Object { $_.Trim() } | Select-Object -First 3) -join ' '
+        if ($text -match 'scope|not logged in|authentication|gh auth login|HTTP 401|GH_TOKEN') {
+            Stop-GodotCi "GitHub refused the call (gh $($Arguments[0..1] -join ' ')): $short. Sign in with the project scope: gh auth refresh -s project" 'project-credentials'
         }
-        $map[$column] = $list.id
+        Stop-GodotCi "GitHub project call failed (gh $($Arguments[0..1] -join ' ')): $short" 'project-error'
     }
-    return $map
+    return $text
 }
 
-# Sets plan.json's Trello board and keeps the rest of the trello block (a custom trello.lists mapping).
-function Set-PlanTrelloBoard($Plan, [string]$Board) {
-    if ($Plan.PSObject.Properties['trello'] -and $Plan.trello -is [pscustomobject]) {
-        if ($Plan.trello.PSObject.Properties['board']) { $Plan.trello.board = $Board }
-        else { $Plan.trello | Add-Member -NotePropertyName board -NotePropertyValue $Board }
-    } else {
-        $Plan | Add-Member -NotePropertyName trello -NotePropertyValue ([pscustomobject]@{ board = $Board }) -Force
-    }
+function Invoke-GhProjectJson([string[]]$Arguments) {
+    $text = Invoke-GhProject (@($Arguments) + @('--format', 'json'))
+    try { return ($text | ConvertFrom-Json -Depth 20) } catch { Stop-GodotCi "gh $($Arguments[0..1] -join ' ') did not return JSON" 'project-error' }
 }
 
-# plan.json stays the source of truth for what the tasks are; Trello is where you drag them. New tasks become
-# cards, a card moved on the board moves its task, and a task moved with `plan -Do move` moves its card. Each task
-# records the list its card was in at the last sync (boardColumn), which tells the two kinds of move apart. A card a
-# person added on the board becomes a task, and the cards of tasks removed with `plan -Do remove` are archived.
-function Sync-PlanTrello([string]$Path, [string]$Dir, $Info, [string]$Board) {
+# The repository (OWNER/NAME) of the game's git origin on github.com, or $null; the new project is linked to it.
+function Get-ProjectRepo([string]$Dir) {
+    $url = (& git -C $Dir remote get-url origin 2>$null | Select-Object -First 1)
+    if ($LASTEXITCODE -eq 0 -and "$url" -match 'github\.com[:/](?<repo>[A-Za-z0-9._-]+/[A-Za-z0-9._-]+?)(?:\.git)?/?$') { return $Matches.repo }
+    return $null
+}
+
+# The project, its "Column" field and the option each plan column maps to, made when missing. GitHub's built-in Status
+# field only offers Todo, In Progress and Done and the CLI cannot change its options, so the kit keeps its own
+# single-select field with the Work Loop's six columns (Backlog, Design, To Do, Doing, Testing, Done).
+function Get-ProjectColumns($Plan, [string]$Owner, [int]$Number) {
+    $project = Invoke-GhProjectJson @('project', 'view', "$Number", '--owner', $Owner)
+    $names = Get-PlanListNames $Plan
+    $find = {
+        $fields = Invoke-GhProjectJson @('project', 'field-list', "$Number", '--owner', $Owner, '--limit', '100')
+        @($fields.fields) | Where-Object { "$($_.name)" -eq 'Column' } | Select-Object -First 1
+    }
+    $field = & $find
+    if (-not $field) {
+        Invoke-GhProject @('project', 'field-create', "$Number", '--owner', $Owner, '--name', 'Column', '--data-type', 'SINGLE_SELECT',
+            '--single-select-options', (@($script:PlanColumns | ForEach-Object { $names[$_] }) -join ',')) | Out-Null
+        $field = & $find
+    }
+    if (-not $field -or -not $field.PSObject.Properties['options']) {
+        Stop-GodotCi "Project $Owner/$Number has no single-select field named 'Column'" 'project-column-missing'
+    }
+    $options = @($field.options)
+    $optionOf = @{}; $columnOf = @{}
+    foreach ($column in $script:PlanColumns) {
+        $option = $options | Where-Object { "$($_.name)".StartsWith($names[$column], [StringComparison]::OrdinalIgnoreCase) } | Select-Object -First 1
+        if (-not $option) {
+            Stop-GodotCi "The project's Column field has no option for '$column' (looked for '$($names[$column])'; it has: $(if ($options.Count) { @($options | ForEach-Object name) -join ', ' } else { 'no options' }))" 'project-column-missing'
+        }
+        $optionOf[$column] = "$($option.id)"; $columnOf["$($option.name)".ToLowerInvariant()] = $column
+    }
+    return [ordered]@{ projectId = "$($project.id)"; fieldId = "$($field.id)"; optionOf = $optionOf; columnOf = $columnOf }
+}
+
+function Set-ProjectItemColumn($Columns, [string]$ItemId, [string]$Column) {
+    Invoke-GhProject @('project', 'item-edit', '--id', $ItemId, '--project-id', $Columns.projectId, '--field-id', $Columns.fieldId,
+        '--single-select-option-id', $Columns.optionOf[$Column]) | Out-Null
+}
+
+# plan.json stays the source of truth for what the tasks are; the GitHub Project is where you drag them. With no
+# project yet, -Board <owner> makes one (titled "<game> plan", linked to the game's repository when it has one) with
+# the Column field. New tasks become draft items, an item moved on the board moves its task, and a task moved with
+# `plan -Do move` moves its item. Each task records the column its item was in at the last sync (boardColumn), which
+# tells the two kinds of move apart. An item a person added on the board becomes a task, and the items of tasks removed
+# with `plan -Do remove` are archived. A plan made for the Trello sync this replaced keeps its tasks: their card ids are
+# dropped and the first sync makes an item for each.
+function Sync-PlanProject([string]$Path, [string]$Dir, $Info, [string]$Board) {
     $plan = Read-Plan $Path
-    if (-not $Board -and $plan.PSObject.Properties['trello'] -and $plan.trello -is [pscustomobject] -and $plan.trello.PSObject.Properties['board']) { $Board = $plan.trello.board }
-    if (-not $Board) { Stop-GodotCi 'plan -Do sync needs -Board <board id or short link> (saved to plan.json afterwards)' 'invalid-arguments' }
-    $Board = ConvertTo-TrelloBoard $Board
+    if (-not $Board) { $Board = Get-PlanProjectBoard $plan }
+    if (-not $Board) { Stop-GodotCi 'plan -Do sync needs -Board <owner>/<number>, the project URL, or an owner (@me or a login) to make a new project (saved to plan.json afterwards)' 'invalid-arguments' }
+    $ref = ConvertTo-ProjectRef $Board
     # Checked before any call, so a bad column cannot stop the sync halfway.
     foreach ($task in @($plan.tasks)) {
         if ("$($task.column)" -notin $script:PlanColumns) {
             Stop-GodotCi "Task $($task.id) is in an unknown column '$($task.column)'; use $($script:PlanColumns -join ', ')" 'invalid-plan'
         }
     }
-    $listIds = Get-TrelloListMap $plan $Board
-    $columnOf = @{}; foreach ($column in $listIds.Keys) { $columnOf[$listIds[$column]] = $column }
-    $cardList = @(Invoke-Trello GET "boards/$Board/cards?fields=name,idList,desc")
-    $cards = @{}; foreach ($card in $cardList) { $cards[$card.id] = $card }
-
-    $created = 0; $moved = 0; $cardsMoved = 0; $imported = 0; $archived = 0
+    $created = 0; $moved = 0; $itemsMoved = 0; $imported = 0; $archived = 0; $dropped = 0
     $warnings = [System.Collections.Generic.List[string]]::new()
-    Set-PlanTrelloBoard $plan $Board
+    $madeProject = $false
+    if ($null -eq $ref.number) {
+        $title = "$($plan.game) plan".Trim()
+        $made = Invoke-GhProjectJson @('project', 'create', '--owner', $ref.owner, '--title', $title)
+        $ref.number = [int]$made.number
+        $madeProject = $true
+        Write-CiLog "Created the GitHub Project $($ref.owner)/$($ref.number): $title"
+        $repo = Get-ProjectRepo $Dir
+        if ($repo) {
+            try { Invoke-GhProject @('project', 'link', "$($ref.number)", '--owner', $ref.owner, '--repo', $repo) | Out-Null; Write-CiLog "Linked it to $repo" }
+            catch { $warnings.Add("The project could not be linked to $repo ($($_.Exception.Message)); link it on the project's settings page") }
+        }
+        # Saved at once, so a failure below does not leave a project nobody knows about.
+        Set-PlanProject $plan $ref
+        Save-Plan $plan $Path
+    }
+    $columns = Get-ProjectColumns $plan $ref.owner $ref.number
+    $columnOf = $columns.columnOf
+    $listed = Invoke-GhProjectJson @('project', 'item-list', "$($ref.number)", '--owner', $ref.owner, '--limit', '1000')
+    $itemList = @($listed.items)
+    if ($listed.PSObject.Properties['totalCount'] -and [int]$listed.totalCount -gt $itemList.Count) {
+        $warnings.Add("The project has $($listed.totalCount) items and the sync read $($itemList.Count); items past that are not seen")
+    }
+    $items = @{}; foreach ($item in $itemList) { $items["$($item.id)"] = $item }
+    $itemColumn = {
+        param($Item)
+        $value = $Item.PSObject.Properties['column'] ? "$($Item.column)".ToLowerInvariant() : ''
+        $columnOf.ContainsKey($value) ? $columnOf[$value] : $null
+    }
+
+    Set-PlanProject $plan $ref
     $pending = [System.Collections.Generic.List[string]]::new()
-    foreach ($cardId in @(Get-PlanArchiveList $plan)) { $pending.Add($cardId) }
+    foreach ($itemId in @(Get-PlanArchiveList $plan)) { $pending.Add($itemId) }
     $phase = Get-PlanTaskPhase $plan $Info
-    # Saved whatever happens: a card created before a failed call keeps its id, so the next sync does not duplicate it.
+    # Saved whatever happens: an item created before a failed call keeps its id, so the next sync does not duplicate it.
     try {
-        # Cards of removed tasks go first, so they are not taken for cards a person added.
-        foreach ($cardId in @($pending)) {
-            if ($cards.ContainsKey($cardId)) {
-                Invoke-Trello PUT "cards/$cardId" @{ closed = $true } | Out-Null
-                Write-CiLog "Archived card $cardId (its task was removed)"
-                $cards.Remove($cardId); $archived++
+        # The Trello sync's card ids and block are dropped; the tasks get items below.
+        foreach ($task in @($plan.tasks)) {
+            if ($task.PSObject.Properties['cardId']) { $task.PSObject.Properties.Remove('cardId'); $dropped++ }
+        }
+        if ($plan.PSObject.Properties['trello']) { $plan.PSObject.Properties.Remove('trello') }
+        if ($dropped) { Write-CiLog "Dropped $dropped Trello card link(s); each of those tasks gets a project item" }
+
+        # Items of removed tasks go first, so they are not taken for items a person added.
+        foreach ($itemId in @($pending)) {
+            if ($items.ContainsKey($itemId)) {
+                Invoke-GhProject @('project', 'item-archive', "$($ref.number)", '--owner', $ref.owner, '--id', $itemId) | Out-Null
+                Write-CiLog "Archived item $itemId (its task was removed)"
+                $items.Remove($itemId); $archived++
             }
-            $pending.Remove($cardId) | Out-Null
+            $pending.Remove($itemId) | Out-Null
         }
         foreach ($task in @($plan.tasks)) {
-            $cardId = $task.PSObject.Properties['cardId'] ? "$($task.cardId)" : $null
-            # An ARI stored by an older /game: keep the plain id it ends in.
-            $plain = $cardId ? (ConvertTo-TrelloId $cardId) : $null
-            if ($plain -and $plain -cne $cardId) { $task.cardId = $plain; $cardId = $plain }
-            if ($cardId -and $cards.ContainsKey($cardId)) {
-                $listColumn = $columnOf[$cards[$cardId].idList]
-                if (-not $listColumn) { continue }
+            $itemId = $task.PSObject.Properties['itemId'] ? "$($task.itemId)" : $null
+            if ($itemId -and $items.ContainsKey($itemId)) {
+                $itemCol = & $itemColumn $items[$itemId]
+                if (-not $itemCol) { continue }
                 $recorded = $task.PSObject.Properties['boardColumn'] ? $task.boardColumn : $null
-                if ($listColumn -ne $task.column -and ($null -eq $recorded -or $listColumn -ne $recorded)) {
-                    Write-CiLog "$($task.id): $($task.column) -> $listColumn (moved on the board)"
-                    $task.column = $listColumn; $moved++
-                } elseif ($listColumn -ne $task.column) {
-                    Write-CiLog "$($task.id): card $listColumn -> $($task.column) (moved in the plan)"
-                    Invoke-Trello PUT "cards/$cardId" @{ idList = $listIds[$task.column] } | Out-Null
-                    $cardsMoved++
+                if ($itemCol -ne $task.column -and ($null -eq $recorded -or $itemCol -ne $recorded)) {
+                    Write-CiLog "$($task.id): $($task.column) -> $itemCol (moved on the board)"
+                    $task.column = $itemCol; $moved++
+                } elseif ($itemCol -ne $task.column) {
+                    Write-CiLog "$($task.id): item $itemCol -> $($task.column) (moved in the plan)"
+                    Set-ProjectItemColumn $columns $itemId $task.column
+                    $itemsMoved++
                 }
                 $task | Add-Member -NotePropertyName boardColumn -NotePropertyValue $task.column -Force
-            } elseif ($cardId) {
-                $warnings.Add("Card for $($task.id) is gone from the board (archived or deleted); left as is")
+            } elseif ($itemId) {
+                $warnings.Add("Item for $($task.id) is gone from the project (archived or deleted); left as is")
             } else {
-                $card = Invoke-Trello POST 'cards' @{ idList = $listIds[$task.column]; name = $task.title; desc = "plan task $($task.id), phase $($task.phase)" }
-                $task | Add-Member -NotePropertyName cardId -NotePropertyValue $card.id -Force
+                $item = Invoke-GhProjectJson @('project', 'item-create', "$($ref.number)", '--owner', $ref.owner, '--title', "$($task.title)", '--body', "plan task $($task.id), phase $($task.phase)")
+                $task | Add-Member -NotePropertyName itemId -NotePropertyValue "$($item.id)" -Force
+                # Linked before the column is set: a failed edit leaves the item in the project and the id in the plan.
+                Set-ProjectItemColumn $columns "$($item.id)" $task.column
                 $task | Add-Member -NotePropertyName boardColumn -NotePropertyValue $task.column -Force
                 $created++
             }
         }
-        # A card no task names, in a list the plan maps, was added on the board: it becomes a task in that column. A card
-        # the kit made for a task ("plan task <id>" in its description) that no task names now is reported, not imported.
+        # An item no task names, in a column the plan maps, was added on the board: it becomes a task in that column. An
+        # item the kit made for a task ("plan task <id>" in its body) that no task names now is reported, not imported.
         $linked = @{}
-        foreach ($task in @($plan.tasks)) { if ($task.PSObject.Properties['cardId'] -and $task.cardId) { $linked["$($task.cardId)"] = $true } }
-        foreach ($card in $cardList) {
-            if ($linked.ContainsKey($card.id) -or -not $cards.ContainsKey($card.id)) { continue }
-            $column = $columnOf[$card.idList]
+        foreach ($task in @($plan.tasks)) { if ($task.PSObject.Properties['itemId'] -and $task.itemId) { $linked["$($task.itemId)"] = $true } }
+        foreach ($item in $itemList) {
+            $itemId = "$($item.id)"
+            if ($linked.ContainsKey($itemId) -or -not $items.ContainsKey($itemId)) { continue }
+            $column = & $itemColumn $item
             if (-not $column) { continue }
-            $desc = $card.PSObject.Properties['desc'] ? "$($card.desc)" : ''
-            if ($desc -match '^plan task (?<task>[^,\s]+)') {
-                $warnings.Add("Card '$($card.name)' ($($card.id)) was made for plan task $($Matches.task), which no task links to; left as is (archive it, or link it: plan -Do link -Id <task> -Card $($card.id))")
+            $body = ($item.PSObject.Properties['content'] -and $item.content -and $item.content.PSObject.Properties['body']) ? "$($item.content.body)" : ''
+            if ($body -match '^plan task (?<task>[^,\s]+)') {
+                $warnings.Add("Item '$($item.title)' ($itemId) was made for plan task $($Matches.task), which no task links to; left as is (archive it, or link it: plan -Do link -Id <task> -Item $itemId)")
                 continue
             }
             $taskId = New-PlanTaskId $plan
-            $plan.tasks = @($plan.tasks) + [pscustomobject]@{ id = $taskId; title = "$($card.name)"; phase = $phase; column = $column; cardId = $card.id; boardColumn = $column }
-            Write-CiLog "${taskId}: added from the board's card '$($card.name)' in $column"
+            $plan.tasks = @($plan.tasks) + [pscustomobject]@{ id = $taskId; title = "$($item.title)"; phase = $phase; column = $column; itemId = $itemId; boardColumn = $column }
+            Write-CiLog "${taskId}: added from the board's item '$($item.title)' in $column"
             $imported++
         }
     } finally {
@@ -556,11 +630,12 @@ function Sync-PlanTrello([string]$Path, [string]$Dir, $Info, [string]$Board) {
     }
     Write-PlanMarkdown $plan (Get-PlanState $plan $Info) (Join-Path $Dir 'PLAN.md')
     foreach ($warning in $warnings) { Write-Console "WARNING: $warning" -ForegroundColor Yellow }
-    Write-CiLog "Trello sync: $created card(s) created, $moved task(s) moved from the board, $cardsMoved card(s) moved to follow the plan, $imported task(s) added from the board, $archived card(s) archived"
-    Set-JsonField sync ([ordered]@{ board = $Board; created = $created; moved = $moved; cardsMoved = $cardsMoved; imported = $imported; archived = $archived; warnings = @($warnings) })
+    Write-CiLog "Project sync ($($ref.owner)/$($ref.number)): $created item(s) created, $moved task(s) moved from the board, $itemsMoved item(s) moved to follow the plan, $imported task(s) added from the board, $archived item(s) archived"
+    if ($madeProject) { Write-CiLog "Open the project and set its Board view to group by Column: gh project view $($ref.number) --owner $($ref.owner) --web" }
+    Set-JsonField sync ([ordered]@{ board = "$($ref.owner)/$($ref.number)"; created = $created; moved = $moved; itemsMoved = $itemsMoved; imported = $imported; archived = $archived; droppedTrelloLinks = $dropped; madeProject = $madeProject; warnings = @($warnings) })
 }
 
-function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string]$Title, [string]$Column, [string]$Board, [string]$Feature, [string]$Card, [string]$PlanProfile = 'full') {
+function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string]$Title, [string]$Column, [string]$Board, [string]$Feature, [string]$Item, [string]$PlanProfile = 'full') {
     $path = Get-PlanPath $Info
     $dir = Split-Path $path
     switch ($Action) {
@@ -643,8 +718,7 @@ function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string
             Set-JsonField task (Get-PlanTaskJson $task)
         }
         'remove' {
-            # Deletes a task. Its card, if it has one, is archived by the next plan -Do sync (trello.toArchive); with the
-            # Trello connector, /game archives it itself.
+            # Deletes a task. Its project item, if it has one, is archived by the next plan -Do sync (project.toArchive).
             if (-not $Id) { Stop-GodotCi 'plan -Do remove needs -Id <task id>' 'invalid-arguments' }
             $plan = Read-Plan $path
             $task = @($plan.tasks) | Where-Object { $_.id -eq $Id } | Select-Object -First 1
@@ -653,43 +727,42 @@ function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string
             $last = $plan.PSObject.Properties['lastTaskNumber'] ? [int]$plan.lastTaskNumber : 0
             $plan | Add-Member -NotePropertyName lastTaskNumber -NotePropertyValue ([math]::Max($number, $last)) -Force
             $plan.tasks = @(@($plan.tasks) | Where-Object { $_ -and $_.id -ne $Id })
-            $cardId = ($task.PSObject.Properties['cardId'] -and $task.cardId) ? "$($task.cardId)" : $null
-            if ($cardId) {
-                $plain = ConvertTo-TrelloId $cardId
-                Set-PlanArchiveList $plan (@(Get-PlanArchiveList $plan) + ($plain ? $plain : $cardId))
-            }
+            $itemId = ($task.PSObject.Properties['itemId'] -and $task.itemId) ? "$($task.itemId)" : $null
+            if ($itemId) { Set-PlanArchiveList $plan (@(Get-PlanArchiveList $plan) + $itemId) }
             Save-Plan $plan $path
             Write-PlanMarkdown $plan (Get-PlanState $plan $Info) (Join-Path $dir 'PLAN.md')
-            Write-CiLog "Removed $Id ($($task.title))$(if ($cardId) { "; its card $cardId is archived by the next plan -Do sync (or archive it with the Trello connector)" })"
+            Write-CiLog "Removed $Id ($($task.title))$(if ($itemId) { "; its project item $itemId is archived by the next plan -Do sync" })"
             Set-JsonField task (Get-PlanTaskJson $task)
         }
-        'sync' { Sync-PlanTrello $path $dir $Info $Board }
+        'sync' { Sync-PlanProject $path $dir $Info $Board }
         'link' {
-            # Ties a task to a GDD feature and/or a Trello card, and records the board's list for that card (-Column), so the
+            # Ties a task to a GDD feature and/or a project item, and records the board's column for that item (-Column), so the
             # next /game can tell a card the user moved from one it placed itself. -Board alone sets the plan's board.
             $plan = Read-Plan $path
             if ($Board) {
-                $Board = ConvertTo-TrelloBoard $Board
-                Set-PlanTrelloBoard $plan $Board
+                $ref = ConvertTo-ProjectRef $Board
+                if ($null -eq $ref.number) { Stop-GodotCi "plan -Do link -Board needs <owner>/<number> or the project's URL; plan -Do sync -Board $($ref.owner) makes a new project" 'invalid-arguments' }
+                $Board = "$($ref.owner)/$($ref.number)"
+                Set-PlanProject $plan $ref
                 if (-not $Id) {
                     Save-Plan $plan $path
-                    Write-CiLog "Trello board set to $Board"
+                    Write-CiLog "Project set to $Board"
                     break
                 }
             }
-            if (-not $Id -or (-not $Feature -and -not $Card -and -not $Column)) {
-                Stop-GodotCi 'plan -Do link needs -Board <board>, or -Id <task id> with -Feature <F id>, -Card <card id> and/or -Column <list>' 'invalid-arguments'
+            if (-not $Id -or (-not $Feature -and -not $Item -and -not $Column)) {
+                Stop-GodotCi 'plan -Do link needs -Board <board>, or -Id <task id> with -Feature <F id>, -Item <item id> and/or -Column <list>' 'invalid-arguments'
             }
             $task = @($plan.tasks) | Where-Object { $_.id -eq $Id } | Select-Object -First 1
             if (-not $task) { Stop-GodotCi "No task '$Id' in $path" 'unknown-task' }
-            $cardId = $Card ? (ConvertTo-TrelloCardId $Card) : $null
+            $itemId = $Item ? (ConvertTo-ProjectItemId $Item) : $null
             $column = $Column ? (Resolve-PlanColumn $plan $Column) : $null
             if ($Feature) { Assert-FeatureId $Feature; $task | Add-Member -NotePropertyName feature -NotePropertyValue $Feature -Force }
-            if ($cardId) { $task | Add-Member -NotePropertyName cardId -NotePropertyValue $cardId -Force }
+            if ($itemId) { $task | Add-Member -NotePropertyName itemId -NotePropertyValue $itemId -Force }
             if ($column) { $task | Add-Member -NotePropertyName boardColumn -NotePropertyValue $column -Force }
             Save-Plan $plan $path
             Write-PlanMarkdown $plan (Get-PlanState $plan $Info) (Join-Path $dir 'PLAN.md')
-            Write-CiLog "Linked $Id$(if ($Feature) { " to $Feature" })$(if ($cardId) { " to card $cardId" })$(if ($column) { " (on the board in $column)" })"
+            Write-CiLog "Linked $Id$(if ($Feature) { " to $Feature" })$(if ($itemId) { " to item $itemId" })$(if ($column) { " (on the board in $column)" })"
             Set-JsonField task (Get-PlanTaskJson $task)
         }
         default { }
@@ -707,7 +780,7 @@ function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string
         [ordered]@{ id = $_.id; name = $_.name; complete = $_.complete; gatesDone = @($_.gates | Where-Object done).Count; gatesTotal = $_.gates.Count } })
     Set-JsonField board $state.board
     Set-JsonField tasks @(@($plan.tasks) | Where-Object { $_ } | ForEach-Object { Get-PlanTaskJson $_ })
-    Set-JsonField trelloBoard ($plan.PSObject.Properties['trello'] -and $plan.trello -is [pscustomobject] -and $plan.trello.PSObject.Properties['board'] ? $plan.trello.board : $null)
+    Set-JsonField projectBoard (Get-PlanProjectBoard $plan)
     Set-JsonField release $state.release
     Set-JsonField warnings $state.warnings
 

@@ -1,14 +1,14 @@
 ---
 name: game
-description: Use when the user asks where the game stands, what to work on next, or to bring the plan and the Trello board up to date.
+description: Use when the user asks where the game stands, what to work on next, or to bring the plan and its GitHub Project up to date.
 disable-model-invocation: true
 ---
 
 # /game: where the game is, and what next
 
 `status` gathers the facts; you judge them, and every judgement cites its evidence. What you conclude goes into files
-the user can read (`docs/GDD.md`, `plan/STATUS.md`, `plan/plan.json`); the Trello board mirrors the plan, and when the
-user has moved a card, the user's move wins.
+the user can read (`docs/GDD.md`, `plan/STATUS.md`, `plan/plan.json`); the GitHub Project mirrors the plan, and when the
+user has moved an item, the user's move wins.
 
 ## 1. Facts
 
@@ -16,7 +16,7 @@ user has moved a card, the user's move wins.
 pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 status -Json      # add -Project <dir> when the game is not the current folder
 ```
 
-`features[]` (with `taggedTests`, `tasks`, `testedAndPassing`), `plan` (phase, open gates, tasks with `cardId` and
+`features[]` (with `taggedTests`, `tasks`, `testedAndPassing`), `plan` (phase, open gates, tasks with `itemId` and
 `boardColumn`), `runs` (latest run per command), `git`, `inventory`, `handoffs` (what the `godot-verifier` and
 `godot-architect` subagents were last asked and answered, newest first), `warnings`. If `runs.test` is missing or older than
 `git.lastCommit`, run `test -Json -Quiet` first so the evidence is current.
@@ -88,34 +88,33 @@ Every feature that is not proven and not `won't` needs a task:
 (`plan -Do move -Id t3 -Column done`). `plan -Do move` refuses `doing` past the work-in-progress limit; finish or move
 something back instead. A task for a feature the user dropped goes with `plan -Do remove -Id t3`.
 
-## 5. The Trello board (through the Trello connector; experimental)
+## 5. The GitHub Project
 
-The board is `plan.board`. If there is none, list the user's boards with the connector and ask which one; save it with
-`plan -Do link -Board <board id>`. Lists map to plan columns by name: Backlog, Design, To Do, Doing, Testing, Done.
-`-Column` takes either the column or the list's name, and `-Card` takes the card id or the ARI the connector returns.
+The project is `projectBoard` in `plan -Json` (`<owner>/<number>`), shown as `plan.board` in `status`. `plan -Do sync` does
+this whole step with the GitHub CLI (signed in with the project scope: `gh auth refresh -s project`), so no connector is
+needed. If there is no project yet, make one: `plan -Do sync -Board @me` (or the owner's login) creates a private project
+titled "<game> plan" with a Column field (Backlog, Design, To Do, Doing, Testing, Done), links it to the game's repository
+and puts every task on it; tell the user to set the project's Board view to group by Column (`gh project view <number>
+--owner <owner> --web`), which the CLI cannot do. To use a project that exists, `plan -Do link -Board <owner>/<number>`.
+`-Column` takes either the column or the option's name, and `-Item` takes a project item id (`PVTI_...`).
 
-1. Read every card on the board.
-2. A task with a `cardId` whose card is no longer in its `boardColumn` was moved by the user: the board wins.
-   `plan -Do move -Id <task> -Column <card's list>`, then `plan -Do link -Id <task> -Column <same list>`.
-3. A task with a `cardId` whose card is still in its `boardColumn`: move the card to the task's column if they differ,
-   then record it with `plan -Do link -Id <task> -Column <column>`.
-4. A task without a card: create one in its column's list, named after the task, with the description
-   `plan task <task id>, phase <phase>` (what `plan -Do sync` writes) and a second line `GDD: <feature>`; then
-   `plan -Do link -Id <task> -Card <card id> -Column <column>`.
-5. A card that no task's `cardId` names and whose description has no `plan task <id>` was added by the user: add a task
-   for it (`plan -Do add -Title <card name> -Column <list>`), link it, and if it is not in the GDD, raise it under the
-   scope rule below.
-6. A card that is gone (archived or deleted): leave the task as it is and mention it.
-7. A task you removed (`plan -Do remove` returns it as `task`): archive its card (`task.cardId`) with the connector.
+Run `plan -Do sync` and read `sync` in the result:
+- `moved` tasks were moved by the user on the board: the board wins, and the plan has been updated.
+- `itemsMoved` items followed a task you moved in the plan; `created` items are new tasks; `archived` items belonged to
+  removed tasks.
+- `imported` tasks are items the user added on the board; if one is not in the GDD, raise it under the scope rule below.
+- `warnings` name items that are gone or that the kit made for a task nobody links; mention them.
+- A plan left by the Trello sync loses its card ids on the first sync (`droppedTrelloLinks`) and every task gets an item.
 
-List every card you created or moved under "Board changes" in `STATUS.md`. If the connector is not available, skip this
-step and say so; `plan -Do sync` (REST, with `TRELLO_KEY`/`TRELLO_TOKEN`; also experimental) is the alternative.
+List every item created or moved under "Board changes" in `STATUS.md`. If `sync` fails with `project-credentials`, tell
+the user to run `gh auth refresh -s project` and carry on with the plan alone. The plugin's Stop hook runs the same sync
+after a turn that changed the plan (`HYPERDOT_PROJECT_SYNC=off` stops it), so the board is rarely behind.
 
 ## 6. What next
 
 End with one multiple-choice question: the three best next tasks, each with its reason in one line (must-haves first,
 then what unblocks the current phase's gates, then risks from `warnings` and the review), and "Something else". When the user picks
-one, move it to `doing` in the plan and on the board, and start it with `godot-test-loop`.
+one, move it to `doing` in the plan (the sync moves the item), and start it with `godot-test-loop`.
 
 ## Scope rules
 
