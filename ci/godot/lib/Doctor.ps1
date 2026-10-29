@@ -319,9 +319,7 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
         } else {
             $reported = (& $env:GODOT_BIN --version 2>$null | Select-Object -Last 1) -as [string]
             $wanted = "$version.$($release ? $release : 'stable')"
-            # A project that pins only major.minor ("4.7") runs on any patch release of it (4.7.2 reports 4.7.2.stable...).
-            $matchesVersion = $reported -and ($reported.StartsWith($wanted) -or ($version -match '^\d+\.\d+$' -and $reported -match ('^' + [regex]::Escape($version) + '\.\d+\.' + [regex]::Escape($release ? $release : 'stable') + '(\.|$)')))
-            if (-not $matchesVersion) {
+            if (-not $reported -or -not $reported.StartsWith($wanted)) {
                 Add-Check FAIL "GODOT_BIN is Godot $reported, but the project needs $($Info.GodotVersion)" "Point GODOT_BIN at Godot $($Info.GodotVersion)$(if ($isCSharp) { ' (.NET)' })"
             } elseif ($isCSharp -and $reported -notmatch '\.mono\.') {
                 Add-Check FAIL "GODOT_BIN is not the .NET (mono) build of Godot, which C# projects need: $env:GODOT_BIN" 'Use the Godot .NET download'

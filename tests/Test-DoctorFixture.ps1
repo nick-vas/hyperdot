@@ -58,7 +58,7 @@ try {
     $pad = @((Get-DoctorChecks $input) -match '^WARN Input actions with no gamepad binding')
     Assert-True ($pad.Count -eq 1 -and $pad[0] -match 'fire' -and $pad[0] -match 'click_fire' -and $pad[0] -notmatch 'zoom_in') "a wheel-only action is not asked for a gamepad binding: $pad"
 
-    # GODOT_BIN: a project that pins "4.7" accepts any 4.7.x, and a 4.6 one is refused (a stand-in that prints its version).
+    # GODOT_BIN: a project that pins "4.7" (the kit reads it as 4.7.2) accepts Godot 4.7.2, and a 4.6 one is refused (a stand-in that prints its version).
     if (-not $IsWindows) {
         $fake = Join-Path $work 'fake-godot'
         function Get-GodotBinChecks([string]$Version) {
@@ -68,7 +68,6 @@ try {
             try { return @(Get-DoctorChecks $fixture) } finally { $env:GODOT_BIN = $saved }
         }
         Assert-True (-not ((Get-GodotBinChecks '4.7.2.stable.official.abcdef123') -match 'GODOT_BIN is Godot')) 'a project pinning 4.7 accepts GODOT_BIN 4.7.2'
-        Assert-True (-not ((Get-GodotBinChecks '4.7.stable.official.abcdef123') -match 'GODOT_BIN is Godot')) 'a project pinning 4.7 accepts GODOT_BIN 4.7'
         Assert-True ([bool]((Get-GodotBinChecks '4.6.1.stable.official.abcdef123') -match '^FAIL GODOT_BIN is Godot 4\.6\.1')) 'a project pinning 4.7 refuses GODOT_BIN 4.6.1'
     }
 } finally {
