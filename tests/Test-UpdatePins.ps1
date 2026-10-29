@@ -56,6 +56,16 @@ function New-AddonSource([string]$Path, [hashtable]$Changes = @{}) {
     $source = @{}
     foreach ($a in (Get-Content -LiteralPath (Join-Path $root 'ci/godot/addons-status.json') -Raw | ConvertFrom-Json).addons) {
         $source[$a.repo] = @{ head = $a.head; archived = $a.archived; files = @{ $a.entrySymbolSource = "entry_symbol = `"$($a.entrySymbol)`"" } }
+        if ($a.PSObject.Properties['releaseZip']) {
+            # The newest release as the list recorded it: its zip holds the add-on's folder and .gdextension file.
+            $zipPath = Join-Path (Split-Path -Parent $Path) "$($a.id)-release.zip"
+            $inside = "$($a.releaseZip.prefix)$($a.folders[0])/$($a.gdextension)"
+            $stream = [System.IO.File]::Create($zipPath)
+            $zip = [System.IO.Compression.ZipArchive]::new($stream, [System.IO.Compression.ZipArchiveMode]::Create)
+            $writer = [System.IO.StreamWriter]::new($zip.CreateEntry($inside).Open()); $writer.Write('x'); $writer.Dispose()
+            $zip.Dispose(); $stream.Dispose()
+            $source[$a.repo].release = @{ tag = $a.releaseZip.tag; assets = @{ ($a.releaseZip.asset.Replace('{tag}', $a.releaseZip.tag)) = $zipPath } }
+        }
         if ($Changes.ContainsKey($a.repo)) { foreach ($k in $Changes[$a.repo].Keys) { $source[$a.repo][$k] = $Changes[$a.repo][$k] } }
     }
     $source | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $Path

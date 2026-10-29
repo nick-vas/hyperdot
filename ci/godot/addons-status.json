@@ -1,6 +1,6 @@
 {
   "schema": "hyperdot-addons-status/1",
-  "about": "Add-ons doctor warns about (lib/Addons.ps1): found by their folder under addons/, or by a .gdextension with their file name and entry_symbol. Refreshed by ci/godot/tools/Update-AddonStatus.ps1, which the weekly canary runs: head and archived are updated there, a status needs a person (docs/addons.md).",
+  "about": "Add-ons doctor warns about (lib/Addons.ps1): found by their folder under addons/, or by a .gdextension with their file name and entry_symbol. Refreshed by ci/godot/tools/Update-AddonStatus.ps1, which the weekly canary runs: head, archived and the newest release's tag are updated there (releaseZip: the newest release's zip is listed and its folder and .gdextension compared with the entry), a status needs a person (docs/addons.md).",
   "addons": [
     {
       "id": "godot-jolt",
@@ -18,7 +18,13 @@
       "fix": "Set 3d/physics_engine=\"Jolt Physics\" (built in since 4.4), remove addons/godot-jolt, and replace its substitute joints (docs/addons.md)",
       "archived": null,
       "head": "7f225894706bb923e9ab9e9c73152b71880c5a83",
-      "confirmed": "2026-10-23 from the repository at 7f22589 (2026-02-14), not a release zip (GitHub's release downloads were out of reach): folder addons/godot-jolt (CMakeLists.txt, addon_dir), file godot-jolt.gdextension (cmake/GodotJoltUtilities.cmake), entry_symbol godot_jolt_main and Godot 4.3 to 4.6 (cmake/GodotJoltVersionInfo.cmake); newest tag v0.16.0-stable. archived not read (the GitHub API was out of reach)"
+      "releaseZip": {
+        "tag": "v0.16.0-stable",
+        "asset": "godot-jolt_{tag}.zip",
+        "prefix": "",
+        "checked": "2026-10-29"
+      },
+      "confirmed": "2026-10-23 from the repository at 7f22589 (2026-02-14): folder addons/godot-jolt (CMakeLists.txt, addon_dir), file godot-jolt.gdextension (cmake/GodotJoltUtilities.cmake), entry_symbol godot_jolt_main and Godot 4.3 to 4.6 (cmake/GodotJoltVersionInfo.cmake); newest tag v0.16.0-stable. 2026-10-29 from the release zip godot-jolt_v0.16.0-stable.zip (listed, not run): addons/godot-jolt/ holds godot-jolt.gdextension (entry_symbol godot_jolt_main, compatibility 4.3 to 4.6). archived not read: GitHub's API and repository pages answered 403 from the sandbox that checked"
     },
     {
       "id": "godot-steam-audio",
@@ -36,7 +42,13 @@
       "fix": "Do not ship it: use Godot's own AudioStreamPlayer3D attenuation and Area3D reverb buses, and remove addons/godot-steam-audio (docs/addons.md)",
       "archived": true,
       "head": "8f65c29b21c1d8cdbf2d6dbfc53c92ef95dd2a93",
-      "confirmed": "2026-10-23 from the repository at 8f65c29 (2026-04-10), not a release zip (GitHub's release downloads were out of reach): folder, file name and entry_symbol init_extension from project/addons/godot-steam-audio/bin/libgodot-steam-audio.gdextension (compatibility_minimum 4.3); newest tag 0.3.1. archived as read from GitHub on 2026-10-22 (docs/addons.md), not read again"
+      "releaseZip": {
+        "tag": "0.3.1",
+        "asset": "godot-steam-audio-v{tag}.zip",
+        "prefix": "",
+        "checked": "2026-10-29"
+      },
+      "confirmed": "2026-10-23 from the repository at 8f65c29 (2026-04-10): folder, file name and entry_symbol init_extension from project/addons/godot-steam-audio/bin/libgodot-steam-audio.gdextension (compatibility_minimum 4.3); newest tag 0.3.1. 2026-10-29 from the release zip godot-steam-audio-v0.3.1.zip (listed, not run): addons/godot-steam-audio/bin/libgodot-steam-audio.gdextension (entry_symbol init_extension). archived as read from GitHub on 2026-10-22 (docs/addons.md), not read again (the API answered 403 on 2026-10-29)"
     },
     {
       "id": "godot-perfbullets",
@@ -54,7 +66,7 @@
       "fix": "Draw bullets with a MultiMeshInstance2D in the game's own code, and remove addons/PerfBullets (docs/addons.md)",
       "archived": null,
       "head": "80829fb0cf4152d21380e622443cca69b8b59e66",
-      "confirmed": "2026-10-23 from the repository at 80829fb (2025-03-05), which has no tags or releases: folder addons/PerfBullets (with plugin.cfg), file spawner.gdextension and entry_symbol spawner_library_init (compatibility_minimum 4.1) from addons/PerfBullets/bin/spawner.gdextension. archived not read (the GitHub API was out of reach)"
+      "confirmed": "2026-10-23 from the repository at 80829fb (2025-03-05), which has no tags or releases: folder addons/PerfBullets (with plugin.cfg), file spawner.gdextension and entry_symbol spawner_library_init (compatibility_minimum 4.1) from addons/PerfBullets/bin/spawner.gdextension. No release zip exists to check (no tags or releases on 2026-10-29), so there is no releaseZip. archived not read: GitHub's API and repository pages answered 403 from the sandbox that checked"
     },
     {
       "id": "py4godot",
@@ -72,7 +84,13 @@
       "fix": "Write the game's code in GDScript or C#, and keep py4godot to experiments (docs/addons.md)",
       "archived": null,
       "head": "5cdce6db9987a492d4b4b8f60c1dffa03c26c848",
-      "confirmed": "2026-10-23 from the repository at 5cdce6d (2026-10-08), not a release zip (GitHub's release downloads were out of reach): folder addons/py4godot and file python.gdextension (create_plugin.py), entry_symbol initialize_pythonscript and compatibility_minimum 4.7.0 (build_resources/gdextension_template.gdextension); newest tag 4.7-alpha21. archived not read (the GitHub API was out of reach)"
+      "releaseZip": {
+        "tag": "4.7-alpha21",
+        "asset": "py4godot.zip",
+        "prefix": "install_dir/",
+        "checked": "2026-10-29"
+      },
+      "confirmed": "2026-10-23 from the repository at 5cdce6d (2026-10-08): folder addons/py4godot and file python.gdextension (create_plugin.py), entry_symbol initialize_pythonscript and compatibility_minimum 4.7.0 (build_resources/gdextension_template.gdextension); newest tag 4.7-alpha21. 2026-10-29 from the release zip py4godot.zip (listed, not run; 243 MB): install_dir/addons/py4godot/python.gdextension (entry_symbol initialize_pythonscript, compatibility_minimum 4.7.0); the folder to copy is install_dir/addons/py4godot. archived not read: GitHub's API and repository pages answered 403 from the sandbox that checked"
     }
   ]
 }
