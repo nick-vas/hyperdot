@@ -54,8 +54,8 @@ try {
     Assert-True ([bool]((Get-DoctorChecks $other) -match $physics)) 'Engine.max_fps at another rate still warns'
 
     # Input actions: the mouse wheel has no gamepad equivalent to ask for; a key-only action is still named.
-    $input = New-FixtureCopy 'input' { param($t) $t -replace '(?m)^\[input\]\s*$', "[input]`n`nzoom_in={`n`"deadzone`": 0.5,`n`"events`": [Object(InputEventMouseButton,`"resource_local_to_scene`":false,`"button_index`":4,`"pressed`":true,`"canceled`":false)]`n}`nfire={`n`"deadzone`": 0.5,`n`"events`": [Object(InputEventKey,`"resource_local_to_scene`":false,`"physical_keycode`":32,`"echo`":false)]`n}`nclick_fire={`n`"deadzone`": 0.5,`n`"events`": [Object(InputEventMouseButton,`"resource_local_to_scene`":false,`"button_index`":1,`"pressed`":true,`"canceled`":false)]`n}" }
-    $pad = @((Get-DoctorChecks $input) -match '^WARN Input actions with no gamepad binding')
+    $inputCopy = New-FixtureCopy 'input' { param($t) $t -replace '(?m)^\[input\]\s*$', "[input]`n`nzoom_in={`n`"deadzone`": 0.5,`n`"events`": [Object(InputEventMouseButton,`"resource_local_to_scene`":false,`"button_index`":4,`"pressed`":true,`"canceled`":false)]`n}`nfire={`n`"deadzone`": 0.5,`n`"events`": [Object(InputEventKey,`"resource_local_to_scene`":false,`"physical_keycode`":32,`"echo`":false)]`n}`nclick_fire={`n`"deadzone`": 0.5,`n`"events`": [Object(InputEventMouseButton,`"resource_local_to_scene`":false,`"button_index`":1,`"pressed`":true,`"canceled`":false)]`n}" }
+    $pad = @((Get-DoctorChecks $inputCopy) -match '^WARN Input actions with no gamepad binding')
     Assert-True ($pad.Count -eq 1 -and $pad[0] -match 'fire' -and $pad[0] -match 'click_fire' -and $pad[0] -notmatch 'zoom_in') "a wheel-only action is not asked for a gamepad binding: $pad"
 
     # GODOT_BIN: a project that pins "4.7" (the kit reads it as 4.7.2) accepts Godot 4.7.2, and a 4.6 one is refused (a stand-in that prints its version).
