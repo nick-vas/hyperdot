@@ -16,7 +16,7 @@ sources disagree. Everything else was read in the source named.
 | [Steamworks: store graphical assets](https://partner.steamgames.com/doc/store/assets) (and the standard, library, community and rules pages under it) | Capsule, library and screenshot sizes since August 2024 ("Old dimensions are no longer accepted"); the rules for text on capsules (effective 1 September 2022) |
 | [Steamworks: trailers](https://partner.steamgames.com/doc/store/trailer) | Upload formats, the order trailers and screenshots appear in, the 6-second microtrailer built from the first video, no release while a trailer encodes |
 | [Steamworks: description](https://partner.steamgames.com/doc/store/page/description), [tags](https://partner.steamgames.com/doc/store/tags) | Short description "limited to a few hundred characters", plain text, mention the genre; at least 5 tags before launch, up to 20 |
-| [Steamworks: onboarding](https://partner.steamgames.com/doc/gettingstarted/onboarding), [app fee](https://partner.steamgames.com/doc/gettingstarted/appfee) | US$100 per app, recouped after US$1,000; 21 days between paying and releasing |
+| [Steamworks: onboarding](https://partner.steamgames.com/doc/gettingstarted/onboarding), [app fee](https://partner.steamgames.com/doc/gettingstarted/appfee) | US$100 per app, recouped after US$1,000 of adjusted gross revenue (the fee itself is not refundable); 21 days between paying and releasing, which Valve lists among the timing rules "before you can release your first few titles" |
 | [Steamworks: releasing](https://partner.steamgames.com/doc/store/releasing), [review process](https://partner.steamgames.com/doc/store/review_process), [coming soon](https://partner.steamgames.com/doc/store/coming_soon), [release dates](https://partner.steamgames.com/doc/store/release_dates) | A Coming Soon page for at least two weeks; 3 to 5 business days per review, submit 7 ahead, the page before the build; the date freezes two weeks out; the manual Release App button |
 | [Steamworks: wishlists](https://partner.steamgames.com/doc/marketing/wishlist) | When wishlist emails go out; "two years ahead ... just as likely to purchase as ... two weeks ahead" |
 | [Steamworks: Steam Next Fest](https://partner.steamgames.com/doc/marketing/upcoming_events/nextfest) and the February 2027 page | One Next Fest per game; the workback (demo review 3 weeks before, 5 for the press preview); February 2027: register by January 10, runs February 22 to March 1 |
@@ -60,8 +60,9 @@ Each uses only the rules above; where the sources give no number, the check repo
 - **Trailers** (`doctor`, `store/steam/trailer*` with a video extension, read with `ffprobe`; without it, one warning
   says they were not checked): warns on video other than H.264, audio other than AAC or at a rate other than 44.1 or
   48 kHz, a frame rate other than 30 or 60 (29.97 and 59.94 count), and a size over 1920x1080, as `godot-store-page`
-  quotes the trailer page. Container, length and size are reported as INFO: the sources give no container, length or
-  minimum size.
+  quotes the trailer page. Container, length and size are reported as INFO. The trailer page does name containers (.mov, .wmv,
+  .mp4), a high bitrate (5,000+ Kbps), 16:9 preferred with 4:3 accepted, and H.264 video with AAC audio as preferred
+  because Steam "can transcode from many formats"; it gives no length.
 - **Tags** (`doctor`, `store/steam/tags.txt`, one tag per line): warns on fewer than 5 (before launch), more than 20,
   a tag listed twice (any case) and a line that looks like several tags (a comma, semicolon, bar or tab); "Indie" in
   the first five is INFO (Zukowski).
@@ -108,8 +109,9 @@ Each uses only the rules above; where the sources give no number, the check repo
 ## Unconfirmed or not reached
 
 - The short description's exact limit (300 characters is from third parties) and the capsules' file formats and size caps.
-- Whether a trailer is still required for Steam's review: the trailer page says so, the Coming Soon page says "ideally",
-  and Zukowski (March 2025) says Valve removed the requirement.
+- Whether Zukowski's March 2025 statement that Valve removed the trailer requirement holds: the trailer page ("you will be
+  required to upload a trailer") and the quickstart table ("Trailers are required to release on Steam") both say it is
+  required, and the Coming Soon page only says "ideally". Treat a trailer as required until a Valve page says otherwise.
 - How a custom EULA is configured on Steam, and whether Steam requires a game's own privacy policy (not in public pages).
 - Whether Steam's DRM wrapper counts as an "effective technological measure" under CC BY 3.0 and 4.0 (OGA-BY exists
   because artists objected to that clause): a legal question, flagged rather than answered.

@@ -81,14 +81,19 @@ client and no Steamworks partner account. Marks: **tested** means run here, **do
 
 - `RunCallbacks`: "Most games call this once per render-frame"; listeners run "in the callers thread context" (doc).
 - `RequestCurrentStats` is deprecated: "the Steam client will have loaded stats and achievements for your game prior to
-  launch" (doc); Steamworks.NET 1.65 and GodotSteam 4.23 no longer have it.
+  launch" (doc); Steamworks.NET 1.65 and GodotSteam 4.23 no longer have it. Valve's `features/achievements/stats_guide` page
+  still teaches calling it first, and `ResetAllStats` still says to resync with it: those pages are stale against the SDK, so
+  the `steam-removed-api` finding is right, and after a `ResetAllStats` in a test the stats are read again instead.
 - `SetAchievement` and `SetStat` are "very cheap"; `StoreStats` "can be rate limited. Call frequency should be on the
   order of minutes" and "is required to display the achievement unlock notification dialog" (doc).
 - `IndicateAchievementProgress`: "Calling this function will NOT set the progress or unlock the achievement" (doc).
 - Leaderboards: `KeepBest` keeps the best for the board's sort order, `ForceUpdate` always replaces; uploads are "rate
   limited to 10 uploads per 10 minutes" with one outstanding call. A "Trusted" board takes scores only through the
   `SetLeaderboardScore` Web API, which "MUST be called from a secure server" (doc).
-- Rich presence: at most 20 keys, keys up to 64 characters, values up to 256. If `steam_display` "is not set to a valid
+- Rich presence: Valve's two sources disagree on the key count. The `ISteamFriends` page says up to 20 keys, in the text and
+  in its constants table (`k_cchMaxRichPresenceKeys`); the SDK 1.65 header `isteamfriends.h` (line 123) defines the same
+  constant as 30. Which one the Steam client enforces was not measured, so design for 20 (the C# example caps at 20).
+  Keys up to 64 characters, values up to 256, in both. If `steam_display` "is not set to a valid
   localization tag, then rich presence will not be displayed"; a token missing in a language falls back to English, and
   a `%key%` that is not set shows nothing (doc).
 - Authentication: `GetAuthTicketForWebApi` on the client, `AuthenticateUserTicket` on the server, `CheckAppOwnership`
@@ -100,8 +105,12 @@ client and no Steamworks partner account. Marks: **tested** means run here, **do
 
 ## Cloud, DLC, depots and branches (doc)
 
-- Auto-Cloud: "Steam will automatically sync the groups of files when the application launches and exits". Roots per OS
-  include `WinAppDataRoaming`, `LinuxXdgDataHome` and `MacAppSupport`; quotas per user are set in App Admin. Godot's
+- Auto-Cloud: "Steam will automatically sync the groups of files when the application launches and exits". Valve
+  lists twelve roots: `App Install Directory`, `SteamCloudDocuments` (a path Steam picks per OS), `WinMyDocuments`,
+  `WinAppDataLocal`, `WinAppDataLocalLow`, `WinAppDataRoaming`, `WinSavedGames`, `MacHome`, `MacAppSupport`, `MacDocuments`,
+  `LinuxHome` and `LinuxXdgDataHome`. Leave a root's OS Restriction at its default, Cross-Platform; where the folder differs
+  per OS, add Root Overrides (with an Add/Replace Path) instead. The byte quota and the file-count quota per user are two
+  settings in App Admin. Godot's
   `user://` lives under those roots (`%APPDATA%`, `~/.local/share`, `~/Library/Application Support`), but the mapping
   was not tested end to end.
 - "The Steam Cloud conflict window will be shown when a game is launched" and shows dates. Offline Mode "is
@@ -127,7 +136,10 @@ client and no Steamworks partner account. Marks: **tested** means run here, **do
 ## Steam Deck (doc and tested)
 
 - One review rates the game for Steam Deck, Steam Machine and other SteamOS devices: "Any game that is Verified on Steam
-  Deck is guaranteed to be Verified on Steam Machine as well". Display tests (resolution, text size) are Deck only.
+  Deck is guaranteed to be Verified on Steam Machine as well". Display tests (resolution, text size) are Deck only. Steam Frame has a review of its own
+  (`steamhardware/steamframe/compat`: Verified, Playable, Unsupported or Unknown, standalone Frame only), so the sentence above
+  does not reach it. Do not mix up two sets of numbers: `IsRunningOnSteamHardware()` returns 0 (none), 1 (Deck), 2 (Machine) or
+  3 (Frame) (`isteamutils.h`, SDK 1.65), while the hardware default configuration uses 5, 6 and 7 below.
 - The text rule: "the smallest on-screen font character should never fall below 9 pixels in height at 1280x800", 12
   recommended. Valve does not say whether that is the font size or the letters' drawn height.
 - Recommendations: gyro and trackpads arrive as mouse input alongside the sticks, so switch prompts to keyboard and mouse

@@ -38,7 +38,8 @@ server deciding everything that matters; client-side software is a later, costly
 ## 3. Leaderboards and achievements
 
 - Steam: set a leaderboard's writes to "Trusted" so only the Web API (your server) sets scores, and stats and
-  achievements to "GS" so only a game server sets them. Client-set values are trivial to fake.
+  achievements to "GS" so only a game server sets them. "Official GS" needs your official servers' IP range in App Admin
+  (Dedicated Servers), and the server calls `RequestUserStats` first; a failure shows only as `false`. Client-set values are trivial to fake.
 - Verify a score by replaying it: the client sends the seed and the inputs, the server re-simulates and accepts only a
   matching score. That needs a deterministic simulation; nothing promises Godot's physics is deterministic across machines
   (`godot-determinism`, the C# example's `DeterminismCheck.Verify`).
