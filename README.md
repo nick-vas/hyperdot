@@ -407,6 +407,7 @@ address, built from these files on every change ([docs/site.md](docs/site.md)).
 - [docs/modding.md](docs/modding.md): PCK and ZIP mods, C# mods, Steam Workshop, mod.io
 - [docs/debug-tools.md](docs/debug-tools.md): cheats, consoles and overlays that stay out of release builds
 - [docs/addons.md](docs/addons.md): popular add-ons and GDExtensions, and C# access to them
+- [docs/dialogue-tools.md](docs/dialogue-tools.md): Dialogue Manager, Yarn Spinner, godot-ink, Dialogic and inkgd compared from their repositories
 
 **Shipping**
 - [docs/profiling-and-builds.md](docs/profiling-and-builds.md): C# profiling, GC, versions, signing, store uploads

@@ -1,0 +1,1 @@
+Added: `docs/dialogue-tools.md` compares Dialogue Manager, Yarn Spinner for Godot, godot-ink, Dialogic 2 and inkgd from their repositories (licence, latest release, stated Godot and C# support, what a project takes on), and the `godot-narrative` skill points to it; none was built or run here.

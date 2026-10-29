@@ -141,6 +141,16 @@ of four letters or more are checked; the same word in capitals is fine.
                             "giver": { "ref": "characters" }, "critical": { "type": "bool" } } }
 ```
 
+## A dialogue tool
+
+Which tool runs the branching conversations is read from each repository in
+`${CLAUDE_PLUGIN_ROOT}/docs/dialogue-tools.md` (checked 2026-10-29; none has been run here). For a C# game on 4.7.2 two are
+current and MIT-licensed: Dialogue Manager 4 (a C# wrapper over a GDScript runtime, Godot 4.6 or newer) and Yarn Spinner for
+Godot (C#, more NuGet dependencies). godot-ink's last release is from 2024 and its build downloads from GitHub; Dialogic 2 is an
+alpha with its own resources; inkgd has no Godot 4 release. Whichever the game picks, keep the dialogue in text files in the
+repository, keep names to the bible's spellings (the `names` rule reads `.dialogue`, `.yarn` and `.ink` files as text if their
+folder is in `files`), and try one conversation headless in a copy of the project before building on it.
+
 ## In a review
 
 - New text checked against the bible, the timeline and `reserved.md`; contradictions logged in `decisions.md`.
