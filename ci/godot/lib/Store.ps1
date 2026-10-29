@@ -1,6 +1,7 @@
 # Store art checked against the platform's rules, read by doctor when the project has a store/steam folder (with a
 # .gdignore, so Godot neither imports nor exports it). Sizes from Steamworks' graphical assets pages (read 2026-10-21;
-# they changed in August 2024 and "Old dimensions are no longer accepted"). Only PNG and JPEG headers are read.
+# they changed in August 2024 and "Old dimensions are no longer accepted"). Only PNG and JPEG headers are read, and the
+# directory of an ICO (the shortcut icon may be ICO or PNG: assets/community).
 # File name (without extension) -> rule. Exact sizes unless noted. Screenshots: at least 1920x1080, 16:9, at least 5.
 $script:SteamAssetRules = [ordered]@{
     header_capsule  = @{ Width = 920;  Height = 430 }
@@ -14,6 +15,37 @@ $script:SteamAssetRules = [ordered]@{
     library_logo    = @{ LogoRule = $true; Format = 'png' }          # 1280 wide and/or 720 tall, transparent
     shortcut_icon   = @{ Square = @(256, 512) }                      # .ico or .png
     app_icon        = @{ Width = 184;  Height = 184; Format = 'jpeg' }
+}
+
+# The Steam API language names (store/localization/languages). A screenshot file may end in one of them as a hint for the
+# page editor (foo_japanese.jpg, assets/standard): such a file is a localized variant of foo, not another screenshot.
+$script:SteamLanguages = 'arabic', 'brazilian', 'bulgarian', 'czech', 'danish', 'dutch', 'english', 'finnish', 'french', 'german', 'greek',
+    'hungarian', 'indonesian', 'italian', 'japanese', 'koreana', 'latam', 'malay', 'norwegian', 'polish', 'portuguese', 'romanian',
+    'russian', 'schinese', 'spanish', 'swedish', 'tchinese', 'thai', 'turkish', 'ukrainian', 'vietnamese'
+function Get-ScreenshotBase([string]$BaseName) {
+    foreach ($language in $script:SteamLanguages) {
+        if ($BaseName -match "^(?<base>.+)_$language$") { return $Matches.base.ToLowerInvariant() }
+    }
+    return $BaseName.ToLowerInvariant()
+}
+# The distinct screenshots among files: a localized variant counts with its base.
+function Get-DistinctScreenshots($Files) {
+    $bases = @{}
+    foreach ($file in @($Files | Where-Object { $_.BaseName -like 'screenshot*' })) { $bases[(Get-ScreenshotBase $file.BaseName)] = $true }
+    return @($bases.Keys)
+}
+
+# The image sizes an ICO file lists in its directory (a 0 stands for 256), or $null when it is not an ICO.
+function Get-IcoSizes([string]$Path) {
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    if ($bytes.Length -lt 22 -or $bytes[0] -ne 0 -or $bytes[1] -ne 0 -or $bytes[2] -ne 1 -or $bytes[3] -ne 0) { return $null }
+    $count = [int]$bytes[4] + ([int]$bytes[5] -shl 8)
+    $sizes = [System.Collections.Generic.List[string]]::new()
+    for ($i = 0; $i -lt $count -and (6 + 16 * $i + 16) -le $bytes.Length; $i++) {
+        $w = [int]$bytes[6 + 16 * $i]; $h = [int]$bytes[7 + 16 * $i]
+        $sizes.Add("$($w -eq 0 ? 256 : $w)x$($h -eq 0 ? 256 : $h)")
+    }
+    return @($sizes)
 }
 
 # A PNG is transparent with an alpha channel (colour types 4 and 6) or a tRNS chunk before the image data, which is how
@@ -57,12 +89,18 @@ function Get-ImageInfo([string]$Path) {
 
 function Test-SteamStoreAssets([string]$Folder) {
     $problems = [System.Collections.Generic.List[object]]::new()
-    $files = @(Get-ChildItem -LiteralPath $Folder -File | Where-Object { $_.Extension -in '.png', '.jpg', '.jpeg' })
+    $files = @(Get-ChildItem -LiteralPath $Folder -File | Where-Object { $_.Extension -in '.png', '.jpg', '.jpeg', '.ico' })
     foreach ($name in $script:SteamAssetRules.Keys) {
         $rule = $script:SteamAssetRules[$name]
-        $file = @($files | Where-Object { $_.BaseName -eq $name }) | Select-Object -First 1
+        $file = @($files | Where-Object { $_.BaseName -eq $name -and ($_.Extension -ne '.ico' -or $name -eq 'shortcut_icon') }) | Select-Object -First 1
         if (-not $file) {
             if (-not $rule['Optional']) { $problems.Add([ordered]@{ code = 'asset-missing'; asset = $name; message = "$name is required" }) }
+            continue
+        }
+        if ($file.Extension -eq '.ico') {
+            $icoSizes = Get-IcoSizes $file.FullName
+            if ($null -eq $icoSizes) { $problems.Add([ordered]@{ code = 'asset-unreadable'; asset = $name; message = "$($file.Name) is not an ICO file" }) }
+            elseif ('256x256' -notin $icoSizes) { $problems.Add([ordered]@{ code = 'asset-size'; asset = $name; message = "$($file.Name) must hold a 256x256 image, holds $(if ($icoSizes.Count) { $icoSizes -join ', ' } else { 'none' })" }) }
             continue
         }
         $info = Get-ImageInfo $file.FullName
@@ -78,8 +116,9 @@ function Test-SteamStoreAssets([string]$Folder) {
             $problems.Add([ordered]@{ code = 'asset-size'; asset = $name; message = "$name must be $($rule['Width'])x$($rule['Height']), is $size" })
         }
     }
-    $shots = @($files | Where-Object { $_.BaseName -like 'screenshot*' })
-    if ($shots.Count -lt 5) { $problems.Add([ordered]@{ code = 'screenshots-count'; asset = 'screenshot*'; message = "at least 5 screenshots, found $($shots.Count)" }) }
+    $shots = @($files | Where-Object { $_.BaseName -like 'screenshot*' -and $_.Extension -ne '.ico' })
+    $distinct = @(Get-DistinctScreenshots $shots)
+    if ($distinct.Count -lt 5) { $problems.Add([ordered]@{ code = 'screenshots-count'; asset = 'screenshot*'; message = "at least 5 screenshots, found $($distinct.Count)$(if ($shots.Count -ne $distinct.Count) { " ($($shots.Count) files, localized variants counted with their screenshot)" })" }) }
     foreach ($shot in $shots) {
         $info = Get-ImageInfo $shot.FullName
         if (-not $info) { continue }
@@ -114,7 +153,7 @@ function Test-PressKit([string]$Folder) {
             $problems.Add([ordered]@{ code = 'press-missing'; asset = $name; message = "$name ($what) is missing" })
         }
     }
-    $shots = @($images | Where-Object { $_.BaseName -like 'screenshot*' })
+    $shots = @(Get-DistinctScreenshots $images)
     if ($shots.Count -lt 6 -or $shots.Count -gt 10) {
         $problems.Add([ordered]@{ code = 'press-screenshots-count'; asset = 'screenshot*'; message = "6 to 10 screenshots, found $($shots.Count)" })
     }
@@ -128,8 +167,11 @@ function Test-PressKit([string]$Folder) {
 }
 
 # Trailers in store/steam (trailer*), read with ffprobe. The limits are the ones godot-store-page quotes from Steamworks'
-# trailer page: H.264 video and AAC audio, 30 or 60 fps, 44.1 or 48 kHz, up to 1920x1080. The kit's sources state no
-# container, length or minimum size, so those are only reported.
+# trailer page: 30 or 60 fps, 44.1 or 48 kHz, up to 1920x1080 are warnings, because an odd size and an unsupported audio
+# sample rate are what Valve names as the commonest failures. H.264 video and AAC audio are only "preferred" (Steam can
+# transcode many formats), so another codec is INFO, like a bitrate under 5,000 Kbps or an aspect ratio other than 16:9 or
+# 4:3. The page names .mov, .wmv and .mp4 and gives no length; the other extensions are read too, and the container and
+# length are only reported.
 $script:TrailerExtensions = '.mp4', '.mov', '.m4v', '.webm', '.mkv', '.avi', '.wmv', '.mpg', '.mpeg'
 function Get-TrailerFiles([string]$Folder) {
     return @(Get-ChildItem -LiteralPath $Folder -File | Where-Object { $_.BaseName -like 'trailer*' -and $_.Extension.ToLowerInvariant() -in $script:TrailerExtensions } | Sort-Object Name)
@@ -140,14 +182,14 @@ function Test-SteamTrailers([string]$Folder) {
     $trailers = [System.Collections.Generic.List[object]]::new()
     $invariant = [cultureinfo]::InvariantCulture
     foreach ($file in @(Get-TrailerFiles $Folder)) {
-        $output = @(& ffprobe -v error -show_entries 'format=format_name,duration:stream=codec_type,codec_name,width,height,avg_frame_rate,sample_rate' -of json $file.FullName 2>$null)
+        $output = @(& ffprobe -v error -show_entries 'format=format_name,duration,bit_rate:stream=codec_type,codec_name,width,height,avg_frame_rate,sample_rate' -of json $file.FullName 2>$null)
         $data = $null
         if ($LASTEXITCODE -eq 0) {
             try { $data = ($output -join "`n") | ConvertFrom-Json -AsHashtable } catch { $data = $null }
         }
         $streams = @(if ($data -and $data['streams']) { $data['streams'] })
         $video = @($streams | Where-Object { $_['codec_type'] -eq 'video' }) | Select-Object -First 1
-        if (-not $video) { $problems.Add([ordered]@{ code = 'trailer-unreadable'; asset = $file.Name; message = "ffprobe finds no video in $($file.Name)" }); continue }
+        if (-not $video) { $problems.Add([ordered]@{ code = 'trailer-unreadable'; status = 'WARN'; asset = $file.Name; message = "ffprobe finds no video in $($file.Name)" }); continue }
         $audio = @($streams | Where-Object { $_['codec_type'] -eq 'audio' }) | Select-Object -First 1
         $fps = 0.0
         if ("$($video['avg_frame_rate'])" -match '^(?<n>\d+)/(?<d>\d+)$' -and [double]$Matches.d -gt 0) { $fps = [math]::Round([double]$Matches.n / [double]$Matches.d, 3) }
@@ -159,17 +201,24 @@ function Test-SteamTrailers([string]$Folder) {
             videoCodec = "$($video['codec_name'])"; width = [int]$video['width']; height = [int]$video['height']; fps = $fps
             audioCodec = ($audio ? "$($audio['codec_name'])" : $null); sampleRate = ($audio ? [int]$audio['sample_rate'] : $null) }
         $trailers.Add($info)
-        if ($info.videoCodec -ne 'h264') { $problems.Add([ordered]@{ code = 'trailer-codec'; asset = $file.Name; message = "$($file.Name) is $($info.videoCodec) video; Steam's trailer page asks for H.264" }) }
-        if ($audio -and $info.audioCodec -ne 'aac') { $problems.Add([ordered]@{ code = 'trailer-audio'; asset = $file.Name; message = "$($file.Name) has $($info.audioCodec) audio; Steam's trailer page asks for AAC" }) }
-        if ($audio -and $info.sampleRate -notin 44100, 48000) { $problems.Add([ordered]@{ code = 'trailer-audio'; asset = $file.Name; message = "$($file.Name) has audio at $($info.sampleRate) Hz; Steam's trailer page asks for 44.1 or 48 kHz" }) }
+        if ($info.videoCodec -ne 'h264') { $problems.Add([ordered]@{ code = 'trailer-codec'; status = 'INFO'; asset = $file.Name; message = "$($file.Name) is $($info.videoCodec) video; Steam prefers H.264 but can transcode many formats" }) }
+        if ($audio -and $info.audioCodec -ne 'aac') { $problems.Add([ordered]@{ code = 'trailer-audio'; status = 'INFO'; asset = $file.Name; message = "$($file.Name) has $($info.audioCodec) audio; Steam prefers AAC but can transcode many formats" }) }
+        if ($audio -and $info.sampleRate -notin 44100, 48000) { $problems.Add([ordered]@{ code = 'trailer-audio'; status = 'WARN'; asset = $file.Name; message = "$($file.Name) has audio at $($info.sampleRate) Hz; Steam's trailer page asks for 44.1 or 48 kHz and names an unsupported sample rate as a common failure" }) }
+        $bitRate = 0.0
+        if ($data['format'] -and $data['format'].ContainsKey('bit_rate')) { [void][double]::TryParse("$($data['format']['bit_rate'])", [System.Globalization.NumberStyles]::Float, $invariant, [ref]$bitRate) }
+        if ($bitRate -gt 0 -and $bitRate -lt 5000000) { $problems.Add([ordered]@{ code = 'trailer-bitrate'; status = 'INFO'; asset = $file.Name; message = "$($file.Name) is about $([math]::Round($bitRate / 1000)) Kbps; Steam's trailer page asks for a high bitrate (5,000+ Kbps)" }) }
+        if ($info.width -gt 0 -and $info.height -gt 0 -and ($info.width * 9) -ne ($info.height * 16) -and ($info.width * 3) -ne ($info.height * 4)) {
+            $problems.Add([ordered]@{ code = 'trailer-aspect'; status = 'INFO'; asset = $file.Name; message = "$($file.Name) is $($info.width)x$($info.height); Steam prefers 16:9 and accepts 4:3" })
+        }
         $standard = @(30, 60 | Where-Object { [math]::Abs($fps - $_) -lt 0.1 })
-        if ($standard.Count -eq 0) { $problems.Add([ordered]@{ code = 'trailer-fps'; asset = $file.Name; message = "$($file.Name) runs at $fps fps; Steam's trailer page asks for 30 or 60" }) }
-        if ($info.width -gt 1920 -or $info.height -gt 1080) { $problems.Add([ordered]@{ code = 'trailer-size'; asset = $file.Name; message = "$($file.Name) is $($info.width)x$($info.height), larger than the 1920x1080 Steam's trailer page names" }) }
+        if ($standard.Count -eq 0) { $problems.Add([ordered]@{ code = 'trailer-fps'; status = 'WARN'; asset = $file.Name; message = "$($file.Name) runs at $fps fps; Steam's trailer page asks for 30 or 60" }) }
+        if ($info.width -gt 1920 -or $info.height -gt 1080) { $problems.Add([ordered]@{ code = 'trailer-size'; status = 'WARN'; asset = $file.Name; message = "$($file.Name) is $($info.width)x$($info.height), larger than the 1920x1080 Steam's trailer page names" }) }
     }
     return [ordered]@{ ok = ($problems.Count -eq 0); trailers = @($trailers); problems = @($problems) }
 }
 
-# store/steam/tags.txt: one tag per line, as chosen on Steam. Steamworks' tags page: at least 5 before launch, up to 20;
+# store/steam/tags.txt: one tag per line, as chosen on Steam. Steamworks' tags page: at least 5 before launch, up to 20 (only
+# the first 20 count);
 # Zukowski: the first 5 weigh most, so keep "Indie" out of them (godot-store-page).
 function Test-SteamTags([string]$Text) {
     $problems = [System.Collections.Generic.List[object]]::new()
@@ -180,7 +229,7 @@ function Test-SteamTags([string]$Text) {
     foreach ($group in @($tags | Group-Object { $_.ToLowerInvariant() } | Where-Object Count -gt 1)) {
         $problems.Add([ordered]@{ code = 'tags-duplicate'; status = 'WARN'; message = "'$($group.Group[0])' is listed $($group.Count) times" })
     }
-    if ($tags.Count -gt 20) { $problems.Add([ordered]@{ code = 'tags-count'; status = 'WARN'; message = "$($tags.Count) tags; Steam takes up to 20" }) }
+    if ($tags.Count -gt 20) { $problems.Add([ordered]@{ code = 'tags-count'; status = 'WARN'; message = "$($tags.Count) tags; Steam shows and counts only the first 20" }) }
     if ($tags.Count -lt 5) { $problems.Add([ordered]@{ code = 'tags-count'; status = 'WARN'; message = "$($tags.Count) tag(s); Steam wants at least 5 before launch" }) }
     if (@($tags | Select-Object -First 5 | Where-Object { $_ -eq 'Indie' }).Count -gt 0) {
         $problems.Add([ordered]@{ code = 'tags-top'; status = 'INFO'; message = "'Indie' is in the first 5 tags, which weigh most, and says little about the game" })
