@@ -155,6 +155,18 @@ Developer tools, which a game must never ship:
 | [gdvm](https://gdvm.io) | GPL-3.0-or-later | v0.16.0 (2026-08-10) | A Godot version manager with C# variants and a `setup-gdvm` action. GPL is fine for a tool and wrong for a game |
 | [ShipThis](https://github.com/shipth-is/cli) | MIT | v0.1.61 (2026-10-14) | Mobile builds and store uploads through a paid hosted service (prices and terms not read); C# on 4.3+ with the .NET editor |
 
+Authoring tools, also never shipped (read from their repositories on 2026-10-29; none was run, and whether they run headless
+was not checked):
+
+| Tool | Licence | Last commit | Use it for |
+|---|---|---|---|
+| [Sprite Fusion pixel snapper](https://github.com/Hugo-Dz/spritefusion-pixel-snapper) | MIT | 2026-10-20 | A command line (`spritefusion-pixel-snapper <input> <output> [colours]`) that snaps AI-made pixel art to a true pixel grid, before `shot`'s palette check |
+| [Sprite Fusion sprite normals](https://github.com/Hugo-Dz/spritefusion-sprite-normals) | MIT | 2026-10-20 | Normal maps for pixel-art sprites (2D lighting) |
+| [Material Maker](https://github.com/RodZill4/material-maker) | MIT | 2026-10-24 | Procedural textures, made in Godot |
+| [LDtk](https://github.com/deepnight/ldtk) | MIT | 2026-10-06 | A 2D level editor with a JSON project file; no Godot importer was assessed |
+| [Tiled](https://github.com/mapeditor/tiled) | GPL app, BSD-2 library | 2026-10-24 | Tile maps, next to YATI; the maps you make are your own files |
+| [Folded Paper Engine](https://github.com/papercraftgames/folded-paper-engine) | MIT | 2026-10-27 | Gameplay defined in Blender, Godot 4.4+ and Blender 4.4+; its README calls it an MVP |
+
 Two things to know about all of them. The kit sets up official Godot, so a game that needs a **custom engine module**
 (godot-voxel's module edition, Voxelman, Texture Packer, Godex, FMOD GD4) cannot be tested or exported with it, and `doctor`
 finds nothing to check because such a game has no `addons/` folder for it. And where an extension lacks a platform key,

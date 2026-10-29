@@ -250,11 +250,12 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 - **godot-luaAPI's release zip.** Its entry in `addons-status.json` (status `archived`) was written from the repository at
   f61bfa7; the folder inside its newest release zip (`addons/luaAPI`) and GitHub's `archived` flag are still unread, because
   the sandbox could not reach the release; the weekly canary fills both in.
-- **A field test on someone else's game.** `doctor`, `test` and `export` on the C# template, Maaack's template and Crystal Bit's
-  template named in `docs/awesome-lists.md` would show what the kit says about real code. Needs a machine with Godot; the
+- **A field test on someone else's game.** `doctor`, `test` and `export` on OpenLiberty (MIT, Godot 4.7, GDScript, no tests), the
+  C# template, Maaack's template and Crystal Bit's template named in `docs/awesome-lists.md` would show what the kit says about
+  real code. Needs a machine with Godot; the
   owner decides.
-- **The rest of the awesome lists.** `docs/awesome-lists.md` names the lists whose entries were not assessed (production,
-  magictools, open-source games, steam-deck, testing); the reading was stopped.
+- **The rest of the awesome lists.** `docs/awesome-lists.md` names the five lists still judged from descriptions only (learn-gamedev,
+  game datasets, game engine development, a11y, gametalks), and Poly Pizza's licences.
 - **`-GpuValidation` beyond Vulkan on Linux.** Tested with Mesa's lavapipe under Xvfb only. Not run: a real GPU, Windows
   (Vulkan SDK layer), D3D12 (Godot's debug-layer messages are read by the same pattern as Vulkan's debug-utils ones, from
   the source, never seen in a log) and Metal; on D3D12 and Metal `layerLoaded` is `null` because their logs do not say.
