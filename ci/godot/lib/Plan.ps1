@@ -188,7 +188,7 @@ function Get-ReleaseTimeline($Release, [datetime]$Today) {
     # The app fee: 21 days between paying and releasing.
     if ($dates.ContainsKey('steamFeePaid')) {
         $gap = [int]($releaseDay - $dates['steamFeePaid']).TotalDays
-        if ($gap -lt 21) { $warnings.Add("Steam's app fee was paid on $(& $format $dates['steamFeePaid']), $gap days before release on $(& $format $releaseDay); Steam needs at least 21 days between paying and releasing $source.") }
+        if ($gap -lt 21) { $warnings.Add("Steam's app fee was paid on $(& $format $dates['steamFeePaid']), $gap days before release on $(& $format $releaseDay); Valve lists a wait of at least 21 days between paying and releasing for a first few titles (an established account may differ) $source.") }
     } elseif ($upcoming -and $daysLeft -lt 21) {
         $warnings.Add("Release is $daysLeft days away and release.steamFeePaid is not set; Steam needs at least 21 days between paying the app fee and releasing $source.")
     }

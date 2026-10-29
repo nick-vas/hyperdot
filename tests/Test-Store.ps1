@@ -34,6 +34,13 @@ function New-Png([string]$Path, [int]$Width, [int]$Height, [bool]$Alpha = $false
 function New-Jpeg([string]$Path, [int]$Width, [int]$Height) {
     [IO.File]::WriteAllBytes($Path, [byte[]](0xFF, 0xD8, 0xFF, 0xC0, 0, 17, 8, ($Height -shr 8), ($Height -band 0xFF), ($Width -shr 8), ($Width -band 0xFF), 3, 0, 0, 0, 0))
 }
+# An ICO with one directory entry per size (a 0 byte stands for 256), no image data: the check reads the directory.
+function New-Ico([string]$Path, [int[]]$Sizes) {
+    $b = [System.Collections.Generic.List[byte]]::new()
+    $b.AddRange([byte[]](0, 0, 1, 0, $Sizes.Count, 0))
+    foreach ($size in $Sizes) { $v = $(if ($size -ge 256) { 0 } else { $size }); $b.AddRange([byte[]]($v, $v, 0, 0, 1, 0, 32, 0, 0, 0, 0, 0, 22, 0, 0, 0)) }
+    [IO.File]::WriteAllBytes($Path, $b.ToArray())
+}
 function New-GoodSet([string]$Dir) {
     New-Item -ItemType Directory -Force $Dir | Out-Null
     New-Png (Join-Path $Dir 'header_capsule.png') 920 430
@@ -69,6 +76,40 @@ try {
     }
     Assert-True ($codes.Count -eq 6) "nothing else: $($codes -join ' | ')"
 
+    # The shortcut icon may be an ICO (assets/community): one holding a 256x256 image passes, one without it and a file that is not
+    # an ICO are named.
+    $ico = Join-Path $work 'ico'
+    New-GoodSet $ico
+    Remove-Item (Join-Path $ico 'shortcut_icon.png'); New-Ico (Join-Path $ico 'shortcut_icon.ico') 16, 32, 256
+    $r = Test-SteamStoreAssets $ico
+    Assert-True ($r.ok -and $r.checked -eq 15) "shortcut_icon.ico with a 256x256 image passes: $(@($r.problems | ForEach-Object message) -join ' | ')"
+    New-Ico (Join-Path $ico 'shortcut_icon.ico') 16, 32, 48
+    $codes = @((Test-SteamStoreAssets $ico).problems | ForEach-Object { "$($_.code) $($_.asset)" })
+    Assert-True ($codes -contains 'asset-size shortcut_icon' -and $codes.Count -eq 1) "an ICO with no 256x256 image is named: $($codes -join ' | ')"
+    Set-Content (Join-Path $ico 'shortcut_icon.ico') 'not an icon at all, but long enough to read a header from'
+    $codes = @((Test-SteamStoreAssets $ico).problems | ForEach-Object { "$($_.code) $($_.asset)" })
+    Assert-True ($codes -contains 'asset-unreadable shortcut_icon' -and $codes.Count -eq 1) "a file that is not an ICO is named: $($codes -join ' | ')"
+    Remove-Item (Join-Path $ico 'shortcut_icon.ico')
+    Assert-True ((@((Test-SteamStoreAssets $ico).problems | ForEach-Object { "$($_.code) $($_.asset)" }) -contains 'asset-missing shortcut_icon')) 'no shortcut icon in either format is missing'
+
+    # Localized screenshots end in a Steam language name (foo_japanese.jpg): they count with their screenshot and keep the size rule.
+    $loc = Join-Path $work 'loc'
+    New-GoodSet $loc
+    Remove-Item (Join-Path $loc 'screenshot5.png')
+    New-Png (Join-Path $loc 'screenshot1_japanese.png') 1920 1080
+    New-Png (Join-Path $loc 'screenshot2_schinese.png') 1920 1080
+    New-Png (Join-Path $loc 'screenshot3_latam.png') 1920 1080
+    $codes = @((Test-SteamStoreAssets $loc).problems | ForEach-Object { "$($_.code) $($_.asset)" })
+    Assert-True ($codes -contains 'screenshots-count screenshot*' -and $codes.Count -eq 1) "4 screenshots and 3 localized variants are still 4: $($codes -join ' | ')"
+    New-Png (Join-Path $loc 'screenshot5.png') 1920 1080
+    Assert-True ((Test-SteamStoreAssets $loc).ok) 'with a fifth screenshot the localized variants cost nothing'
+    New-Png (Join-Path $loc 'screenshot2_schinese.png') 1280 720
+    $codes = @((Test-SteamStoreAssets $loc).problems | ForEach-Object { "$($_.code) $($_.asset)" })
+    Assert-True ($codes -contains 'screenshot-size screenshot2_schinese.png') "a variant of the wrong size is named: $($codes -join ' | ')"
+    New-Png (Join-Path $loc 'screenshot6_notalanguage.png') 1920 1080
+    Remove-Item (Join-Path $loc 'screenshot2_schinese.png')
+    Assert-True ((Get-DistinctScreenshots @(Get-ChildItem -LiteralPath $loc -File)).Count -eq 6) 'a suffix that is not a Steam language is a screenshot of its own'
+
     # A palette PNG is transparent with a tRNS chunk, and not without one.
     New-Png (Join-Path $good 'library_logo.png') 1280 400 $true -Palette
     $r = Test-SteamStoreAssets $good
@@ -93,6 +134,10 @@ try {
     Set-Content (Join-Path $kit 'fact_sheet.txt') "Brickfall: a roguelike breakout.`nContact: press@example.com"
     $r = Test-PressKit $kit
     Assert-True ($r.ok -and $r.screenshots -eq 6) "a complete press kit passes: $(@($r.problems | ForEach-Object message) -join ' | ')"
+    New-Png (Join-Path $kit 'screenshot1_french.png') 1920 1080; New-Png (Join-Path $kit 'screenshot2_german.png') 1920 1080
+    $r = Test-PressKit $kit
+    Assert-True ($r.ok -and $r.screenshots -eq 6) "localized variants do not add to the press kit's screenshots: $($r.screenshots)"
+    Remove-Item (Join-Path $kit 'screenshot1_french.png'), (Join-Path $kit 'screenshot2_german.png')
     for ($i = 7; $i -le 11; $i++) { New-Png (Join-Path $kit "screenshot$i.png") 1920 1080 }
     $codes = @((Test-PressKit $kit).problems | ForEach-Object { "$($_.code) $($_.asset)" })
     Assert-True ($codes -contains 'press-screenshots-count screenshot*' -and $codes.Count -eq 1) "11 screenshots are named: $($codes -join ' | ')"
@@ -116,8 +161,9 @@ try {
     if ($haveFfmpeg) {
         $clips = Join-Path $work 'clips'
         New-Item -ItemType Directory -Force $clips | Out-Null
-        & ffmpeg -hide_banner -loglevel error -y -f lavfi -i 'color=c=black:s=1920x1080:r=30:d=1' -f lavfi -i 'sine=frequency=440:sample_rate=48000:duration=1' `
-            -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a aac -shortest (Join-Path $clips 'trailer.mp4') 2>&1 | Out-Null
+        # Noise keeps the good clip's bitrate above the 5,000 Kbps Steam's page asks for; the black clip below stays far under it.
+        & ffmpeg -hide_banner -loglevel error -y -f lavfi -i 'color=c=gray:s=1920x1080:r=30:d=1' -f lavfi -i 'sine=frequency=440:sample_rate=48000:duration=1' `
+            -vf 'noise=alls=100:allf=t' -c:v libx264 -preset ultrafast -crf 10 -pix_fmt yuv420p -c:a aac -shortest (Join-Path $clips 'trailer.mp4') 2>&1 | Out-Null
         & ffmpeg -hide_banner -loglevel error -y -f lavfi -i 'color=c=black:s=2560x1440:r=25:d=1' -f lavfi -i 'sine=frequency=440:sample_rate=22050:duration=1' `
             -c:v mpeg4 -c:a mp2 -shortest (Join-Path $clips 'trailer_old.avi') 2>&1 | Out-Null
         $r = Test-SteamTrailers $clips
@@ -128,7 +174,15 @@ try {
             Assert-True ($codes -contains $expected) "trailer check names $expected"
         }
         Assert-True (@($codes | Where-Object { $_ -eq 'trailer-audio trailer_old.avi' }).Count -eq 2) 'MP2 audio and 22.05 kHz are both named'
-        Assert-True ($codes.Count -eq 5) "nothing about the good trailer: $($codes -join ' | ')"
+        Assert-True ($codes.Count -eq 6) "nothing about the good trailer: $($codes -join ' | ')"
+        $status = @{}; foreach ($p in $r.problems) { $status["$($p.code) $($p.asset)"] = $p.status }
+        Assert-True ($status['trailer-codec trailer_old.avi'] -eq 'INFO' -and $status['trailer-bitrate trailer_old.avi'] -eq 'INFO' -and $status['trailer-fps trailer_old.avi'] -eq 'WARN' -and $status['trailer-size trailer_old.avi'] -eq 'WARN') 'another codec and a low bitrate are INFO; the frame rate and size stay WARN'
+        Assert-True (@($r.problems | Where-Object { $_.code -eq 'trailer-audio' -and $_.status -eq 'INFO' }).Count -eq 1 -and @($r.problems | Where-Object { $_.code -eq 'trailer-audio' -and $_.status -eq 'WARN' }).Count -eq 1) 'MP2 is INFO, 22.05 kHz is WARN'
+        & ffmpeg -hide_banner -loglevel error -y -f lavfi -i 'color=c=black:s=1440x1080:r=30:d=1' -c:v libx264 -preset ultrafast -pix_fmt yuv420p (Join-Path $clips 'trailer_43.mp4') 2>&1 | Out-Null
+        & ffmpeg -hide_banner -loglevel error -y -f lavfi -i 'color=c=black:s=1000x1000:r=30:d=1' -c:v libx264 -preset ultrafast -pix_fmt yuv420p (Join-Path $clips 'trailer_square.mp4') 2>&1 | Out-Null
+        $codes = @((Test-SteamTrailers $clips).problems | ForEach-Object { "$($_.code) $($_.asset)" })
+        Assert-True ($codes -notcontains 'trailer-aspect trailer_43.mp4' -and $codes -contains 'trailer-aspect trailer_square.mp4') '4:3 is accepted, a square video is INFO'
+        Remove-Item (Join-Path $clips 'trailer_43.mp4'), (Join-Path $clips 'trailer_square.mp4')
         Set-Content (Join-Path $clips 'trailer_broken.mp4') 'not a video'
         $codes = @((Test-SteamTrailers $clips).problems | ForEach-Object { "$($_.code) $($_.asset)" })
         Assert-True ($codes -contains 'trailer-unreadable trailer_broken.mp4') 'a file ffprobe cannot read is named'
@@ -195,11 +249,12 @@ try {
     Assert-True (@($messages | Where-Object { $_ -match '^WARN Press kit: no contact email address in fact_sheet\.txt' }).Count -eq 1) 'doctor warns about a fact sheet with no contact address'
     Assert-True (@($messages | Where-Object { $_ -match '^FAIL Press kit' }).Count -eq 0) 'press kit problems never fail doctor'
     if ($haveFfmpeg) {
-        Assert-True (@($messages | Where-Object { $_ -match '^WARN Steam trailer: trailer_old\.avi is mpeg4 video' }).Count -eq 1) 'doctor warns about an MPEG-4 trailer'
+        Assert-True (@($messages | Where-Object { $_ -match '^INFO Steam trailer: trailer_old\.avi is mpeg4 video; Steam prefers H\.264' }).Count -eq 1) 'doctor only mentions an MPEG-4 trailer (INFO: Steam transcodes)'
+        Assert-True (@($messages | Where-Object { $_ -match '^WARN Steam trailer: trailer_old\.avi has audio at 22050 Hz' }).Count -eq 1) 'doctor warns about the sample rate'
         Assert-True (@($messages | Where-Object { $_ -match '^INFO Steam trailer trailer\.mp4: mp4, h264 1920x1080 at 30 fps, aac 48000 Hz, 1 s$' }).Count -eq 1) 'doctor reports the good trailer''s format and length'
     }
     Assert-True (@($messages | Where-Object { $_ -match "^WARN Steam tags\.txt: 'Roguelike' is listed 2 times" }).Count -eq 1) 'doctor warns about a duplicate tag'
-    Assert-True (@($messages | Where-Object { $_ -match '^WARN Steam tags\.txt: 22 tags; Steam takes up to 20' }).Count -eq 1) 'doctor warns about more than 20 tags'
+    Assert-True (@($messages | Where-Object { $_ -match '^WARN Steam tags\.txt: 22 tags; Steam shows and counts only the first 20' }).Count -eq 1) 'doctor warns about more than 20 tags'
     Assert-True (@($messages | Where-Object { $_ -match '^WARN The game collects player data \(TelemetryClient in res://telemetry\.cs\) but has no privacy policy' }).Count -eq 1) 'doctor warns about telemetry without a privacy policy'
     Assert-True (@($messages | Where-Object { $_ -match '^FAIL (Steam t|Steam tags|The game collects)' }).Count -eq 0) 'trailer, tag and privacy problems never fail doctor'
 } finally {

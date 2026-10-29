@@ -402,7 +402,7 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
                 Add-Check WARN 'Steam trailers in store/steam were not checked: ffprobe is not installed' "Install ffmpeg, which brings ffprobe ($how)"
             } else {
                 $trailerCheck = Test-SteamTrailers $steamDir
-                foreach ($p in $trailerCheck.problems) { Add-Check WARN "Steam trailer: $($p.message)" 'H.264 and AAC, 30 or 60 fps, 44.1 or 48 kHz, up to 1920x1080 (godot-store-page)' }
+                foreach ($p in $trailerCheck.problems) { Add-Check $p.status "Steam trailer: $($p.message)" '30 or 60 fps, 44.1 or 48 kHz, up to 1920x1080; H.264, AAC, 16:9 and 5,000+ Kbps are preferred (godot-store-page)' }
                 foreach ($t in $trailerCheck.trailers) {
                     $sound = $t.audioCodec ? "$($t.audioCodec) $($t.sampleRate) Hz" : 'no audio'
                     Add-Check INFO "Steam trailer $($t.file): $($t.container), $($t.videoCodec) $($t.width)x$($t.height) at $($t.fps) fps, $sound, $($t.seconds) s"
