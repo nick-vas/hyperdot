@@ -241,6 +241,14 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
   (the folders inside them are confirmed, `docs/addons.md`). The canary's first run with API access fills them in; or run
   `gh api repos/<owner>/<repo> --jq .archived` for each from a machine that can. Godot-PerfBullets has no release, so no zip
   is checked for it until it gets one (the canary reports that).
+- **godot-luaAPI in `addons-status.json`.** `docs/addons.md` says not to use it ("Archived!" on the first README line, built for
+  Godot 4.1). Its entry (`status: archived`, folder `addons/luaAPI`, `luaAPI.gdextension`, entry symbol `luaAPI_library_init`,
+  read from the repository) waits until a release zip confirms the folder, as for the others.
+- **A field test on someone else's game.** `doctor`, `test` and `export` on the C# template, Maaack's template and Crystal Bit's
+  template named in `docs/awesome-lists.md` would show what the kit says about real code. Needs a machine with Godot; the
+  owner decides.
+- **The rest of the awesome lists.** `docs/awesome-lists.md` names the lists whose entries were not assessed (production,
+  magictools, open-source games, steam-deck, testing); the reading was stopped.
 - **`-GpuValidation` beyond Vulkan on Linux.** Tested with Mesa's lavapipe under Xvfb only. Not run: a real GPU, Windows
   (Vulkan SDK layer), D3D12 (Godot's debug-layer messages are read by the same pattern as Vulkan's debug-utils ones, from
   the source, never seen in a log) and Metal; on D3D12 and Metal `layerLoaded` is `null` because their logs do not say.
