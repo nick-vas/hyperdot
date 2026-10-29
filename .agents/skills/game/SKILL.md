@@ -16,7 +16,7 @@ user has moved an item, the user's move wins.
 pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 status -Json      # add -Project <dir> when the game is not the current folder
 ```
 
-`features[]` (with `taggedTests`, `tasks`, `testedAndPassing`), `plan` (phase, open gates, tasks with `cardId` and
+`features[]` (with `taggedTests`, `tasks`, `testedAndPassing`), `plan` (phase, open gates, tasks with `itemId` and
 `boardColumn`), `runs` (latest run per command), `git`, `inventory`, `handoffs` (what the `godot-verifier` and
 `godot-architect` subagents were last asked and answered, newest first), `warnings`. If `runs.test` is missing or older than
 `git.lastCommit`, run `test -Json -Quiet` first so the evidence is current.
