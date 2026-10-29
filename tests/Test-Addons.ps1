@@ -288,7 +288,7 @@ try {
     $ext = Join-Path $wave 'addons/native/native.gdextension'
     $keys = @($hostOs, 'linux', 'windows', 'macos' | Select-Object -Unique)
     # The library key lists every platform, so it fits whichever machine runs this test; the file is what is missing.
-    Set-Content -LiteralPath $ext (@("[configuration]", 'entry_symbol = "native_init"', 'compatibility_minimum = 4.5', '', '[libraries]', '') + @(foreach ($os in $keys) { "$os.debug = `"bin/native-$os.lib`"" })) 
+    Set-Content -LiteralPath $ext (@("[configuration]", 'entry_symbol = "native_init"', 'compatibility_minimum = 4.5', '', '[libraries]', '') + @(foreach ($os in $keys) { "$os.debug = `"bin/native-$os.lib`"" }))
     $host1 = @(Get-GdextensionHostProblems $wave)
     Assert-True ($host1.Count -eq 1 -and $host1[0].Status -eq 'FAIL' -and $host1[0].Message -match 'which does not exist') "a library missing on this machine fails: $(Get-Messages $host1)"
     foreach ($os in $keys) { Set-Content -LiteralPath (Join-Path $wave "addons/native/bin/native-$os.lib") 'fake' }
