@@ -91,6 +91,24 @@
         "checked": "2026-10-29"
       },
       "confirmed": "2026-10-23 from the repository at 5cdce6d (2026-10-08): folder addons/py4godot and file python.gdextension (create_plugin.py), entry_symbol initialize_pythonscript and compatibility_minimum 4.7.0 (build_resources/gdextension_template.gdextension); newest tag 4.7-alpha21. 2026-10-29 from the release zip py4godot.zip (listed, not run; 243 MB): install_dir/addons/py4godot/python.gdextension (entry_symbol initialize_pythonscript, compatibility_minimum 4.7.0); the folder to copy is install_dir/addons/py4godot. archived not read: GitHub's API and repository pages answered 403 from the sandbox that checked"
+    },
+    {
+      "id": "godot-luaapi",
+      "name": "godot-luaAPI",
+      "repo": "WeaselGames/godot_luaAPI",
+      "folders": [
+        "addons/luaAPI"
+      ],
+      "gdextension": "luaAPI.gdextension",
+      "entrySymbol": "luaAPI_library_init",
+      "entrySymbolSource": "project/addons/luaAPI/luaAPI.gdextension",
+      "godotMax": null,
+      "status": "archived",
+      "why": "its README opens with \"Archived!\" and says the repository \"has been archived for the time being\"; the last commit is from 2024-12-28 and its .gdextension has compatibility_minimum 4.2 with no maximum",
+      "fix": "Use lua-gdextension instead (docs/addons.md) and remove addons/luaAPI",
+      "archived": null,
+      "head": "f61bfa768a0b0a642dcb2632ff33f3bd95e29d70",
+      "confirmed": "2026-10-29 from the repository at f61bfa7 (2024-12-28): folder addons/luaAPI (project/addons/luaAPI/), file luaAPI.gdextension and entry_symbol luaAPI_library_init (compatibility_minimum 4.2) from project/addons/luaAPI/luaAPI.gdextension. Its newest tag is v2.1-beta9; a release zip was not read, so the folder inside it is not confirmed and there is no releaseZip (the canary checks it once it can reach the release). archived (GitHub's flag) not read: the README says it is archived."
     }
   ]
 }
