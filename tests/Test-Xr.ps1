@@ -26,8 +26,8 @@ foreach ($m in [regex]::Matches($text, '`([^`\r\n]+)`')) {
     $token = $m.Groups[1].Value
     if ($token -match '^xr/[a-z_/]+$') { [void]$names.Add($token); continue }
     if ($token -match '\.(gd|tscn|tres|md|json|ps1|cs|cfg|godot|txt|zip)$') { continue }
-    if ($token -match '^(XR|OpenXR)[A-Za-z0-9]*(\.[A-Za-z_][A-Za-z0-9_]*)?(\(\))?$' -and $token -notmatch '^XRTools') { [void]$names.Add($token) }
-    elseif ($token -match '^(Viewport|Engine|XRServer|ProjectSettings|RenderingServer|Camera3D|Node3D)\.[A-Za-z_][A-Za-z0-9_]*(\(\))?$') { [void]$names.Add($token) }
+    if ($token -cmatch '^(XR|OpenXR)[A-Za-z0-9]*(\.[A-Za-z_][A-Za-z0-9_]*)?(\(\))?$' -and $token -cnotmatch '^XRTools') { [void]$names.Add($token) }
+    elseif ($token -cmatch '^(Viewport|Engine|XRServer|ProjectSettings|RenderingServer|Camera3D|Node3D)\.[A-Za-z_][A-Za-z0-9_]*(\(\))?$') { [void]$names.Add($token) }
 }
 Assert-True ($names.Count -ge 40) "the skill quotes at least 40 engine names: $($names.Count)"
 
@@ -56,7 +56,7 @@ try {
     $bad = Invoke-Xr 'bad'
     Assert-True (-not $bad.Ok) 'made-up names fail the run'
     foreach ($made in 'XRController3D.no_such_thing', 'XRServer.no_such_signal', 'xr/openxr/no_such_setting') {
-        Assert-True ($bad.Log.Contains($made)) "the report names $made"
+        Assert-True ($bad.Log.Contains("missing from the engine: $made")) "the report names $made"
     }
 }
 finally {

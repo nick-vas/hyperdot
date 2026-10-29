@@ -51,6 +51,8 @@ func test_every_name_the_skill_quotes_exists() -> void:
 				missing.append(token)
 		checked += 1
 	gut.p("%d names checked" % checked)
+	for name in missing:
+		gut.p("missing from the engine: " + name)
 	assert_gt(checked, 40, "the skill quotes fewer names than expected")
 	assert_eq(missing, [] as Array[String], "names the engine does not have")
 
