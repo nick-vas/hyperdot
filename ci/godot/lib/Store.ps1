@@ -87,7 +87,9 @@ function Get-ImageInfo([string]$Path) {
     return $null
 }
 
-function Test-SteamStoreAssets([string]$Folder) {
+# With -MacExport (the project exports for macOS) Steam also wants mac_icon.icns: without it the Mac client shows the default
+# Steam logo (store/assets/standard). An ICNS file starts with the bytes "icns".
+function Test-SteamStoreAssets([string]$Folder, [switch]$MacExport) {
     $problems = [System.Collections.Generic.List[object]]::new()
     $files = @(Get-ChildItem -LiteralPath $Folder -File | Where-Object { $_.Extension -in '.png', '.jpg', '.jpeg', '.ico' })
     foreach ($name in $script:SteamAssetRules.Keys) {
@@ -114,6 +116,17 @@ function Test-SteamStoreAssets([string]$Folder) {
             if ($info.width -ne $info.height -or $info.width -notin $rule['Square']) { $problems.Add([ordered]@{ code = 'asset-size'; asset = $name; message = "$name must be 256x256 or 512x512, is $size" }) }
         } elseif ($info.width -ne $rule['Width'] -or $info.height -ne $rule['Height']) {
             $problems.Add([ordered]@{ code = 'asset-size'; asset = $name; message = "$name must be $($rule['Width'])x$($rule['Height']), is $size" })
+        }
+    }
+    if ($MacExport) {
+        $icns = Join-Path $Folder 'mac_icon.icns'
+        if (-not (Test-Path -LiteralPath $icns)) {
+            $problems.Add([ordered]@{ code = 'asset-missing'; asset = 'mac_icon'; message = 'mac_icon.icns is required for a macOS build (without it Steam shows its default logo on the Mac)' })
+        } else {
+            $head = [byte[]]::new(4)
+            $stream = [System.IO.File]::OpenRead($icns)
+            try { $read = $stream.Read($head, 0, 4) } finally { $stream.Dispose() }
+            if ($read -ne 4 -or [System.Text.Encoding]::ASCII.GetString($head) -ne 'icns') { $problems.Add([ordered]@{ code = 'asset-unreadable'; asset = 'mac_icon'; message = 'mac_icon.icns is not an ICNS file' }) }
         }
     }
     $shots = @($files | Where-Object { $_.BaseName -like 'screenshot*' -and $_.Extension -ne '.ico' })

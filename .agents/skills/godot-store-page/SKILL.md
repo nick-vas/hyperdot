@@ -24,6 +24,7 @@ glance. Facts here were read from Steamworks' pages and Chris Zukowski's (howtom
 | `shortcut_icon` | 256x256 or 512x512 | |
 | `app_icon` | 184x184 JPEG | |
 | `page_background` | 1438x810 | optional |
+| `mac_icon.icns` | ICNS file | for a macOS build; without it the Mac client shows Steam's default logo |
 | `screenshot1`... | at least 1920x1080, 16:9, at least 5 | gameplay only |
 
 - Keep them in `<project>/store/steam/` with an empty `store/.gdignore` (so Godot does not ship them); `doctor` then
