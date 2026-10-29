@@ -66,8 +66,12 @@ public override void _Process(double delta) { if (Ready) SteamAPI.RunCallbacks()
 The C# example's `Platform/` is the pattern: `IPlatformServices` (achievements, stats, leaderboard, rich presence) with
 `LocalPlatform`, a backend that keeps state in one JSON file written only by `StoreStats`, as Steam does. Unknown ids
 throw, so a misspelt achievement fails a test instead of never unlocking. Tests: an unlock survives a restart; nothing is
-kept without `StoreStats`; KeepBest; rich presence limits. The game's Steam backend implements the same interface; only
-manual runs (Spacewar or your App ID) touch the real client: overlay, popups, cloud dialogs, glyphs, keyboards, DLC.
+kept without `StoreStats`; KeepBest; rich presence limits. The Steam backend implements the same interface: `SteamPlatform`
+over an `ISteamApi` seam (a fake in unit tests: an unlock goes through once, many `SetStat` calls are one `StoreStats`),
+and `SteamworksApi` over Steamworks.NET.AnyCPU in a project the game references only with `-p:Steam=true`. `PlatformFactory`
+falls back to `LocalPlatform` and logs once when Steam is not running or its library is missing, so an itch.io build, tests
+and CI never need Steam. Only manual runs (Spacewar or your App ID) touch the real client: overlay, popups, cloud
+dialogs, glyphs, keyboards, DLC.
 
 ## 5. Steam Cloud
 

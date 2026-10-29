@@ -105,12 +105,18 @@ public sealed class LocalPlatform : IPlatformServices
 
     public void SetRichPresence(string key, string? value)
     {
+        CheckRichPresence(_presence, key, value);
+        if (value == null) _presence.Remove(key); else _presence[key] = value;
+    }
+
+    /// <summary>Steam's rich presence limits, shared with the Steam backend so both refuse the same calls.</summary>
+    public static void CheckRichPresence(IReadOnlyDictionary<string, string> current, string key, string? value)
+    {
         if (key.Length is 0 or > MaxRichPresenceKeyLength) throw new ArgumentException($"rich presence key '{key}' must be 1 to {MaxRichPresenceKeyLength} characters");
-        if (value == null) { _presence.Remove(key); return; }
+        if (value == null) return;
         if (value.Length > MaxRichPresenceValueLength) throw new ArgumentException($"rich presence value for '{key}' is over {MaxRichPresenceValueLength} characters");
         if (key == "steam_display" && !value.StartsWith('#')) throw new ArgumentException("steam_display names a localization token, such as #Status_Floor");
-        if (!_presence.ContainsKey(key) && _presence.Count >= MaxRichPresenceKeys) throw new ArgumentException($"more than {MaxRichPresenceKeys} rich presence keys");
-        _presence[key] = value;
+        if (!current.ContainsKey(key) && current.Count >= MaxRichPresenceKeys) throw new ArgumentException($"more than {MaxRichPresenceKeys} rich presence keys");
     }
 
     public void StoreStats()

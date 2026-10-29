@@ -252,7 +252,33 @@ no `APPLICATION_PAUSED`. Its next frame had a delta of 0.134 s against 3.013 s o
   `steam_display`, and sets a damaged file aside as `.bad`. `BreakoutProgress` unlocks on floors and combos and stores
   stats when a floor is cleared and when the run ends. `PlatformTests.cs` covers: an unlock survives a restart, nothing
   is kept without `StoreStats`, misspelt ids throw, KeepBest and ForceUpdate, the rich presence limits, a damaged file,
-  and a full run. It is not wired into the Godot game; no Steam backend exists yet.
+  and a full run.
+- **The C# example's Steam backend** (added 2026-10-29; tested without a client): `SteamPlatform` (`Platform/SteamPlatform.cs`,
+  no Steam dependency) implements `IPlatformServices` over `ISteamApi`, a seam of the calls it makes. It checks ids against
+  the catalog, sends `StoreStats` only when something changed since the last one, logs a failed Steam call once, and shares
+  `LocalPlatform`'s rich presence limits. `PlatformFactory.Create` tries Steam when the build has it, and on
+  `SteamAPI.InitEx` failing, a missing native library (`DllNotFoundException`, `BadImageFormatException`,
+  `EntryPointNotFoundException`) or an `Unavailable` result it logs one line and returns `LocalPlatform`; a
+  `RestartAppIfNecessary` true is passed on as `QuitRequested`. The real `SteamworksApi` is in
+  `examples/csharp/src/Example.Steam/`, a project outside `Example.sln` that references `Steamworks.NET.AnyCPU` 2026.164.4;
+  the game references it only with `dotnet build -p:Steam=true` (which also defines `STEAM`), and `game/Platform/GamePlatform.cs`
+  picks the backend at start-up. A default build restores no Steam package and holds no Valve library (checked: no
+  `steam_api*` or `Steamworks*` file under `.godot/mono/temp`); with `-p:Steam=true` the package's
+  natives (`runtimes/<rid>/native/`) land next to the game. Cloud saves are not in the interface (Auto-Cloud needs no code).
+  `SteamPlatformTests.cs` (fake `ISteamApi`): an unlock goes through once, 50 `SetStat` calls are one `StoreStats`, no
+  change is no call, a refused call is logged once, a score Steam already has counts as the best, every failed start
+  falls back and logs once. `tests/Example.Steam.Tests` loads the real library with no client: `libsteam_api.so` is in
+  the output, `SteamAPI.InitEx` returns `k_ESteamAPIInitResult_FailedGeneric` ("Failed to load module
+  '/root/.steam/sdk64/steamclient.so'") and the factory falls back; `PlatformStartTest` (gdUnit4) runs
+  `GamePlatform.Start()` in the engine in both builds (33 game tests green each way). The game's `Main` does not call
+  `GamePlatform.Start()` yet. Chosen over GodotSteam because the calls are typed one to one with the API and need no
+  GDExtension, `.gdextension` file or Godot-side singleton; both are MIT (GodotSteam's `license.md` was read: "MIT
+  License, Copyright (c) 2015-Current GP Garcia, Chris Ridenour, and Contributors"; the AnyCPU package's nuspec says
+  MIT, rlabrecque's upstream `LICENSE.txt` is MIT, "Copyright (c) 2013-2022 Riley Labrecque", and the fork's own
+  `LICENSE` file could not be read, since its repository was not reachable here). Valve's libraries inside the package are
+  covered by the Steamworks SDK access agreement, not by MIT; the repository holds none, and only the public test app
+  480 appears (`GamePlatform.AppId`, set as `SteamAppId` through `OS.SetEnvironment` in debug builds only). Your own
+  App ID replaces 480; `steam_appid.txt` stays out of the shipped depot.
 - **`SaveStore.SaveResolved`**: saves the copy the player chose as a descendant of both sides (merges the other side's
   history, takes the higher generation). `AResolvedConflictSyncsOneWayOnBothDevices` plays a PC and a Deck offline into
   a `Conflict`; keeping the PC's copy then gives `UploadLocal` on the PC and `DownloadCloud` on the Deck, keeping the
