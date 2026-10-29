@@ -134,6 +134,27 @@ public static string GetRandomString() => "friend";
 | **Weaknesses** | Targets Godot 4.6+ only (older Godot needs 3.10 or 3.3); a GDScript runtime inside a C# game; names are resolved at run time, so a wrong member name fails when the line plays; no visual graph; being stateless, saving dialogue progress is the game's job | Its README calls the project work in progress with no official support, and it is pre-1.0 (0.3.x); a long NuGet list (Antlr, protobuf, CsvHelper, System.Text.Json and more); scripts must be compiled by the editor plugin, so a headless import is part of CI; custom CSV, not Godot's; `[YarnCommand]` is addressed by node name in the script, which is fragile; documentation is mostly on an external site that points at the Unity docs |
 | What a check can read | The dialogue is plain text: the `data` runner's `names` rule and a line-ID check work on it; conditions are free-form GDScript-like code a check cannot evaluate | The scripts are plain text too, and each line has an ID in the file, which suits an `l10n` check; the compiler reports script errors at import |
 
+## The kit's choice: Dialogue Manager 4
+
+Decided by the owner on 2026-10-29, after the comparison above. Not tried here (see "Not done"): the choice rests on the
+project's files and docs, not on a run.
+
+- **Version:** v4.1.0 (tag of 2026-09-04), which states Godot 4.6 or newer. MIT: keep its `LICENSE` file with the add-on
+  folder and list it in the game's `assets.json` / `credits` like any third-party code.
+- **Install** (from its README and docs): copy `addons/dialogue_manager` of that tag into the game, enable it under Project
+  Settings > Plugins, and write dialogue as `.dialogue` files; a global `DialogueManager` is then available, and a C# game
+  uses the `DialogueManagerRuntime` wrapper that ships in the add-on folder.
+- **Keep dialogue in `dialogue/`** as `.dialogue` files, so one `data.json` entry covers them:
+  `"names": { "table": "characters", "field": "name", "files": ["dialogue/*.dialogue"], "allow": [] }`
+  (the `names` rule reads every file its globs match, line by line).
+- **Translations:** use static line IDs (`[ID:KEY]`) and let the dialogue files join the template export under Project
+  Settings > Localization; the CSV or PO that results is an ordinary Godot translation file, which the `l10n` runner reads.
+- **State** is the game's: expose it through autoloads, `[GlobalClass]` types or `DialogueStateContext` nodes, and save it
+  with the game's own save (the runtime keeps none).
+- **What to watch** (from the table): the runtime is GDScript, so a C# game still needs GDScript enabled; a wrong member name
+  in a condition or mutation fails when the line plays, not when the project builds, so play every `.dialogue` file once in a
+  headless test before shipping. That test is not built yet.
+
 ## Not done
 
 - Building any of them in a copy of the C# example on Godot 4.7.2, importing a dialogue and playing one conversation headless.

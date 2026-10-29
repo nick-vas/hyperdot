@@ -266,11 +266,11 @@ In the skills:
   quad, `OpenXRCompositionLayerQuad`), render models, and a seated-play section.
 
 
-- A dialogue tool for `godot-narrative`: the licences, releases and stated Godot support of Dialogue Manager, Yarn Spinner,
-  godot-ink, Dialogic and inkgd are in [dialogue-tools.md](dialogue-tools.md) (read from their repositories, 2026-10-29). Still
-  to do: build Dialogue Manager and Yarn Spinner for Godot (and godot-ink, at risk) in a copy of the C# example on 4.7.2,
-  import a dialogue and play one conversation headless. The session's permission check refused to build third-party add-on
-  code, so the owner has to allow it or run it; if none survives, a JSON dialogue graph checked by the `data` and `l10n` runners.
+- Dialogue Manager 4 is the kit's dialogue tool (the owner's choice, 2026-10-29; the comparison with Yarn Spinner, godot-ink,
+  Dialogic and inkgd, read from their repositories, is in [dialogue-tools.md](dialogue-tools.md)). Still to do: build it in a
+  copy of the C# example on 4.7.2, import a `.dialogue` file and play one conversation headless, and turn that into a kit check
+  that plays every `.dialogue` file. The session's permission check refused to build third-party add-on code, so the owner has
+  to allow it or run it.
 - A flow test that the credits screen is reachable from the main menu stays game-specific; the skill tells games to add one.
 
 ### Not run or measured here (hardware, platforms, runners)
