@@ -107,6 +107,16 @@ try {
     if ((Get-MissingExportTemplate $exportLog) -ne '/opt/templates/4.7.2.stable/linux_release.x86_64') { $failures += 'the missing template path should be read from the log' }
     $details = @(Get-GodotErrorDetails @(Get-Content -LiteralPath $exportLog))
     if ($details.Count -lt 1 -or $details[0].Text -notmatch 'configuration errors: No export template found at the expected path: /opt') { $failures += "the error should carry the line under it, got '$($details | ForEach-Object Text)'" }
+    # The same message as Godot 4.7.2 prints it: the path on the next line, with a second template under it.
+    Set-Content -LiteralPath $exportLog -Value @('ERROR: Cannot export project with preset "Linux/X11" due to configuration errors:',
+        'No export template found at the expected path:', 'C:/Users/Jane/AppData/Roaming/Godot/export_templates/4.7.2.stable.mono/linux_debug.x86_64',
+        'No export template found at the expected path:', 'C:/Users/Jane/AppData/Roaming/Godot/export_templates/4.7.2.stable.mono/linux_release.x86_64')
+    if ((Get-MissingExportTemplate $exportLog) -ne 'C:/Users/Jane/AppData/Roaming/Godot/export_templates/4.7.2.stable.mono/linux_debug.x86_64') { $failures += "a path on the next line should be read, got '$(Get-MissingExportTemplate $exportLog)'" }
+    $details = @(Get-GodotErrorDetails @(Get-Content -LiteralPath $exportLog))
+    if ($details.Count -lt 1 -or $details[0].Text -notmatch 'configuration errors: No export template found at the expected path: C:/Users') { $failures += "the next line should join the message, got '$($details | ForEach-Object Text)'" }
+    # An error under an autoload names where it happened.
+    $located = @(Get-GodotErrorsLocated @("SCRIPT ERROR: Invalid access to property or key 'x' on a base object of type 'null instance'.", '          at: _ready (res://addons/ggt-core/ggt.gd:20)'))
+    if ($located.Count -ne 1 -or $located[0] -notmatch 'at res://addons/ggt-core/ggt\.gd:20$') { $failures += "an error should carry its place, got '$located'" }
     Set-Content -LiteralPath $exportLog -Value 'ERROR: something else'
     if ($null -ne (Get-MissingExportTemplate $exportLog)) { $failures += 'a log without the message should give no template path' }
     # A runner that found no test says so in `Reason`, and a normal failing run has none.

@@ -391,8 +391,16 @@ function Select-GodotErrors([string[]]$Lines) {
 # The path Godot says it looked at for a missing export template ("No export template found at the expected path: ..."),
 # or $null when the log does not say so.
 function Get-MissingExportTemplate([string]$LogFile) {
-    $hit = Select-String -LiteralPath $LogFile -Pattern 'No export template found at the expected path: (?<path>.+?)\s*$' | Select-Object -First 1
-    return $hit ? $hit.Matches[0].Groups['path'].Value : $null
+    # Godot 4.7.2 prints the path on the line after the message, older and other builds on the same line.
+    $text = (Get-Content -LiteralPath $LogFile -Raw) -replace "`e\[[0-9;]*m", ''
+    $hit = [regex]::Match($text, 'No export template found at the expected path:[ \t]*\r?\n?[ \t]*(?<path>[^\r\n]*\S)')
+    return $hit.Success ? $hit.Groups['path'].Value : $null
+}
+
+# The error lines of a log (Get-GodotLogErrors), each followed by where Godot said it happened ("at res://x.gd:20") when the
+# backtrace under it names a file; an error from an autoload at startup then carries its place into the failure.
+function Get-GodotErrorsLocated([string[]]$Lines) {
+    @(foreach ($d in Get-GodotErrorDetails $Lines) { if ($d.File) { "$($d.Text) at $($d.File):$($d.Line)" } else { $d.Text } })
 }
 
 # Always wrap calls in @(...): an empty result comes back as nothing.

@@ -1,0 +1,1 @@
+Fixed: from the retest: `export-template-missing` now fires on Godot 4.7.2, which prints the template path on the line after the message (it was read only from the same line), and the `l10n` `missing glyphs` case names the file and line of an engine error under an autoload (`at res://addons/…:20`) like `validate` does.
