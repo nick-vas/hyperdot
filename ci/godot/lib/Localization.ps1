@@ -537,7 +537,14 @@ function ConvertFrom-GlyphLog([string[]]$Lines, $Characters, [string[]]$Ignore =
             $record = [ordered]@{ locale = $locale; font = $font['name']; where = $font['where']; characters = $letters; codePoints = $points; keys = $keys }
             if ($kind -eq 'missing') {
                 $missing.Add($record)
-                $failures.Add("${locale}: $($font['name']) ($($font['where'])) has no $shown (in $used)$(if ($font['where'] -match 'default font') { ", and the default font draws them only through the player's system fonts (allow_system_fallback), which a machine without a font for them lacks: add a font with them as a fallback, or list this font in l10n.json glyphIgnoreFonts if the game targets machines that have one" })")
+                if ($font['name'] -like "Godot's default font*") {
+                    # The engine's own font draws CJK, Arabic and the like only through the player's system fonts (allow_system_fallback):
+                    # that works on most machines, so it is a warning; a font the project chose that lacks them still fails.
+                    $warnings.Add([ordered]@{ rule = 'default-font'; severity = 'warning'; file = $null; line = $null
+                        message = "${locale}: $($font['name']) has no $shown (in $used); it draws them only through the player's system fonts (allow_system_fallback), which a machine without a font for them lacks: add a font with them as a fallback if the game must run on any machine" })
+                } else {
+                    $failures.Add("${locale}: $($font['name']) ($($font['where'])) has no $shown (in $used)")
+                }
             } else {
                 $record['systemFonts'] = $names
                 $system.Add($record)

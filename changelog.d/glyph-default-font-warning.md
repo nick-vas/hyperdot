@@ -1,0 +1,1 @@
+Changed: the `l10n` glyph check warns (rule `default-font`) instead of failing when only Godot's own default font lacks a character, because the engine draws it through the player's system fonts; a font the project chose that lacks it still fails.
