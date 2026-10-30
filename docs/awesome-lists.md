@@ -50,22 +50,23 @@ judged one by one):
 
 | List | Licence | Last commit | Entries | Use for the kit |
 |---|---|---|---|---|
-| [awesome-learn-gamedev](https://github.com/notpresident35/awesome-learn-gamedev) | CC0 | 2026-06-01 | ~47 | Learning links for people (Reddit wikis, textures, cheatsheets); the skills already cover the topics, so nothing was taken |
+| [awesome-learn-gamedev](https://github.com/notpresident35/awesome-learn-gamedev) | CC0 | 2026-06-01 | ~257 | Read by keyword (about 70 of 257 link lines): learning links for people; a few leads: Open Dyslexic (a font), Polyglot Gamedev (translation words) and Is This Arabic (RTL pitfalls), none opened; nothing Godot-specific or usable from a CLI |
 | [awesome-game-production](https://github.com/vhladiienko/awesome-game-production) | CC0 | 2026-05-04 | ~71 | Read entry by entry (86 links): no QA, playtesting or CI section; the useful entries are a few scheduling and project-method pages, listed below |
 | [magictools](https://github.com/ellisonleao/magictools) | MIT | 2026-10-28 | ~68 sections | Read entry by entry (428 links): about 150 are other engines and libraries, about 120 are art tools for humans; six authoring tools are in [addons.md](addons.md) |
 | [awesome-open-source-games](https://github.com/michelpereira/awesome-open-source-games) | CC0 | 2026-10-21 | ~459 | The list marks no engine; only four Godot games are named, see below |
-| [game-datasets](https://github.com/leomaurodesenv/game-datasets) | CC BY 4.0 | 2026-10-25 | ~204 | Data for game AI research; no use found |
-| [awesome-game-engine-dev](https://github.com/stevinz/awesome-game-engine-dev) | CC0 | 2026-08-17 | ~76 | Engine internals; the kit does not build engines |
+| [game-datasets](https://github.com/leomaurodesenv/game-datasets) | CC BY 4.0 | 2026-10-25 | ~198 | Read by keyword (about 60 of 198): Kaggle-style data; Steam Database and the Steam Web API are the only pointers for the Steam skill; the LICENSE file is CC BY 4.0 but the README footer says CC BY-SA 4.0, so treat it as the stricter |
+| [awesome-game-engine-dev](https://github.com/stevinz/awesome-game-engine-dev) | CC0 | 2026-08-17 | ~1,028 | Read in part (the audio, asset, debugging and format sections, about 90 entries): engine internals; its legend marks each entry public domain, permissive, copyleft or unknown, a scheme `assets.json` already has |
 | [awesome-steam-deck](https://github.com/airscripts/awesome-steam-deck) | CC0 | 2026-09-12 | ~178 | Mostly for players. For a developer: Gamescope, MangoHud, ProtonDB, Deck Verified, the official site and nine more entries; the kit's `deck` and `godot-steam-deck` already cover the Steamworks side |
-| [awesome-a11y](https://github.com/brunopulis/awesome-a11y) | CC0 | 2026-08-03 | ~35 | Web accessibility; `godot-ui-accessibility` follows WCAG and the Game Accessibility Guidelines already |
+| [awesome-a11y](https://github.com/brunopulis/awesome-a11y) | CC0 | 2026-08-03 | ~100 | Read: tools, spec, laws and guides (about 100 entries): web only (axe-core, pa11y, Lighthouse); a11y-contrast and Color Oracle overlap what `shot` already does |
 | [awesome-testing](https://github.com/TheJambo/awesome-testing) | CC0 | 2026-10-28 | ~239 | Read: nothing on game accessibility or flaky tests; none of its entries is used |
-| [awesome-gametalks](https://github.com/hzoo/awesome-gametalks) | MIT | **2016-07-07** | ~260 | Stale; `docs/gdc` already holds the talks that matter |
+| [awesome-gametalks](https://github.com/hzoo/awesome-gametalks) | MIT | **2016-07-07** | ~258 | Stale and read by keyword: no Godot talk; three talks `docs/gdc` does not hold, Hamilton on accessibility (GDC 2013), Overwatch "Play by Sound" (GDC 2016) and Lemarchand on playtesting (GDC 2012), links not opened |
 | [godot-ci](https://github.com/aBARICHELLO/godot-ci) | MIT | 2026-10-20 | - | A Docker image and workflow for Godot CI that the kit's own workflow replaces; not compared |
 | [awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code) | its own notice, not a CC licence | 2026-10-29 | ~284 | Not reused, because the licence was not checked against what the kit could copy |
 
 The lists whose clones were incomplete are not in the table. Production, magictools, open-source games, Steam Deck and
-testing were then read entry by entry (below); learn-gamedev, game datasets, game engine development, a11y and gametalks
-were judged from their descriptions, licences and last commits only, so nothing from them is in the kit.
+testing were read entry by entry (below); learn-gamedev, game datasets, game engine development, a11y and gametalks were
+then read by section and keyword, not every line (the counts in the table are what the files hold, more than the lists
+claim), and the links were not opened except two status checks. Nothing from them is in the kit.
 
 ## Read entry by entry
 
@@ -104,7 +105,8 @@ session (quaternius.com, game-icons.net, polyhaven.com) was not read.
 ## Not done
 
 - Per-asset terms of GameAsset.net and SFXMint.
-- Reading learn-gamedev, game datasets, game engine development, a11y and gametalks entry by entry.
+- Every line of learn-gamedev, game datasets, game engine development and gametalks, and the pages their leads point to.
+- Three gametalks, as candidates for `docs/gdc` (titles from the list, not opened): Ian Hamilton on accessibility (GDC 2013, gdcvault.com/play/1020377), Overwatch "Play by Sound" (GDC 2016) and Lemarchand on playtesting (GDC 2012, gdcvault.com/play/1015745).
 - An `addons-status.json` entry for godot-luaAPI: its folder name has to be confirmed from a release zip first, as the other
   entries were (`roadmap.md`).
 - A field test on OpenLiberty and on the C# template and the two GDScript templates above.
