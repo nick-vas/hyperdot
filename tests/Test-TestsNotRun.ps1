@@ -5,7 +5,7 @@
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
-foreach ($lib in 'Common', 'Report', 'Runners') { . (Join-Path $root "ci/godot/lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Report', 'Runners', 'Setup') { . (Join-Path $root "ci/godot/lib/$lib.ps1") }
 $failures = @()
 $dir = Join-Path ([System.IO.Path]::GetTempPath()) "notrun-$PID"
 New-Item -ItemType Directory -Force -Path $dir | Out-Null
@@ -119,6 +119,20 @@ try {
     if ($located.Count -ne 1 -or $located[0] -notmatch 'at res://addons/ggt-core/ggt\.gd:20$') { $failures += "an error should carry its place, got '$located'" }
     Set-Content -LiteralPath $exportLog -Value 'ERROR: something else'
     if ($null -ne (Get-MissingExportTemplate $exportLog)) { $failures += 'a log without the message should give no template path' }
+    # An export checks its template files before the import and the build: Linux lacking, Windows present, others unchecked.
+    $tpl = Join-Path $dir 'templates'
+    New-Item -ItemType Directory -Force -Path $tpl | Out-Null
+    Set-Content -LiteralPath (Join-Path $tpl 'windows_release_x86_64.exe') 'x'
+    Set-Content -LiteralPath (Join-Path $tpl 'windows_debug_x86_64.exe') 'x'
+    $winPreset = [pscustomobject]@{ Name = 'W'; Platform = 'Windows Desktop'; Options = @{} }
+    $linuxPreset = [pscustomobject]@{ Name = 'L'; Platform = 'Linux'; Options = @{} }
+    $webPreset = [pscustomobject]@{ Name = 'Web'; Platform = 'Web'; Options = @{} }
+    if (@(Get-MissingExportTemplates $winPreset $tpl).Count -ne 0) { $failures += 'a Windows preset with its two templates present should miss none' }
+    $lost = @(Get-MissingExportTemplates $linuxPreset $tpl)
+    if ($lost.Count -ne 2 -or (Split-Path -Leaf $lost[0]) -ne 'linux_release.x86_64') { $failures += "a Linux preset with no templates should miss linux_release.x86_64 and linux_debug.x86_64, got '$lost'" }
+    if (@(Get-MissingExportTemplates $webPreset $tpl).Count -ne 0) { $failures += 'a platform with uncertain file names is not checked early' }
+    # The editor-bridge add-on's port message is noise, not a project error.
+    if ('ERROR: [godot-mcp] Failed to start server on 127.0.0.1:6550: Already in use' -notmatch (Get-IgnoredErrorsRegex)) { $failures += 'the godot-mcp port message should be known noise' }
     # A runner that found no test says so in `Reason`, and a normal failing run has none.
     $empty = Join-Path $dir 'empty-results'
     New-Item -ItemType Directory -Force -Path $empty | Out-Null

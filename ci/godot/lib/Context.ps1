@@ -130,19 +130,25 @@ function Get-InstructionPathProblems([string]$Text, [string]$Where, [string]$Pro
     foreach ($line in $Text -split '\r?\n') {
         $number++
         if (@($Skip | Where-Object { $line.Trim() -match $_ }).Count -gt 0) { continue }
+        # A line that says what not to commit or what git ignores names folders the kit's runs create, which may not exist yet.
+        if ($line -match '(?i)\b(do not|don''t|never)\s+commit\b|\bgit-?ignore[ds]?\b') { continue }
         $candidates = @(
             foreach ($m in [regex]::Matches($line, 'res://(?<p>[^\s"''`)\]]+)')) { @{ text = "res://$($m.Groups['p'].Value)"; roots = @($ProjectDir); path = $m.Groups['p'].Value } }
             foreach ($m in [regex]::Matches($line, '`(?<p>[^`\s]+)`')) {
                 $p = $m.Groups['p'].Value
                 if ($p -match '^(res|user|https?)://|^[@$~-]|[*?<>{}|]' -or $p -notmatch '/') { continue }
                 if ($p -notmatch '\.[A-Za-z0-9]{1,8}$' -and -not $p.EndsWith('/')) { continue }
-                @{ text = $p; roots = @($FileDir, $RepoRoot, $ProjectDir); path = $p }
+                # An absolute path is looked up as it is written, not under the repository.
+                $roots = if ($p -match '^([A-Za-z]:[\\/]|/)') { @('') } else { @($FileDir, $RepoRoot, $ProjectDir) }
+                @{ text = $p; roots = $roots; path = $p }
             }
         )
         foreach ($c in $candidates) {
             $clean = $c.path -replace '[.,;:]+$', ''
             if (-not $seen.Add("$($c.text)")) { continue }
-            $found = @($c.roots | Where-Object { $_ -and (Test-Path -LiteralPath (Join-Path $_ $clean)) })
+            # The folders the kit's own runs create (.godot, bin, obj, test-results, build) are not "missing" before the first run.
+            if ($clean -match '^(\.godot|bin|obj|test-results|build|gdunit4_testadapter[^/]*)/?$') { continue }
+            $found = @($c.roots | Where-Object { $null -ne $_ -and (Test-Path -LiteralPath $(if ($_ -eq '') { $clean } else { Join-Path $_ $clean })) })
             if ($found.Count -eq 0) { $problems.Add("${Where}:$number $($c.text)") }
         }
     }

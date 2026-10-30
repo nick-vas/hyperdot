@@ -355,6 +355,8 @@ $script:KnownNoise = @(
     # 4.7.2, with a window and the Dummy audio driver (bench, shot) or Movie Maker (audio -Mix): quitting while a sound
     # plays leaves its stream (an AudioStreamWAV) referenced at shutdown. Any game with music hits it; headless runs do not.
     '^\s*ERROR: \d+ resources? still in use at exit',
+    # The godot-mcp editor bridge starts a server on a fixed port; with the editor open on the same project the port is taken.
+    '^\s*ERROR: \[godot-mcp\] Failed to start server on 127\.0\.0\.1:\d+: Already in use',
     # 4.7.2 Android exports of a project without application/config/icon: the build uses Godot's icon. doctor warns.
     '^\s*ERROR: No project icon specified'
 )

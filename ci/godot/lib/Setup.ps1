@@ -197,6 +197,23 @@ function Get-GodotPaths([string]$Version, [string]$Release, [bool]$Mono = $true,
     }
 }
 
+# The template files Godot reads for a preset, in the templates folder (Godot 4's names), for the platforms whose names are
+# certain: Windows Desktop and Linux. Others: none, and the export finds out.
+function Get-ExportTemplateFiles($Preset) {
+    $arch = 'x86_64'
+    if ($Preset.Options -and $Preset.Options.ContainsKey('binary_format/architecture') -and "$($Preset.Options['binary_format/architecture'])") { $arch = "$($Preset.Options['binary_format/architecture'])" }
+    switch -Regex ($Preset.Platform) {
+        '^Windows Desktop$' { return @("windows_release_$arch.exe", "windows_debug_$arch.exe") }
+        '^Linux' { return @("linux_release.$arch", "linux_debug.$arch") }
+        default { return @() }
+    }
+}
+
+# Full paths of the template files a preset needs that the templates folder lacks (empty when all are there).
+function Get-MissingExportTemplates($Preset, [string]$TemplatesDir) {
+    @(foreach ($name in Get-ExportTemplateFiles $Preset) { $path = Join-Path $TemplatesDir $name; if (-not (Test-Path -LiteralPath $path)) { $path } })
+}
+
 function Install-GodotTools {
     param([string]$Version, [string]$Release = 'stable', [switch]$Templates, [bool]$Mono = $true, [string]$DotnetChannel = '8.0')
 
