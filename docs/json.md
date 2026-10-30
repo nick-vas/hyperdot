@@ -154,7 +154,9 @@ UTF-16: ...` or `res://file is not UTF-8 (...)`, and its rows are not checked. A
 fonts are the default one (the project theme's default font, else `gui/theme/custom_font`, else `Godot's default font (Open
 Sans SemiBold)`) and every font of a `.tres` theme (`res://ui/theme.tres Button/font`), each with its fallbacks. Characters
 that only a `SystemFont` in a font's chain could draw are a warning with rule `system-font` (`file` is the font), since they
-depend on the player's OS. Fonts listed in `l10n.json`'s `glyphIgnoreFonts` are not reported. The l10n entry also has
+depend on the player's OS. The same goes for characters Godot's own default font lacks (a project with no theme font):
+they are a warning with rule `default-font`, since the engine draws them through the player's system fonts, and `glyphs.missing` still lists them.
+A font the project chose that lacks a character fails. Fonts listed in `l10n.json`'s `glyphIgnoreFonts` are not reported. The l10n entry also has
 `glyphs`:
 
 ```json

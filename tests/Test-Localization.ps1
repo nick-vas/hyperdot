@@ -156,6 +156,15 @@ if (@($parsed.Warnings).Count -ne 1 -or $parsed.Warnings[0].rule -ne 'system-fon
 }
 if (@($parsed.Report.fonts | Where-Object { $_['ignored'] }).Count -ne 1) { $failures += 'glyphIgnoreFonts should mark the digits font ignored' }
 
+# Godot's own default font lacking a character is a warning (the engine draws it through the player's system fonts);
+# a font the project chose that lacks it fails, as above.
+$builtin = ConvertFrom-GlyphLog @('@@glyphs-font 0|Godot''s default font (Open Sans SemiBold)|default font', '@@glyphs-missing 0|38283,22987') $characters
+if (@($builtin.Failures).Count -ne 0) { $failures += "Godot's own default font lacking characters should not fail: $($builtin.Failures -join ' | ')" }
+if (@($builtin.Warnings).Count -ne 1 -or $builtin.Warnings[0].rule -ne 'default-font' -or $builtin.Warnings[0].message -notmatch '^ja: .*has no 始 U\+59CB, 開 U\+958B' -or $builtin.Warnings[0].message -notmatch 'allow_system_fallback') {
+    $failures += "one default-font warning for ja expected: $($builtin.Warnings | ConvertTo-Json -Depth 10 -Compress)"
+}
+if (@($builtin.Report.missing).Count -ne 1) { $failures += 'glyphs.missing should still list the default font''s missing characters' }
+
 # Glyphs in Godot: the kit's own run on a copy (the import writes beside the tables).
 if ($NoGodot) {
     Write-Host 'SKIP the glyph check in Godot (-NoGodot)'
