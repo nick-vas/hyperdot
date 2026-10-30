@@ -695,6 +695,16 @@ if ($Command -in 'setup', 'build', 'test', 'export', 'bench', 'shot', 'audio', '
 # Screenshots, recordings and measurements run from the game's folder land inside it.
 if ($Command -in 'bench', 'shot', 'audio', 'soak', 'deck') { Add-OutputGdignore $commandResultsDir $info.ProjectDir }
 $script:ExportVersion = if ($Command -eq 'export' -and $GameVersion) { Resolve-ExportVersion } else { $null }
+# What a run that starts Godot on the game changes in the game's files (git), listed in the JSON as changedProjectFiles.
+if ($Command -in 'test', 'build', 'export', 'bench', 'shot', 'deck', 'soak', 'audio', 'playtest' -and $script:JsonMode) {
+    $changesBefore = Get-ProjectChangeSet $info.ProjectDir
+    if ($null -ne $changesBefore) {
+        $script:ChangeProbe = {
+            $changed = @(Get-NewProjectChanges $changesBefore (Get-ProjectChangeSet $info.ProjectDir) | Select-Object -First 50)
+            if ($changed.Count -gt 0) { Set-JsonField changedProjectFiles $changed }
+        }
+    }
+}
 switch ($Command) {
     'doctor' { Invoke-Doctor $info -ReportIssue:$ReportIssue }
     'init' {

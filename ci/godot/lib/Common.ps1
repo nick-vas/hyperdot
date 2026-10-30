@@ -176,8 +176,11 @@ function Enable-JsonMode([string]$Command) {
     $script:JsonDoc = [ordered]@{ schema = 'hyperdot/1'; command = $Command; ok = $true }
 }
 function Set-JsonField([string]$Name, $Value) { if ($script:JsonMode) { $script:JsonDoc[$Name] = $Value } }
+# Set by a command that runs Godot on the project: adds what the run changed in the game's files (Get-NewProjectChanges).
+$script:ChangeProbe = $null
 function Write-JsonResult {
     if ($script:RunLogPath) { Set-JsonField log $script:RunLogPath }
+    if ($script:ChangeProbe) { & $script:ChangeProbe }
     if ($script:JsonMode) { [Console]::Out.WriteLine(($script:JsonDoc | ConvertTo-Json -Depth 8)) }
 }
 
@@ -571,6 +574,26 @@ function ConvertTo-SafeName([string]$Text) { return ($Text -replace '[^A-Za-z0-9
 
 # Repository root, or $null outside a repository or when Git isn't installed (`& git` would otherwise
 # throw under $ErrorActionPreference = 'Stop').
+# The files git reports as changed or new (not ignored) under a folder, path -> status ("M", "??"), or $null outside a repository.
+function Get-ProjectChangeSet([string]$Dir) {
+    if (-not (Get-GitRoot $Dir)) { return $null }
+    $lines = @(& git -C $Dir status --porcelain=v1 --untracked-files=all -- . 2>$null)
+    if ($LASTEXITCODE -ne 0) { return $null }
+    $set = [ordered]@{}
+    foreach ($line in $lines) { if ($line.Length -gt 3) { $set[$line.Substring(3).Trim('"')] = $line.Substring(0, 2).Trim() } }
+    return $set
+}
+
+# What a run changed: entries of $After that $Before lacked or had with another status, without the kit's own results folders and
+# the build output. A mono editor adds [dotnet] to project.godot and writes .cs.uid files; this is where a user sees it.
+function Get-NewProjectChanges($Before, $After) {
+    if ($null -eq $Before -or $null -eq $After) { return @() }
+    @(foreach ($path in $After.Keys) {
+        if ($path -match '(^|/)(test-results|[\w-]+-results|\.godot|bin|obj)/') { continue }
+        if (-not $Before.Contains($path) -or $Before[$path] -ne $After[$path]) { [ordered]@{ path = $path; status = $After[$path] } }
+    })
+}
+
 function Get-GitRoot([string]$Dir) {
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) { return $null }
     $root = & git -C $Dir rev-parse --show-toplevel 2>$null

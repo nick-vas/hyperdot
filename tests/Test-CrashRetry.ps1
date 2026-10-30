@@ -72,6 +72,22 @@ if (-not $IsWindows) {
         }
     }
 
+    # What a run changes in the game's files is listed as changedProjectFiles: a Godot that edits project.godot and writes a
+    # .cs.uid file (the mono editor does), in a git repository.
+    $gitGame = Join-Path $dir 'git-game'
+    New-Item -ItemType Directory -Force $gitGame | Out-Null
+    Copy-Item -LiteralPath (Join-Path $game 'project.godot') -Destination $gitGame
+    git -C $gitGame init -q 2>&1 | Out-Null
+    git -C $gitGame -c user.name=t -c user.email=t@t add -A 2>&1 | Out-Null
+    git -C $gitGame -c user.name=t -c user.email=t@t commit -q -m init 2>&1 | Out-Null
+    Set-Content -LiteralPath $stand -NoNewline -Value "#!/bin/sh`ncase `"`$*`" in *--version*) echo '4.7.2.stable.official.abc'; exit 0;; esac`necho '[dotnet]' >> '$gitGame/project.godot'`necho x > '$gitGame/Thing.cs.uid'`nexit 0`n"
+    chmod +x $stand
+    $saved = $env:GODOT_BIN; $env:GODOT_BIN = $stand
+    try { $json = & $pwshPath -NoProfile -NonInteractive -File (Join-Path $PSScriptRoot '../ci/godot/hyperdot.ps1') build -Json -Project $gitGame 2>$null } finally { $env:GODOT_BIN = $saved }
+    $result = ($json -join "`n") | ConvertFrom-Json
+    $changed = if ($result.PSObject.Properties['changedProjectFiles']) { @($result.changedProjectFiles | ForEach-Object { "$($_.status) $($_.path)" }) } else { @() }
+    if (($changed -join '|') -notmatch 'M project\.godot' -or ($changed -join '|') -notmatch '\?\? Thing\.cs\.uid') { $failures += "changedProjectFiles should list the edited project.godot and the new .cs.uid, got '$($changed -join '|')'" }
+
     # export: an empty export_path stops before anything runs, with no Godot involved. (A missing export template cannot be
     # played with a stand-in: once templates are needed the kit installs its own Godot, so that is tested on the log reader.)
     $export = Join-Path $dir 'export-game'

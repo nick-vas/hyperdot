@@ -376,6 +376,8 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
     foreach ($problem in @(Get-GdextensionHostProblems $project)) { Add-Check $problem.Status $problem.Message $problem.Fix }
     $csProblem = Get-CsWithoutProjectProblem $project ([bool]($isCSharp -or $Info.Solution))
     if ($csProblem) { Add-Check $csProblem.Status $csProblem.Message $csProblem.Fix }
+    $staticSuites = Get-StaticTestSuiteProblem $project
+    if ($staticSuites) { Add-Check $staticSuites.Status $staticSuites.Message $staticSuites.Fix }
     if ($isCSharp) {
         foreach ($csproj in $csprojs) {
             $sdkProblem = Get-SdkPinProblem (Get-Content -LiteralPath $csproj.FullName -Raw) $Info.GodotVersion $csproj.Name
