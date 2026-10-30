@@ -98,7 +98,7 @@ Everything computable about where the game is, in one read-only pass: GDD featur
     hyperdot.ps1 status -Json
     hyperdot.ps1 status -Handoff godot-verifier -Checked <what> -Verdict <answer>
 
-/game judges what it returns. -Handoff records one subagent handoff in .godot/hyperdot-handoffs.jsonl (the newest 200
+suggestedCommands[] says which commands are due and why (when to run what: docs/workflow.md). /game judges what it returns. -Handoff records one subagent handoff in .godot/hyperdot-handoffs.jsonl (the newest 200
 are kept); status returns the newest as handoffs[].
 
 ### audio

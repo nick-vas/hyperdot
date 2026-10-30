@@ -452,6 +452,10 @@ in `.gitignore`).
 - `handoffs[]`: the 20 newest lines of the handoff log, `.godot/hyperdot-handoffs.jsonl`, newest first: `time`, `subagent`,
   `checked` (what it was asked to check), `verdict` (its answer, such as `PASS`, `FAIL: ...` or `Proposed 0003`),
   `commit` (short hash, `null` outside git). Empty without a log.
+- `suggestedCommands[]`: the kit commands worth running now, from the rules in `ci/godot/workflow.json` ([workflow.md](workflow.md)): `command`,
+  `args` (flags to add, such as `-Run`; empty if none), `reason` and `rule` (the rule's id). A command appears once. A rule fires when the
+  command never ran, its last run failed, a file it covers is newer than that run, or the run is older than the rule's days; rules for a
+  later plan phase wait for it. Empty when nothing is due. Nothing is run.
 - `look`: `styleGuide` (path of `docs/STYLE.md`, or `null`), `resolutions[]` (from its `Resolutions:` line), `juiceRules` (rules
   in `juice.json`, 0 without one).
 - `warnings[]`: a draft GDD, must-have features with no tagged test, must and should features with no `Fun:` line or an

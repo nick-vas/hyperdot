@@ -6,7 +6,8 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 ## Layout
 
 - `ci/godot/hyperdot.ps1` entry point: `test build export setup detect doctor init plan bench shot status audio soak credits sfx playtest help deck telemetry`, all with `-Json`.
-- `ci/godot/lib/*.ps1` one concern per file: Common, Setup, Detect, Report, Runners, Doctor, Init, Plan, Measure, Status, Architecture, Juice, Audio, Assets, Localization, Soak, Data, TextSize, Layout, Credits, Store, Web, Platforms, Sfx, Playthrough, Version, Steam, Context, Addons, Playtest, Palette, BuildSize, Help, Deck, Placement, Telemetry.
+- `ci/godot/lib/*.ps1` one concern per file: Common, Setup, Detect, Report, Runners, Doctor, Init, Plan, Measure, Status, Architecture, Juice, Audio, Assets, Localization, Soak, Data, TextSize, Layout, Credits, Store, Web, Platforms, Sfx, Playthrough, Version, Steam, Context, Addons, Playtest, Palette, BuildSize, Help, Deck, Placement, Telemetry, Workflow.
+- `ci/godot/workflow.json` the rules behind `status`'s `suggestedCommands` and the table in `docs/workflow.md` (when to run which command).
 - `ci/godot/tools/` `validate.gd`, `flows.gd`, `bench.gd`, `shot.gd`, `textsize.gd`, `layout.gd`, `placement.gd`, `notices.gd`, `glyphs.gd` (run inside Godot), `web-smoke.mjs` (Node.js and Playwright, for `export -Run` of Web presets), `Sfxr.cs` (bfxr2's sound synth in C#, compiled by `sfx` with `Add-Type`; Apache-2.0 and MIT), `Heatmap.cs` (PNG heat maps for `playtest`, compiled with `Add-Type`), `Palette.cs` (PNG reader and CIEDE2000 palette check, compiled by `shot` with `Add-Type`), `Test-Skills.ps1` (skill validator),
   `Initialize-HyperdotGame.ps1` (sets the kit up for a game from local copies of the kit and Godot and makes a worktree for a parallel chat; [docs/usage.md](docs/usage.md)),
   `Update-Changelog.ps1` (assembles the `changelog.d/` fragments into `CHANGELOG.md` at release), `Update-Versions.ps1`, `Update-AddonStatus.ps1` and `Invoke-Canary.ps1` (the weekly check against new releases, and of the
@@ -112,6 +113,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-TestsNotRun.ps1` | the `dotnet` runner's guard against gdUnit4 tests found but not run (synthetic TRX) | - |
 | `Test-DotnetTempDir.ps1` | the `dotnet` and `gdunit4` runners giving each `dotnet test` its own temp folder: two runs at once under one TMPDIR reach their own Godot over gdUnit4Net's pipe, also under a TMPDIR too long for a socket, and leave no folder behind (pwsh stands in for dotnet and Godot; passes with a note on Windows) | - |
 | `Test-FailureDelta.ps1` | `test`'s failure delta against the previous run (synthetic history) | - |
+| `Test-Workflow.ps1` | the "which command now" rules of `ci/godot/workflow.json` (never run, failed, file newer, older than; stage gates; a phase every shipped plan needs), `status`'s `suggestedCommands` in a temporary project, and `docs/workflow.md` holding every row | - |
 | `Test-Telemetry.ps1` | `telemetry`: per-command pass rate, mean, median, p95 and trend, the slowest runners, hot spots, flaky tests and recurring errors of a synthetic history (temporary projects); a missing file, a damaged line, too few runs, the window and the refusals | - |
 | `Test-TestDuration.ps1` | `status`'s test duration (synthetic history) | - |
 | `Test-Handoffs.ps1` | the handoff log: `status -Handoff` writes one line with the commit, cuts the text at 500 and 300 characters, keeps the newest 200, refuses bad arguments; `status` reads it back | git |

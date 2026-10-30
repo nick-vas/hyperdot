@@ -98,6 +98,9 @@ jobs:
       - name: telemetry reads the run history - pass rate, mean, median, p95, trend, hot spots, flaky tests - and says so when it is thin or missing
         shell: pwsh
         run: ./tests/Test-Telemetry.ps1
+      - name: status says which command is due and why - never run, failed, a file newer than the run, too old - and docs/workflow.md holds the table
+        shell: pwsh
+        run: ./tests/Test-Workflow.ps1
       - name: The release notes are the changelog section of exactly that version
         shell: pwsh
         run: ./tests/Test-ReleaseNotes.ps1
