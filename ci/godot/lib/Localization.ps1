@@ -571,7 +571,7 @@ function Invoke-GlyphCheck([string]$ProjectDir, [string]$ResultsDir) {
     $config = Get-L10nConfig $ProjectDir
     $result = ConvertFrom-GlyphLog @(Get-Content -LiteralPath $log) $characters @($config.glyphIgnoreFonts)
     $problems = @(@($result.Failures) + @($result.Errors))
-    $errors = @(Get-GodotLogErrors $log)
+    $errors = @(Get-GodotErrorsLocated @(Get-Content -LiteralPath $log))
     if ($exit -ne 0) { $problems += "Godot exited with $exit" }
     elseif ($errors) { $problems += $errors }
     elseif ($result.Fonts -eq 0) { $problems += 'glyphs.gd named no font' }
