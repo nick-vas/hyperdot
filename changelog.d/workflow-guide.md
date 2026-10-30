@@ -1,0 +1,1 @@
+Added: `status` lists `suggestedCommands` (which kit command is due and why: never run, failed, a file newer than its last run, too old for the plan's phase), from `ci/godot/workflow.json`; `docs/workflow.md` is the same table by moment and by phase, and `/game` runs the due checks before judging.

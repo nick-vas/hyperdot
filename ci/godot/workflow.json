@@ -1,0 +1,42 @@
+{
+  "stages": {
+    "concept": 0, "jam-concept": 0,
+    "prototype": 1, "jam-loop": 1,
+    "vertical-slice": 2,
+    "production": 3, "jam-build": 3,
+    "alpha-beta": 4,
+    "launch": 5, "jam-ship": 5,
+    "post-launch": 6, "jam-after": 6
+  },
+  "cadence": [
+    { "when": "After every change", "run": "test", "why": "Builds and runs every runner the project has. Done means a fresh full run with ok: true." },
+    { "when": "After editing project.godot, a csproj, export presets or an add-on", "run": "doctor", "why": "Finds setup mistakes that break CI or ship a broken build." },
+    { "when": "After a UI, scene or text change", "run": "shot", "why": "Real screenshots, text cut off in other languages, colour-blind views, the palette." },
+    { "when": "After a sound change", "run": "audio", "why": "Loudness of each sound and of the mix." },
+    { "when": "Before opening a pull request", "run": "test and doctor", "why": "The CI workflow runs the same two." },
+    { "when": "At the end of a milestone", "run": "export -Run, bench, playtest", "why": "A build that starts, frame times and draw calls, then heat maps from play sessions." },
+    { "when": "Before an alpha or beta, and for a Steam Deck or server game", "run": "deck, soak", "why": "The Deck check at 1280x800, and memory over a long session." },
+    { "when": "Before a release", "run": "doctor, credits, export", "why": "Store art and Steam files, the credits file, a versioned build." },
+    { "when": "Once a week", "run": "status, plan, telemetry", "why": "Where the game stands, the next gates, and how the kit's own runs are going." }
+  ],
+  "rules": [
+    { "id": "test.failed", "command": "test", "trigger": "failed-last", "reason": "The latest test run failed" },
+    { "id": "test.never", "command": "test", "trigger": "never-run", "reason": "No test run is recorded yet" },
+    { "id": "test.changed", "command": "test", "trigger": "files-newer", "files": ["*.gd", "*.cs", "*.tscn", "*.tres", "project.godot"],
+      "reason": "Code or scenes changed since the last test run" },
+    { "id": "doctor.never", "command": "doctor", "trigger": "never-run", "reason": "doctor has not run on this project" },
+    { "id": "doctor.changed", "command": "doctor", "trigger": "files-newer", "files": ["project.godot", "*.csproj", "export_presets.cfg", "plugin.cfg", "*.gdextension"],
+      "reason": "A project file, preset or add-on changed since the last doctor run" },
+    { "id": "doctor.release", "command": "doctor", "trigger": "older-than", "days": 7, "fromStage": 5, "reason": "Launch checks (store art, privacy, Steam files) want a run within the week" },
+    { "id": "shot.never", "command": "shot", "trigger": "never-run", "fromStage": 2, "files": ["*.tscn"], "reason": "No screenshot run is recorded for a vertical slice" },
+    { "id": "shot.changed", "command": "shot", "trigger": "files-newer", "fromStage": 2, "files": ["*.tscn"], "reason": "Scenes changed since the last screenshot run" },
+    { "id": "audio.never", "command": "audio", "trigger": "never-run", "fromStage": 3, "files": ["*.wav", "*.ogg", "*.mp3"], "reason": "The game has sounds and no audio run is recorded" },
+    { "id": "audio.changed", "command": "audio", "trigger": "files-newer", "fromStage": 3, "files": ["*.wav", "*.ogg", "*.mp3"], "reason": "Sounds changed since the last audio run" },
+    { "id": "export.never", "command": "export", "args": "-Run", "trigger": "never-run", "fromStage": 2, "reason": "No export is recorded: the slice gate wants a build that starts" },
+    { "id": "export.release", "command": "export", "args": "-Run", "trigger": "older-than", "days": 30, "fromStage": 5, "reason": "A release candidate wants a recent clean export" },
+    { "id": "bench.never", "command": "bench", "trigger": "never-run", "fromStage": 3, "reason": "No frame-time measurement is recorded for production" },
+    { "id": "bench.old", "command": "bench", "trigger": "older-than", "days": 14, "fromStage": 4, "reason": "The last frame-time measurement is over two weeks old" },
+    { "id": "deck.never", "command": "deck", "trigger": "never-run", "fromStage": 4, "reason": "No Steam Deck check is recorded (skip it if the game will not ship on Steam)" },
+    { "id": "credits.never", "command": "credits", "trigger": "never-run", "fromStage": 5, "reason": "No credits file has been generated for launch" }
+  ]
+}

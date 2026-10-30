@@ -57,6 +57,7 @@ What the agent reads back when a test fails:
 | I want... | Start here |
 |---|---|
 | **Automated Godot testing**, locally, with GUT, gdUnit4Net, GoDotTest or xUnit/NUnit/MSTest | [Quick start](#quick-start), then [Test and verify](#test-and-verify) and [docs/usage.md](docs/usage.md#2-run-the-tests-locally-and-check-your-setup) |
+| **Which command to run when**, by moment and by phase | [docs/workflow.md](docs/workflow.md), or `status` for what is due in your game now |
 | **CI for my game**: tests on every push, a results comment on pull requests, exports and releases | [GitHub](#github) and [docs/usage.md](docs/usage.md#3-the-same-tests-on-a-github-linux-runner-with-a-pr-comment) |
 | **To use Claude Code**: skills, two subagents and the Stop hook loaded from one clone | Quick start step 3 below, then [Skills](#skills) and [docs/help.md](docs/help.md) |
 | **The complete AI development workflow**: plan, author through the editor, verify, measure, ship | [Advanced](#advanced), [How the pieces fit](#how-the-pieces-fit), [The plan](#the-plan) and [docs/plan.md](docs/plan.md) |

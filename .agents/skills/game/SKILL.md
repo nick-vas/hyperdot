@@ -17,7 +17,7 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 status -Json      # add -Projec
 ```
 
 `features[]` (with `taggedTests`, `tasks`, `testedAndPassing`), `plan` (phase, open gates, tasks with `itemId` and
-`boardColumn`), `runs` (latest run per command), `git`, `inventory`, `handoffs` (what the `godot-verifier` and
+`boardColumn`), `runs` (latest run per command), `git`, `inventory`, `suggestedCommands` (kit commands that are due, each with its reason), `handoffs` (what the `godot-verifier` and
 `godot-architect` subagents were last asked and answered, newest first), `warnings`. If `runs.test` is missing or older than
 `git.lastCommit`, run `test -Json -Quiet` first so the evidence is current.
 
@@ -112,7 +112,7 @@ after a turn that changed the plan (`HYPERDOT_PROJECT_SYNC=off` stops it), so th
 
 ## 6. What next
 
-End with one multiple-choice question: the three best next tasks, each with its reason in one line (must-haves first,
+Run the `suggestedCommands` whose reason is a failed or missing run before judging (a stale `test` makes every mark below unreliable), and list the rest under "Checks due" in `STATUS.md`. End with one multiple-choice question: the three best next tasks, each with its reason in one line (must-haves first,
 then what unblocks the current phase's gates, then risks from `warnings` and the review), and "Something else". When the user picks
 one, move it to `doing` in the plan (the sync moves the item), and start it with `godot-test-loop`.
 

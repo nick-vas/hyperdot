@@ -350,6 +350,15 @@ function Invoke-Status($Info) {
     foreach ($p in @($placeholderReport.entries | Where-Object { $_.pastDue })) { $warnings.Add("Placeholder $($p.path) was due on $($p.due) (assets.json): replace it, or agree a new date") }
     $git = Get-GitActivity $Info.ProjectDir
     $inventory = Get-ProjectInventory $Info
+    # Which kit command to run now (workflow.json): the stage comes from the plan's phase, the files' times from the disk.
+    $table = Read-WorkflowTable
+    $stage = if (-not $plan) { $null } elseif ($plan.currentPhase) { Get-WorkflowStage $table $plan.currentPhase.id } else { 6 }
+    $projectFiles = @(Find-ProjectFiles -Root $Info.ProjectDir -Filter '*')
+    $addonsDir = Join-Path $Info.ProjectDir 'addons'
+    if (Test-Path -LiteralPath $addonsDir) {
+        $projectFiles += @(Get-ChildItem -LiteralPath $addonsDir -Recurse -File | Where-Object { $_.Name -in 'plugin.cfg' -or $_.Name -like '*.gdextension' })
+    }
+    $suggested = @(Get-SuggestedCommands $table $runs $projectFiles $stage)
     $allHandoffs = @(Read-Handoffs $Info.ProjectDir)
     [array]::Reverse($allHandoffs)
     $handoffs = @($allHandoffs | Select-Object -First 20)
@@ -371,6 +380,7 @@ function Invoke-Status($Info) {
     Set-JsonField inventory $inventory
     Set-JsonField placeholders $placeholders
     Set-JsonField handoffs $handoffs
+    Set-JsonField suggestedCommands $suggested
     Set-JsonField warnings @($warnings)
 
     if (-not $script:JsonMode) {
@@ -400,6 +410,7 @@ function Invoke-Status($Info) {
         if ($decisions) { Write-Console "Decisions: $($decisions.Count) ($(@($decisions | Where-Object { $_.status -match '^Proposed' }).Count) awaiting you)" }
         if ($placeholders.count) { Write-Console "Placeholders: $($placeholders.count) in assets.json ($($placeholders.pastDue) past due)" }
         foreach ($h in $handoffs | Select-Object -First 3) { Write-Console "Handoff $(Format-RunTime $h.time): $($h.subagent) checked $($h.checked): $($h.verdict)" }
+        foreach ($c in $suggested) { Write-Console "Run next: $(Format-KitCommand ("$($c.command) $($c.args)").Trim()) ($($c.reason))" }
         Write-Console "Project: $($inventory.sceneCount) scenes, $($inventory.scriptCount) scripts, $($inventory.testFileCount) test files, $($inventory.todoCount) TODO(s)"
         foreach ($w in $warnings) { Write-Console "WARNING: $w" -ForegroundColor Yellow }
     }
