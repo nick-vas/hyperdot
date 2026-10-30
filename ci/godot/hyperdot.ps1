@@ -317,6 +317,20 @@ function Invoke-Setup([switch]$WithTemplates) {
     $env:HYPERDOT_INSTALLED = '1'
 }
 
+# Before the import and the build, which cost seconds to minutes: a preset whose export template is not installed fails now.
+function Assert-ExportTemplates {
+    $version, $release = $info.GodotVersion -split '-', 2
+    $dir = (Get-GodotPaths $version ($release ? $release : 'stable') $info.IsCSharp).TemplatesDir
+    $details = Get-ExportPresetDetails $info.ProjectDir
+    foreach ($name in $presets) {
+        if (-not $details.Contains($name)) { continue }
+        $missing = @(Get-MissingExportTemplates $details[$name] $dir)
+        if ($missing.Count -gt 0) {
+            Stop-GodotCi "Export '$name' has no export template at $($missing[0] -replace '\\', '/'); install Godot's export templates for this version and platform" 'export-template-missing'
+        }
+    }
+}
+
 function Invoke-Build {
     # GUT whenever GUT tests exist, not only for the gut runner: validate loads those scripts too.
     $needsGut = $info.Runners -contains 'gut' -or @(Get-GutTestFiles $info.ProjectDir).Count -gt 0
@@ -719,7 +733,7 @@ switch ($Command) {
     'setup' { Invoke-Setup -WithTemplates:$Templates }
     'build' { Invoke-Setup; Invoke-Build }
     'test' { Invoke-Setup; Invoke-Build; Invoke-Tests }
-    'export' { Invoke-Setup -WithTemplates; Invoke-Build; Invoke-Export }
+    'export' { Invoke-Setup -WithTemplates; Assert-ExportTemplates; Invoke-Build; Invoke-Export }
     'bench' {
         Invoke-Setup; Invoke-Build
         if ($benchSweep) {

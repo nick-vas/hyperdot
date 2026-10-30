@@ -12,6 +12,17 @@ function Assert-True([bool]$Condition, [string]$Name) {
 
 foreach ($lib in 'Common', 'Context') { . (Join-Path $root "ci/godot/lib/$lib.ps1") }
 
+# G1 of the game retest: an absolute path that exists is not missing, and folders the kit's runs create, or that a line says
+# not to commit, are not either; a missing relative file still is.
+$gameDir = Join-Path ([System.IO.Path]::GetTempPath()) "ctx-$PID"
+New-Item -ItemType Directory -Force -Path $gameDir | Out-Null
+$realFile = Join-Path $gameDir 'real.ps1'
+Set-Content -LiteralPath $realFile 'x'
+$text = "Run ``$($realFile -replace '\\', '/')`` first.`nDo not commit ``.godot/``, ``bin/``, ``obj/``, ``test-results/``.`nSee ``docs/nothing.md`` for more.`nThe ``build/`` and ``obj/`` folders appear after a run.`n"
+$pathProblems = @(Get-InstructionPathProblems $text 'AGENTS.md' $gameDir $gameDir $gameDir)
+Assert-True ($pathProblems.Count -eq 1 -and $pathProblems[0] -match 'docs/nothing\.md') "only the missing relative file is reported: $($pathProblems -join ' | ')"
+Remove-Item -LiteralPath $gameDir -Recurse -Force
+
 # The kit holds itself to the rule: every hyperdot.ps1 call in the template, the skills and the docs binds.
 $sources = @(Get-Item (Join-Path $root 'ci/godot/templates/AGENTS.md')) + @(Get-ChildItem (Join-Path $root '.agents/skills') -Recurse -Filter 'SKILL.md') +
     @(Get-ChildItem (Join-Path $root 'docs') -Filter '*.md') + @(Get-ChildItem (Join-Path $root 'agents') -Filter '*.md') + @(Get-Item (Join-Path $root 'README.md'))
