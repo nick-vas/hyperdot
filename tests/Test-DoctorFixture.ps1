@@ -68,6 +68,12 @@ try {
             try { return @(Get-DoctorChecks $fixture) } finally { $env:GODOT_BIN = $saved }
         }
         Assert-True (-not ((Get-GodotBinChecks '4.7.2.stable.official.abcdef123') -match 'GODOT_BIN is Godot')) 'a project pinning 4.7 accepts GODOT_BIN 4.7.2'
+        # A pin of only major.minor (a Godot.NET.Sdk/4.7.0 pin reads as 4.7) is met by Godot 4.7.2.
+        Set-Content -LiteralPath $fake -Value "#!/bin/sh`necho '4.7.2.stable.official.abcdef123'`n" -NoNewline
+        chmod +x $fake
+        $savedBin = $env:GODOT_BIN; $env:GODOT_BIN = $fake
+        try { $minor = @((& pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') doctor -Json -GodotVersion 4.7 -Project $fixture 2>$null | Out-String | ConvertFrom-Json).checks | ForEach-Object message) } finally { $env:GODOT_BIN = $savedBin }
+        Assert-True (-not ($minor -match 'GODOT_BIN is Godot')) "a pin of only 4.7 accepts GODOT_BIN 4.7.2: $($minor -match 'GODOT_BIN')"
         Assert-True ([bool]((Get-GodotBinChecks '4.6.1.stable.official.abcdef123') -match '^FAIL GODOT_BIN is Godot 4\.6\.1')) 'a project pinning 4.7 refuses GODOT_BIN 4.6.1'
     }
 } finally {

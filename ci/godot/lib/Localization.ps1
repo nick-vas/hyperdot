@@ -537,7 +537,7 @@ function ConvertFrom-GlyphLog([string[]]$Lines, $Characters, [string[]]$Ignore =
             $record = [ordered]@{ locale = $locale; font = $font['name']; where = $font['where']; characters = $letters; codePoints = $points; keys = $keys }
             if ($kind -eq 'missing') {
                 $missing.Add($record)
-                $failures.Add("${locale}: $($font['name']) ($($font['where'])) has no $shown (in $used)")
+                $failures.Add("${locale}: $($font['name']) ($($font['where'])) has no $shown (in $used)$(if ($font['where'] -match 'default font') { ", and the default font draws them only through the player's system fonts (allow_system_fallback), which a machine without a font for them lacks: add a font with them as a fallback, or list this font in l10n.json glyphIgnoreFonts if the game targets machines that have one" })")
             } else {
                 $record['systemFonts'] = $names
                 $system.Add($record)

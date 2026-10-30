@@ -127,7 +127,7 @@ function Test-CanRunPlatform([string]$Platform) {
 }
 
 function Get-ProjectInfo {
-    param([string]$Project, [string]$Solution, [string]$GodotVersion, [string[]]$Runners)
+    param([string]$Project, [string]$Solution, [string]$GodotVersion, [string[]]$Runners, [switch]$SkipRunners)
 
     $projectDir = if ($Project) { (Resolve-Path -LiteralPath $Project).Path } else { Find-GodotProject }
     # -Project names a repository whose project.godot is in a subfolder: use the shallowest one, as without -Project.
@@ -149,7 +149,11 @@ function Get-ProjectInfo {
     $isCSharp = @(Get-ChildItem -LiteralPath $projectDir -File -Filter '*.csproj').Count -gt 0
 
     $selected = @($Runners | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
-    if ($selected.Count -eq 0) {
+    # A command that runs no tests (export) skips the runner search, which walks the project several times: tens of seconds
+    # in a large project, before an error that needs none of it.
+    if ($SkipRunners) {
+        $selected = @()
+    } elseif ($selected.Count -eq 0) {
         # Every project gets the load check and the architecture scan; neither needs tests.
         $selected += 'validate', 'architecture'
         # dotnet test on the solution covers xUnit/NUnit/MSTest and gdUnit4Net suites alike.
@@ -200,7 +204,7 @@ function Get-ProjectInfo {
         GodotVersion   = $version
         # @(...): PowerShell unrolls one-item and empty arrays returned from functions.
         Runners        = @($selected)
-        GoDotTestScene = Find-GoDotTestScene $projectDir
+        GoDotTestScene = $(if ($SkipRunners) { $null } else { Find-GoDotTestScene $projectDir })
         Presets        = @(Get-ExportPresets $projectDir)
     }
 }
