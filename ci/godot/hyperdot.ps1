@@ -254,7 +254,7 @@ if ($Command -eq 'help') {
 }
 
 $GameArgs = @(Split-GameArgs $GameArgs)
-$info = Get-ProjectInfo -Project $Project -Solution $Solution -GodotVersion $GodotVersion -Runners $Runners
+$info = Get-ProjectInfo -Project $Project -Solution $Solution -GodotVersion $GodotVersion -Runners $Runners -SkipRunners:($Command -eq 'export')
 Move-OldKitState $info.ProjectDir
 $script:KitScript = $PSCommandPath
 $script:KitProject = $info.ProjectDir

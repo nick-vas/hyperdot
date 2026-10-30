@@ -194,7 +194,7 @@ function Get-StaticTestSuiteProblem([string]$ProjectDir) {
     foreach ($file in @(Get-ChildItem -LiteralPath $ProjectDir -Recurse -File -Filter '*.cs' -ErrorAction SilentlyContinue | Where-Object { $_.FullName -notmatch $skip })) {
         $text = Get-Content -LiteralPath $file.FullName -Raw
         if ($text -notmatch '\[TestSuite') { continue }
-        foreach ($m in [regex]::Matches($text, '\[TestSuite[^\]]*\]\s*(?:\[[^\]]*\]\s*)*(?:public\s+|internal\s+)?static\s+(?:partial\s+)?class\s+(?<name>\w+)')) { $found.Add($m.Groups['name'].Value) }
+        foreach ($m in [regex]::Matches($text, '\[TestSuite[^\]]*\]\s*(?:(?:\[[^\]]*\]|//[^\r\n]*)\s*)*(?:public\s+|internal\s+)?static\s+(?:partial\s+)?class\s+(?<name>\w+)')) { $found.Add($m.Groups['name'].Value) }
     }
     if ($found.Count -eq 0) { return $null }
     return [pscustomobject]@{ Status = 'WARN'; Message = "$($found.Count) [TestSuite] class(es) are static ($(@($found | Select-Object -First 3) -join ', ')), and gdUnit4Net finds no test in a static class, so `dotnet test` runs none of them"
@@ -224,9 +224,13 @@ function Get-SdkPinProblem([string]$Csproj, [string]$GodotVersion, [string]$Name
 function Get-CiVersionProblems([string]$ProjectDir, [string]$GodotVersion) {
     $problems = [System.Collections.Generic.List[object]]::new()
     $engine = [regex]::Match($GodotVersion, '^(?<m>\d+\.\d+)')
-    $dir = Join-Path $ProjectDir '.github/workflows'
-    if (-not $engine.Success -or -not (Test-Path -LiteralPath $dir)) { return @() }
-    foreach ($file in @(Get-ChildItem -LiteralPath $dir -File | Where-Object { $_.Name -match '\.(ya?ml)(\.disabled)?$' })) {
+    # The project's own .github/workflows and, when the project sits in a subfolder, the repository root's.
+    $dirs = @(Join-Path $ProjectDir '.github/workflows')
+    $gitRoot = Get-GitRoot $ProjectDir
+    if ($gitRoot) { $rootDir = Join-Path $gitRoot '.github/workflows'; if ($rootDir -ne $dirs[0]) { $dirs += $rootDir } }
+    if (-not $engine.Success) { return @() }
+    $files = @(foreach ($dir in $dirs) { if (Test-Path -LiteralPath $dir) { Get-ChildItem -LiteralPath $dir -File | Where-Object { $_.Name -match '\.(ya?ml)(\.disabled)?$' } } })
+    foreach ($file in $files) {
         $disabled = $file.Name -match '\.disabled$'
         $text = Get-Content -LiteralPath $file.FullName -Raw
         foreach ($m in [regex]::Matches($text, '(?m)^\s*godot-version:\s*[''"]?(?<v>\d+\.\d+)')) {

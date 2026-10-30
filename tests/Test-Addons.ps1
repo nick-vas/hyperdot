@@ -311,6 +311,11 @@ try {
     Set-Content -LiteralPath (Join-Path $suites 'B.cs') "[TestSuite]`npublic class GoodTests { }`n"
     $staticProblem = Get-StaticTestSuiteProblem $suites
     Assert-True ($staticProblem -and $staticProblem.Status -eq 'WARN' -and $staticProblem.Message -match '1 \[TestSuite\] class\(es\) are static \(StaticTests\)') "a static [TestSuite] class warns and a normal one does not: $($staticProblem.Message)"
+    # An XML doc comment between the attribute and the class (CSharpTemplate's ENetTests) still counts.
+    Set-Content -LiteralPath (Join-Path $suites 'C.cs') "[TestSuite]`n/// <summary>`n/// Integration tests.`n/// </summary>`npublic static class DocTests { }`n"
+    $docProblem = Get-StaticTestSuiteProblem $suites
+    Assert-True ($docProblem -and $docProblem.Message -match '2 \[TestSuite\] class\(es\) are static') "a doc comment between [TestSuite] and static class is seen: $($docProblem.Message)"
+    Remove-Item -LiteralPath (Join-Path $suites 'C.cs')
     Remove-Item -LiteralPath (Join-Path $suites 'A.cs')
     Assert-True ($null -eq (Get-StaticTestSuiteProblem $suites)) 'only normal test classes: nothing to say'
 
@@ -324,6 +329,13 @@ try {
     New-Item -ItemType Directory -Force $ci | Out-Null
     Set-Content -LiteralPath (Join-Path $ci 'build.yml.disabled') "jobs:`n  t:`n    steps:`n      - with:`n          godot-version: '4.6'`n"
     Set-Content -LiteralPath (Join-Path $ci 'ok.yml') "jobs:`n  t:`n    steps:`n      - with:`n          godot-version: 4.7.2`n"
+    # A project in a subfolder: the repository root's workflows count too.
+    $repo = Join-Path $wave 'repo'
+    New-Item -ItemType Directory -Force (Join-Path $repo 'Template'), (Join-Path $repo '.github/workflows') | Out-Null
+    Set-Content -LiteralPath (Join-Path $repo '.github/workflows/old.yml.disabled') "jobs:`n  t:`n    steps:`n      - with:`n          godot-version: '4.6'`n"
+    git -C $repo init -q 2>&1 | Out-Null
+    $rootCi = @(Get-CiVersionProblems (Join-Path $repo 'Template') '4.7.2')
+    Assert-True ($rootCi.Count -eq 1 -and $rootCi[0].Message -match 'old\.yml\.disabled') "a workflow at the repository root is read for a project in a subfolder: $(Get-Messages $rootCi)"
     $ciProblems = @(Get-CiVersionProblems (Join-Path $wave 'ci') '4.7.2')
     Assert-True ($ciProblems.Count -eq 1 -and $ciProblems[0].Message -match 'build\.yml\.disabled \(disabled\) pins godot-version 4\.6') "a workflow pinning another minor warns, a matching one does not: $(Get-Messages $ciProblems)"
 } finally {

@@ -98,6 +98,8 @@ EndProject
     Set-Content -LiteralPath (Join-Path $repo 'Template/addons/project.godot') "config_version=5`n"
     $info = Get-ProjectInfo -Project $repo -Solution '' -GodotVersion '' -Runners @()
     if ((Split-Path -Leaf $info.ProjectDir) -ne 'Template') { $failures += "-Project at a repository root should find Template/, got '$($info.ProjectDir)'" }
+    $light = Get-ProjectInfo -Project $repo -Solution '' -GodotVersion '' -Runners @() -SkipRunners
+    if (@($light.Runners).Count -ne 0 -or $light.GoDotTestScene) { $failures += "-SkipRunners should leave runners and the GoDotTest scene out, got '$($light.Runners -join ',')'" }
     $none = Join-Path $dir 'empty-repo'
     New-Item -ItemType Directory -Force -Path $none | Out-Null
     $out = & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') detect -Json -Project $none 2>$null
