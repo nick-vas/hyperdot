@@ -413,7 +413,7 @@ help does not know, or a name given to another command, fails with `invalid-argu
 `deadlines` with `steamFee`, `comingSoon`, `buildReview`, `dateLock`, and `storePageReview` and `demoReview` when
 `release.comingSoon` and `release.nextFest` are set; all yyyy-MM-dd), `warnings[]` (release timeline warnings included;
 see [plan.md](plan.md#release-dates)).
-`plan -Do add`, `move`, `remove` and `link` also return `task` (as in `tasks[]`; for `remove`, the task removed, whose item the next sync archives); `plan -Do sync` (experimental) returns `sync` (`board` (`<owner>/<number>`), `created` (items made), `moved` (tasks moved to follow the board), `itemsMoved` (items moved to follow the plan), `imported` (tasks added for items a person added on the board), `archived` (items of removed tasks archived), `droppedTrelloLinks` (card ids a plan from the Trello sync lost), `madeProject` (whether this call made the project), `warnings`).
+`plan -Do add`, `move`, `remove` and `link` also return `task` (as in `tasks[]`; for `remove`, the task removed, whose item the next sync archives); `plan -Do sync` (experimental) returns `sync` (`board` (`<owner>/<number>`), `created` (items made), `moved` (tasks moved to follow the board), `itemsMoved` (items moved to follow the plan), `imported` (tasks added for items a person added on the board), `archived` (items of removed tasks archived), `madeProject` (whether this call made the project), `warnings`).
 
 **status -Handoff** `<subagent>` **-Checked** `<what>` **-Verdict** `<answer>` records one subagent handoff instead of
 reporting: one line in `.godot/hyperdot-handoffs.jsonl` (`time`, `subagent`, `checked`, `verdict`, `commit`; each text on

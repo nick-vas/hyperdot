@@ -40,7 +40,7 @@ the sampled runs (below), is expensive, and is redundant with a cheaper or neare
 
 | Step | Cost per run | Failures in the sample | Why it is safe to wait for main |
 |---|---|---|---|
-| `lint`: the stand-in project sync (`Test-ProjectSync.ps1`; measured as the Trello sync it replaced) | 196 s | 0 of 15 | Only `plan -Do sync` reaches it; `Test-Plan.ps1` still runs on every pull request. |
+| `lint`: the stand-in project sync (`Test-ProjectSync.ps1`; measured as the board sync it replaced) | 196 s | 0 of 15 | Only `plan -Do sync` reaches it; `Test-Plan.ps1` still runs on every pull request. |
 | `game-benchmark`: every task of the test programme (`Test-GameProgramme.ps1 -SpecPath ...`) | 106 s | 0 of 16 | The staged programme's pairs check the same thing on the real games, and `Test-GameBenchmark.ps1` runs the test programme through the runner. |
 | The `field-test` job, for a change outside `benchmark/` | 1031 s | 0 of 14 | It exercises the benchmark's field-test code; a kit change that breaks it shows in `game-benchmark` and the pairs. |
 
@@ -110,11 +110,11 @@ step failed 5 times only because a job before it had.
 | `action`, `csharp`, `explicit-runners`: the Godot action | 1 run, all three | looks like the network |
 
 Steps that ran in the sample and never failed, by cost per run: the `field-test` job (1031 s, 0 of 14), the game
-benchmark's test programme (106 s, 0 of 16), the stand-in project sync (196 s as the Trello sync, 0 of 15), every documented error code
+benchmark's test programme (106 s, 0 of 16), the stand-in project sync (196 s as the board sync, 0 of 15), every documented error code
 (191 s, 0 of 11), the plan's gates (123 s, 0 of 15), Web `export -Run` (138 s, 0 of 16), `audio -Mix` (79 s, 0 of 11),
 the placement checker (66 s, 0 of 16), `-GpuValidation` (65 s, 0 of 16), Firefox under Xvfb (63 s, 0 of 16).
 
-Three days in one burst of work is a small sample, so only three were moved to the full runs: the project sync (then the Trello sync) and the
+Three days in one burst of work is a small sample, so only three were moved to the full runs: the project sync (then the board sync) and the
 test programme (cheap to lose, redundant with a nearer check) and the field test for changes outside `benchmark/` (the
 largest, with the least to say about a kit change). The rest stay, as the error codes, the plan's gates, the web and GPU
 checks guard contracts a pull request should not break, and a quiet sample is not a reason to stop looking.

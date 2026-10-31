@@ -1,0 +1,1 @@
+Removed: the migration of a plan left by the earlier board sync (its card ids and block are no longer dropped by the first `plan -Do sync`; leftover fields are ignored) and the field of `sync` in `plan -Json` that counted them; every mention of the earlier service is gone from the docs, skills, tests and changelog.

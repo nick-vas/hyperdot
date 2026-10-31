@@ -12,7 +12,7 @@ Three inputs, cross-referenced:
    a studio-scale template - pre-production (2 mo), production (12 mo, four milestones), testing (3 mo, alpha then
    closed/open beta), polish and launch prep (2 mo), post-launch - with risks (technical, creative, market) and mitigations.
    Its shape is kept; its team of 15 and 19 months are scaled down to one person.
-2. **The [Work Loop](https://trello.com/b/vJnMkimq/work-loop) board (a Trello template)**: Backlog -> Design -> To Do -> Doing -> Testing -> Done
+2. **The Work Loop board (a kanban template)**: Backlog -> Design -> To Do -> Doing -> Testing -> Done
    (the template also uses Code Review, with a list limit as a signal to finish reviews before starting work). Kept as the daily
    loop: `plan.json` `tasks` use `backlog, design, todo, doing, verify, done` and `wipLimit` caps `doing`. "Verify" is where the
    test suite and an agent review replace a human code reviewer.
@@ -119,10 +119,6 @@ The plugin's second Stop hook (`hooks/project-sync.ps1`) runs the same sync afte
 the plan has a project, so the board follows without anyone asking. It keeps a hash of what it last synced in
 `.godot/hyperdot-project-sync` (an unchanged plan costs no call), never blocks the turn, and turns a failure into a one-line
 notice. `HYPERDOT_PROJECT_SYNC=off` disables it.
-
-A game that used the Trello sync this replaced: the first `plan -Do sync -Board @me` drops each task's `cardId` and the
-`trello` block and gives every task an item in the column the plan has. The Trello board itself is not touched; archive it by
-hand when the project looks right.
 
 `tests/Test-ProjectSync.ps1` runs these steps (and the hook) against a stand-in `gh` on every change, and with `-Live` against
 GitHub with a private project it creates and deletes (the Project sync workflow, with a `HYPERDOT_PROJECT_TOKEN` repository

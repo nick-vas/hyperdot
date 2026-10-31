@@ -1,1 +1,0 @@
-Removed: the Trello sync: `TRELLO_KEY` and `TRELLO_TOKEN`, the `trello-credentials`, `trello-error` and `trello-list-missing` error codes (now `project-credentials`, `project-error` and `project-column-missing`), `tests/Test-TrelloSync.ps1` and the Trello sync workflow (now `tests/Test-ProjectSync.ps1` and the Project sync workflow, which needs a `HYPERDOT_PROJECT_TOKEN` secret).
