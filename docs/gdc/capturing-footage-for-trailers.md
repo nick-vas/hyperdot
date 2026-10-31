@@ -35,11 +35,11 @@ Names that are probably mistranscribed: "Kurt Gartner" (a fellow trailer maker),
 
 ## What the kit took
 
-- `.agents/skills/godot-debug-tools/SKILL.md`, section 7 "Capture mode": a debug-only `--capture=` flag
+- `.agents/skills/debug-tools/SKILL.md`, section 7 "Capture mode": a debug-only `--capture=` flag
   (`nohud`, `nomusic`, `nocursor`, `freeze`, `timescale=N` or `1/N`, whole numbers only) in a C# autoload, F6 and F7 to
   toggle the HUD and the freeze at run time, the free-camera requirements and a C# `FreeCamera` (smoothing, dead zone
   from the Input Map, a stick curve, speeds on keys 1 to 5, triggers for height, real time while frozen or scaled).
-- `.agents/skills/godot-store-page/SKILL.md`: the trailer bullet points to it; store screenshots keep the UI.
+- `.agents/skills/store-page/SKILL.md`: the trailer bullet points to it; store screenshots keep the UI.
 - `tests/capture-fixture` (the skill's two C# files verbatim, a HUD layer and a world-space prompt in group `hud`, Music
   and SFX buses, a probe) and `tests/Test-Capture.ps1`, run in the self-test workflow's `measure` job under Xvfb. It also
   checks that the skill quotes the fixture's files exactly.

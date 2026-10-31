@@ -36,7 +36,7 @@ public partial class Main : Node2D
     public InputDevices Devices { get; } = new();
     public Haptics Haptics { get; } = new();
     public Diagnostics Diagnostics { get; private set; } = null!;
-    /// <summary>Raises the playtest events (godot-playtest) from the paddle and the run; recorded only with analytics consent.</summary>
+    /// <summary>Raises the playtest events (game-playtest) from the paddle and the run; recorded only with analytics consent.</summary>
     public PlaytestTracker Playtest { get; private set; } = null!;
 
     /// <summary>Playtest level ids: one per floor, floors past 9 together (coarse labels, as telemetry asks).</summary>

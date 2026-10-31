@@ -1,4 +1,4 @@
-# What the godot-xr skill claims, held where it can be held without a headset (tests/Test-Xr.ps1 runs it with GUT):
+# What the xr skill claims, held where it can be held without a headset (tests/Test-Xr.ps1 runs it with GUT):
 #   - every XR name the skill quotes exists in the engine's ClassDB (api.txt, written from the skill by the script)
 #   - a scene with an XR origin loads and runs its logic with no XR interface
 #   - a tracker added to the XRServer drives an XRController3D: its pose, its velocity, its hand

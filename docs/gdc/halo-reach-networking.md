@@ -5,7 +5,7 @@
 - Year: not stated. GDC 2011 is implied: Reach (2010) has shipped, its public beta and launch are in the past, and the
   speaker says he spent about three years on it.
 - Video: https://www.youtube.com/watch?v=h47zZrqjgLc
-- Topic doc: [multiplayer.md](../multiplayer.md); skill: `.agents/skills/godot-multiplayer/SKILL.md` section 3.
+- Topic doc: [multiplayer.md](../multiplayer.md); skill: `.agents/skills/multiplayer/SKILL.md` section 3.
 
 ## What the talk says
 
@@ -47,7 +47,7 @@
   every creation and deletion went ahead of priority order with no limit. Now at most that many jump the queue in a
   packet; the rest compete by priority (with the existing ageing), so they still arrive.
 - `examples/csharp/tests/Example.Core.Tests/ReplicationTests.cs`: `ABurstOfNewObjectsDoesNotSilenceTheOpponent`.
-- `.agents/skills/godot-multiplayer/SKILL.md` section 3: the cap and the 10% share; predict the look and let the host
+- `.agents/skills/multiplayer/SKILL.md` section 3: the cap and the 10% share; predict the look and let the host
   decide; ask where the lag is hidden; shorten a host-side wind-up by the round trip; warp the logic and blend the look.
 
 ## Measured

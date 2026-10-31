@@ -37,7 +37,7 @@
   "it slept" flag; `Cancel()` disposes the iterator (its `finally` blocks run); `Priority` sets a job's share; the
   completion callback runs inside `Run`. No threads, so no locks to hold across a pause.
 - `FrameBudget.CountingWork`: a budget in units of work, not time, so a job finishes on the same frame on every
-  machine. This is the kit's addition for replays and lockstep (`godot-determinism`), not the talk's.
+  machine. This is the kit's addition for replays and lockstep (`determinism`), not the talk's.
 - `examples/csharp/tests/Example.Core.Tests/FrameBudgetTests.cs`, all on a fake clock: a 200-step job at 0.1 ms a
   step and a 1 ms budget finishes in exactly 20 frames, none past budget + `checkEvery` steps; three jobs share
   evenly and a priority-3 job gets three times the steps; clock reads stay within frames + steps / 16; a cancelled
@@ -46,8 +46,8 @@
   on the same frame on a machine twice as fast, where a time budget does not. Each fails against a naive version
   (fixed steps per frame, round restarted at the first job each frame, clock read every step, cancel that only sets
   a flag, `Resumed` on the first step or never, priority ignored).
-- `.agents/skills/godot-game-ai/SKILL.md`, "Deliberation under a frame budget" under GOAP, and a checklist line;
-  `.agents/skills/godot-performance/SKILL.md`, one line under "Cheap wins".
+- `.agents/skills/game-ai/SKILL.md`, "Deliberation under a frame budget" under GOAP, and a checklist line;
+  `.agents/skills/performance/SKILL.md`, one line under "Cheap wins".
 
 ## Measured here (.NET 8 Release, 4-core container under load average about 14)
 

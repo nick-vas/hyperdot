@@ -4,7 +4,7 @@ Two repositories were read in October 2026:
 
 - [TheAlgorithms/C-Sharp](https://github.com/TheAlgorithms/C-Sharp) (commit 96e2905, 605 `.cs` files, net8.0),
   **GPL-3.0**. Studied and measured; none of its code is in the kit or in Example.Core, and a game must not copy it
-  (the `godot-algorithms` skill says why).
+  (the `algorithms` skill says why).
 - [TheAlgorithms/Algorithms-Explanation](https://github.com/TheAlgorithms/Algorithms-Explanation) (`en/`, 47 pages),
   **MIT**. Introductory explanations: sorting, linked lists, stacks and queues, ciphers, basic maths, a few dynamic
   programming problems.
@@ -28,7 +28,7 @@ The kit's own output uses the suggestions: the `data` runner names the near id, 
 From the explanations, two lessons that are not in the code repository either: insertion sort is linear on nearly
 sorted input (a draw order or turn queue sorted again every frame), and a stable sort keeps equal keys in order. Both
 were measured (below). The rest (Bloom filters, tries, ciphers, quick select) has no common use in a game that a
-`HashSet`, a `Dictionary` or a `PriorityQueue` does not cover; saves are not protected by a cipher (`godot-anti-cheat`).
+`HashSet`, a `Dictionary` or a `PriorityQueue` does not cover; saves are not protected by a cipher (`anti-cheat`).
 
 ## Measurements
 

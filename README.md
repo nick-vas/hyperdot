@@ -255,12 +255,12 @@ separate, headless tool.
 
 52 skills in [`.agents/skills/`](.agents/skills). Each `SKILL.md` description says when to use it.
 
-- **Test and verify**: `godot-test-loop`, `godot-verify-before-done`, `godot-ui-flows`, `godot-diagnose`, `godot-pitfalls`, `godot-automation-hooks`, `godot-editor-bridge`, `godot-debug-tools`
-- **Design and plan**: `godot-game-plan`, `godot-game-design`, `godot-playtest`, `godot-progression`, `godot-narrative`
-- **Code and systems**: `godot-patterns`, `godot-math`, `godot-algorithms`, `godot-procgen`, `godot-game-ai`, `godot-data`, `godot-saves`, `godot-input`, `godot-xr`, `godot-determinism`, `godot-addons`, `godot-llm`
-- **Look, sound and feel**: `godot-juice`, `godot-camera`, `godot-animation`, `godot-shaders-vfx`, `godot-asset-pipeline`, `godot-audio`, `godot-ui-accessibility`, `godot-localization`, `godot-performance`
-- **Online**: `godot-multiplayer`, `godot-servers`, `godot-anti-cheat`, `godot-telemetry`, `godot-modding`
-- **Ship**: `godot-export-release`, `godot-release-readiness`, `godot-mobile-web`, `godot-steam`, `godot-store-page`, `godot-legal`, `godot-console-cert`
+- **Test and verify**: `godot-test-loop`, `verify-before-done`, `ui-flows`, `godot-diagnose`, `godot-pitfalls`, `automation-hooks`, `godot-editor-bridge`, `debug-tools`
+- **Design and plan**: `game-plan`, `game-design`, `game-playtest`, `progression`, `narrative`
+- **Code and systems**: `patterns`, `math`, `algorithms`, `procgen`, `game-ai`, `game-data`, `saves`, `input`, `xr`, `determinism`, `godot-addons`, `llm`
+- **Look, sound and feel**: `game-juice`, `camera`, `animation`, `godot-shaders-vfx`, `asset-pipeline`, `game-audio`, `ui-accessibility`, `localization`, `performance`
+- **Online**: `multiplayer`, `servers`, `anti-cheat`, `game-telemetry`, `modding`
+- **Ship**: `godot-export-release`, `release-readiness`, `mobile-web`, `steam`, `store-page`, `legal`, `console-cert`
 - **Run by hand**: `game` (where the game stands, what next), `kit` (every command, skill and subagent, one line each), `look` (style guide and screenshot critique), `retro`, `kit-review`, `weekly-review`
 
 The `godot-verifier` subagent runs screenshots, benchmarks and export launches and returns a short verdict, so their logs and

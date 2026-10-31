@@ -1,4 +1,4 @@
-# playtest: reads a folder of playtest sessions (the telemetry batches a game wrote or sent, godot-playtest's events from
+# playtest: reads a folder of playtest sessions (the telemetry batches a game wrote or sent, game-playtest's events from
 # templates/playtest-events.json) and reports, per level, counts and medians (level time, deaths, stalls) and a heat map
 # per event type as a PNG, alone or over a level screenshot that playtest.json places in the world. No Godot: the PNGs are
 # drawn by tools/Heatmap.cs, compiled into this session with Add-Type. The same folder always gives the same report.

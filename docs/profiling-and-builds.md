@@ -1,6 +1,6 @@
 # Profiling and builds: sources and measurements
 
-The research behind the C# profiling and GC sections of the `godot-performance` skill and behind the
+The research behind the C# profiling and GC sections of the `performance` skill and behind the
 `godot-export-release` skill (versions, debug and release builds, reproducible exports, signing, store uploads), plus the
 kit changes made from it: `export -GameVersion`, the export check for missing C#, two `doctor` warnings and the import
 cache in the action. Gathered on 2026-10-21. Tests ran on Godot 4.7.2 mono and .NET 8.0.31 on Linux x86_64 (4 cores,

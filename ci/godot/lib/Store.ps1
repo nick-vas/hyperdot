@@ -179,7 +179,7 @@ function Test-PressKit([string]$Folder) {
     return [ordered]@{ ok = ($problems.Count -eq 0); screenshots = $shots.Count; problems = @($problems) }
 }
 
-# Trailers in store/steam (trailer*), read with ffprobe. The limits are the ones godot-store-page quotes from Steamworks'
+# Trailers in store/steam (trailer*), read with ffprobe. The limits are the ones store-page quotes from Steamworks'
 # trailer page: 30 or 60 fps, 44.1 or 48 kHz, up to 1920x1080 are warnings, because an odd size and an unsupported audio
 # sample rate are what Valve names as the commonest failures. H.264 video and AAC audio are only "preferred" (Steam can
 # transcode many formats), so another codec is INFO, like a bitrate under 5,000 Kbps or an aspect ratio other than 16:9 or
@@ -232,7 +232,7 @@ function Test-SteamTrailers([string]$Folder) {
 
 # store/steam/tags.txt: one tag per line, as chosen on Steam. Steamworks' tags page: at least 5 before launch, up to 20 (only
 # the first 20 count);
-# Zukowski: the first 5 weigh most, so keep "Indie" out of them (godot-store-page).
+# Zukowski: the first 5 weigh most, so keep "Indie" out of them (store-page).
 function Test-SteamTags([string]$Text) {
     $problems = [System.Collections.Generic.List[object]]::new()
     $tags = @($Text -split '\r?\n' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
@@ -251,7 +251,7 @@ function Test-SteamTags([string]$Text) {
 }
 
 # Privacy: Google Play and the App Store require a privacy policy for every app, and the law does whenever the game
-# handles personal data (godot-legal section 2). Signs that the game collects player data: Sentry (the addon, its
+# handles personal data (legal section 2). Signs that the game collects player data: Sentry (the addon, its
 # [sentry] settings or SentrySdk), the kit's TelemetryClient or PlaytestTracker, GameAnalytics or Firebase Analytics in the code, or a
 # policyVersion (consent recorded against a privacy notice). The policy is store/privacy-policy.md (.txt or .html) or PRIVACY.md, and says the
 # version the code asks consent for ("Version 2"). Returns @(status, message, fix) triples.
@@ -280,7 +280,7 @@ function Get-PrivacyProblems([string]$ProjectDir, [string]$ProjectGodot, $Detail
         if (Test-Path -LiteralPath (Join-Path $ProjectDir $path) -PathType Leaf) { $policy = $path; break }
     }
     if (-not $policy) {
-        $fix = 'Write store/privacy-policy.md: who you are, what data, why, how long, who receives it, the player''s rights; publish it and link it from the game and the store page (godot-legal)'
+        $fix = 'Write store/privacy-policy.md: who you are, what data, why, how long, who receives it, the player''s rights; publish it and link it from the game and the store page (legal)'
         if ($reasons.Count -gt 0) { $problems.Add(@('WARN', "The game collects player data ($(@($reasons.Values) -join ', ')) but has no privacy policy ($($script:PrivacyPolicyPaths -join ', '))", $fix)) }
         if ($mobile.Count -gt 0) { $problems.Add(@('WARN', "Export preset $($mobile -join ', ') goes to a phone store, which requires a privacy policy even from a game that collects nothing, and there is none ($($script:PrivacyPolicyPaths -join ', '))", $fix)) }
         return , $problems.ToArray()
@@ -289,7 +289,7 @@ function Get-PrivacyProblems([string]$ProjectDir, [string]$ProjectGodot, $Detail
     $missing = @($versions.Keys | Where-Object { $text -notmatch "(?i)\bversion\s*:?\s*v?$([regex]::Escape($_))(?!\.?\d)" })
     foreach ($version in $missing) {
         $problems.Add(@('WARN', "The code asks consent for privacy policy version $version ($($versions[$version])), but $policy does not say 'Version $version'",
-            "Update $policy and write its version in it (Version $version), or correct policyVersion; a new version asks every player again (godot-telemetry)"))
+            "Update $policy and write its version in it (Version $version), or correct policyVersion; a new version asks every player again (game-telemetry)"))
     }
     if ($missing.Count -eq 0) { $problems.Add(@('OK', "Privacy policy: $policy$(if ($versions.Count) { " (version $(@($versions.Keys) -join ', '), as in the code)" })", '')) }
     return , $problems.ToArray()

@@ -7,8 +7,8 @@ Walker and Chet Faliszek. About 200,000 words. Every quote below was checked wor
 (`tests/` has no copy: the sources stay where they are published). "Godot:" says how a solo developer with agents uses it.
 
 The kit's versions: `PacingDirector` and `Intensity` (Left 4 Dead's AI Director), `ResponseSystem` (Valve's dialogue
-rules), `LookTrigger` (29) and `SoftLockCheck` (30) in Example.Core with tests; the `godot-playtest` skill; additions to `godot-narrative`, `godot-game-plan`,
-`godot-progression` and the `STYLE.md` template.
+rules), `LookTrigger` (29) and `SoftLockCheck` (30) in Example.Core with tests; the `game-playtest` skill; additions to `narrative`, `game-plan`,
+`progression` and the `STYLE.md` template.
 
 ## Sources
 
@@ -46,7 +46,7 @@ deck (slides are images). The Portal post-mortem and the TF2 free-to-play deck a
 3. **Write down why the prototype is fun, then hold every level to it.** "The second step in the pre-cabal process was
    to analyze what was fun about our prototype level." Its rules: experiential density, the world acknowledging the
    player, and players blaming themselves for failure (Birdwell).
-   Godot: the GDD's pillars are those rules, testable; an agent reviews each new level against them (`godot-game-design`).
+   Godot: the GDD's pillars are those rules, testable; an agent reviews each new level against them (`game-design`).
 4. **A design group drawn from every discipline, and they build what they design.** "Include an expert from every
    functional area (programming, art, and so on)." The first Cabal was three engineers, a level designer, a writer and an
    animator; it "met four days a week, six hours a day for five months straight" and rotated members (Birdwell).
@@ -109,7 +109,7 @@ deck (slides are images). The Portal post-mortem and the TF2 free-to-play deck a
 19. **Graph the whole game's sessions to find dull, easy and hard stretches.** Half-Life plotted position and health,
     finding where "the player spent too long without any encounters (boring), too long with too much health (too easy),
     too long with" too little (Birdwell).
-    Godot: consented telemetry of health and encounters per minute (`godot-telemetry`); flag long quiet or long easy stretches.
+    Godot: consented telemetry of health and encounters per minute (`game-telemetry`); flag long quiet or long easy stretches.
 
 ## 3. Teaching, guiding and unsticking (the commentaries)
 
@@ -145,7 +145,7 @@ deck (slides are images). The Portal post-mortem and the TF2 free-to-play deck a
     ([`Level/SoftLock.cs`](../examples/csharp/src/Example.Core/Level/SoftLock.cs)) takes the level as areas, passages,
     pickups, supplies and items that can be lost, tries every order (the key on the wrong door first, the box lost after
     the last ammo), and names the shortest path into a state the goal cannot be reached from. A game's test calls
-    `SoftLockCheck.AssertNoSoftLock(level)`; `godot-playtest` section 6 says how.
+    `SoftLockCheck.AssertNoSoftLock(level)`; `game-playtest` section 6 says how.
 31. **Save only when the player is safe.** Some testers died 30 times at a checkpoint; the autosave was changed "to only
     perform the autosave if the player was deemed safe for a reasonable period of time." (Steve Bond, Episode Two)
 32. **Lost players are not having fun.** "After watching numerous playtesters get lost, it became obvious that they were
@@ -163,7 +163,7 @@ deck (slides are images). The Portal post-mortem and the TF2 free-to-play deck a
 37. **Cut with three questions.** "'Is this puzzle actually fun?', 'If not, how much work does it need to be fun?', 'Does
     this puzzle fit within the purpose of Lost Coast?'" (Robin Walker)
 
-The `godot-playtest` skill holds these as a checklist and the telemetry events that find them.
+The `game-playtest` skill holds these as a checklist and the telemetry events that find them.
 
 ## 4. Pacing: the AI Director
 
@@ -238,18 +238,18 @@ Godot: the `STYLE.md` template's readability section; the `look` skill checks sc
 58. Playtime doubles with art: "it was not uncommon for a level to have its playtime doubled or tripled after art was
     added." (Matt Wilde)
 
-Godot: the `godot-xr` skill (`docs/xr.md`) uses items 53 to 57; `xr_math.gd` has the throw's peak of ten frames.
+Godot: the `xr` skill (`docs/xr.md`) uses items 53 to 57; `xr_math.gd` has the throw's peak of ten frames.
 
 ## 8. A live game and community content
 
 59. "It’s worth it to cut your community in on the deal" (TF2); CS:GO shipped "some of the highest rated items from the
     workshop". Players equip an item "9 out of 10 times" they own it; equip rates, not prices, said what they liked.
 60. Drop odds need worst cases: at a 25% chance per drop every 25 minutes, one player in a thousand still got nothing (TF2).
-    Godot: test a drop table's worst streak (`godot-progression`).
+    Godot: test a drop table's worst streak (`progression`).
 
 ## 9. Tools
 
 61. "Every time something took more than 30 seconds seconds to" find out, the physics team built a debug view for it;
-    "we can record and replay bugs" from a serialised world (Migdalskiy). Godot: `godot-debug-tools`.
+    "we can record and replay bugs" from a serialised world (Migdalskiy). Godot: `debug-tools`.
 62. Physics needs planned failure cases: "Plan for failure cases and be sure to ask, “is this" what the game wants
     (Stelly), and every skill taught must earn its place or "get cut from your game".

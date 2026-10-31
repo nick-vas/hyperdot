@@ -44,7 +44,7 @@
   4.7.2. Dropped 300 px at the default gravity, the body lands on physics tick 48; a press sent after tick 42 shows in
   `IsActionJustPressed` on tick 43 and jumps on tick 48, once. With `IsActionPressed` instead, or without the buffer,
   the tests fail.
-- `godot-input` section 8 (Forgiveness): the numbers, the wiring and the hit-shape rules; `godot-game-design` points
+- `input` section 8 (Forgiveness): the numbers, the wiring and the hit-shape rules; `game-design` points
   there from "Be the generous judge".
 
 ## What it did not take

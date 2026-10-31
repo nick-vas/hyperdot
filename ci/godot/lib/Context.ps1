@@ -158,7 +158,7 @@ function Get-InstructionPathProblems([string]$Text, [string]$Where, [string]$Pro
 }
 
 # doctor: a WARN when the game has the kit's skills or subagents both as copies (init -Agents) and through the enabled
-# plugin (init -Plugin), which lists each twice (/godot-game-plan and hyperdot:godot-game-plan) and leaves the copy to go
+# plugin (init -Plugin), which lists each twice (/game-plan and hyperdot:game-plan) and leaves the copy to go
 # stale as the kit changes. Only copies of the kit's own names count; a skill the game wrote itself is left alone.
 function Get-PluginCopyProblem([string]$ProjectDir) {
     $root = Get-GitRoot $ProjectDir
@@ -187,7 +187,7 @@ function Get-PluginCopyProblem([string]$ProjectDir) {
     $shown = (@($copies) | Select-Object -First 5) -join '; '
     if ($copies.Count -gt 5) { $shown += "; and $($copies.Count - 5) more" }
     return [pscustomobject]@{ Status = 'WARN'
-        Message = "$($copies.Count) kit skill(s) or subagent(s) are in the game as copies and also come from the enabled hyperdot plugin, so each is listed twice (/godot-game-plan and hyperdot:godot-game-plan) and the copy goes stale as the kit changes: $shown"
+        Message = "$($copies.Count) kit skill(s) or subagent(s) are in the game as copies and also come from the enabled hyperdot plugin, so each is listed twice (/game-plan and hyperdot:game-plan) and the copy goes stale as the kit changes: $shown"
         Fix = 'Delete the copies (the plugin loads them from the kit); keep them only if an agent other than Claude Code reads .agents/skills' }
 }
 

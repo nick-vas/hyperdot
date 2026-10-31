@@ -50,7 +50,7 @@ ideal, never four or more; sound captions in brackets, short subject and verb; a
   lines of 38 characters, lines as even as the words allow, the speaker's name glued to the first word of every
   subtitle, hand-made breaks kept when they fit, over-long words cut, `MinDuration` at 180 words a minute (name
   included), `Caption` in brackets.
-- `.agents/skills/godot-ui-accessibility/SKILL.md`: size, layout, speaker names, captions, background box, preview and
+- `.agents/skills/ui-accessibility/SKILL.md`: size, layout, speaker names, captions, background box, preview and
   presets. The skill's earlier 40 characters came from Xbox XAG 104; it now says 38 (BBC, via Hamilton), noting that
   XAG allows 40. `docs/wcag-ui.md` XAG 104 row points here.
 

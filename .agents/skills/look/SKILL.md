@@ -33,7 +33,7 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 shot -Json -Quiet -Scene res://
 Ask it to judge each picture against `docs/STYLE.md` and its "Choices": text too small or clipped, contrast, overlap, things
 outside the safe area, colours off the palette (`shots[].palette`: `offPalettePercent`, `colours[]` and the marked
 `palette.image`; a `palette.problem` means the style guide has no palette table yet), screens that disagree with each other, and the rules in
-`godot-ui-accessibility` that a picture can show (colour alone, focus outline, target size, text painted into images).
+`ui-accessibility` that a picture can show (colour alone, focus outline, target size, text painted into images).
 Name the WCAG criterion with each accessibility problem. Take the design resolution again with
 `-ColorVision protan,deutan,tritan` and ask it to compare each `shots[].colorVision` picture with the original: team colours,
 health bars, map markers, selected or locked states and must-not-confuse pairs that become the same colour there, and
@@ -67,4 +67,4 @@ Revert or keep the change as chosen, and add the decision under "Choices" in `do
 
 ## 4. Feel
 
-How the game feels in motion is `godot-juice`: offer it when the critique is about responsiveness rather than layout.
+How the game feels in motion is `game-juice`: offer it when the critique is about responsiveness rather than layout.

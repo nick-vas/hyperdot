@@ -39,7 +39,7 @@
 - `examples/csharp/tests/Example.Core.Tests/BeatSyncTests.cs`: on-beat gives 1.0; a sixteenth and just under an
   eighth late give more than 1, early less than 1; 100 seeded random presses at 120 and 174 BPM, 1 to 3 beats, with
   animations authored 0.8 to 1.2 times off the grid, land within 1 ms of the right beat; the first-beat offset; the clock.
-- `.agents/skills/godot-audio/SKILL.md`, section 8 "Gameplay on the beat": the clock, landing the impact, the feedback
+- `.agents/skills/game-audio/SKILL.md`, section 8 "Gameplay on the beat": the clock, landing the impact, the feedback
   rules (reward on-beat, no "miss", grades only where timing matters, rumble on impact beats, optional indicator).
 
 The clock is not the talk's (Tango used Wwise in Unreal): it is Godot's "Sync the gameplay with audio and music" page

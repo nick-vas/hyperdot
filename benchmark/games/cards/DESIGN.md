@@ -1,9 +1,9 @@
 # Card game: Lanternfen
 
 The fourth genre of the staged game programme (`benchmark/PLAN.md`): the one that exercises rules tests, data and game
-AI. A turn is written as named phases with a test for each transition (`godot-patterns`), the cards, decks and rivals
-are JSON checked by the `data` runner (`godot-data`), the rivals are played by a utility AI (`godot-game-ai`), every
-duel shuffles from its own seed, and a save keeps the duel in progress (`godot-saves`). One game, written twice:
+AI. A turn is written as named phases with a test for each transition (`patterns`), the cards, decks and rivals
+are JSON checked by the `data` runner (`game-data`), the rivals are played by a utility AI (`game-ai`), every
+duel shuffles from its own seed, and a save keeps the duel in progress (`saves`). One game, written twice:
 `gdscript/` and `csharp/` (ported from this design), both built. Both behave the same, use the same data files, scene
 tree, node names and log lines, and pass the same flows. Only the code and the test framework differ: GUT for GDScript,
 gdUnit4 (run by the kit's `gdunit4` runner) for C#.

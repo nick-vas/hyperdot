@@ -5,7 +5,7 @@
 - Year: not stated. About 2024 (inferred): her example trailer end slate announces a third-quarter 2024 release, she
   says TikTok may soon be banned in the US, and that Twitter has declined over the past two years.
 - Video: https://www.youtube.com/watch?v=NWyZlGMysH8
-- Topic doc: [store-and-legal.md](../store-and-legal.md); skill: `.agents/skills/godot-store-page/SKILL.md` section 6.
+- Topic doc: [store-and-legal.md](../store-and-legal.md); skill: `.agents/skills/store-page/SKILL.md` section 6.
 
 ## Lessons
 
@@ -32,12 +32,12 @@
 
 ## What the kit took
 
-- `.agents/skills/godot-store-page/SKILL.md` section 6: the message shapes, the press kit contents, the press list
+- `.agents/skills/store-page/SKILL.md` section 6: the message shapes, the press kit contents, the press list
   columns and public-contacts-only rule, when to write, review keys with an embargo and the launch email.
 - `ci/godot/lib/Store.ps1` `Test-PressKit` and `ci/godot/lib/Doctor.ps1`: when a project has `store/press/`, `doctor`
   warns about missing `key_art` or `key_art_notitle`, a screenshot count outside 6 to 10, and a missing fact sheet or
   press release, or one with no contact email. Warnings only: a game can ship without a press kit.
-- `.agents/skills/godot-release-readiness/SKILL.md`: one checklist line (press kit passes `doctor`, review keys sent
+- `.agents/skills/release-readiness/SKILL.md`: one checklist line (press kit passes `doctor`, review keys sent
   with an embargo).
 - `tests/Test-Store.ps1`: a complete kit passes; 11 screenshots, a kit with only key art with the title, 4 screenshots
   and a press release without an email, and a kit with no text file are each named; `doctor` warns (never fails) on a

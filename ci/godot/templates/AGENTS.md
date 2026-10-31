@@ -23,17 +23,17 @@ pwsh {{SUITE}} bench -Json -Quiet -GameArgs '--stress' -BudgetMs 16.7
 
 - Test first: failing test, make it pass, run the whole suite (`godot-test-loop`).
 - Read `ok` and `error.code` from the JSON. Never skip, delete or loosen a test to get green.
-- Done means a fresh `test -Json -Quiet` with `ok: true` (`godot-verify-before-done`).
+- Done means a fresh `test -Json -Quiet` with `ok: true` (`verify-before-done`).
 - Engine-free logic lives in plain classes, testable without Godot.
 - Test code and packages stay out of release builds; run `doctor` after touching csproj, `project.godot` or export presets.
-- Scene or UI behaviour gets a flow in `test/flows/*.flow.json` (`godot-ui-flows`).
+- Scene or UI behaviour gets a flow in `test/flows/*.flow.json` (`ui-flows`).
 - Screenshots, benchmarks and export launches go to the `godot-verifier` subagent, which returns a short verdict.
 - Debug entry points are flags after `--` (`--seed`, `--autoplay`, `--no-save`), passed with `-GameArgs`.
 - Log one tagged line per meaningful event (`[Fight] won in 142.5s`), so checks are a `grep` away.
-- Every player action gets feedback within 100 ms, logged as `[juice]` lines and checked by `juice.json` (`godot-juice`).
+- Every player action gets feedback within 100 ms, logged as `[juice]` lines and checked by `juice.json` (`game-juice`).
 - `docs/GDD.md` is the scope. Before building anything it does not contain, ask: add it as a feature, or drop it.
 - Tag each test that proves a GDD feature with `GDD:F<n>` in its name or a comment on it.
-- Each GDD feature names the kinds of fun it serves on a `Fun:` line (`godot-game-design`).
+- Each GDD feature names the kinds of fun it serves on a `Fun:` line (`game-design`).
 - A change that adds a system, an autoload or a dependency between scenes goes to the `godot-architect` subagent first; its
   decision in `docs/decisions/` is accepted before code is written. The `architecture` runner warns when code drifts.
 - Game-specific lessons are in `docs/lessons.md`; read it before changing a system it mentions.

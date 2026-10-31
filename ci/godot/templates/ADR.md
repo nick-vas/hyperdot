@@ -10,7 +10,7 @@ What the game needs and what makes it hard: the forces, in a few sentences, with
 
 ## Options
 
-1. **Option A.** How it works in this project, which pattern it is (godot-patterns), what it costs.
+1. **Option A.** How it works in this project, which pattern it is (patterns), what it costs.
 2. **Option B.** ...
 
 ## Decision

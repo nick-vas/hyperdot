@@ -1,6 +1,6 @@
 # Debug tools: sources and measurements
 
-The research behind the `godot-debug-tools` skill: what debug code reaches a release build, inspecting a running game,
+The research behind the `debug-tools` skill: what debug code reaches a release build, inspecting a running game,
 logging, consoles, overlays and debug drawing. Gathered on 2026-10-21. Tests ran on Godot 4.7.2 mono and .NET 8.0.31
 on Linux x86_64 (4 cores, headless), with exported Linux builds of a small C# test project. Marks: **tested** means run
 here, **source** means read in the code, **doc** means stated by the vendor or author, and **unconfirmed** means not

@@ -1,4 +1,4 @@
-# A bug report as godot-automation-hooks asks for ("A feedback key"): one typed line saves the scene, where the player and
+# A bug report as automation-hooks asks for ("A feedback key"): one typed line saves the scene, where the player and
 # the camera were, the seed and the build, so the report pins add-on beside this file shows it on the level in the
 # editor. From the game's feedback key:
 #   const BugReport = preload("res://addons/hyperdot_report_pins/bug_report.gd")

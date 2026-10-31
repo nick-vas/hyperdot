@@ -45,7 +45,7 @@
   above the line is the game's, pausing releases both pads, no dead spot in the band.
 - Found on the way: headless Godot's window is 64x64, so with a stretch mode a parsed touch at (100, 420) reached
   `_Input` as (1000, 4120). Tests send viewport points through `Root.GetFinalTransform()`.
-- `godot-mobile-web` section 3 and its "Done means" list.
+- `mobile-web` section 3 and its "Done means" list.
 
 Each rule was checked by breaking it: plain nearest-centre, no line, no or unclamped scale, no finger counting, drift
 releasing, no sliding, releasing before pressing, a lost lift ignored, `ReleaseAll` keeping fingers, fading to zero, and

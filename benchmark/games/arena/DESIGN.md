@@ -2,7 +2,7 @@
 
 The ninth genre of the staged game programme (`benchmark/PLAN.md`): the one that exercises ENet, `soak` and the netcode
 core. An authoritative server owns the match; each client predicts its own glimmer with the server's own movement code
-and reconciles it against snapshots, and draws the others a little in the past (`godot-multiplayer`); hits are decided
+and reconciles it against snapshots, and draws the others a little in the past (`multiplayer`); hits are decided
 by the server's trace alone; players join and leave in the middle of a match and bots fill every empty slot, so tests
 and the bot run need no second machine; the same server runs headless as a dedicated server, which is what `soak`
 starts. One game, written twice: `gdscript/` and `csharp/` (ported from this design), both built. Both behave the same,

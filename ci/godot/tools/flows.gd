@@ -1,7 +1,7 @@
 # Plays every *.flow.json in the project against the real scene tree, headless. Run by the "flows" runner:
 #   godot --headless --path <project> -s <this file> -- [name filter]
 # A flow is a scene plus steps (press, action, hold, resize, wait, assert...). Each flow is wrapped in marker lines; the
-# runner attributes any ERROR printed in between to that flow. The format is in .agents/skills/godot-ui-flows/SKILL.md.
+# runner attributes any ERROR printed in between to that flow. The format is in .agents/skills/ui-flows/SKILL.md.
 extends SceneTree
 
 const SKIP_DIRS := ["res://addons", "res://.godot"]

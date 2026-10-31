@@ -2,7 +2,7 @@ class_name Sim
 extends RefCounted
 ## The movement and shooting code the server and every client share. A client predicts its own glimmer with step(), the
 ## server applies the same inputs with step(), and because both run the same whole-number arithmetic the prediction is
-## exactly what the server will say: a reconciled client never corrects anything (godot-multiplayer).
+## exactly what the server will say: a reconciled client never corrects anything (multiplayer).
 
 ## The simulation runs at the physics rate: 30 ticks a second.
 const TICK_RATE := 30

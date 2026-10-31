@@ -51,7 +51,7 @@ The slides are not in the transcript, and the talk was cut short during the time
   append-only byte arenas forgotten whole. Recording a frame already held drops the future from it (the kit's
   addition: rewinding and playing on), and `Checksum` hashes a frame with `DeterminismCheck.Fnv1a`.
 - `examples/csharp/tests/Example.Core.Tests/RewindTests.cs` (7 tests).
-- `.agents/skills/godot-determinism/SKILL.md`, section 7 "Time rewind", with a Godot example where nodes draw the
+- `.agents/skills/determinism/SKILL.md`, section 7 "Time rewind", with a Godot example where nodes draw the
   decoded state and the simulation resumes from it; a source row in `docs/determinism.md`.
 
 ## Measured (`dotnet test --filter RewindTests`)

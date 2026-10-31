@@ -1,6 +1,6 @@
 # Game audio: sources and how they map to Godot
 
-The research behind the `godot-audio` skill and the `audio` command, gathered on 2026-10-21. The sources are middleware
+The research behind the `game-audio` skill and the `audio` command, gathered on 2026-10-21. The sources are middleware
 manuals (FMOD, Wwise, Unreal), Godot 4.7.2's class reference and engine source, and the published loudness recommendations.
 None of the web pages states a licence, so they are summarised and linked here, not copied.
 

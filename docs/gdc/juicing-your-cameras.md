@@ -42,10 +42,10 @@
   frame-time based when it names `delta` or `dt`, or is a variable assigned from them anywhere in the file, so the linear
   `k * delta` passes too. `_physics_process` is not checked: it runs at a fixed rate, so the weight does not change with
   the frame rate there (it still ignores a change of tick rate).
-- `.agents/skills/godot-juice/SKILL.md`: the screen-shake row and a new "Screen shake" section (trauma squared, linear
+- `.agents/skills/game-juice/SKILL.md`: the screen-shake row and a new "Screen shake" section (trauma squared, linear
   decay, `FastNoiseLite` sampled at game time, rotation only in 3D, a base camera the shake never moves) with a C# camera
   that was compiled against Godot 4.7.2's C# API.
-- `.agents/skills/godot-math/SKILL.md`: "Smoothing toward a target, at any frame rate", with the exponential weight and
+- `.agents/skills/math/SKILL.md`: "Smoothing toward a target, at any frame rate", with the exponential weight and
   how to convert a per-frame k into a rate per second.
 - `examples/csharp/src/Example.Core/Feel/CameraShake.cs` (`CameraShake`, a seeded 1D Perlin `Noise`, `Smoothing.Damp`)
   with `examples/csharp/tests/Example.Core.Tests/CameraShakeTests.cs`.
@@ -68,4 +68,4 @@
   check them without a camera scene. Left for a later camera skill.
 - Voronoi split screen. Its construction is on the slides, not in the transcript.
 - Side-scroller camera vocabulary (camera window, platform snapping, forward focus) from another talk (pdvCO97jOQk). It
-  belongs to a separate change: now `godot-camera` section 9 ([notes](folds-ai-design-math.md)).
+  belongs to a separate change: now `camera` section 9 ([notes](folds-ai-design-math.md)).

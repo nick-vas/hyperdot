@@ -23,7 +23,7 @@ They are complementary, which makes them a good cross-check: one catches a malfo
 **From superpowers**
 - Description is the trigger only. A description that summarises the process gets followed *instead of* the skill; the validator rejects
   words like "runs the", "then", "explains". This caught three of our six original skills.
-- The Iron Law, rationalization table and red-flag list in [`godot-verify-before-done`](../.agents/skills/godot-verify-before-done/SKILL.md).
+- The Iron Law, rationalization table and red-flag list in [`verify-before-done`](../.agents/skills/verify-before-done/SKILL.md).
 - Pressure testing a discipline skill: below.
 
 **Ours, because skills here are tied to a real CLI** - `ci/godot/tools/Test-Skills.ps1` also checks that:
@@ -52,7 +52,7 @@ Both run in the self-test workflow.
 ## Pressure test results
 
 Scenarios are in `tests/skill-pressure/verify-before-done.md`. Three scenarios, each run once without and once with
-`godot-verify-before-done`, in fresh Haiku-class agents with no tools (a cheap first pass).
+`verify-before-done`, in fresh Haiku-class agents with no tools (a cheap first pass).
 
 | Scenario | Without the skill | With the skill |
 |---|---|---|

@@ -4,7 +4,7 @@ namespace Example.Core.Telemetry;
 public enum LevelResult { Finished, Quit, Failed }
 
 /// <summary>
-/// The playtest events of the <c>godot-playtest</c> skill as <see cref="TelemetrySchema"/> definitions: analytics, so they
+/// The playtest events of the <c>game-playtest</c> skill as <see cref="TelemetrySchema"/> definitions: analytics, so they
 /// are recorded only with the player's consent, and made of numbers and fixed labels only. Each event but
 /// <c>level_time</c> carries where it happened (<c>level</c>, <c>x</c>, <c>y</c>, <c>z</c>; <c>z</c> is 0 in 2D) and when
 /// (<c>level_seconds</c>, game time since the level started); the batch carries the session. The same definitions, for
@@ -56,7 +56,7 @@ public static class PlaytestEvents
     }
 }
 
-/// <summary>When the detectors fire. The defaults are the <c>godot-playtest</c> skill's (Valve's) numbers.</summary>
+/// <summary>When the detectors fire. The defaults are the <c>game-playtest</c> skill's (Valve's) numbers.</summary>
 public sealed record PlaytestOptions
 {
     /// <summary>The grid that "new ground" and revisits are measured on, in world units: 4 m suits a 3D game, about 128 px a 2D one.</summary>

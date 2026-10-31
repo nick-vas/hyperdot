@@ -2,10 +2,10 @@
 
 The sixth genre of the staged game programme (`benchmark/PLAN.md`), one of the mid tier's three: the one that exercises
 pathfinding, economy data, balance and `bench`. Pests walk the shortest way across a grid (AStarGrid2D,
-`godot-algorithms`), every tower planted reroutes them and may never shut the way, towers, upgrades, pests, maps and
-waves are JSON checked by the `data` runner (`godot-data`), a rule-based bot holds every map to a measured balance
-(`godot-progression`), a swarm scene loads the field for `bench` (`godot-performance`), and the save keeps each map's
-best result (`godot-saves`). One game, written twice: `gdscript/` and `csharp/` (ported from this design), both built.
+`algorithms`), every tower planted reroutes them and may never shut the way, towers, upgrades, pests, maps and
+waves are JSON checked by the `data` runner (`game-data`), a rule-based bot holds every map to a measured balance
+(`progression`), a swarm scene loads the field for `bench` (`performance`), and the save keeps each map's
+best result (`saves`). One game, written twice: `gdscript/` and `csharp/` (ported from this design), both built.
 Both behave the same, use the same data files, scene tree, node names and log lines, and pass the same flows. Only the
 code and the test framework differ: GUT for GDScript, gdUnit4 (run by the kit's `gdunit4` runner) for C#.
 

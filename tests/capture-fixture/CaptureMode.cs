@@ -44,7 +44,7 @@ public partial class CaptureMode : Node
     static void MuteMusic()
     {
         var music = AudioServer.GetBusIndex("Music");  // sound effects keep playing for the edit
-        if (music < 0) GD.PushError("--capture=nomusic: there is no Music bus; route music through one (godot-audio)");
+        if (music < 0) GD.PushError("--capture=nomusic: there is no Music bus; route music through one (game-audio)");
         else AudioServer.SetBusMute(music, true);
     }
 

@@ -5,7 +5,7 @@ using static GdUnit4.Assertions;
 using GdUnit4;
 using Numerics = System.Numerics;
 
-// The conventions godot-math's table states, on Godot's own types (the "maths book" is Burzynski's Mathematics for Game
+// The conventions math's table states, on Godot's own types (the "maths book" is Burzynski's Mathematics for Game
 // Developers): a positive yaw turns a -Z-facing object to its left, Right x Up is +Z, and a cross product's length is
 // the parallelogram's area (the book's <1, -2, -4> and <4, 3, -5>: 26.94, half for the triangle). Example.Core computes
 // with System.Numerics, which agrees on handedness and yaw but has no Forward and composes matrices the other way round:

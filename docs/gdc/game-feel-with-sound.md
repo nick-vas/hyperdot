@@ -47,13 +47,13 @@
   and `ui/click.wav` (a decaying burst) measure 0 and are not warned. A run with `-MaxOnsetMs 200` warns about neither.
   Without the change the test fails on all of these; with a 20 dB threshold it fails on the fade.
 - Cost: on a three-minute stereo file the onset pass took 2.8 s against 11.3 s for the existing loudness pass.
-- `.agents/skills/godot-audio/SKILL.md` section 6: start on the hit, short first, one impact layer, one chain per family,
+- `.agents/skills/game-audio/SKILL.md` section 6: start on the hit, short first, one impact layer, one chain per family,
   slight ducking under the player's actions, cut systems that add lag, cues instead of HUD reads. Documented in
   `docs/json.md`, `docs/reference.md` and `docs/audio.md`.
 
 ## Not taken
 
-- Pitch and volume variation: the talk gives no numbers, so `godot-audio` section 3 is unchanged.
+- Pitch and volume variation: the talk gives no numbers, so `game-audio` section 3 is unchanged.
 - The impact layer, the shared chain and "if it feels good, keep it" (clipping included) are judgement by ear; the
   check cannot hear them. The onset warning never fails the run, so a deliberately slow sound stays possible.
 - Measuring ducking under actions would need a recorded mix with input; `audio -Mix` records without input.
@@ -63,5 +63,5 @@
 - Speakers as transcribed: Inna Hansen (artist) and Martin Kvala (sound designer); both spellings are doubtful.
   Year not stated. Video: https://www.youtube.com/watch?v=uUtQb81UMlw
 - In the Q&A, the sound designer (most likely) advises testing with the volume turned right down: what still sticks out is
-  too loud, what is lost is too quiet. `godot-audio` section 7 takes it as a check by ear next to the meter. The talk's
+  too loud, what is lost is too quiet. `game-audio` section 7 takes it as a check by ear next to the meter. The talk's
   identity and collaboration advice was not taken here.

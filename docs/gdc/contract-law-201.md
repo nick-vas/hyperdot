@@ -5,7 +5,7 @@
 - Year: not stated. GDC 2017 is implied: his 101 talk was the year before, and he calls the $500 million verdict against
   Oculus (February 2017) recent.
 - Video: https://www.youtube.com/watch?v=t8UFJ3obm-Q
-- Topic doc: [store-and-legal.md](../store-and-legal.md); skill: `.agents/skills/godot-legal/SKILL.md` section 4.
+- Topic doc: [store-and-legal.md](../store-and-legal.md); skill: `.agents/skills/legal/SKILL.md` section 4.
 - US law, general information. The speaker says he is not the audience's lawyer, and nothing here is legal advice.
 
 ## What the talk says
@@ -44,8 +44,8 @@
   unless its licence asks for a credit, which then needs no source URL.
 - Tests: `tests/Test-AssetManifest.ps1` on five commissioned entries in `tests/assets-fixture` (the four new checks fail on
   the old code); `tests/Test-Credits.ps1` on two in `tests/credits-fixture` (four checks fail on the old code).
-- `.agents/skills/godot-legal/SKILL.md` section 4 (the rules, marked US and not legal advice) and a release checklist line;
-  one line in `.agents/skills/godot-asset-pipeline/SKILL.md`; the fields in `docs/reference.md`.
+- `.agents/skills/legal/SKILL.md` section 4 (the rules, marked US and not legal advice) and a release checklist line;
+  one line in `.agents/skills/asset-pipeline/SKILL.md`; the fields in `docs/reference.md`.
 
 ## Not taken
 

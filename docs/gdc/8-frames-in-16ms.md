@@ -38,7 +38,7 @@
   pause beyond the window, frame-advantage time sync, `Stats`, confirmed checksums and inputs for replays.
 - `Determinism/Replay.cs`: `DeterminismCheck.SyncTest(sim, inputs, depth)`; depth 1 is the old behaviour.
 - `examples/csharp/tests/Example.Core.Tests/RollbackTests.cs`: two peers over `SimulatedLink` in simulated time.
-- Skills: `godot-multiplayer` section 5, `godot-determinism` sections 5 and 6. Numbers: `docs/multiplayer.md`.
+- Skills: `multiplayer` section 5, `determinism` sections 5 and 6. Numbers: `docs/multiplayer.md`.
 
 Kit choices, not the talk's: GGPO's latency-free advantage estimate (half the difference of both sides' "my frame minus
 the last frame I heard"), averaged over 30 ticks; the advantage is paid back once, at up to 2 ms a tick, then the

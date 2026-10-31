@@ -178,10 +178,10 @@ The monthly review of the kit: which parts cost the most or help the least, and 
 ### godot-test-loop
 Test first: a failing test, the change, then the whole suite; choosing and pinning test frameworks.
 
-### godot-verify-before-done
+### verify-before-done
 Run the full suite and read the JSON before saying a change is done, fixed or passing.
 
-### godot-ui-flows
+### ui-flows
 UI and scene behaviour as flow files (.flow.json) that the flows runner plays headless.
 
 ### godot-diagnose
@@ -190,127 +190,127 @@ Find the cause of a failing build, import, export or test run from the kit's JSO
 ### godot-pitfalls
 Known ways a Godot project works in the editor but fails in CI, exports or release builds.
 
-### godot-automation-hooks
+### automation-hooks
 Command-line flags, bots that play the game, recorded runs replayed in CI, balance runs.
 
 ### godot-editor-bridge
 Inspect and change the live editor or a running game through an editor MCP server.
 
-### godot-debug-tools
+### debug-tools
 Cheats, a debug console, overlays, logging and capture, kept out of the shipped build.
 
-### godot-game-plan
+### game-plan
 Start a game or a jam entry: phases, gates, scope, milestones, risks and budget.
 
-### godot-game-design
+### game-design
 What the game and each feature should be, which kind of fun they serve, and what to cut.
 
-### godot-playtest
+### game-playtest
 Prepare, run and read playtests, and decide what to change.
 
-### godot-progression
+### progression
 Loot, levels, currencies, unlocks, difficulty tuning and content after launch.
 
-### godot-narrative
+### narrative
 Story, characters, quests, dialogue and barks, kept consistent.
 
-### godot-patterns
+### patterns
 Structure a game or system: rules and state apart from visuals, and the patterns Godot already has.
 
-### godot-math
+### math
 Rotations, angles, bounces, jump arcs, easing and frame-rate-independent smoothing.
 
-### godot-algorithms
+### algorithms
 Pathfinding for crowds, regions, dependency order, stable sorts, suggestions and puzzle solvers.
 
-### godot-procgen
+### procgen
 Generated levels, maps, loot and text, with a seed stream per generator.
 
-### godot-game-ai
+### game-ai
 Enemies and companions that decide, perceive and move: state machines, behaviour trees, utility AI, steering.
 
-### godot-data
+### game-data
 Game data as Resources, JSON or CSV tables, checked by the data runner.
 
-### godot-saves
+### saves
 Saving progress and settings, versioned formats, cloud sync and recovery.
 
-### godot-input
+### input
 Keyboard, mouse and controller input, rebinding, prompts and forgiving timing.
 
-### godot-xr
+### xr
 Headset games in Godot's OpenXR: the player's body, locomotion and comfort, hands, throwing, one-controller play, passthrough.
 
-### godot-determinism
+### determinism
 The same state from the same inputs, for replays, rewind, rollback and lockstep.
 
 ### godot-addons
 Choose, install, update or remove add-ons and GDExtensions, and call them from C#.
 
-### godot-llm
+### llm
 A language model inside the game: NPC dialogue, narrators, generated content, free text.
 
-### godot-juice
+### game-juice
 Feedback for every action within 100 ms, checked by the juice runner.
 
-### godot-camera
+### camera
 Follow, orbit and side-scrolling cameras that do not clip, jerk or make players sick.
 
-### godot-animation
+### animation
 Animation states, blending, uninterruptible attacks and root motion.
 
 ### godot-shaders-vfx
 Shaders, particles, post-processing and graphics quality settings.
 
-### godot-asset-pipeline
+### asset-pipeline
 Bringing in textures, pixel art, models and fonts, and crediting others' assets.
 
-### godot-audio
+### game-audio
 Music, effects, voices, volume settings, adaptive music and loudness.
 
-### godot-ui-accessibility
+### ui-accessibility
 Menus, HUD and settings that work at any resolution, with a gamepad alone, a screen reader or colour blindness.
 
-### godot-localization
+### localization
 Translations, plurals, right-to-left and CJK text, and text that does not fit.
 
-### godot-performance
+### performance
 Stutters, hitches and frame drops: measure with bench, then fix.
 
-### godot-multiplayer
+### multiplayer
 Netcode models, prediction, interpolation and lag compensation.
 
-### godot-servers
+### servers
 Dedicated servers and matchmaking: health checks, join tokens, floods, moderation.
 
-### godot-anti-cheat
+### anti-cheat
 Protect leaderboards, economies and ranked play; hide player IPs.
 
-### godot-telemetry
+### game-telemetry
 Crash reports, analytics, consent and data requests.
 
-### godot-modding
+### modding
 Player-made mods, levels and skins: packs at run time, Steam Workshop, mod.io.
 
 ### godot-export-release
 Export, launch and release from the command line or GitHub Actions: versions, signing, store uploads.
 
-### godot-release-readiness
+### release-readiness
 Whether a release, demo or Early Access build is ready to ship.
 
-### godot-mobile-web
+### mobile-web
 Phones, tablets and browsers: touch, safe areas, Android and iOS exports, web builds.
 
-### godot-steam
+### steam
 Steamworks: achievements, stats, cloud saves, DLC, demos, depots and branches.
 
-### godot-store-page
+### store-page
 Store pages: capsule art, screenshots, trailer, tags, Next Fest, press and marketing dates.
 
-### godot-legal
+### legal
 Age ratings, privacy policy, licences, loot boxes and agreements.
 
-### godot-console-cert
+### console-cert
 Console ports and certification, Steam Deck reviews and publisher quality checks.
 
 ## Skill groups
@@ -319,12 +319,12 @@ How the page `help` writes sorts the skills. One bullet per group, in the order 
 (`tests/Test-Help.ps1` checks). Not an entry: `help` takes no group name.
 
 - **Session and reviews**: `game`, `kit`, `look`, `retro`, `weekly-review`, `kit-review`
-- **Test and verify**: `godot-test-loop`, `godot-verify-before-done`, `godot-ui-flows`, `godot-diagnose`, `godot-pitfalls`, `godot-automation-hooks`, `godot-debug-tools`, `godot-editor-bridge`
-- **Plan and design**: `godot-game-plan`, `godot-game-design`, `godot-playtest`, `godot-progression`, `godot-narrative`
-- **Code and systems**: `godot-patterns`, `godot-math`, `godot-algorithms`, `godot-procgen`, `godot-game-ai`, `godot-data`, `godot-saves`, `godot-input`, `godot-xr`, `godot-determinism`, `godot-addons`, `godot-llm`
-- **Look and feel**: `godot-juice`, `godot-camera`, `godot-animation`, `godot-shaders-vfx`, `godot-asset-pipeline`, `godot-audio`, `godot-ui-accessibility`, `godot-localization`
-- **Performance and online**: `godot-performance`, `godot-multiplayer`, `godot-servers`, `godot-anti-cheat`, `godot-telemetry`, `godot-modding`
-- **Ship and sell**: `godot-export-release`, `godot-release-readiness`, `godot-mobile-web`, `godot-steam`, `godot-store-page`, `godot-legal`, `godot-console-cert`
+- **Test and verify**: `godot-test-loop`, `verify-before-done`, `ui-flows`, `godot-diagnose`, `godot-pitfalls`, `automation-hooks`, `debug-tools`, `godot-editor-bridge`
+- **Plan and design**: `game-plan`, `game-design`, `game-playtest`, `progression`, `narrative`
+- **Code and systems**: `patterns`, `math`, `algorithms`, `procgen`, `game-ai`, `game-data`, `saves`, `input`, `xr`, `determinism`, `godot-addons`, `llm`
+- **Look and feel**: `game-juice`, `camera`, `animation`, `godot-shaders-vfx`, `asset-pipeline`, `game-audio`, `ui-accessibility`, `localization`
+- **Performance and online**: `performance`, `multiplayer`, `servers`, `anti-cheat`, `game-telemetry`, `modding`
+- **Ship and sell**: `godot-export-release`, `release-readiness`, `mobile-web`, `steam`, `store-page`, `legal`, `console-cert`
 
 ## Subagents
 

@@ -51,14 +51,14 @@ foreach ($skillFile in @(Get-ChildItem -LiteralPath (Join-Path $root '.agents/sk
 }
 
 # Templates the planning and store-page skills tell an agent to copy exist.
-foreach ($skillName in 'godot-game-plan', 'godot-store-page') {
+foreach ($skillName in 'game-plan', 'store-page') {
     $text = Get-Content -LiteralPath (Join-Path $root ".agents/skills/$skillName/SKILL.md") -Raw
     foreach ($quoted in [regex]::Matches($text, 'ci/godot/templates/(?<file>[A-Za-z0-9._-]+)')) {
         Assert-True (Test-Path -LiteralPath (Join-Path $templates $quoted.Groups['file'].Value)) "$skillName names templates/$($quoted.Groups['file'].Value), which exists"
     }
 }
-$planSkill = Get-Content -LiteralPath (Join-Path $root '.agents/skills/godot-game-plan/SKILL.md') -Raw
-Assert-True ($planSkill -match 'prototype\.trailer') 'godot-game-plan explains prototype.trailer'
+$planSkill = Get-Content -LiteralPath (Join-Path $root '.agents/skills/game-plan/SKILL.md') -Raw
+Assert-True ($planSkill -match 'prototype\.trailer') 'game-plan explains prototype.trailer'
 
 # The trailer template asks what the gate promises, in the talk's order: genre, then hook, content last; three standout
 # moments; a feedback column for every mechanic.

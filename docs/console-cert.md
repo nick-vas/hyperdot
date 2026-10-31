@@ -1,6 +1,6 @@
 # Console certification: sources and measurements
 
-The research behind the `godot-console-cert` skill, gathered on 2026-10-21. It draws on public platform documents (the
+The research behind the `console-cert` skill, gathered on 2026-10-21. It draws on public platform documents (the
 Xbox Requirements, Steam's hardware compatibility review), Godot's console pages, porting vendors' pages and the Godot
 4.7.2 class reference. Tests ran on Linux with Godot 4.7.2 (mono and standard), .NET 8 (SDK 8.0.131) and Xvfb.
 Marks: **tested** means run here, **source** means read in the engine code, **doc** means stated by the vendor, and

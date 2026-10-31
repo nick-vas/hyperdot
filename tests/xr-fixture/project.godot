@@ -1,6 +1,6 @@
 ; The XR fixture: no headset and no XR runtime. xr_game.tscn is an XROrigin3D with a camera and two controllers, scripted
 ; by xr_rig.gd; tests/Test-Xr.ps1 copies ci/godot/templates/xr_math.gd and xr_rig.gd beside it, and api.txt (the API names
-; the godot-xr skill quotes) into test/, before it runs test/test_xr.gd with the kit's gut runner.
+; the xr skill quotes) into test/, before it runs test/test_xr.gd with the kit's gut runner.
 config_version=5
 
 [application]

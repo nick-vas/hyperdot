@@ -1,4 +1,4 @@
-# The script for the XROrigin3D of a game that runs with or without a headset (godot-xr skill). Copy it into the game next to
+# The script for the XROrigin3D of a game that runs with or without a headset (xr skill). Copy it into the game next to
 # xr_math.gd. Children: an XRCamera3D and two XRController3D whose `tracker` is left_hand and right_hand.
 #
 # Without an XR interface (no runtime, no headset, a CI machine) the rig starts in Mode.FLAT: nothing is initialized,

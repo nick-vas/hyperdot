@@ -1,4 +1,4 @@
-# Pressure scenarios: godot-verify-before-done
+# Pressure scenarios: verify-before-done
 
 Method (from superpowers' `testing-skills-with-subagents`): run each scenario in a fresh agent **without** the skill (baseline) and
 **with** it, and compare. Prefer open-ended runs with tool access in a real checkout; the multiple-choice form below is the cheap

@@ -1,5 +1,5 @@
 #!/usr/bin/env pwsh
-# Self-test of the mono option godot-audio recommends (Xbox Accessibility Guideline 105): AudioEffectStereoEnhance with
+# Self-test of the mono option game-audio recommends (Xbox Accessibility Guideline 105): AudioEffectStereoEnhance with
 # pan_pullout 0 on Master turns each output channel into (L+R)/2. tests/mono-fixture measures it in the engine: off, a
 # left-only tone stays left; on, it comes out on both sides at half the level, a centred tone is unchanged, and opposite
 # phase cancels (why wide stereo effects thin out in mono). Run on every Godot the kit supports, so a change shows. Needs Godot.

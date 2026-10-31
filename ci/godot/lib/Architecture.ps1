@@ -6,20 +6,20 @@
 # Warnings are reported but never fail the run; errors fail it.
 
 $script:ArchitectureRules = [ordered]@{
-    'parent-path'            = 'Reaches two or more levels up the scene tree; pass the dependency in, or signal up (godot-patterns: Observer)'
+    'parent-path'            = 'Reaches two or more levels up the scene tree; pass the dependency in, or signal up (patterns: Observer)'
     'ui-mutates-state'       = 'A UI script changes game state in an autoload; send an intent the game handles instead'
     'per-frame-lookup'       = 'Looks up nodes every frame; find them once in _Ready and keep the reference'
-    'per-frame-alloc'        = 'Allocates every frame (collections, action names as string literals, interpolated strings, LINQ); this feeds the garbage collector (godot-performance)'
+    'per-frame-alloc'        = 'Allocates every frame (collections, action names as string literals, interpolated strings, LINQ); this feeds the garbage collector (performance)'
     'event-not-unsubscribed' = 'Subscribes to an autoload''s event without unsubscribing; the autoload outlives this node and keeps calling it'
-    'too-many-autoloads'     = 'Many autoloads become hidden global state; group state in one autoload or pass dependencies in (godot-patterns: Singleton)'
-    'audio-on-master'        = 'Plays on the Master bus, out of reach of the music, voice and effects volume settings; set its Bus (godot-audio)'
-    'enet-server-channels'   = 'Passes a channel count to ENet''s create_server: Godot 4.7.x uses it as the server''s incoming bandwidth limit in bytes per second, so every client stalls; pass only the port and the client limit (godot-multiplayer)'
-    'untrusted-load'         = 'Loads a Godot resource from user://, where players, mods and downloads put files: a .tres or .tscn there runs any script embedded in it; read saves and mod data as JSON or plain files instead (godot-saves, godot-modding)'
-    'steam-removed-api'      = 'Calls a Steamworks function that SDK 1.65 removed or deprecated: IsSteamRunningOnSteamDeck (choose defaults with GetSteamHardwareDefaultConfig) or RequestCurrentStats (Steam loads stats before launch) (godot-steam)'
-    'steam-env-dotnet'       = 'Sets a Steam variable with .NET''s Environment.SetEnvironmentVariable, which the native Steam API never sees on Linux and macOS; use Godot''s OS.SetEnvironment (godot-steam)'
-    'culture-parse'          = 'Parses a number without CultureInfo.InvariantCulture: on a German or French system "0.5" reads as 5 or throws, and CI machines never show it (godot-data)'
-    'nondeterministic-sim'   = 'Simulation code (architecture.json "simulation") that can give a different result on another machine or run, so lockstep, rollback and replays drift (godot-determinism)'
-    'frame-dependent-lerp'   = 'Moves a fixed fraction of the way to its target every frame, so it converges faster at higher frame rates and ignores time scale; use 1 - Mathf.Exp(-rate * delta) as the weight (godot-math)'
+    'too-many-autoloads'     = 'Many autoloads become hidden global state; group state in one autoload or pass dependencies in (patterns: Singleton)'
+    'audio-on-master'        = 'Plays on the Master bus, out of reach of the music, voice and effects volume settings; set its Bus (game-audio)'
+    'enet-server-channels'   = 'Passes a channel count to ENet''s create_server: Godot 4.7.x uses it as the server''s incoming bandwidth limit in bytes per second, so every client stalls; pass only the port and the client limit (multiplayer)'
+    'untrusted-load'         = 'Loads a Godot resource from user://, where players, mods and downloads put files: a .tres or .tscn there runs any script embedded in it; read saves and mod data as JSON or plain files instead (saves, modding)'
+    'steam-removed-api'      = 'Calls a Steamworks function that SDK 1.65 removed or deprecated: IsSteamRunningOnSteamDeck (choose defaults with GetSteamHardwareDefaultConfig) or RequestCurrentStats (Steam loads stats before launch) (steam)'
+    'steam-env-dotnet'       = 'Sets a Steam variable with .NET''s Environment.SetEnvironmentVariable, which the native Steam API never sees on Linux and macOS; use Godot''s OS.SetEnvironment (steam)'
+    'culture-parse'          = 'Parses a number without CultureInfo.InvariantCulture: on a German or French system "0.5" reads as 5 or throws, and CI machines never show it (game-data)'
+    'nondeterministic-sim'   = 'Simulation code (architecture.json "simulation") that can give a different result on another machine or run, so lockstep, rollback and replays drift (determinism)'
+    'frame-dependent-lerp'   = 'Moves a fixed fraction of the way to its target every frame, so it converges faster at higher frame rates and ignores time scale; use 1 - Mathf.Exp(-rate * delta) as the weight (math)'
 }
 
 # Godot's Control family, for spotting UI scripts by what they extend.
@@ -138,7 +138,7 @@ function Find-FrameDependentLerp([string]$Line, [string]$Text, [bool]$IsCSharp) 
     return $null
 }
 
-# What makes simulation code differ between machines or runs (godot-determinism, docs/determinism.md), as the problem to
+# What makes simulation code differ between machines or runs (determinism, docs/determinism.md), as the problem to
 # report, or $null. $Collections are the names this file declares as Dictionary or HashSet.
 function Find-NondeterministicCall([string]$Line, [bool]$IsCSharp, [string[]]$Collections) {
     if ($IsCSharp) {

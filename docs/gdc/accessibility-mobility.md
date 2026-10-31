@@ -39,7 +39,7 @@
   it; older files without it still load.
 - Tests: `examples/csharp/tests/Example.Core.Tests/StickSettingsTests.cs` (18 cases, two of them property sweeps over
   random settings and readings) and `ControlsTest.Bindings_survive_saving_and_loading` (gdUnit4, in Godot).
-- `.agents/skills/godot-input/SKILL.md`: how `GetAxis` and `GetVector` treat per-action deadzones in 4.7.2, and §7's
+- `.agents/skills/input/SKILL.md`: how `GetAxis` and `GetVector` treat per-action deadzones in 4.7.2, and §7's
   mobility settings (adjustable and axial deadzones, sensitivity both ways per axis, stick swap and one-stick play,
   reduced-button modes, skippable mashing, QTEs and hold meters, auto actions, vibration levels by category).
 
@@ -56,8 +56,8 @@
 
 ## What it did not take, and why
 
-- Difficulty, assists, friendly fire, canned chat, saves and mods: other skills' ground (`godot-game-design`,
-  `godot-ui-accessibility`, `godot-multiplayer`, `godot-saves`, `godot-modding`), and the talk gives no rule beyond
+- Difficulty, assists, friendly fire, canned chat, saves and mods: other skills' ground (`game-design`,
+  `ui-accessibility`, `multiplayer`, `saves`, `modding`), and the talk gives no rule beyond
   "offer it".
 - Device support beyond keyboard, mouse and controller (eye gaze, adaptive controllers): they arrive as one of those.
 - The C# example's paddle is one axis on keys and the d-pad, so the stick settings are saved but not yet read by the game.

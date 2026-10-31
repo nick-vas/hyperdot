@@ -1,6 +1,6 @@
 # Determinism: sources and measurements
 
-The research behind the `godot-determinism` skill and the C# example's `Determinism/Replay.cs` (`IDeterministic`,
+The research behind the `determinism` skill and the C# example's `Determinism/Replay.cs` (`IDeterministic`,
 `DeterminismCheck`, `DeterministicRandom`), gathered on 2026-10-21. It draws on the .NET runtime source and issues,
 Microsoft and Godot documentation, Box2D, Jolt, GGPO and Factorio. Tests ran on Linux x86_64 (Intel Xeon 2.8 GHz with
 FMA, AVX2 and AVX-512F, 4 cores), .NET SDK 8.0.131 (runtime 8.0.31), Godot 4.7.2 mono and standard, and Godot 4.6.1

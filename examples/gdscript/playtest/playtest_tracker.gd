@@ -1,6 +1,6 @@
 class_name PlaytestTracker
 extends RefCounted
-## Raises the godot-playtest skill's events from what the game already knows (where the player is, and when they make
+## Raises the game-playtest skill's events from what the game already knows (where the player is, and when they make
 ## progress) and writes them for `hyperdot.ps1 playtest -Sessions`: one JSON batch a line in
 ## user://playtests/<session>.jsonl. The GDScript port of the C# example's PlaytestTracker, its TelemetryClient's consent
 ## rule and PlaytestFileSink; the events and their fields are ci/godot/templates/playtest-events.json, and
@@ -12,7 +12,7 @@ extends RefCounted
 ## Wiring, in a playtest build (the export preset's custom feature `playtest`):
 ##   var _play_seconds := 0.0   # game time: add delta in _process while the game is not paused
 ##   var tracker := PlaytestTracker.new(func() -> float: return _play_seconds, ["hub", "cave"], "1.0.0")
-##   tracker.set_consent(PlaytestTracker.Consent.GRANTED)   # from the game's consent screen (godot-telemetry)
+##   tracker.set_consent(PlaytestTracker.Consent.GRANTED)   # from the game's consent screen (game-telemetry)
 ##   tracker.start_level("hub"); tracker.move(player.position.x, player.position.y)   # every frame; z = 0 in 2D
 ##   tracker.flush()   # on a 30 s Timer and on quit (NOTIFICATION_WM_CLOSE_REQUEST)
 ## Not thread-safe: call it from the game loop.

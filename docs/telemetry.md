@@ -1,6 +1,6 @@
 # Crash reports and telemetry: sources and measurements
 
-The research behind the `godot-telemetry` skill, the C# example's `Telemetry/` and `Diagnostics/`, and `doctor`'s Sentry check,
+The research behind the `game-telemetry` skill, the C# example's `Telemetry/` and `Diagnostics/`, and `doctor`'s Sentry check,
 gathered on 2026-10-21. Nothing was sent to a real service: every test used a listener on the machine itself. This is
 engineering research, not legal advice.
 
@@ -46,7 +46,7 @@ engineering research, not legal advice.
 
 ## Playtest events and heat maps
 
-The events the `godot-playtest` skill names, ready to use, built on the same `TelemetrySchema` and consent rules as every
+The events the `game-playtest` skill names, ready to use, built on the same `TelemetrySchema` and consent rules as every
 other event: analytics, recorded only after the player agrees, numbers and fixed labels only, a random session id.
 
 | Event | Fields besides `level`, `x`, `y`, `z`, `level_seconds` | Raised by `PlaytestTracker` when |

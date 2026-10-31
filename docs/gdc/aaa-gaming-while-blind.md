@@ -44,7 +44,7 @@
   (`Input.StartJoyVibration`, `Input.VibrateHandheld` on phones); `LinearMenu.cs`: up and down through a column, a
   step sound per move, and a wrap sound, the `menuWrap` rumble and a `Wrapped` event on the wrap. `Main.cs` rumbles the
   pad used last on a brick hit, a lost ball and a cleared floor.
-- Skills: `godot-input` (haptics as information), `godot-ui-accessibility` (wrap only with a cue, click per step, the
+- Skills: `input` (haptics as information), `ui-accessibility` (wrap only with a cue, click per step, the
   same menu items every time). Pointers in `docs/input.md` and `docs/wcag-ui.md` (XAG 110, 112).
 
 ## Measured
@@ -62,8 +62,8 @@
 ## What it did not take, and why
 
 - Fail forward on QTEs, never regress, and text-only guides: design and process advice with no kit check to hang them
-  on yet; `godot-game-design` and the plan's gates are their place if a rule becomes testable.
+  on yet; `game-design` and the plan's gates are their place if a rule becomes testable.
 - 3D sound, commentary, assisted aim and auto steering: they are what made the games playable, but the talk gives no
-  rule beyond "do it well"; `godot-audio` covers positional sound.
+  rule beyond "do it well"; `game-audio` covers positional sound.
 - Exact rumble lengths and strengths for the C# example's patterns are the kit's choice; the talk gives none.
 - Not verified on hardware: there was no controller or phone. `VibrateHandheld` is not exercised by any test.

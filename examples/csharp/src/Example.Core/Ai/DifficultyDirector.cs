@@ -3,7 +3,7 @@ namespace Example.Core.Ai;
 /// <summary>
 /// Tuning for <see cref="DifficultyDirector"/>. The level is a multiplier the game applies to enemies (health, damage,
 /// numbers), never to the player: a global player buff made World of Warcraft players feel weaker everywhere else
-/// (<c>godot-progression</c>).
+/// (<c>progression</c>).
 /// </summary>
 public sealed record DifficultyOptions
 {
@@ -27,7 +27,7 @@ public sealed record DifficultyOptions
 /// <see cref="DifficultyOptions.RaiseAbove"/>), moves one <see cref="DifficultyOptions.Step"/>, stays within
 /// <see cref="DifficultyOptions.Min"/> and <see cref="DifficultyOptions.Max"/>, and empties the window, so two changes are
 /// always at least a window apart. Deterministic: the same attempts give the same levels. It decides how strong enemies
-/// are; when they come is <see cref="PacingDirector"/>'s. Log each change with the attempts behind it (godot-telemetry),
+/// are; when they come is <see cref="PacingDirector"/>'s. Log each change with the attempts behind it (game-telemetry),
 /// and let players see and override it in the options.
 /// </summary>
 public sealed class DifficultyDirector

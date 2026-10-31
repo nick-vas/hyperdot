@@ -80,7 +80,7 @@ terrain.AsGodotObject().Call("set_show_region_grid", true);`).
 
 | Add-on | Stars | Licence | Latest (date) | Godot 4.7 | C# | Use it for |
 |---|---:|---|---|---|---|---|
-| [GodotSteam](https://codeberg.org/godotsteam/godotsteam) | 3,761 (GitHub, archived) | MIT | v4.23.2-gde (2026-10-20) | 4.4+ | `Call`, or community bindings (`godot-steam`) | Steam; it moved to Codeberg on 2026-10-20 |
+| [GodotSteam](https://codeberg.org/godotsteam/godotsteam) | 3,761 (GitHub, archived) | MIT | v4.23.2-gde (2026-10-20) | 4.4+ | `Call`, or community bindings (`steam`) | Steam; it moved to Codeberg on 2026-10-20 |
 | [Phantom Camera](https://github.com/ramokz/phantom-camera) | 3,609 | MIT | v0.11.0.3 (2026-07-19) | 4.4+ | Wrapper ships (`PhantomCamera2D.cs`, `PhantomCamera3D.cs`) | Cinemachine-style cameras |
 | [Terrain3D](https://github.com/TokisanGames/Terrain3D) | 4,383 | MIT | v1.0.2 (2026-10-17, "4.4 through 4.7") | Yes | `ClassDB`/`Call` | Large editable 3D terrain; its Web libraries are release-only |
 | [Dialogue Manager](https://github.com/nathanhoad/godot_dialogue_manager) | 3,935 | MIT | v4.1.0 (2026-09-04, "for Godot 4.7") | Yes | Wrapper: `DialogueManager.ShowDialogueBalloon(...)` | Branching dialogue as text |
@@ -88,11 +88,11 @@ terrain.AsGodotObject().Call("set_show_region_grid", true);`).
 | [Beehave](https://github.com/bitbrain/beehave) | 3,307 | MIT | v2.9.3 (2026-08-18, "latest Godot 4.7") | Yes | GDScript only | Behaviour trees in GDScript; C# games use `Example.Core/Ai` patterns or LimboAI |
 | [GUT](https://github.com/bitwes/Gut) | 2,764 | MIT | 9.7.1 (2026-07-10) | Yes | GDScript tests | The kit's GDScript test runner |
 | [Heightmap terrain](https://github.com/Zylann/godot_heightmap_plugin) | 2,283 | MIT | No releases | 4.6+ | `Call` | Terrain without native libraries (Web) |
-| [Debug Draw 3D](https://github.com/DmitriySalnikov/godot_debug_draw_3d) | 1,074 | MIT | 1.7.3 (2026-04-04) | `compatibility_minimum` 4.4.1 | Yes | 3D debug shapes (`godot-debug-tools`) |
+| [Debug Draw 3D](https://github.com/DmitriySalnikov/godot_debug_draw_3d) | 1,074 | MIT | 1.7.3 (2026-04-04) | `compatibility_minimum` 4.4.1 | Yes | 3D debug shapes (`debug-tools`) |
 | [godot-git-plugin](https://github.com/godotengine/godot-git-plugin) | 960 | MIT, plus THIRDPARTY | v3.3.0 (2026-10-20) | 4.3+ | Editor only | Committing from the editor; never exported |
 | [fmod-gdextension](https://github.com/utopia-rise/fmod-gdextension) | 945 | MIT binding; FMOD's own terms (not read) | 6.1.0-4.5.0 (2025-09-20) | Not stated | "This plugin doesn't provide C# bindings to FMOD" | FMOD Studio projects; no Web libraries |
 | [Epic Online Services](https://github.com/3ddelano/epic-online-services-godot) | 325 | MIT, plus Epic's SDK terms | 2.3.1 (2026-09-15) | Yes | "GDScript, C#, etc" | Cross-store accounts, lobbies, P2P |
-| [lua-gdextension](https://github.com/gilzoide/lua-gdextension) | 469 | MIT | 0.8.2 (2026-07-12) | 4.5+ | Yes | Modding with sandboxed scripts (`godot-modding`) |
+| [lua-gdextension](https://github.com/gilzoide/lua-gdextension) | 469 | MIT | 0.8.2 (2026-07-12) | 4.5+ | Yes | Modding with sandboxed scripts (`modding`) |
 | [gdTree3D](https://github.com/JekSun97/gdTree3D) | 383 | MIT | v1.1.0 (2026-09-14) | 4.5+ | `Call` | Procedural trees; desktop only |
 | [EIRTeam.FFmpeg](https://github.com/EIRTeam/EIRTeam.FFmpeg) | 318 | MIT, plus FFmpeg | Auto-build (2026-10-07) | Built against 4.7.2 | Not checked | Video beyond Theora; h264 is "patent-encumbered" |
 | [iree.gd](https://github.com/iree-gd/iree.gd) | 73 | MIT | v0.1.0 (2026-06-13) | Not stated | Not checked | On-device inference of trained models |
@@ -120,7 +120,7 @@ Systems a game ships:
 
 | Add-on | Licence | Latest (date) | Godot | C# | Use it for |
 |---|---|---|---|---|---|
-| [Input Helper](https://github.com/nathanhoad/godot_input_helper) | MIT | v4.7.0 (2025-06-08) | project 4.4 | `InputHelper.cs`, `using NathanHoad;` | Device detection and rebinding; last commit June 2025, so check it on 4.7 first. Overlaps what `godot-input` teaches |
+| [Input Helper](https://github.com/nathanhoad/godot_input_helper) | MIT | v4.7.0 (2025-06-08) | project 4.4 | `InputHelper.cs`, `using NathanHoad;` | Device detection and rebinding; last commit June 2025, so check it on 4.7 first. Overlaps what `input` teaches |
 | [Questify](https://github.com/TheWalruzz/godot-questify) | MIT | 1.6.0 (2025-07-03) | 4.4 in the README, 4.5 in the project | `Questify.cs` wrapper | A graph quest editor and runtime; the best C# quest option of five |
 | [DotnetQuestSystem](https://github.com/TRUINGLol/DotnetQuestSystem) | MIT | v1.1.0 (2025-05-08) | 4.4 | C# first, with a `test/` project | A quest system as a .NET library with a thin Godot layer, which `dotnet test` can run without the engine (its tests were not opened) |
 | [Health, HitBoxes, HurtBoxes, HitScans](https://github.com/cluttered-code/godot-health-hitbox-hurtbox) | MIT | v5.0.4 (2026-07-21) | 4.5+ | GDScript only | Composable damage nodes in 2D and 3D; about 72 gdUnit4 test files, which run through the kit's `gdunit4` runner |
@@ -128,8 +128,8 @@ Systems a game ships:
 | [Scene Manager](https://github.com/glass-brick/Scene-Manager) | MIT | v2.1.0 (2026-08-20) | 4.7 | GDScript only | Scene transitions through an autoload; its GUT suite runs headless in its CI |
 | [GATO](https://github.com/Nokorpo/gato-godot-accessibility-toolkit) | MPL-2.0 (file-level copyleft; graphics under a CC licence; the name is a trademark) | no tags (2026-10-15) | 4.6 | GDScript only | Accessibility parts: input remapper, text to speech, colour-blind filters. `credits` ships the MPL-2.0 text. Pin it by commit |
 | [ThemeGen](https://github.com/Inspiaaa/ThemeGen) | MIT | v1.4.0 (2026-05-02) | "4.x" | GDScript at build time | A Theme written as code; the `.tres` it produces is checked by `textsize` and `layout` like any other |
-| [Juicee](https://github.com/Kelpekk/Juicee) | MIT | v2.0.0 (2026-10-13) | 4.3 | `csharp/Juicee.cs` singleton | Shake, hit stop and camera effects; young, pin the tag. Overlaps `godot-juice` |
-| [NobodyWho](https://github.com/nobodywho-ooo/nobodywho) | EUPL-1.2 (copyleft) | `nobodywho-godot-v12.1.0` (2026-10-09, from its changelog) | 4.6+ | GDScript API, no C# wrapper found | A language model that runs on the player's machine (Rust GDExtension); needs model files. See `godot-llm` |
+| [Juicee](https://github.com/Kelpekk/Juicee) | MIT | v2.0.0 (2026-10-13) | 4.3 | `csharp/Juicee.cs` singleton | Shake, hit stop and camera effects; young, pin the tag. Overlaps `game-juice` |
+| [NobodyWho](https://github.com/nobodywho-ooo/nobodywho) | EUPL-1.2 (copyleft) | `nobodywho-godot-v12.1.0` (2026-10-09, from its changelog) | 4.6+ | GDScript API, no C# wrapper found | A language model that runs on the player's machine (Rust GDExtension); needs model files. See `llm` |
 | [Subtitles Importer](https://github.com/Rubonnek/subtitles-importer) | MIT | v1.1.4 (2026-07-05) | 4.2 | GDScript only | Timed subtitle formats with `AnimationPlayer` links |
 | [friflo ECS](https://github.com/friflo/Friflo.Engine.ECS) | MIT | `engine-v4.0.0-preview.2` (2026-05-01); the newest non-preview is `engine-v3.6.0` (date not fetched) | Godot listed, .NET Standard 2.1 to .NET 10 | C# only | An entity component system as a NuGet library; plain C#, so `dotnet test` reaches it |
 | [HCoroutines](https://github.com/Inspiaaa/HCoroutines) | MIT | v2.0.1 (2025-03-31) | 4.x | C# only | Coroutines for C#; idle for 19 months, not archived |
@@ -233,17 +233,17 @@ project is `iree-gd/iree.gd`); ProtonScatter's GitHub repository is a mirror of 
 
 On garciamarquez.dev's page but not above, all Asset Library add-ons: [LimboAI](https://github.com/limbonaut/limboai)
 (behaviour trees and state machines; C# needs its module build, `docs/game-ai.md`), [Godot State Charts](https://github.com/derkork/godot-statecharts),
-[Gaea](https://github.com/gaea-godot/gaea) (procedural generation, `godot-procgen`), [SmartShape2D](https://github.com/SirRamEsq/SmartShape2D),
+[Gaea](https://github.com/gaea-godot/gaea) (procedural generation, `procgen`), [SmartShape2D](https://github.com/SirRamEsq/SmartShape2D),
 [Metroidvania System](https://github.com/KoBeWi/Metroidvania-System), [Panku Console](https://github.com/Ark2000/PankuConsole)
-(`godot-debug-tools`), [Orchestrator](https://github.com/CraterCrash/godot-orchestrator) (visual scripting),
-[Godot-SQLite](https://github.com/2shady4u/godot-sqlite) (`godot-saves`, `godot-data`), [Aseprite Wizard](https://github.com/viniciusgerevini/godot-aseprite-wizard)
-(`godot-asset-pipeline`), COGITO (moved to [Codeberg](https://codeberg.org/Phazorknight/Cogito)), Kenney's starter kits
+(`debug-tools`), [Orchestrator](https://github.com/CraterCrash/godot-orchestrator) (visual scripting),
+[Godot-SQLite](https://github.com/2shady4u/godot-sqlite) (`saves`, `game-data`), [Aseprite Wizard](https://github.com/viniciusgerevini/godot-aseprite-wizard)
+(`asset-pipeline`), COGITO (moved to [Codeberg](https://codeberg.org/Phazorknight/Cogito)), Kenney's starter kits
 and a tactical RPG demo. Rivet, 7th on the page, now describes itself as "the primitive for stateful workloads. Built
 for AI agents", not a game backend.
 
 ## Licences
 
 Every add-on's code ships with the game, so its licence notice does too: an `assets.json` entry for `addons/<name>/**`
-lets `credits` write it (`godot-asset-pipeline`), and `doctor` writes that entry for an add-on with a licence file and none. Some add-ons wrap SDKs with their own terms (FMOD, Steamworks, Epic Online
+lets `credits` write it (`asset-pipeline`), and `doctor` writes that entry for an add-on with a licence file and none. Some add-ons wrap SDKs with their own terms (FMOD, Steamworks, Epic Online
 Services, Steam Audio's "proprietary libraries"), ProtonScatter's textures "cannot redistribute them on their own", and
 EIRTeam.FFmpeg's h264 needs a check of patent law where the game sells.

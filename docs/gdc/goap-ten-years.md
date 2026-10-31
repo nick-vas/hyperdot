@@ -46,7 +46,7 @@
   the plan is walk then melee (3 against 11). At 20 m it is move into range then shoot (11 against 21). At 20 m with no
   ammo it walks in to melee. With fixed costs the plan is melee at every distance (2 against 11). If the planner ignores
   `costOf`, the test fails at 20 m (it expects ranged and gets melee).
-- `.agents/skills/godot-game-ai/SKILL.md` section 4: situational costs; short plans; folding exclusive flags into an
+- `.agents/skills/game-ai/SKILL.md` section 4: situational costs; short plans; folding exclusive flags into an
   enum; a planning cap per frame with the Mordor and Jacopin numbers; group decisions in a separate role-assignment
   system. Each comes with its speaker.
 

@@ -1,6 +1,6 @@
 # Save systems: sources and measurements
 
-The research behind the `godot-saves` skill and the C# example's `SaveStore`, gathered on 2026-10-21. It draws on the .NET 8
+The research behind the `saves` skill and the C# example's `SaveStore`, gathered on 2026-10-21. It draws on the .NET 8
 runtime and Godot 4.7.2 source, their documentation, and platform documents (Steam, Xbox, Google Play). Tests ran on
 Linux (ext4, .NET 8.0, Godot 4.7.2 mono). Marks: **tested** means run here, **source** means read in the code,
 **doc** means stated by the vendor, and **unconfirmed** means plausible but not verified.

@@ -41,7 +41,7 @@
 - `tests/bench-fixture` (a camera flying at a constant 5 m/s, or 100 px/s in 2D, with 25 ms of `OS.delay_usec` per
   frame while x is in [40, 60], or 400 to 600 px) and `tests/Test-BenchHotspots.ps1`, run in the self-test workflow's
   `measure` job under Xvfb.
-- `.agents/skills/godot-performance`: "Budget per area", "Where it is slow" and "What slow places usually hold";
+- `.agents/skills/performance`: "Budget per area", "Where it is slow" and "What slow places usually hold";
   `agents/godot-verifier.md` reports the worst three hotspots.
 
 ## Measured (Godot 4.7.2 mono, Xvfb, Mesa llvmpipe, 320x180, 4 cores shared with other jobs)

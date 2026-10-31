@@ -90,7 +90,7 @@ public sealed class ServerLifecycle(LifecycleOptions options)
     /// <summary>The match is over and its results are saved.</summary>
     public IReadOnlyList<ServerAction> MatchEnded(double now) => End("match ended");
 
-    /// <summary>SIGTERM or SIGINT (see the godot-servers skill for catching it in C#), or an operator's drain.</summary>
+    /// <summary>SIGTERM or SIGINT (see the servers skill for catching it in C#), or an operator's drain.</summary>
     public IReadOnlyList<ServerAction> StopRequested(double now)
     {
         switch (State)

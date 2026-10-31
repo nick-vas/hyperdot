@@ -38,7 +38,7 @@
   (`cvd.py`, which says it downloaded them from that page), colour-science (`blindness/datasets/machado2010.py`) and
   DaltonLens-Python (`simulate.py`).
 - `tests/Test-ColorVision.ps1` with `tests/colorvision-fixture` (in the `measure` job of `self-test.yml`).
-- `godot-ui-accessibility`: colours defined once by meaning, blue and orange for must-not-confuse pairs, player-chosen marker
+- `ui-accessibility`: colours defined once by meaning, blue and orange for must-not-confuse pairs, player-chosen marker
   colours, recolour markers and UI rather than filter the screen, and the `-ColorVision` check. `look`: critique the
   simulated pictures.
 

@@ -35,7 +35,7 @@
 
 ## What the kit took
 
-- `.agents/skills/godot-camera/SKILL.md` (new): all of the above mapped to Godot 4.7.2, with a C# pivot node that casts
+- `.agents/skills/camera/SKILL.md` (new): all of the above mapped to Godot 4.7.2, with a C# pivot node that casts
   whiskers and a behind ray with `IntersectRay`, uses `SpringArm3D` only as the sphere safety, and drives `OrbitCamera`.
   The snippet compiled against GodotSharp 4.7.2 and ran headless in a small scene with a wall.
 - `examples/csharp/src/Example.Core/Feel/OrbitCamera.cs`: `PitchRig` (distance and field of view from pitch, through the
@@ -46,8 +46,8 @@
 - `examples/csharp/tests/Example.Core.Tests/OrbitCameraTests.cs`, 11 tests. Each of seven naive versions (field of
   view interpolated on its own, speed then clamp, no hint delay, summed yaw forces, no lag limit, vertical follow while
   airborne, no angle wrap) fails exactly the test written for it.
-- Stick curve and inversion were already `StickSettings` (`godot-input`); shake, bob and field-of-view settings were
-  already in `godot-ui-accessibility` and `godot-juice`. The skill links them instead of repeating them.
+- Stick curve and inversion were already `StickSettings` (`input`); shake, bob and field-of-view settings were
+  already in `ui-accessibility` and `game-juice`. The skill links them instead of repeating them.
 
 ## Measured
 

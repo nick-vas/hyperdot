@@ -4,7 +4,7 @@
      It is the cheapest trailer there is: words, no footage. Writing it forces the questions a finished trailer would
      ask too late: what the game looks like while it is being played, what makes it different, and whether a viewer can
      see that. Keep it to an evening or two; if a mood board, animatic or clips follow, give them a timebox (teams in the
-     talk behind this spent two weeks to a month). The launch trailer starts from this script (godot-store-page). -->
+     talk behind this spent two weeks to a month). The launch trailer starts from this script (store-page). -->
 
 ## The game in five lines
 
@@ -50,7 +50,7 @@ The moments a viewer would describe to a friend afterwards (nobody remembers a w
 ## Mechanics a viewer can read
 
 A viewer sees the screen, not the controller. For every core mechanic, write what shows that the player caused it. An
-empty or "nothing" cell is design work now (feedback, animation, sound: `godot-juice`), not a trailer problem later.
+empty or "nothing" cell is design work now (feedback, animation, sound: `game-juice`), not a trailer problem later.
 
 | Mechanic | What the player does | On-screen feedback a viewer sees | Change needed to make it visible |
 |---|---|---|---|

@@ -10,7 +10,7 @@ accepts or rejects. You write only the decision file and `docs/ARCHITECTURE.md`;
 1. **Understand the change.** Read the request, `docs/GDD.md` (the feature it serves), `docs/ARCHITECTURE.md` (the shape
    of the code now), `docs/decisions/` (earlier decisions still bind), and the code it touches. Run
    `pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 status -Json` for the inventory (autoloads, main scene, scenes).
-2. **Compare two or three designs.** Use the patterns in the `godot-patterns` skill: prefer what Godot already provides,
+2. **Compare two or three designs.** Use the patterns in the `patterns` skill: prefer what Godot already provides,
    name the pattern each option uses, and say what each costs in this project: testability without the engine, coupling
    between scenes, per-frame cost, how many files change. Favour state in plain classes, signals up and calls down, and
    dependencies passed in over reaching across the tree.

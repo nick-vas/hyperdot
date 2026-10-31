@@ -18,8 +18,8 @@ exists). What came of it:
   ships, world and physics tools, developer tools a game must never ship), a list of what was read and left out with the
   reason, and one note: the kit sets up official Godot, so a game that needs a custom engine module cannot be tested or
   exported with it. godot-luaAPI is marked do-not-use ("Archived!" on its first README line).
-- **Four skills got one short note each**: `godot-ui-accessibility` (GATO, Subtitles Importer, ThemeGen),
-  `godot-ui-flows` (Maaack's menus), `godot-juice` (Juicee), `godot-llm` (NobodyWho and its copyleft licence). `godot-input`
+- **Four skills got one short note each**: `ui-accessibility` (GATO, Subtitles Importer, ThemeGen),
+  `ui-flows` (Maaack's menus), `game-juice` (Juicee), `llm` (NobodyWho and its copyleft licence). `input`
   has no note because it is within 150 bytes of the 16 KB limit; Input Helper is in the table.
 - **No `doctor` check was added.** None of the add-ons has a failure that the existing add-on and GDExtension checks would
   miss; the one candidate (a model file for NobodyWho) would be a guess.
@@ -100,7 +100,7 @@ session (quaternius.com, game-icons.net, polyhaven.com) was not read.
   - RespawnStack: a ledger of AI tools' commercial-use terms (61 tools), not an asset source; its quotes were not checked
     against the vendors.
   - Poly Pizza: dropped by the owner (2026-10-29); its site blocks scripts and its licences were never read.
-  The skill `godot-asset-pipeline` names none of these sources, so nothing there changed.
+  The skill `asset-pipeline` names none of these sources, so nothing there changed.
 
 ## Not done
 

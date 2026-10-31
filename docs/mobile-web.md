@@ -1,6 +1,6 @@
 # Phones, tablets and browsers: what was measured
 
-The research behind the `godot-mobile-web` skill, the `layout` runner, `export -Run` for Web presets and `doctor`'s Web and
+The research behind the `mobile-web` skill, the `layout` runner, `export -Run` for Web presets and `doctor`'s Web and
 Android checks, gathered on 2026-10-21 with Godot 4.7.2 (mono and standard builds) on Linux. Android exports were built
 and inspected here; nothing ran on a phone (no device, and no KVM for an emulator), and iOS needs macOS.
 
