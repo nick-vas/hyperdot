@@ -18,7 +18,7 @@ $gameDir = Join-Path ([System.IO.Path]::GetTempPath()) "ctx-$PID"
 New-Item -ItemType Directory -Force -Path $gameDir | Out-Null
 $realFile = Join-Path $gameDir 'real.ps1'
 Set-Content -LiteralPath $realFile 'x'
-$text = "Run ``$($realFile -replace '\\', '/')`` first.`nDo not commit ``.godot/``, ``bin/``, ``obj/``, ``test-results/``.`nSee ``docs/nothing.md`` for more.`nThe ``build/`` and ``obj/`` folders appear after a run.`n"
+$text = "Run ``$($realFile -replace '\\', '/')`` first.`nDo not commit ``.godot/``, ``bin/``, ``obj/``, ``test-results/``.`nSee ``docs/nothing.md`` for more.`nThe per-machine ``.claude/settings.local.json`` is never in a clone.`nThe ``build/`` and ``obj/`` folders appear after a run.`n"
 $pathProblems = @(Get-InstructionPathProblems $text 'AGENTS.md' $gameDir $gameDir $gameDir)
 Assert-True ($pathProblems.Count -eq 1 -and $pathProblems[0] -match 'docs/nothing\.md') "only the missing relative file is reported: $($pathProblems -join ' | ')"
 Remove-Item -LiteralPath $gameDir -Recurse -Force

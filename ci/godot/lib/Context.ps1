@@ -148,6 +148,8 @@ function Get-InstructionPathProblems([string]$Text, [string]$Where, [string]$Pro
             if (-not $seen.Add("$($c.text)")) { continue }
             # The folders the kit's own runs create (.godot, bin, obj, test-results, build) are not "missing" before the first run.
             if ($clean -match '^(\.godot|bin|obj|test-results|build|gdunit4_testadapter[^/]*)/?$') { continue }
+            # Claude Code's per-machine settings are git-excluded by design (Initialize-HyperdotGame.ps1 writes them), never in a clone.
+            if ($clean -match '(^|/)\.claude/settings\.local\.json$') { continue }
             $found = @($c.roots | Where-Object { $null -ne $_ -and (Test-Path -LiteralPath $(if ($_ -eq '') { $clean } else { Join-Path $_ $clean })) })
             if ($found.Count -eq 0) { $problems.Add("${Where}:$number $($c.text)") }
         }
