@@ -512,8 +512,7 @@ function Set-ProjectItemColumn($Columns, [string]$ItemId, [string]$Column) {
 # the Column field. New tasks become draft items, an item moved on the board moves its task, and a task moved with
 # `plan -Do move` moves its item. Each task records the column its item was in at the last sync (boardColumn), which
 # tells the two kinds of move apart. An item a person added on the board becomes a task, and the items of tasks removed
-# with `plan -Do remove` are archived. A plan made for the Trello sync this replaced keeps its tasks: their card ids are
-# dropped and the first sync makes an item for each.
+# with `plan -Do remove` are archived.
 function Sync-PlanProject([string]$Path, [string]$Dir, $Info, [string]$Board) {
     $plan = Read-Plan $Path
     if (-not $Board) { $Board = Get-PlanProjectBoard $plan }
@@ -525,7 +524,7 @@ function Sync-PlanProject([string]$Path, [string]$Dir, $Info, [string]$Board) {
             Stop-GodotCi "Task $($task.id) is in an unknown column '$($task.column)'; use $($script:PlanColumns -join ', ')" 'invalid-plan'
         }
     }
-    $created = 0; $moved = 0; $itemsMoved = 0; $imported = 0; $archived = 0; $dropped = 0
+    $created = 0; $moved = 0; $itemsMoved = 0; $imported = 0; $archived = 0
     $warnings = [System.Collections.Generic.List[string]]::new()
     $madeProject = $false
     if ($null -eq $ref.number) {
@@ -563,13 +562,6 @@ function Sync-PlanProject([string]$Path, [string]$Dir, $Info, [string]$Board) {
     $phase = Get-PlanTaskPhase $plan $Info
     # Saved whatever happens: an item created before a failed call keeps its id, so the next sync does not duplicate it.
     try {
-        # The Trello sync's card ids and block are dropped; the tasks get items below.
-        foreach ($task in @($plan.tasks)) {
-            if ($task.PSObject.Properties['cardId']) { $task.PSObject.Properties.Remove('cardId'); $dropped++ }
-        }
-        if ($plan.PSObject.Properties['trello']) { $plan.PSObject.Properties.Remove('trello') }
-        if ($dropped) { Write-CiLog "Dropped $dropped Trello card link(s); each of those tasks gets a project item" }
-
         # Items of removed tasks go first, so they are not taken for items a person added.
         foreach ($itemId in @($pending)) {
             if ($items.ContainsKey($itemId)) {
@@ -632,7 +624,7 @@ function Sync-PlanProject([string]$Path, [string]$Dir, $Info, [string]$Board) {
     foreach ($warning in $warnings) { Write-Console "WARNING: $warning" -ForegroundColor Yellow }
     Write-CiLog "Project sync ($($ref.owner)/$($ref.number)): $created item(s) created, $moved task(s) moved from the board, $itemsMoved item(s) moved to follow the plan, $imported task(s) added from the board, $archived item(s) archived"
     if ($madeProject) { Write-CiLog "Open the project and set its Board view to group by Column: gh project view $($ref.number) --owner $($ref.owner) --web" }
-    Set-JsonField sync ([ordered]@{ board = "$($ref.owner)/$($ref.number)"; created = $created; moved = $moved; itemsMoved = $itemsMoved; imported = $imported; archived = $archived; droppedTrelloLinks = $dropped; madeProject = $madeProject; warnings = @($warnings) })
+    Set-JsonField sync ([ordered]@{ board = "$($ref.owner)/$($ref.number)"; created = $created; moved = $moved; itemsMoved = $itemsMoved; imported = $imported; archived = $archived; madeProject = $madeProject; warnings = @($warnings) })
 }
 
 function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string]$Title, [string]$Column, [string]$Board, [string]$Feature, [string]$Item, [string]$PlanProfile = 'full') {
