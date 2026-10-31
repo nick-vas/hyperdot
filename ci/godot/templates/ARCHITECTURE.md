@@ -10,7 +10,7 @@ Last checked against the code: yyyy-mm-dd (commit)
 ## Autoloads
 
 Every `[autoload]` entry in `project.godot`, and nothing else. Each one is global state that outlives every scene, so
-each needs a decision (`godot-patterns`: Singleton; the `architecture` runner's `too-many-autoloads` rule counts them).
+each needs a decision (`patterns`: Singleton; the `architecture` runner's `too-many-autoloads` rule counts them).
 
 | Autoload | Script | Owns (state or service) | Who may call it | Decision |
 |---|---|---|---|---|
@@ -50,7 +50,7 @@ authored `Resource`: duplicate it first.
 
 ## Save schema
 
-- Current version: 1 (the number written in every save's envelope; `godot-saves`)
+- Current version: 1 (the number written in every save's envelope; `saves`)
 - Each version, the change it made and its migration step:
 
 | Version | Change | Migration | Test |

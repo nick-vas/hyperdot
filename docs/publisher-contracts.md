@@ -2,7 +2,7 @@
 
 Two publishing agreements from 2020 that were shared openly so developers could learn from them, read clause by clause.
 Neither is legal advice, and neither is a statement about either publisher's contracts today. They complement the
-lawyer's view in `godot-legal` section 6 ([gdc/contract-killers.md](gdc/contract-killers.md)).
+lawyer's view in `legal` section 6 ([gdc/contract-killers.md](gdc/contract-killers.md)).
 
 - **Raw Fury, "Raw Fury Loves Publishing Your Games"** (the file's title, a draft dated 2020-11-09): Jan Willem Nijman
   (co-founder of Vlambeer) annotated it with 53 comments on 2020-12-22. One experienced developer's reading of one

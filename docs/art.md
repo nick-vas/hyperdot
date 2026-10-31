@@ -1,6 +1,6 @@
 # Art and technical art: sources and tested facts
 
-The research behind `godot-asset-pipeline`, `godot-shaders-vfx` and `godot-animation`, gathered on 2026-10-21 from Godot's
+The research behind `asset-pipeline`, `godot-shaders-vfx` and `animation`, gathered on 2026-10-21 from Godot's
 documentation and its 4.7.2 source, Blender's and Khronos's glTF documentation, Unity's and Unreal's root motion pages, and the
 free libraries' own licence pages.
 

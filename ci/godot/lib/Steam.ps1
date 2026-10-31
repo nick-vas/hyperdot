@@ -221,9 +221,9 @@ function Get-AppBuildProblems($Entries, [string]$ScriptDir, [string]$Name) {
     }
     $setLive = Get-VdfValue $body 'SetLive'
     if ($setLive -and $setLive -eq 'default') {
-        $problems.Add(@('WARN', "$Name`: SetLive is 'default', but Steam cannot set a build live on the default branch automatically", 'Set a beta branch live from the script and the default branch by hand in App Admin (godot-steam). Even by hand, a released game asks for an authorization on the account''s Steam Mobile Authenticator or by SMS'))
+        $problems.Add(@('WARN', "$Name`: SetLive is 'default', but Steam cannot set a build live on the default branch automatically", 'Set a beta branch live from the script and the default branch by hand in App Admin (steam). Even by hand, a released game asks for an authorization on the account''s Steam Mobile Authenticator or by SMS'))
     } elseif ($setLive -and $setLive -match '\s') {
-        $problems.Add(@('FAIL', "$Name`: SetLive '$setLive' has a space, and a Steam branch name has none", 'Name the branch without spaces in App Admin and use that name (store/application/branches, godot-steam)'))
+        $problems.Add(@('FAIL', "$Name`: SetLive '$setLive' has a space, and a Steam branch name has none", 'Name the branch without spaces in App Admin and use that name (store/application/branches, steam)'))
     }
 
     $depots = @(Get-VdfEntry $body 'Depots' | ForEach-Object { @($_.Children) })
@@ -244,7 +244,7 @@ function Get-AppBuildProblems($Entries, [string]$ScriptDir, [string]$Name) {
         $complete = @($mappings | Where-Object { (Get-VdfValue $_.Children 'LocalPath') -and (Get-VdfValue $_.Children 'DepotPath') })
         if ($complete.Count -eq 0) { $problems.Add(@('FAIL', "$Name`: $where has no FileMapping with LocalPath and DepotPath, so it uploads nothing", $fix)) }
         # steam_appid.txt in the build makes the game skip Steam's relaunch: never in a game depot (a dedicated server's
-        # depot is the exception, godot-steam).
+        # depot is the exception, steam).
         if ($content -and (Test-Path -LiteralPath (Join-Path $content 'steam_appid.txt'))) {
             $excluded = @(Get-VdfEntry $depotEntries 'FileExclusion' | Where-Object { 'steam_appid.txt' -like ($_.Value -replace '^.*[\\/]', '') })
             if ($excluded.Count -eq 0) {
@@ -284,7 +284,7 @@ function Get-ReviewPromptProblems([string]$ProjectDir) {
                 if ($code.StartsWith('#') -or $code.StartsWith('//')) { continue }
                 if (@($patterns | Where-Object { $line -match $_ }).Count -gt 0 -and $seen -lt 5) {
                     $seen++
-                    $problems.Add(@('WARN', "${relative}:$lineNumber asks the player for a review: Steam's developer rules forbid asking customers to review the product from within the application", 'Ask in a devlog or on social media instead, and reward nothing for a review (partner.steamgames.com/doc/store/reviews; godot-store-page)'))
+                    $problems.Add(@('WARN', "${relative}:$lineNumber asks the player for a review: Steam's developer rules forbid asking customers to review the product from within the application", 'Ask in a devlog or on social media instead, and reward nothing for a review (partner.steamgames.com/doc/store/reviews; store-page)'))
                 }
             }
         }
@@ -317,10 +317,10 @@ function Get-SteamworksProblems([string]$ProjectDir, [string[]]$CodeDirs = @()) 
 
     # Rich presence: steam_display must name a token ("#...") from the localization file, or Steam shows nothing; a token
     # missing in a language falls back to English.
-    $tokenFix = 'Add the token to the rich presence localization file in steam/ and upload it in Steamworks (godot-steam)'
+    $tokenFix = 'Add the token to the rich presence localization file in steam/ and upload it in Steamworks (steam)'
     $used = @($names.display.Keys)
     foreach ($value in $used | Where-Object { $_ -ne '' -and -not $_.StartsWith('#') }) {
-        $problems.Add(@('FAIL', "steam_display is set to '$value' in $($names.display[$value]), which is not a localization token, so Steam shows no rich presence", 'Set steam_display to a token such as "#Status_Menu" and put the text in the localization file (godot-steam)'))
+        $problems.Add(@('FAIL', "steam_display is set to '$value' in $($names.display[$value]), which is not a localization token, so Steam shows no rich presence", 'Set steam_display to a token such as "#Status_Menu" and put the text in the localization file (steam)'))
     }
     if ($richFiles.Count -gt 0) {
         $english = $richPresence.Contains('english') ? $richPresence['english'] : $null

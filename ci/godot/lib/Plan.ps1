@@ -149,7 +149,7 @@ function Get-BusinessDayBefore([datetime]$Date, [int]$Count) {
 }
 
 # Steam's release timeline from plan.json's optional "release" block, against the rules docs/store-and-legal.md and
-# godot-store-page quote (Steamworks pages read 2026-10-21): at least 21 days between paying the app fee and releasing,
+# store-page quote (Steamworks pages read 2026-10-21): at least 21 days between paying the app fee and releasing,
 # a Coming Soon page live at least 2 weeks before release, 3 to 5 business days per review so submit 7 business days
 # ahead (the store page before the build), the release date locked 2 weeks before it, and a Next Fest demo submitted for
 # review 3 weeks before the festival (5 for the press preview). Dates are yyyy-MM-dd. Only warnings: plans are advice.
@@ -241,7 +241,7 @@ function Get-ReleaseTimeline($Release, [datetime]$Today) {
         } elseif ($today -gt $demoDeadline -and $today -lt $fest) {
             $warnings.Add("The Next Fest demo had to be submitted for review by $(& $format $demoDeadline) ($weeks weeks before the festival$which) and release.demoSubmitted is not set $source.")
         }
-        if ($fest -ge $releaseDay) { $warnings.Add("Next Fest ($(& $format $fest)) is on or after release ($(& $format $releaseDay)); do the last Next Fest before launch (godot-store-page).") }
+        if ($fest -ge $releaseDay) { $warnings.Add("Next Fest ($(& $format $fest)) is on or after release ($(& $format $releaseDay)); do the last Next Fest before launch (store-page).") }
     }
 
     $timeline = [ordered]@{ date = & $format $releaseDay; daysLeft = $daysLeft

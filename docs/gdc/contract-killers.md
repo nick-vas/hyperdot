@@ -6,7 +6,7 @@
   Store and Xbox Game Pass deals as revenue sources, and points to his articles "on Gamasutra", which was renamed Game
   Developer in 2021. The skill says "about 2021".
 - Video: https://www.youtube.com/watch?v=yfrwQnqwPps
-- Topic doc: [store-and-legal.md](../store-and-legal.md); skill: `.agents/skills/godot-legal/SKILL.md` section 6.
+- Topic doc: [store-and-legal.md](../store-and-legal.md); skill: `.agents/skills/legal/SKILL.md` section 6.
 - Jurisdiction: a London lawyer's view; the talk names no governing law. Material breach, cure periods and "time is of the
   essence" are English and US common-law ideas. He says the talk is legal education, not legal advice; so is the kit's
   summary.
@@ -41,12 +41,12 @@
 
 ## What the kit took
 
-- `.agents/skills/godot-legal/SKILL.md`: section 6, a checklist of the clauses above with his numbers, marked general
+- `.agents/skills/legal/SKILL.md`: section 6, a checklist of the clauses above with his numbers, marked general
   information, not legal advice; the formulas for recoup from gross against recoup from the developer's share, with
   one worked number (the full example is under "Numbers and checks" below); the description now names a publishing agreement review as a trigger.
 - `evals/review-publishing-deal/`: a term sheet with three planted clauses (term from the last version, recoup from the
   developer's share, time of the essence) among fair ones; graders check that all three are flagged, that fair clauses are
-  not attacked, and (with the plugin only) that `godot-legal` was used.
+  not attacked, and (with the plugin only) that `legal` was used.
 - `docs/store-and-legal.md`: the source row.
 
 ## Not taken, and why

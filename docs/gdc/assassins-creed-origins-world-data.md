@@ -53,7 +53,7 @@ About four errors were left at ship.
 - `tests/placement-fixture` and `tests/Test-Placement.ps1`: a level with an AI point 2 m above the navmesh, a torch
   3.5 m above the ground (reach 2.5 m) and a zip line through a crate gives exactly those three findings with their
   values; the other rules are broken once each in `rule_cases/`; moved and exempted, the level passes.
-- `godot-data` section 6 ("Placed objects") and a pointer from `docs/data.md`.
+- `game-data` section 6 ("Placed objects") and a pointer from `docs/data.md`.
 
 ## Measured here (Godot 4.7.2, headless, 4-core 2.8 GHz Xeon)
 

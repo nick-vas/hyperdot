@@ -1,6 +1,6 @@
 # Game AI: sources and measurements
 
-The research behind the `godot-game-ai` skill and the C# example's `Ai/` classes, gathered on 2026-10-21. It draws on Game AI
+The research behind the `game-ai` skill and the C# example's `Ai/` classes, gathered on 2026-10-21. It draws on Game AI
 Pro chapters, GDC papers, Reynolds' steering paper and the Godot 4.7.2 source. Measurements ran headless on 4.7.2 mono
 and .NET 8.
 

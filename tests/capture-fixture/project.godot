@@ -1,4 +1,4 @@
-; tests/Test-Capture.ps1 takes screenshots of this with and without --capture (see the godot-debug-tools skill).
+; tests/Test-Capture.ps1 takes screenshots of this with and without --capture (see the debug-tools skill).
 ; 30 fps and no delta smoothing: the probe compares 7 frames of delta with the clock, about 30 ms at uncapped speed,
 ; where smoothing and timing jitter swung the ratio from 1.4 to 2.0 and failed the time-scale check.
 config_version=5

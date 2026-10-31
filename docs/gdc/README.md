@@ -31,7 +31,7 @@ a Godot kit.
 | [Building a Better Jump](building-a-better-jump.md) | jump speed and gravity from a designed height and distance | [#71](https://github.com/nick-vas/hyperdot/pull/71) |
 | [Accessibility Best Practices: Mobility Considerations](accessibility-mobility.md) | tested stick settings and how Godot applies dead zones | [#50](https://github.com/nick-vas/hyperdot/pull/50) |
 | [Juicing Your Cameras With Math](juicing-your-cameras.md) | the frame-dependent-lerp rule and trauma-based shake | [#39](https://github.com/nick-vas/hyperdot/pull/39) |
-| [50 Game Camera Mistakes](50-game-camera-mistakes.md) | the `godot-camera` skill and a tested OrbitCamera | [#70](https://github.com/nick-vas/hyperdot/pull/70) |
+| [50 Game Camera Mistakes](50-game-camera-mistakes.md) | the `camera` skill and a tested OrbitCamera | [#70](https://github.com/nick-vas/hyperdot/pull/70) |
 | [Controls You Can Feel: Putting Tactility Back Into Touch Controls](controls-you-can-feel.md) | `layout` measures TouchScreenButtons; `small-control` | [#66](https://github.com/nick-vas/hyperdot/pull/66) |
 | [Controlling Carnage: Effective Side-Scroller Controls on Mobile](controlling-carnage.md) | hit-pad touch controls in Example.Core and the C# example | [#73](https://github.com/nick-vas/hyperdot/pull/73) |
 

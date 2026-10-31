@@ -65,7 +65,7 @@ function Invoke-Sfx {
     $files = [System.Collections.Generic.List[object]]::new()
 
     if ($Vary) {
-        # Variations of one sound: footsteps, hits and pickups that do not repeat exactly (godot-audio).
+        # Variations of one sound: footsteps, hits and pickups that do not repeat exactly (game-audio).
         if (-not (Test-Path -LiteralPath $Vary)) { Stop-GodotCi "-Vary: $Vary does not exist" 'invalid-arguments' }
         try { $source = Get-Content -LiteralPath $Vary -Raw | ConvertFrom-Json -AsHashtable }
         catch { Stop-GodotCi "-Vary: $Vary is not a .bfxr file: $($_.Exception.Message)" 'invalid-arguments' }

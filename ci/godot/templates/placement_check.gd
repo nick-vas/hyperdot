@@ -1,6 +1,6 @@
 # Checks every placed object in a level against the limits the gameplay code itself uses, so a moved prop, a re-baked
 # navmesh or a changed constant fails the next test run instead of turning up in a bug report. Copy this file into the
-# game's test folder; it depends on no test framework (godot-data skill, "Placed objects").
+# game's test folder; it depends on no test framework (game-data skill, "Placed objects").
 #
 #   const PlacementCheck := preload("res://test/placement_check.gd")
 #   const Player := preload("res://player.gd")
@@ -22,7 +22,7 @@
 #   landmark      landmark_still   not a moving body, not under a PathFollow3D, and did not move while watched
 #                 landmark_seen    seen from at least `min_sightings` separate stretches of the level's routes
 #   route         landmark_ahead   walked each way, a landmark is in view ahead on at least `min_ahead_share` of it
-# Wayfinding (godot-game-design, "Levels players find their way in"): a route is a Path3D the player travels, walked
+# Wayfinding (game-design, "Levels players find their way in"): a route is a Path3D the player travels, walked
 # both ways unless its metadata says one_way = true. From points `route_step` apart, at `eye_height`, a landmark is seen
 # when it is within `view_fov` of the way the player walks and a ray to it hits nothing; the ray aims at the landmark's
 # Marker3D children (the top of a tower), or at its origin when it has none. Only what has collision hides a landmark.

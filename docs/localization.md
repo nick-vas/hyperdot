@@ -1,6 +1,6 @@
 # Localization: sources and measurements
 
-The research behind the `godot-localization` skill, the `l10n` runner and `shot -Locale`/`-Pseudo`, gathered on
+The research behind the `localization` skill, the `l10n` runner and `shot -Locale`/`-Pseudo`, gathered on
 2026-10-21 from the Godot documentation, the 4.7.2 engine source and runs of both 4.7.2 builds under a virtual display. The
 glyph check (`missing glyphs`) was measured on 2026-10-22 with the standard 4.7.2 build, headless.
 

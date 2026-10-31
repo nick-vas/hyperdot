@@ -54,15 +54,15 @@ function Get-SteamPackageProblems([string]$Csproj, [string[]]$Platforms) {
     $anyCpu = [regex]::Match($Csproj, 'Include="Steamworks\.NET\.AnyCPU"\s+Version="(?<v>[^"]+)"')
     if ($anyCpu.Success -and $anyCpu.Groups['v'].Value -match '^2026\.165\.[0-2]$') {
         $problems.Add(@('FAIL', "Steamworks.NET.AnyCPU $($anyCpu.Groups['v'].Value) cannot load its native library on Linux or macOS (DllNotFoundException: libAnyCPU``steam_api)",
-            'Pin 2026.164.4 (SDK 1.64) until a later release, or add a native library resolver (godot-steam)'))
+            'Pin 2026.164.4 (SDK 1.64) until a later release, or add a native library resolver (steam)'))
     }
     if ($Csproj -match 'Include="Steamworks\.NET"') {
         $problems.Add(@('WARN', 'The NuGet package Steamworks.NET is a third party''s, built against SDK 1.60, and has no native libraries',
-            'Use Steamworks.NET.AnyCPU, or GodotSteam''s add-on (godot-steam)'))
+            'Use Steamworks.NET.AnyCPU, or GodotSteam''s add-on (steam)'))
     }
     if ($Csproj -match 'Include="Facepunch\.Steamworks"' -and @($Platforms | Where-Object { $_ -ne 'Windows Desktop' })) {
         $problems.Add(@('WARN', 'The NuGet package Facepunch.Steamworks is for 64-bit Windows only, and this project exports to other platforms',
-            'Build Facepunch.Steamworks.Posix from source per platform, or use Steamworks.NET.AnyCPU or GodotSteam (godot-steam)'))
+            'Build Facepunch.Steamworks.Posix from source per platform, or use Steamworks.NET.AnyCPU or GodotSteam (steam)'))
     }
     return , $problems.ToArray()
 }
@@ -413,12 +413,12 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
         $store = Test-SteamStoreAssets $steamDir -MacExport:$macExport
         foreach ($p in $store.problems) {
             $status = if ($p.code -eq 'asset-missing') { 'WARN' } else { 'FAIL' }
-            Add-Check $status "Steam store art: $($p.message)" 'Sizes: partner.steamgames.com/doc/store/assets (godot-store-page)'
+            Add-Check $status "Steam store art: $($p.message)" 'Sizes: partner.steamgames.com/doc/store/assets (store-page)'
         }
         if (-not $store.problems) { Add-Check OK "Steam store art: $($store.checked) image(s) at Steam's current sizes" }
         foreach ($description in @(Get-ChildItem -LiteralPath $steamDir -File -Filter 'short_description*.txt')) {
             $descriptionProblems = Test-SteamShortDescription (Get-Content -LiteralPath $description.FullName -Raw).Trim()
-            foreach ($p in $descriptionProblems) { Add-Check WARN "Steam $($description.Name): $p" 'Genre, hook and what the player does, in plain text (godot-store-page)' }
+            foreach ($p in $descriptionProblems) { Add-Check WARN "Steam $($description.Name): $p" 'Genre, hook and what the player does, in plain text (store-page)' }
         }
         # Trailers: warnings only, Steam re-encodes what it accepts.
         if (@(Get-TrailerFiles $steamDir).Count -gt 0) {
@@ -427,7 +427,7 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
                 Add-Check WARN 'Steam trailers in store/steam were not checked: ffprobe is not installed' "Install ffmpeg, which brings ffprobe ($how)"
             } else {
                 $trailerCheck = Test-SteamTrailers $steamDir
-                foreach ($p in $trailerCheck.problems) { Add-Check $p.status "Steam trailer: $($p.message)" '30 or 60 fps, 44.1 or 48 kHz, up to 1920x1080; H.264, AAC, 16:9 and 5,000+ Kbps are preferred (godot-store-page)' }
+                foreach ($p in $trailerCheck.problems) { Add-Check $p.status "Steam trailer: $($p.message)" '30 or 60 fps, 44.1 or 48 kHz, up to 1920x1080; H.264, AAC, 16:9 and 5,000+ Kbps are preferred (store-page)' }
                 foreach ($t in $trailerCheck.trailers) {
                     $sound = $t.audioCodec ? "$($t.audioCodec) $($t.sampleRate) Hz" : 'no audio'
                     Add-Check INFO "Steam trailer $($t.file): $($t.container), $($t.videoCodec) $($t.width)x$($t.height) at $($t.fps) fps, $sound, $($t.seconds) s"
@@ -437,14 +437,14 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
         $tagsFile = Join-Path $steamDir 'tags.txt'
         if (Test-Path -LiteralPath $tagsFile) {
             $tagCheck = Test-SteamTags (Get-Content -LiteralPath $tagsFile -Raw)
-            foreach ($p in $tagCheck.problems) { Add-Check $p.status "Steam tags.txt: $($p.message)" 'One tag per line, 5 to 20, the 5 that describe the game best first (godot-store-page)' }
+            foreach ($p in $tagCheck.problems) { Add-Check $p.status "Steam tags.txt: $($p.message)" 'One tag per line, 5 to 20, the 5 that describe the game best first (store-page)' }
             if (-not @($tagCheck.problems | Where-Object { $_.status -eq 'WARN' })) { Add-Check OK "Steam tags.txt: $($tagCheck.tags.Count) tags, the first $(@($tagCheck.tags | Select-Object -First 5) -join ', ')" }
         }
     }
     # Press kit, if the project keeps one in store/press: warnings only, a game can ship without one.
     if (Test-Path -LiteralPath $pressDir) {
         $press = Test-PressKit $pressDir
-        foreach ($p in $press.problems) { Add-Check WARN "Press kit: $($p.message)" 'Key art with and without the title, 6 to 10 screenshots, a fact sheet with a contact address (godot-store-page)' }
+        foreach ($p in $press.problems) { Add-Check WARN "Press kit: $($p.message)" 'Key art with and without the title, 6 to 10 screenshots, a fact sheet with a contact address (store-page)' }
         if (-not $press.problems) { Add-Check OK "Press kit: key art with and without the title, $($press.screenshots) screenshots, a fact sheet with a contact address" }
     }
 
@@ -454,12 +454,12 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
     $custom = @($actions.Keys | Where-Object { $_ -notlike 'ui_*' })
     $noPad = @($custom | Where-Object { $actions[$_].keyboard -and -not $actions[$_].gamepad -and -not $actions[$_].wheelOnly })
     $noKeys = @($custom | Where-Object { $actions[$_].gamepad -and -not $actions[$_].keyboard })
-    if ($noPad) { Add-Check WARN "Input actions with no gamepad binding: $($noPad -join ', ')" 'Project Settings > Input Map: add a joypad button or axis to each (godot-input)' }
-    if ($noKeys) { Add-Check WARN "Input actions with no keyboard or mouse binding: $($noKeys -join ', ')" 'Project Settings > Input Map: add a key to each (godot-input)' }
+    if ($noPad) { Add-Check WARN "Input actions with no gamepad binding: $($noPad -join ', ')" 'Project Settings > Input Map: add a joypad button or axis to each (input)' }
+    if ($noKeys) { Add-Check WARN "Input actions with no keyboard or mouse binding: $($noKeys -join ', ')" 'Project Settings > Input Map: add a key to each (input)' }
     $menuPad = @('ui_accept', 'ui_cancel' | Where-Object { -not ($actions.Contains($_) -and $actions[$_].gamepad) })
     if ($menuPad) {
         Add-Check WARN "A gamepad can move through menus but not confirm or go back: $($menuPad -join ' and ') $(if ($menuPad.Count -gt 1) { 'have' } else { 'has' }) no gamepad button (Godot's default)" `
-            'Project Settings > Input Map > Show Built-in Actions: add Joypad Button 0 to ui_accept and Button 1 to ui_cancel (godot-ui-accessibility)'
+            'Project Settings > Input Map > Show Built-in Actions: add Joypad Button 0 to ui_accept and Button 1 to ui_cancel (ui-accessibility)'
     }
     if ($custom -and -not $noPad -and -not $noKeys -and -not $menuPad) { Add-Check OK "Input: $($custom.Count) action(s), each with keyboard and gamepad bindings" }
 
@@ -469,12 +469,12 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
         $buses = Get-AudioBusNames $project $projectGodot
         if ($null -eq $buses) {
             Add-Check WARN "$($soundFiles.Count) sound file(s) but no audio bus layout: everything plays on Master, so music, voices and effects cannot be set apart" `
-                'Audio panel at the bottom of the editor: add Music, Voice, SFX, Ambience and UI buses (saved as default_bus_layout.tres; godot-audio)'
+                'Audio panel at the bottom of the editor: add Music, Voice, SFX, Ambience and UI buses (saved as default_bus_layout.tres; game-audio)'
         } else {
             $missing = @(Get-MissingAudioBuses $buses)
             if ($missing) {
                 Add-Check WARN "Kinds of sound with no bus of their own: $($missing -join ', ') (buses: $($buses -join ', '))" `
-                    'Add a bus for each in the Audio panel and give each its own volume setting; skip a kind the game will never have (godot-audio)'
+                    'Add a bus for each in the Audio panel and give each its own volume setting; skip a kind the game will never have (game-audio)'
             } else { Add-Check OK "Audio: $($soundFiles.Count) sound file(s), buses $($buses -join ', ')" }
         }
     }
@@ -482,13 +482,13 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
     # Text-to-speech: with audio/general/text_to_speech off (Godot 4.7.2's default), the engine starts speech on the first
     # call instead of at launch. Read in 4.7.2's source: Android then waits up to 1 s on the main thread and drops the line
     # if speech is still not ready; Linux opens Speech Dispatcher on a thread that the first line can overtake, which loses it.
-    # Narration that is slow or silent the first time breaks the player's trust in it (godot-ui-accessibility).
+    # Narration that is slow or silent the first time breaks the player's trust in it (ui-accessibility).
     $ttsCalls = @(@(Find-ProjectFiles -Root $project -Filter '*.gd') + @(Find-ProjectFiles -Root $project -Filter '*.cs') |
         Where-Object { (Get-Content -LiteralPath $_.FullName -Raw) -match '\btts_speak\s*\(|\bTtsSpeak\s*\(' })
     $ttsOn = (Get-GodotProjectSetting $projectGodot 'audio/general/text_to_speech') -eq 'true'
     if ($ttsCalls -and -not $ttsOn) {
         Add-Check WARN "Scripts speak with text-to-speech, but audio/general/text_to_speech is off, so the first line is late or lost: $(($ttsCalls | ForEach-Object { ConvertTo-ResPath $project $_.FullName } | Select-Object -First 3) -join ', ')" `
-            'Project Settings > Audio > General > Text to Speech on ([audio] general/text_to_speech=true in project.godot; godot-ui-accessibility)'
+            'Project Settings > Audio > General > Text to Speech on ([audio] general/text_to_speech=true in project.godot; ui-accessibility)'
     } elseif ($ttsCalls) { Add-Check OK 'Text-to-speech: started at launch (audio/general/text_to_speech)' }
     elseif ($ttsOn) { Add-Check INFO 'audio/general/text_to_speech is on but no script calls tts_speak or TtsSpeak; Godot says it costs idle CPU' 'Turn it off unless an add-on speaks' }
 
@@ -501,14 +501,14 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
     if ((Get-GodotProjectSetting $projectGodot 'accessibility/general/accessibility_driver') -eq '"dummy"') { $a11yOff += 'accessibility_driver is dummy' }
     if ($a11yOff) {
         Add-Check WARN "Screen readers cannot read the game: $($a11yOff -join ' and ')" `
-            'Project Settings > Accessibility > General: Accessibility Support on Auto and the driver on accesskit (godot-ui-accessibility)'
+            'Project Settings > Accessibility > General: Accessibility Support on Auto and the driver on accesskit (ui-accessibility)'
     }
 
     # Occluders cull nothing while occlusion culling is off, Godot's default: the work of placing them is lost.
     $occluders = @(Get-OccluderFiles $project)
     if ($occluders -and (Get-GodotProjectSetting $projectGodot 'rendering/occlusion_culling/use_occlusion_culling') -ne 'true') {
         Add-Check WARN "OccluderInstance3D nodes cull nothing, since rendering/occlusion_culling/use_occlusion_culling is off: $(($occluders | Select-Object -First 3) -join ', ')$(if ($occluders.Count -gt 3) { " and $($occluders.Count - 3) more" })" `
-            'Project Settings > Rendering > Occlusion Culling > Use Occlusion Culling on, then bake the occluders; or delete them (godot-performance)'
+            'Project Settings > Rendering > Occlusion Culling > Use Occlusion Culling on, then bake the occluders; or delete them (performance)'
     }
     # A body moved per physics tick (60 a second by default) without physics interpolation judders on a faster screen.
     # Quiet when interpolation is on, or the frame rate is capped at the tick rate.
@@ -516,29 +516,29 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
         $movers = @(Get-PhysicsBodyMovers $project)
         if ($movers -and -not (Test-MaxFpsAtTickRate $project $projectGodot)) {
             Add-Check WARN "Physics bodies moved in _physics_process with physics/common/physics_interpolation off, so they judder on screens faster than the tick rate: $(($movers | Select-Object -First 3) -join ', ')$(if ($movers.Count -gt 3) { " and $($movers.Count - 3) more" })" `
-                'Project Settings > Physics > Common > Physics Interpolation on, and call reset_physics_interpolation() after a teleport (godot-performance)'
+                'Project Settings > Physics > Common > Physics Interpolation on, and call reset_physics_interpolation() after a teleport (performance)'
         }
     }
 
     # Crash reporting: the Sentry addon starts before game code and attaches the Godot log unless told otherwise
-    # (sentry-godot 2.4.0 defaults). Reporting needs the player's consent first, and the log can hold their data (godot-telemetry).
+    # (sentry-godot 2.4.0 defaults). Reporting needs the player's consent first, and the log can hold their data (game-telemetry).
     if ((Test-Path -LiteralPath (Join-Path $project 'addons/sentry')) -or $projectGodot -match '(?m)^\[sentry\]') {
         $sentry = @()
         if ((Get-GodotProjectSetting $projectGodot 'sentry/options/auto_init') -ne 'false') { $sentry += 'starts before the player is asked (auto_init)' }
         if ((Get-GodotProjectSetting $projectGodot 'sentry/options/attach_log') -ne 'false') { $sentry += 'attaches the whole Godot log to every report (attach_log)' }
         if ((Get-GodotProjectSetting $projectGodot 'sentry/options/send_default_pii') -eq 'true') { $sentry += 'sends personal data such as the IP address (send_default_pii)' }
         if ($sentry) {
-            Add-Check WARN "Sentry $($sentry -join '; ')" 'Project Settings > Sentry > Options: auto_init off and SentrySdk.Init after the player agrees; attach_log off; send_default_pii off (godot-telemetry)'
+            Add-Check WARN "Sentry $($sentry -join '; ')" 'Project Settings > Sentry > Options: auto_init off and SentrySdk.Init after the player agrees; attach_log off; send_default_pii off (game-telemetry)'
         } else { Add-Check OK 'Sentry: started by the game after consent, no log attached' }
     }
     # A privacy policy when the game collects player data or goes to a phone store, naming the version the code asks consent for.
     $privacyProblems = Get-PrivacyProblems $project $projectGodot (Get-ExportPresetDetails $project)
     foreach ($problem in $privacyProblems) { Add-Check $problem[0] $problem[1] $problem[2] }
 
-    # Assets: every image, sound, model, font and shader has a source and a licence in assets.json (godot-asset-pipeline).
+    # Assets: every image, sound, model, font and shader has a source and a licence in assets.json (asset-pipeline).
     $assets = Get-AssetManifestReport $project
     if ($assets.files -gt 0) {
-        $fix = 'assets.json in the project: one entry per file or folder with path, source and licence (an SPDX id); godot-asset-pipeline'
+        $fix = 'assets.json in the project: one entry per file or folder with path, source and licence (an SPDX id); asset-pipeline'
         $list = { param([string[]]$Files) "$(($Files | Select-Object -First 5) -join ', ')$(if ($Files.Count -gt 5) { " and $($Files.Count - 5) more" })" }
         if (-not $assets.manifest) {
             Add-Check WARN "$($assets.files) asset file(s) and no assets.json saying where they came from and under which licence" $fix
@@ -554,9 +554,9 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
             if ($kinds.Contains('fileCopyleft')) { Add-Check INFO "File-level copyleft (MPL-2.0): tell players where the source of these files is, and publish your changes to them: $(& $list $kinds.fileCopyleft)" }
             if ($kinds.Contains('custom')) { Add-Check INFO "Custom licence terms to read before release: $(& $list $kinds.custom)" }
             if ($kinds.Contains('attribution')) { Add-Check INFO "$($kinds.attribution.Count) file(s) need a credit in the game (CC-BY, MIT and similar); build the credits screen from assets.json" }
-            # Commissioned work belongs to whoever made it until a signed agreement says otherwise (godot-legal).
+            # Commissioned work belongs to whoever made it until a signed agreement says otherwise (legal).
             $made = $assets.commissioned
-            $paperwork = 'A signed work-for-hire or IP assignment (or a licence) from whoever made it, owners included; its reference in ''agreement'', ''rights'' assigned or licensed (godot-legal)'
+            $paperwork = 'A signed work-for-hire or IP assignment (or a licence) from whoever made it, owners included; its reference in ''agreement'', ''rights'' assigned or licensed (legal)'
             if ($made.noAgreement) { Add-Check WARN "Commissioned work with no signed agreement recorded, so whoever made it may still own it: $(& $list $made.noAgreement)" $paperwork }
             if ($made.noRights) { Add-Check WARN "Commissioned work whose rights are not 'assigned' or 'licensed': $(& $list $made.noRights)" $paperwork }
             if ($made.noUses) { Add-Check WARN "Commissioned work licensed with no uses saying where it may appear: $(& $list $made.noUses)" 'List them in ''uses'' as the agreement states them (game, trailer, store, soundtrack, merchandise...)' }
@@ -572,7 +572,7 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
     # Placeholders: stand-ins to replace before release. Past its due date one fails, as an ended quarantine does: the date
     # was the team's own promise; replace the asset or set a new date.
     $placeholders = Get-AssetPlaceholders $project
-    foreach ($problem in $placeholders.problems) { Add-Check WARN "assets.json: $problem" 'due is yyyy-MM-dd; status is needed or in-progress (godot-asset-pipeline)' }
+    foreach ($problem in $placeholders.problems) { Add-Check WARN "assets.json: $problem" 'due is yyyy-MM-dd; status is needed or in-progress (asset-pipeline)' }
     $describe = {
         param($Items)
         $shown = @(foreach ($p in @($Items) | Select-Object -First 5) { "$($p.path) ($(if ($p.due) { "due $($p.due), " })$($p.status))" })
@@ -580,8 +580,8 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
     }
     $late = @($placeholders.entries | Where-Object { $_.pastDue })
     $open = @($placeholders.entries | Where-Object { -not $_.pastDue })
-    if ($late) { Add-Check FAIL "Placeholders past their due date in assets.json: $(& $describe $late)" 'Replace each with the real asset and remove "placeholder" from its entry, or agree a new "due" date (godot-asset-pipeline)' }
-    if ($open) { Add-Check WARN "$($open.Count) placeholder(s) in assets.json to replace before release: $(& $describe $open)" 'Replace each with the real asset, then remove "placeholder" from its entry (godot-asset-pipeline)' }
+    if ($late) { Add-Check FAIL "Placeholders past their due date in assets.json: $(& $describe $late)" 'Replace each with the real asset and remove "placeholder" from its entry, or agree a new "due" date (asset-pipeline)' }
+    if ($open) { Add-Check WARN "$($open.Count) placeholder(s) in assets.json to replace before release: $(& $describe $open)" 'Replace each with the real asset, then remove "placeholder" from its entry (asset-pipeline)' }
     # Copies of one file: each is imported and shipped, and a fix to one misses the others.
     $duplicates = @(Get-DuplicateAssetFiles $project)
     if ($duplicates) {
@@ -589,7 +589,7 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
             'Keep one copy, point the scenes, resources and code that use the others at it, then delete the others'
     }
 
-    # Pixel art: Nearest filtering declared, so check the imports that would blur or smear it (godot-asset-pipeline).
+    # Pixel art: Nearest filtering declared, so check the imports that would blur or smear it (asset-pipeline).
     $pixel = Get-PixelArtImportReport $project $projectGodot
     if ($pixel.pixelArt) {
         $list = { param([string[]]$Files) "$(($Files | Select-Object -First 5) -join ', ')$(if ($Files.Count -gt 5) { " and $($Files.Count - 5) more" })" }

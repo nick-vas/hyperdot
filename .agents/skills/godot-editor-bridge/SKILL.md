@@ -13,7 +13,7 @@ Two tools, two jobs:
 | **Verify**: build, run every test, export, launch the export, report as JSON | `hyperdot.ps1` (headless, reproducible, CI-safe) |
 
 The editor is what the user sees; the files on disk are what CI and the export see. Anything done through the bridge counts only
-once it is saved and `test -Json` agrees (`godot-verify-before-done`).
+once it is saved and `test -Json` agrees (`verify-before-done`).
 
 ## Setup
 
@@ -37,7 +37,7 @@ console (start the scene first). It checks GDScript only and does not replace `t
 1. Orient with the files: `detect -Json`, `plan -Json`. Use the bridge for what files cannot tell you (live tree, running state).
 2. Make the change through the bridge or the files. **Save** scenes and scripts.
 3. Reproduce the behaviour in the running game: freeze time, step, read state (`godot_runtime_state`), not screenshots, when state answers it.
-4. Turn what you observed into a test: a unit test for logic, a flow (`godot-ui-flows`) for scene behaviour.
+4. Turn what you observed into a test: a unit test for logic, a flow (`ui-flows`) for scene behaviour.
 5. Run `test -Json`. Done only when it says `ok`.
 
 ## Cautions

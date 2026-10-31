@@ -29,7 +29,7 @@ public partial class Diagnostics : Node
         // One per run, on victory or death: the floor reached and when each upgrade was first taken (BalanceReport).
         RunSummary.Event,
     }
-    // Playtest builds: where players stall, die and what they find, per floor (godot-playtest). Analytics, so only with consent.
+    // Playtest builds: where players stall, die and what they find, per floor (game-playtest). Analytics, so only with consent.
     .Concat(PlaytestEvents.Definitions(Main.PlaytestLevels)).ToArray());
 
     /// <summary>The fingerprint of a session that did not quit cleanly: nothing to group by but the fact itself.</summary>

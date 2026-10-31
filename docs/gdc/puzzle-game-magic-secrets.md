@@ -37,11 +37,11 @@
 
 ## What the kit took, and where
 
-- `.agents/skills/godot-game-design/SKILL.md` section 6: the per-level rules (solution sentence, noise, purpose or cut,
+- `.agents/skills/game-design/SKILL.md` section 6: the per-level rules (solution sentence, noise, purpose or cut,
   action or puzzle, unambiguous solutions and jumps, handicapped control tests, about three of a series), and a `levels`
   table for the existing `data` runner: `solution` (required, non-empty, one sentence by `pattern`), `purpose`
   (`teach`, `reinforce`, `moment`, `breather`: the talk's four), `kind` (`puzzle` or `action`) and `mechanics` (references
-  to a `mechanics` table). `.agents/skills/godot-data/SKILL.md` points to it.
+  to a `mechanics` table). `.agents/skills/game-data/SKILL.md` points to it.
 - No runner change: `ci/godot/lib/Data.ps1` already treats a missing or empty field as missing and checks `enum` and
   `pattern`. The one-sentence pattern `^(?!.*[.!?]\s+\S)\s*\S.*$` rejects a sentence end followed by more words, so
   "1.5 seconds" passes and an abbreviation such as "e.g. this" fails.

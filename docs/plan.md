@@ -184,7 +184,7 @@ manual-only on purpose: a scheduled prompt can start only skills Claude is allow
 
 ## Jam mode, risks, money and exit criteria
 
-`godot-game-plan` also covers what the gates only point to:
+`game-plan` also covers what the gates only point to:
 - **Jam mode:** a jam of 2 to 9 days starts with `plan -Do init -Profile jam` (`ci/godot/templates/plan-jam.json`):
   five phases sized in days (`timeboxDays`) for a 7-day jam, from the day table of `ci/godot/templates/GDD-jam.md`:
   theme and core feel (1), loop (1), must-haves (3), export and submit (2), then 3 days after the jam for the
@@ -200,7 +200,7 @@ manual-only on purpose: a scheduled prompt can start only skills Claude is allow
   model, and the fairness rule (never sell an advantage over other players).
 - **Sharper alpha and beta exit:** a placeholders table in `docs/TECH-DEBT.md` and `"placeholder": true` entries in
   `assets.json`, both empty for `beta.placeholders`; bug classes A and B, a statement of completion at alpha, and a
-  release plan at beta. The marketing cadence and the release ladder are in `godot-store-page`.
+  release plan at beta. The marketing cadence and the release ladder are in `store-page`.
 
 ## Not covered (yet)
 

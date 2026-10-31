@@ -1,4 +1,4 @@
-# The XR numbers godot-xr describes, as plain functions that need no headset and no XR interface, so a unit test can hold
+# The XR numbers xr describes, as plain functions that need no headset and no XR interface, so a unit test can hold
 # them. Copy this file into the game (and xr_rig.gd beside it). Used as
 #   const XrMath := preload("res://xr_math.gd")
 #   var velocity := XrMath.peak_velocity(samples)

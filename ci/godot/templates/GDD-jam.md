@@ -11,7 +11,7 @@ One sentence: what the player does and why it is fun. The jam's theme, and how t
 ## Platform and language
 
 Browser build? Answer first. Godot 4.7 cannot export C# to the Web, so a browser jam is made in GDScript
-(`godot-mobile-web`). Desktop only: C# or GDScript.
+(`mobile-web`). Desktop only: C# or GDScript.
 
 ## The 30-second loop
 
@@ -52,7 +52,7 @@ Nice to have, added only once every must-have works, in this order:
 ## Credits
 
 Every asset made by someone else goes in `assets.json` with its source and licence; `credits` builds the credits page
-(`godot-asset-pipeline`).
+(`asset-pipeline`).
 
 ## Submission
 

@@ -2,10 +2,10 @@
 
 The fifth genre of the staged game programme (`benchmark/PLAN.md`): the one that exercises an economy in data, saves
 that last for months and survive updates, and a portrait layout for phones and the Web. Producers are bought at prices
-that grow geometrically and the numbers are JSON checked by the `data` runner (`godot-data`, `godot-progression`), glow
-grows past 2^53 and is printed readably (`godot-math`), time away is paid from the saved clock and a clock set back pays
-nothing (`godot-saves`), saves of the previous version keep their prestige, and the screens fit a notched portrait
-phone, a tablet and a desktop browser in every language (`godot-mobile-web`, `godot-localization`). One game, written
+that grow geometrically and the numbers are JSON checked by the `data` runner (`game-data`, `progression`), glow
+grows past 2^53 and is printed readably (`math`), time away is paid from the saved clock and a clock set back pays
+nothing (`saves`), saves of the previous version keep their prestige, and the screens fit a notched portrait
+phone, a tablet and a desktop browser in every language (`mobile-web`, `localization`). One game, written
 twice: `gdscript/` and `csharp/` (ported from this design), both built. Both behave the same, use the same data files,
 scene tree, node names and log lines, and pass the same flows. Only the code and the test framework differ: GUT for
 GDScript, gdUnit4 (run by the kit's `gdunit4` runner) for C#.

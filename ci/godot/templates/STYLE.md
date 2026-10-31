@@ -21,7 +21,7 @@ Every colour the game draws with is in this table; anti-aliased edges and transl
 `-MaxOffPalettePercent`.
 
 Every text colour is at least 4.5:1 on the backgrounds it is used on (WCAG 1.4.3). Work the ratio out with WCAG's
-formula (`godot-ui-accessibility`); do not judge it by eye.
+formula (`ui-accessibility`); do not judge it by eye.
 
 ## Type
 
@@ -61,7 +61,7 @@ From Team Fortress 2 and Valve's other games (`docs/valve.md`): the player must 
 - The sound palette's rules and limits, one line each, from what the game wants the player to feel (Hidden Folks uses
   only mouth sounds; Among the Sleep makes a dragged chair sound huge so the player feels small).
 - Any half second of audio, like any screenshot, is recognisably this game.
-- Loudness targets and checks: `godot-audio`.
+- Loudness targets and checks: `game-audio`.
 
 ## Choices
 

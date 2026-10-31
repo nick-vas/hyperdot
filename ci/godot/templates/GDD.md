@@ -12,17 +12,17 @@
 
 One sentence: what the player does and why it is fun.
 
-Genre: up to three gameplay and three narrative terms from the kit's `genres-uw.json` (see `godot-game-design`).
+Genre: up to three gameplay and three narrative terms from the kit's `genres-uw.json` (see `game-design`).
 
 Core fantasy: who the player gets to be, in a few words.
 
 ## Audience
 
 Who plays it: age, the games they already love, how and where they play. Three comparable games (a teardown of each:
-`godot-game-plan`).
+`game-plan`).
 
 Expected age rating and what drives it: violence, paid random items, chat between players and gambling imagery each
-raise it (`godot-legal`). Decide it now; it is cheaper to design to a rating than to change one late.
+raise it (`legal`). Decide it now; it is cheaper to design to a rating than to change one late.
 
 ## Pillars
 
@@ -30,7 +30,7 @@ raise it (`godot-legal`). Decide it now; it is cheaper to design to a rating tha
 2.
 3.
 
-The kinds of fun this game is mostly about, in order (see `godot-game-design`): for example challenge, then discovery.
+The kinds of fun this game is mostly about, in order (see `game-design`): for example challenge, then discovery.
 
 ## Core loop
 
@@ -57,7 +57,7 @@ retagging them.
 Premise in five Ws: who the player is, what they want, where and when it happens, and why it matters now.
 
 Summary: one paragraph, the player's verbs in **bold** (you **sneak** past the gate...). The full bible lives in `lore/`
-(`godot-narrative`).
+(`narrative`).
 
 ## World rules
 

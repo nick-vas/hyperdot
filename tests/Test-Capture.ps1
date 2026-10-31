@@ -1,5 +1,5 @@
 #!/usr/bin/env pwsh
-# Self-test of the capture mode in the godot-debug-tools skill, on tests/capture-fixture (C#: the skill's CaptureMode
+# Self-test of the capture mode in the debug-tools skill, on tests/capture-fixture (C#: the skill's CaptureMode
 # autoload and FreeCamera, a HUD layer and a world-space prompt in group 'hud', Music and SFX buses, and probe.gd, which
 # prints what changed). A normal shot, then --capture=nohud+nomusic+nocursor against it, freeze and timescale with the
 # free camera flying, and two bad modes. Needs Godot and a display: start `Xvfb :99 &` and set DISPLAY=:99.
@@ -30,7 +30,7 @@ function Invoke-CaptureShot([string]$Name, [string]$GameArgs, [string]$Baseline)
 function Get-Field($Object, [string]$Name) { if ($Object -and $Object.PSObject.Properties[$Name]) { $Object.$Name } }
 
 # The code the skill quotes is the code under test.
-$skill = Get-Content -LiteralPath (Join-Path $root '.agents/skills/godot-debug-tools/SKILL.md') -Raw
+$skill = Get-Content -LiteralPath (Join-Path $root '.agents/skills/debug-tools/SKILL.md') -Raw
 $blocks = @([regex]::Matches($skill, '(?s)```csharp\r?\n(.*?)\r?\n```') | ForEach-Object { $_.Groups[1].Value -replace '\r', '' })
 foreach ($file in 'CaptureMode.cs', 'FreeCamera.cs') {
     $code = (Get-Content -LiteralPath (Join-Path $fixture $file) -Raw) -replace '\r', ''

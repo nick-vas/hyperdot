@@ -21,7 +21,7 @@ public static class GamePlatform
         steam = () =>
         {
             // In the editor and debug builds there is no Steam launcher to set the App ID; Godot's OS.SetEnvironment
-            // reaches the native API, .NET's Environment.SetEnvironmentVariable does not (godot-steam).
+            // reaches the native API, .NET's Environment.SetEnvironmentVariable does not (steam).
             if (OS.IsDebugBuild() && !OS.HasEnvironment("SteamAppId")) OS.SetEnvironment("SteamAppId", AppId.ToString());
             return new Example.Steam.SteamworksApi(AppId);
         };

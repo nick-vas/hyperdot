@@ -9,8 +9,8 @@ ones); the pull requests and `CHANGELOG.md` are the record of what was built. Th
 |---|---|
 | 1. Self-improvement | Built: the plugin, `retro`, the run history (`.godot/hyperdot-history.jsonl`), the weekly canary (Fridays 18:47 UTC), `kit-review`, and the ten agent-efficiency items in [research.md](research.md). Evals: run 7, the first where the sandbox could run Godot, scored `explain-failure` 1.00 with and without the plugin (1 run per arm); run 6 stands for `review-publishing-deal` (1.00 against 0.78) and `lost-in-level` (0.33 against 0.00). Open: below |
 | 2. `/game` | Built: `status`, the GDD format and feature tags, plan links to features and cards, the `game` and `weekly-review` skills. Open: below |
-| 3. Architecture | Built: the `architecture` runner in `test` (warnings by default), the `godot-patterns` skill, the `godot-architect` subagent with decisions in `docs/decisions/`, shown by `status` and `/game` |
-| 4. Look and feel | Built: `shot -Baseline`, `shot`'s palette check against `docs/STYLE.md` (`-MaxOffPalettePercent`), the `juice` runner and `juice.json`, the style guide template, the `look` and `godot-juice` skills. Open: writing Breakout Roguelike's `docs/STYLE.md` with the owner, and its first `juice.json` |
+| 3. Architecture | Built: the `architecture` runner in `test` (warnings by default), the `patterns` skill, the `godot-architect` subagent with decisions in `docs/decisions/`, shown by `status` and `/game` |
+| 4. Look and feel | Built: `shot -Baseline`, `shot`'s palette check against `docs/STYLE.md` (`-MaxOffPalettePercent`), the `juice` runner and `juice.json`, the style guide template, the `look` and `game-juice` skills. Open: writing Breakout Roguelike's `docs/STYLE.md` with the owner, and its first `juice.json` |
 
 Still open from phases 1 and 2:
 
@@ -273,7 +273,7 @@ In the example game (the C# example):
 
 In the skills:
 
-- `godot-xr` was written (OpenXR: the player's body, locomotion and comfort, hands, throwing from the peak hand speed,
+- `xr` was written (OpenXR: the player's body, locomotion and comfort, hands, throwing from the peak hand speed,
   one-controller play, passthrough) with a headless fixture (`tests/Test-Xr.ps1`); what the fixture cannot check is in
   "Not run or measured here". Still to write for it: hand-tracked grabbing and physics hands, XR UI (a viewport on a
   quad, `OpenXRCompositionLayerQuad`), render models, and a seated-play section.
@@ -328,7 +328,7 @@ In the skills:
 - Desktop `export -Run` of release builds, which may hide script errors as the web release build does.
 - Add-on feature flags for macOS with one architecture and Web with `variant/extensions_support` on; Dialogue Manager in
   a C# game exported without opening the editor.
-- XR (`godot-xr`): everything that needs a headset. Tracking quality and latency, optical hand tracking and controller-inferred
+- XR (`xr`): everything that needs a headset. Tracking quality and latency, optical hand tracking and controller-inferred
   hands on any runtime, passthrough and the blend modes on a Quest or a see-through device, refresh-rate changes and the
   physics rate match, foveation, the OpenXR vendors plugin and the Android export, SteamVR and Monado, whether the comfort
   numbers of `xr_math.gd` (snap angle 30, vignette 0.35 and its hold and opening times, the blackout gap) suit players, and
@@ -344,7 +344,7 @@ Pasting a source, allowing a host or answering a question is enough for each.
   "Arma Reforger:Multiplayer Scripting".
 - The full Iassenev interview on A-Life (AIGameDev, archived): web.archive.org rate-limited this server.
 - Lars Lidén's "Artificial Stupidity: The Art of Intentional Mistakes" (*AI Game Programming Wisdom 2*): the author's copy
-  (`lars.liden.cc`) has a self-signed certificate and web.archive.org reset the connection, so `godot-game-ai/mistakes.md`
+  (`lars.liden.cc`) has a self-signed certificate and web.archive.org reset the connection, so `game-ai/mistakes.md`
   rests on two papers that cite it and quotes nothing from the chapter. Pasting it would let the other points be checked.
 - FMOD: the Skill Tree course (needs a sign-in) and the licence and credit terms (a JavaScript-only page).
 - Sonniss's bundle licence (`License.pdf`) and Freesound's FAQ: both returned 403.
@@ -352,7 +352,7 @@ Pasting a source, allowing a host or answering a question is enough for each.
 - Valve: the networking articles and developer wiki ("Cabal process"), the Left 4 Dead and Team Fortress 2 commentary
   transcripts, *Game Developer* November 2005 ("Scaling the Cabal") and the Xperf deck (images; needs OCR); the Overwatch
   and Sea of Thieves GDC talks.
-- EUR-Lex, gdpr-info.eu, cnil.fr, fcc.gov and ecfr.gov (the CVAA's games waiver and grandfathering for `godot-legal`
+- EUR-Lex, gdpr-info.eu, cnil.fr, fcc.gov and ecfr.gov (the CVAA's games waiver and grandfathering for `legal`
   section 7).
 - Steam's partner pages (no app yet): the short description limit, capsule formats and size caps, whether a trailer is
   required for review, custom EULA setup, whether Steam wants a game privacy policy; a trailer's container, length and
@@ -363,7 +363,7 @@ Pasting a source, allowing a host or answering a question is enough for each.
   Signing, Azure Artifact Signing eligibility (needs the owner's account).
 - itch.io's SharedArrayBuffer checkbox (only secondary sources).
 - Kenney's PlayStation shoulder and right-stick picture names: the pack listing was cut off (`PromptGlyphs` returns text).
-- `godot-xr`: `docs.godotengine.org`, `combineoverwiki.net` (the Half-Life: Alyx commentary) and `roadtovr.com` did not resolve
+- `xr`: `docs.godotengine.org`, `combineoverwiki.net` (the Half-Life: Alyx commentary) and `roadtovr.com` did not resolve
   from the session that wrote it (a host outside its allowed network). The manual was read from the `godot-docs` repository
   instead; the Alyx quotes are the ones `docs/valve.md` section 7 already holds, not re-read. Allowing those hosts would let a
   later pass re-check the quotes and read the XR pages of the stable manual. Not looked for: Valve's, Meta's and Sony's own VR

@@ -40,7 +40,7 @@
   ground, gap or enemy, stepping up and down) scored on the talk's leniency (gap 1, enemy 0.5) and a least-squares
   linearity, mapped for two parameter sets over seeds 1 to 2000; and the kit's Eldritch maze (`Maze.cs`) mapped on
   dead-end share against junction share for its newest-room knob at 0 and 100%.
-- `.agents/skills/godot-procgen/SKILL.md`: a "Map the expressive range" test rule.
+- `.agents/skills/procgen/SKILL.md`: a "Map the expressive range" test rule.
 
 ## Not taken
 

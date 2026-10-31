@@ -32,7 +32,7 @@ public readonly record struct Shot(int Target, int X, int Y);
 /// <summary>
 /// The movement and shooting code the server and every client share. A client predicts its own glimmer with Step(), the
 /// server applies the same inputs with Step(), and because both run the same whole-number arithmetic the prediction is
-/// exactly what the server will say: a reconciled client never corrects anything (godot-multiplayer).
+/// exactly what the server will say: a reconciled client never corrects anything (multiplayer).
 /// </summary>
 public static class Sim
 {

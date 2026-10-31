@@ -37,7 +37,7 @@ of relay" for velocity Verlet, "RK-Far" for RK4 and "Gaff Runge Games" for Gaffe
 - `examples/csharp/tests/Example.Core.Tests/JumpArcTests.cs` (19 cases) and, in Godot 4.7.2,
   `examples/csharp/game/test/gdunit4/JumpArcWiringTest.cs` with the fixture `ArcJumper.cs`: a `CharacterBody2D` moved
   by the tick's average velocity (the kit's derivation, not the talk's).
-- `.agents/skills/godot-math/SKILL.md`, "Jumps designed by height and distance"; `godot-input` points there.
+- `.agents/skills/math/SKILL.md`, "Jumps designed by height and distance"; `input` points there.
 
 ## Measured
 

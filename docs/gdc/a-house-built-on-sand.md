@@ -44,7 +44,7 @@
     short with 0.001 tolerances works in all 100 at the origin and fails all 100 far away. Float spacing at 100000 is
     0.0078125, the stand point came out 1.0033 from the target, and Arrive froze up to 1.166 from the target because
     its last steps rounded to nothing (near the origin it stops 3e-5 from its goal). `AttackReach` passes all 200.
-- `.agents/skills/godot-game-ai/SKILL.md`, "Decisions that must agree" under navigation: decide once per squad;
+- `.agents/skills/game-ai/SKILL.md`, "Decisions that must agree" under navigation: decide once per squad;
   `TargetDesiredDistance` below the attack range, aimed at the target; test at the largest coordinates; no
   `float.Epsilon`; checks that test what they mean; write down what `IsAlive` means.
 - Godot 4.7.2 checked headless: `target_desired_distance` defaults to 10 px (2D) and 1 m (3D); with the default the

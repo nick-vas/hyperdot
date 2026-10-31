@@ -1,6 +1,6 @@
 # Anti-cheat: sources and measurements
 
-The research behind the `godot-anti-cheat` skill and the speed check in the C# example's `Net/` server, gathered on
+The research behind the `anti-cheat` skill and the speed check in the C# example's `Net/` server, gathered on
 2026-10-21. It draws on Godot's networking documentation and source, Steamworks, Epic Online Services, BattlEye and Riot
 pages. Tests ran on Linux with Godot 4.7.2 (mono and standard) and .NET 8. Marks: **tested** means run here, **source**
 means read in the engine code, **doc** means stated by the vendor, and **unconfirmed** means general practice or a

@@ -93,7 +93,7 @@ it are proposed, in the canary's pull request, which rewrites `lib/Init.ps1` and
 
 Two cautions. `run_lua_script` runs any Lua the agent writes, with your user's rights: keep the agent asking before it calls it.
 And Aseprite's `.aseprite` files are sources, not something Godot imports: keep them outside `res://` (or in a folder with a
-`.gdignore`), export PNGs or sprite sheets into the project, and give each an `assets.json` entry (`godot-asset-pipeline`).
+`.gdignore`), export PNGs or sprite sheets into the project, and give each an `assets.json` entry (`asset-pipeline`).
 
 ## The loop
 

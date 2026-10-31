@@ -1,5 +1,5 @@
 #!/usr/bin/env pwsh
-# Self-test of the godot-xr skill's claims that can be held without a headset, on tests/xr-fixture through the kit's gut
+# Self-test of the xr skill's claims that can be held without a headset, on tests/xr-fixture through the kit's gut
 # runner. The script writes every engine name the skill quotes in backticks (XRNode3D.get_pose(), Viewport.use_xr,
 # xr/openxr/enabled, ...) into the fixture's test/api.txt, and copies ci/godot/templates/xr_math.gd and xr_rig.gd next to
 # the scene; test/test_xr.gd then checks each name against the engine's ClassDB and project settings, runs a scene with an
@@ -19,7 +19,7 @@ function Assert-True([bool]$Condition, [string]$What) {
 
 # The names: a backticked Class.member (or Class, or a project setting under xr/) in the skill and its side files. Files,
 # the kit's own scripts (XrMath, SnapTurn, Vignette) and the XR Tools add-on's classes are not the engine's.
-$skillDir = Join-Path $root '.agents/skills/godot-xr'
+$skillDir = Join-Path $root '.agents/skills/xr'
 $text = (Get-ChildItem -LiteralPath $skillDir -Recurse -File -Filter '*.md' | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }) -join "`n"
 $names = [System.Collections.Generic.SortedSet[string]]::new()
 foreach ($m in [regex]::Matches($text, '`([^`\r\n]+)`')) {

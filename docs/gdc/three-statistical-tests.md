@@ -42,9 +42,9 @@ each extra variant adds to the false-positive rate (two treatments: 1 - 0.95² =
 - `examples/csharp/tests/Example.Core.Tests/StatsTests.cs`: the talk's monocle numbers; Student's own sleep data for
   Welch, paired and Mann-Whitney (R's values: unpaired p 0.0794 with an interval straddling zero, paired p 0.00283);
   exact Mann-Whitney against counting all 1,716 splits; textbook t quantiles; false-positive rates under no difference.
-- `godot-automation-hooks`: "Comparing two versions" (which test, fix the threshold first, two-tailed, read the interval,
-  pair bot runs on the same seeds, no peeking, one question per test). `godot-procgen`'s chance test points at
-  `BinomialTolerance`; `godot-telemetry` points at the section.
+- `automation-hooks`: "Comparing two versions" (which test, fix the threshold first, two-tailed, read the interval,
+  pair bot runs on the same seeds, no peeking, one question per test). `procgen`'s chance test points at
+  `BinomialTolerance`; `game-telemetry` points at the section.
 
 ## Measured (StatsTests, seeded)
 

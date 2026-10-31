@@ -25,9 +25,9 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 status -Json      # add -Projec
 
 If `gdd` is null, draft `docs/GDD.md` from `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/GDD.md`. Base it on what exists:
 `inventory` (scenes, main scene, autoloads, input actions), the scripts behind them, and any notes in the repository.
-Each feature gets an id (F1, F2...), a guessed priority, the kinds of fun it serves (`Fun:`, from `godot-game-design`) and
+Each feature gets an id (F1, F2...), a guessed priority, the kinds of fun it serves (`Fun:`, from `game-design`) and
 "Done when" lines describing behaviour you can see in the code. Keep `Status: draft` in it. A game jam entry starts from
-`${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/GDD-jam.md` instead (`godot-game-plan`, jam mode).
+`${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/GDD-jam.md` instead (`game-plan`, jam mode).
 
 Then confirm it with the user, section by section, with multiple-choice questions: pitch and pillars, audience, core
 loop, the first session, then features in groups of at most four (Keep, Change, Drop, Later), then out of scope; the
@@ -41,7 +41,7 @@ Ask once whether to tag existing tests: a `GDD:F<n>` comment on each test that c
 `gdd.firstSession` lists the GDD's first-session steps (`S1`, `S2`...), each with the `tests` and `stubs` tagged
 `GDD:S<n>`. Once the GDD is confirmed, write a stub for each step that has neither:
 
-- `test/flows/first_session_s<n>.stub.json`: a flow in the `godot-ui-flows` format, `"name": "GDD:S<n> <the step>"`,
+- `test/flows/first_session_s<n>.stub.json`: a flow in the `ui-flows` format, `"name": "GDD:S<n> <the step>"`,
   `scene` the main scene, and as `steps` what the step says the player does and sees, as far as the node paths exist.
 - One `playthrough.stub.json` beside `project.godot`: `"covers"` lists every step's `GDD:S<n>`, `"expect"` one log line
   a step's milestone prints (`"[Run] S3 exit reached"`), the ending last (the `playthrough` runner's format).
@@ -49,7 +49,7 @@ Ask once whether to tag existing tests: a `GDD:F<n>` comment on each test that c
 No runner plays a `.stub.json`, so stubs never turn a run red. Each stubbed step gets a task
 (`plan -Do add -Title "S2 <step> - flow" -Column backlog`). Starting it renames the stub to `.flow.json`, finishes it and
 watches it fail before the code (`godot-test-loop`); `playthrough.stub.json` becomes `playthrough.json` once the game's
-`--autoplay` bot exists (`godot-automation-hooks`).
+`--autoplay` bot exists (`automation-hooks`).
 
 ## 3. Assess every feature
 
@@ -125,7 +125,7 @@ one, move it to `doing` in the plan (the sync moves the item), and start it with
 - **Over the timebox:** when the phase is past its timebox, propose which `could` and `should` features to cut, starting
   with those that serve none of the game's main kinds of fun. Never propose cutting tests.
 - **Is it fun:** a new feature names the kind of fun it serves before it is built; if it serves none of the game's main
-  kinds, say so when you ask whether to add it (`godot-game-design`).
+  kinds, say so when you ask whether to add it (`game-design`).
 
 ## Kit notes
 

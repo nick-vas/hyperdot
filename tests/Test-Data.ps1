@@ -36,7 +36,7 @@ $expect = @{
     # Proper nouns one or two letters off a canonical name (Belrysa in a comic, Belysra in the game).
     'names'         = @("dialogue/act1.json:2 'Belrysa' is close to 'Belysra' (add it to allow if it is a different word)",
                         "dialogue/act1.json:4 'Starbreze' is close to 'Starbreeze' (add it to allow if it is a different word)")
-    # Puzzle levels (godot-game-design section 6): one solution sentence and a purpose each, puzzle or action, never both.
+    # Puzzle levels (game-design section 6): one solution sentence and a purpose each, puzzle or action, never both.
     'table puzzles' = @("'back-in' has no solution", "'open-field' has no solution",
                         "'slow-lockstep' purpose is 'filler', not one of: teach, reinforce, moment, breather",
                         "'two-switches' solution 'Try each switch. Then walk back up to see if the gate opened.' does not match ^(?!.*[.!?]\s+\S)\s*\S.*$",
@@ -157,18 +157,18 @@ foreach ($example in $examples) {
     if ($parsed.Error -or $got -cne $want) { $failures += "criteria '$($example['text'])': C# says '$want', the data runner '$got' $($parsed.Error)" }
 }
 
-# The levels table quoted in godot-game-design is the one tested here.
+# The levels table quoted in game-design is the one tested here.
 function ConvertTo-RuleText($Rule) { (@($Rule.Keys) | Sort-Object | ForEach-Object { "$_=$(ConvertTo-Json -Depth 10 $Rule[$_] -Compress)" }) -join ' ' }
-$skill = Get-Content -LiteralPath (Join-Path $root '.agents/skills/godot-game-design/SKILL.md') -Raw
+$skill = Get-Content -LiteralPath (Join-Path $root '.agents/skills/game-design/SKILL.md') -Raw
 $block = [regex]::Match($skill, '(?s)```json\s*(\{.*?"solution".*?)```')
 $fixtureFields = (Get-Content -LiteralPath (Join-Path $fixture 'data.json') -Raw | ConvertFrom-Json -AsHashtable)['tables']['puzzles']['fields']
-if (-not $block.Success) { $failures += 'godot-game-design quotes no levels table' }
+if (-not $block.Success) { $failures += 'game-design quotes no levels table' }
 else {
     $skillFields = ($block.Groups[1].Value | ConvertFrom-Json -AsHashtable)['tables']['levels']['fields']
     foreach ($field in @($fixtureFields.Keys) + @($skillFields.Keys) | Sort-Object -Unique) {
         $want = if ($fixtureFields.Contains($field)) { ConvertTo-RuleText $fixtureFields[$field] } else { 'nothing' }
         $have = if ($skillFields.Contains($field)) { ConvertTo-RuleText $skillFields[$field] } else { 'nothing' }
-        if ($want -ne $have) { $failures += "godot-game-design's levels field '$field' is $have, the tested one $want" }
+        if ($want -ne $have) { $failures += "game-design's levels field '$field' is $have, the tested one $want" }
     }
 }
 

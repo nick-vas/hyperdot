@@ -47,7 +47,7 @@
         },
         {
           "id": "concept.name",
-          "text": "Game name searched before a logo or store page: the web, Steam and the trademark databases where it will sell (any video game with the same or a similar name conflicts; godot-legal)",
+          "text": "Game name searched before a logo or store page: the web, Steam and the trademark databases where it will sell (any video game with the same or a similar name conflicts; legal)",
           "check": "manual",
           "done": true
         },
@@ -113,7 +113,7 @@
         },
         {
           "id": "slice.hooks",
-          "text": "Automation flags exist and work in an export: --seed reproduces a run, --autoplay plays it, --no-save protects the player's save (godot-automation-hooks)",
+          "text": "Automation flags exist and work in an export: --seed reproduces a run, --autoplay plays it, --no-save protects the player's save (automation-hooks)",
           "check": "manual",
           "done": true
         },
@@ -289,7 +289,7 @@
         },
         {
           "id": "launch.legal",
-          "text": "End-user licence (or the store's own terms) and refund rules checked; copyright and trademark registration decided (godot-legal)",
+          "text": "End-user licence (or the store's own terms) and refund rules checked; copyright and trademark registration decided (legal)",
           "check": "manual"
         },
         {

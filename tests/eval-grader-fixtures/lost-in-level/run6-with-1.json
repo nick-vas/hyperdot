@@ -4,7 +4,7 @@
   "arm": "with",
   "run": 1,
   "source": "Evals run 6 (Actions run 39853578546, 2026-10-22)",
-  "note": "Loads the godot-game-design skill.",
+  "note": "Loads the game-design skill.",
   "rename": {},
   "expect": {
     "lost-in-level/skill-fired": true
@@ -15,7 +15,7 @@
       "type": "tool_used",
       "config": {
         "tool": "Skill",
-        "input_match": "\"skill\"\\s*:\\s*\"(?:[\\w-]+:)?godot-game-design\""
+        "input_match": "\"skill\"\\s*:\\s*\"(?:[\\w-]+:)?game-design\""
       },
       "passed": true,
       "explanation": "Skill called 1x (expected 1..∞)"
@@ -26,13 +26,13 @@
     {
       "name": "Skill",
       "input": {
-        "skill": "godot-agent-kit:godot-playtest"
+        "skill": "godot-agent-kit:game-playtest"
       }
     },
     {
       "name": "Skill",
       "input": {
-        "skill": "godot-agent-kit:godot-game-design"
+        "skill": "godot-agent-kit:game-design"
       }
     }
   ],

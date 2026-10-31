@@ -194,7 +194,7 @@ More on each framework, the five most popular Godot test projects, and how to se
 | `steam-removed-api` | a call to `IsSteamRunningOnSteamDeck` or `RequestCurrentStats` (either casing): removed or deprecated in Steamworks SDK 1.65, and gone from GodotSteam 4.21+ and Steamworks.NET 1.65 |
 | `steam-env-dotnet` | C# `Environment.SetEnvironmentVariable("SteamAppId"` or `SteamGameId`: on Linux and macOS .NET keeps its own copy of the environment, so the native Steam API never sees it; `OS.SetEnvironment` works |
 | `frame-dependent-lerp` | `_Process`/`_process` lerps a value toward a target and assigns it back to the same value, with a weight that has no `delta` in it: `Position = Position.Lerp(target, 0.1f)`, `x = Mathf.Lerp(x, target, 0.1f)`, `x += (target - x) * 0.1f`, GDScript `lerp`, `lerpf`, `lerp_angle`, `.lerp`, `.slerp`. A fixed fraction per frame converges faster at 144 fps than at 30 and ignores time scale; `1 - Mathf.Exp(-rate * delta)` does not. Not flagged: a weight that names `delta` (or a variable assigned from it), a lerp between two other values, `_physics_process` (a fixed rate), a call split over lines or made from a helper method ([why](gdc/juicing-your-cameras.md)) |
-| `nondeterministic-sim` | Only in the folders `simulation` lists (prefixes or globs, from the project folder): C# `Math`/`MathF`/`Mathf` `Sin`, `Cos`, `Tan`, `Asin`, `Acos`, `Atan`, `Atan2`, `Exp`, `Log`, `Pow`, `Cbrt` (each OS's C library; `Sqrt` and `+ - * /` are exact), `new Random(`/`Random.Shared`, `GD.Randf`/`Randi`/`RandRange`, clocks (`DateTime.Now`, `Stopwatch`, `Time.GetTicksMsec`), `HashCode.Combine` and `.GetHashCode()`, and `foreach` over a `Dictionary` or `HashSet` the file declares; GDScript `sin`, `pow` and the like, the global `randf`/`randi`, `Time.get_ticks_*`. Not flagged: `SortedDictionary`, a seeded `RandomNumberGenerator` (`rng.randf()`), anything outside the folders (`godot-determinism`) |
+| `nondeterministic-sim` | Only in the folders `simulation` lists (prefixes or globs, from the project folder): C# `Math`/`MathF`/`Mathf` `Sin`, `Cos`, `Tan`, `Asin`, `Acos`, `Atan`, `Atan2`, `Exp`, `Log`, `Pow`, `Cbrt` (each OS's C library; `Sqrt` and `+ - * /` are exact), `new Random(`/`Random.Shared`, `GD.Randf`/`Randi`/`RandRange`, clocks (`DateTime.Now`, `Stopwatch`, `Time.GetTicksMsec`), `HashCode.Combine` and `.GetHashCode()`, and `foreach` over a `Dictionary` or `HashSet` the file declares; GDScript `sin`, `pow` and the like, the global `randf`/`randi`, `Time.get_ticks_*`. Not flagged: `SortedDictionary`, a seeded `RandomNumberGenerator` (`rng.randf()`), anything outside the folders (`determinism`) |
 
 Each rule is `warning` (default: reported, never fails), `error` (fails the runner) or `off`. Test folders and `addons/` are
 not scanned. The fixtures in `tests/architecture-fixtures` show one example of each.
@@ -257,7 +257,7 @@ copyright the maker owns it unless a signed agreement says otherwise, so besides
   `soundtrack`, `merchandise`
 
 `doctor` lists licensed entries with their uses. `credits` treats commissioned work as the game's own (no third-party credit)
-unless its `licence` asks for one. The rules: `godot-legal` section 4 and [gdc/contract-law-201.md](gdc/contract-law-201.md).
+unless its `licence` asks for one. The rules: `legal` section 4 and [gdc/contract-law-201.md](gdc/contract-law-201.md).
 
 **`credits`** builds the game's credits from `assets.json`: `CREDITS.md`, `credits.json` (for a credits screen) and
 `THIRD-PARTY-NOTICES.txt` (each asset's copyright line and licence text, Godot's MIT text and its third-party components read
@@ -266,7 +266,7 @@ licence asks for. Optional fields help: `title`, `copyright` (the original copyr
 `licenceFile` and `noticeFile` (paths of the upstream licence and NOTICE files). Licence texts for MIT, ISC, BSD-2-Clause,
 BSD-3-Clause, Apache-2.0, MPL-2.0, OFL-1.1 and Zlib come with the kit (`ci/godot/templates/licences`). `export` copies
 `THIRD-PARTY-NOTICES.txt` next to each executable. An `MPL-2.0` entry (gdext and other Rust bindings) needs `source` to be
-the URL of its source code, which the notice gives players (MPL-2.0 section 3.2(a)); `copyright` is optional for it. The rules: the `godot-asset-pipeline` skill and [store-and-legal.md](store-and-legal.md).
+the URL of its source code, which the notice gives players (MPL-2.0 section 3.2(a)); `copyright` is optional for it. The rules: the `asset-pipeline` skill and [store-and-legal.md](store-and-legal.md).
 
 **`store/steam/`** (optional, in the Godot project folder, with an empty `store/.gdignore` so Godot does not ship it) holds
 the Steam store art. `doctor` checks the current sizes (`header_capsule` 920x430, `small_capsule` 462x174, `main_capsule`
@@ -279,7 +279,7 @@ missing files and short description problems WARN.
 **`store/press/`** (optional, next to `store/steam/`) holds the press kit. `doctor` warns when `key_art` or
 `key_art_notitle` (key art with and without the title) is missing, when there are fewer than 6 or more than 10
 `screenshot*` images, and when neither `fact_sheet.txt` nor `press_release.txt` (or `.md`) exists or none gives a contact
-email address. It never fails on the press kit. The contents: the `godot-store-page` skill.
+email address. It never fails on the press kit. The contents: the `store-page` skill.
 
 **`juice.json`** (optional, in the Godot project folder) turns on the `juice` runner: Godot plays the game headless at a fixed
 60 fps for `frames` frames (default 1800) with `args` (plus `-GameArgs`), and each rule checks that every `event` was followed
@@ -367,7 +367,7 @@ money flows that need a sink (`economy`), hold dialogue rules with their transla
 
 **`placement.json`** (optional, in the Godot project folder) turns on the `placement` runner: `templates/placement_check.gd`
 on every level under `levels` (folders or `.tscn` files), each property in `limits` set from the GDScript constant it names
-(`"res://player.gd:REACH"`) or to the value given. Rules, groups and exemptions: `godot-data` section 6.
+(`"res://player.gd:REACH"`) or to the value given. Rules, groups and exemptions: `game-data` section 6.
 
 ```json
 { "levels": ["res://levels"], "limits": { "reach": "res://player.gd:REACH", "zipline_max_angle": "res://zipline.gd:MAX_ANGLE_DEGREES" } }

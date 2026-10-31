@@ -2,7 +2,7 @@
 
 W3C's Web Content Accessibility Guidelines 2.2 (a W3C Recommendation) are written for web pages. Most of them describe
 problems that game menus, HUDs, dialogs and settings screens have too. This page reads every success criterion as a rule
-for Godot UI, says how Godot 4.7 meets it, and where the kit checks it. The `godot-ui-accessibility` skill is the short,
+for Godot UI, says how Godot 4.7 meets it, and where the kit checks it. The `ui-accessibility` skill is the short,
 working version of this page. Microsoft's Xbox Accessibility Guidelines, written for games, are mapped onto it near the end.
 
 Sources: the criterion texts and the contrast and flash formulas come from W3C's machine-readable `wcag.json`. Every
@@ -67,7 +67,7 @@ the scenes and code), `doctor` (a project setting it reads), `proposed` (see the
 | 1.4.5 Images of Text | AA | Applies | Menu text is `Label`s with a font, not text painted into textures (scales, translates, can be read aloud); logos excepted | | look, review |
 | 1.4.6 Contrast (Enhanced) | AAA | Transformed | A high-contrast option at 7:1, on by default when the system asks for it | `DisplayServer.AccessibilityShouldIncreaseContrast() == 1` (-1: unknown) | review |
 | 1.4.7 Low or No Background Audio | AAA | Transformed | Music ducks under dialogue (WCAG: 20 dB) or the player can lower it | a compressor sidechain on the music bus | review |
-| 1.4.8 Visual Presentation | AAA | Transformed | Long text (codex, tutorials): at most 80 characters a line (inkle aims at 5 to 15 words: `godot-ui-accessibility/in-game.md`), not justified, line spacing 1.5, a subtitle background the player can darken | `Label` theme constant `line_spacing` | look |
+| 1.4.8 Visual Presentation | AAA | Transformed | Long text (codex, tutorials): at most 80 characters a line (inkle aims at 5 to 15 words: `ui-accessibility/in-game.md`), not justified, line spacing 1.5, a subtitle background the player can darken | `Label` theme constant `line_spacing` | look |
 | 1.4.9 Images of Text (No Exception) | AAA | Applies | As 1.4.5, without the exceptions | | look |
 | 1.4.10 Reflow | AA | Transformed | At 200% UI scale and the smallest listed resolution, lists scroll one way only and nothing is cut off | containers, `ScrollContainer` | look |
 | 1.4.11 Non-text Contrast | AA | Applies | Focus ring, slider track and handle, checkbox, toggle state, health bars and HUD icons: 3:1 against what is next to them | | look, proposed |
@@ -195,7 +195,7 @@ say they are not a compliance checklist.
 | 117 Visual distractions and motion | Moving or auto-updating UI can be stopped; camera shake, bob, motion blur avoidable or adjustable; field of view and camera sensitivity settings | 2.2.2, 2.3.3 |
 | 118 Photosensitivity | Flash, red flash and pattern limits above | 2.3.1, 2.3.2 |
 | 119 Chat | Speech-to-text and text-to-speech chat, narrated incoming messages and emotes | 1.2.4 |
-| 120 Communication experiences | The whole path to chatting (menus, matchmaking, friends, muting, reporting) meets the other XAGs. In the US the CVAA requires it for chat between people (`godot-legal` section 7); what accessible chat looks like: `.agents/skills/godot-multiplayer/chat.md` | (none) |
+| 120 Communication experiences | The whole path to chatting (menus, matchmaking, friends, muting, reporting) meets the other XAGs. In the US the CVAA requires it for chat between people (`legal` section 7); what accessible chat looks like: `.agents/skills/multiplayer/chat.md` | (none) |
 | 121 Accessible feature documentation | A web page per game describing its accessibility features, before purchase, in every shipped language | (none) |
 | 122 Accessible customer support | Support reachable by more than one accessible channel | (none) |
 | 123 Mental health best practices | Content warnings before purchase and in game, an advisory at launch, options to reduce or skip sensitive content, helplines reachable from anywhere | (none) |

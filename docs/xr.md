@@ -1,6 +1,6 @@
 # XR: sources and measurements
 
-The research behind the `godot-xr` skill and the two templates it ships (`ci/godot/templates/xr_math.gd` and `xr_rig.gd`),
+The research behind the `xr` skill and the two templates it ships (`ci/godot/templates/xr_math.gd` and `xr_rig.gd`),
 gathered on 2026-10-29. Checks ran headless on Godot 4.7.2 (standard build) with no headset and no XR runtime; `tests/Test-Xr.ps1`
 repeats them.
 

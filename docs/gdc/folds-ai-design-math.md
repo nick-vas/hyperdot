@@ -12,7 +12,7 @@ words; read the talks for the full argument.
 - Video: https://www.youtube.com/watch?v=Qq_xX1JCreI
 - Taken: trees execute a decided behaviour while a state machine above them handles cycles; the "how many places to
   delete a behaviour" test; retry after failure with a timestamp and a condition (10 s in the example); avoid
-  uninterruptible nodes. `.agents/skills/godot-game-ai/SKILL.md` section 2 (summary) and `pitfalls.md`.
+  uninterruptible nodes. `.agents/skills/game-ai/SKILL.md` section 2 (summary) and `pitfalls.md`.
 - Not taken: tag and breakpoint decorators, run-time subtrees from smart objects and Weber's StarCraft managers. They
   need a tree editor or an engine the kit does not ship.
 
@@ -54,7 +54,7 @@ words; read the talks for the full argument.
 - Speaker: Jan Muller (perhaps "Müller"; Insomniac). Year: about 2016, inferred (Ratchet & Clank for PS4 "next month").
 - Video: https://www.youtube.com/watch?v=ZlShFdoAOxU
 - Taken: one role per companion (teacher, VIP, soldier), metering what companions give, and escalating a fight rather
-  than only removing weak points. `.agents/skills/godot-game-design/SKILL.md` section 5 (summary) and `pacing.md`.
+  than only removing weak points. `.agents/skills/game-design/SKILL.md` section 5 (summary) and `pacing.md`.
 - Not taken: enemy variety judged by player mechanics and the memory research, already close to the skill's MDA advice.
 
 ### Tales from the Trenches: AI Disaster Stories
@@ -75,9 +75,9 @@ words; read the talks for the full argument.
 - Video: https://www.youtube.com/watch?v=U4uH1ynH3Rs
 - Taken: bounce per puzzle; solved-but-too-hard counts as too hard; care for the first puzzles; the last is not the
   hardest; a working example beside an empty puzzle; easier rules over harder teaching; no real-time simulations; cut
-  constraints that add no intended difficulty; depth in optional optimisation. `godot-game-design` section 6 (summary),
-  `.agents/skills/godot-game-design/pacing.md`, and the `level_opened`/`level_solved` line in
-  `.agents/skills/godot-telemetry/SKILL.md`.
+  constraints that add no intended difficulty; depth in optional optimisation. `game-design` section 6 (summary),
+  `.agents/skills/game-design/pacing.md`, and the `level_opened`/`level_solved` line in
+  `.agents/skills/game-telemetry/SKILL.md`.
 - Not taken: the paper worksheets on a wall (a studio habit, not a rule an agent can apply).
 
 ### Ten Principles for Good Level Design
@@ -85,14 +85,14 @@ words; read the talks for the full argument.
 - Video: https://www.youtube.com/watch?v=iNEe3KhMvXM
 - Taken: introduce, showcase or subvert a mechanic per level; what to do, not how; an easy-to-medium main path with
   signposted risk and reward; greybox risky ideas early; a way back that plays differently; design from the emotion.
-  `godot-game-design` section 7 (summary) and `pacing.md`.
+  `game-design` section 7 (summary) and `pacing.md`.
 - Not taken: the remaining principles (surprise, empowerment, aesthetics), already covered by the skill's MDA section.
 
 ### Cursed Problems in Game Design
 - Speaker: Alex Jaffe (Riot Games). Year: 2019, inferred from his joke about "loot table distributions for 2019".
 - Video: https://www.youtube.com/watch?v=8uE6-vIi1rQ
 - Taken: the test (could tuning or content remove it? then it is only hard) and the four responses, each naming what
-  is given up, written into an ADR. `godot-game-design`, "In a review", step 5.
+  is given up, written into an ADR. `game-design`, "In a review", step 5.
 - Not taken: the worked examples (politics, auction houses, quantified creativity); the ADR template is unchanged.
 
 ## Math and feel
@@ -101,7 +101,7 @@ words; read the talks for the full argument.
 - Speaker: not named in the transcript (he refers to his own earlier curves talk). Year not stated.
 - Video: https://www.youtube.com/watch?v=mr5xkf6zSzk
 - Taken: ease the parameter t; smooth start and smooth stop ("flip, power, flip"); the crossfade that is smoothstep;
-  blends instead of `Pow`; arches. `.agents/skills/godot-math/SKILL.md`, "Easing".
+  blends instead of `Pow`; arches. `.agents/skills/math/SKILL.md`, "Easing".
 - Measured on Godot 4.7.2 headless: `Tween.InterpolateValue` with `Quad`/`Cubic`/`Quart`/`Quint` and `EaseType.In` gives
   t², t³, t⁴, t⁵ (0.25, 0.125, 0.0625, 0.03125 at t = 0.5), `Out` gives 1 - (1 - t)², `ease(t, 2)` = t², `ease(t, 0.5)` =
   1 - (1 - t)², and `smoothstep(0, 1, t)` equals the t-weighted crossfade at 0.25, 0.5 and 0.75 (`Quad` `InOut` does not:
@@ -113,7 +113,7 @@ words; read the talks for the full argument.
 - Speaker: not named (Hearthstone prototype; Direwolf Digital). Year not stated.
 - Video: https://www.youtube.com/watch?v=J5qnnxFoBss
 - Taken: shuffle bags with the 2k edge case, pity timers with a hard cap, no clock seeds players can time (Urban Dead),
-  child seeds from the index path (deep echoes). `.agents/skills/godot-procgen/SKILL.md` and a tested
+  child seeds from the index path (deep echoes). `.agents/skills/procgen/SKILL.md` and a tested
   `examples/csharp/src/Example.Core/Procgen/Draws.cs` (`ShuffleBag`, `PityRoll`) with
   `examples/csharp/tests/Example.Core.Tests/DrawsTests.cs`.
 - Measured (`DrawsTests`, seeded): a die over 7 kinds gave 6 in a row in 100,000 draws; a bag with one copy each gave 2
@@ -125,7 +125,7 @@ words; read the talks for the full argument.
 - Speaker: Manny Koh as transcribed (Manny Ko), Activision. Year not stated.
 - Video: https://www.youtube.com/watch?v=qO8FAQvlgX0
 - Taken: the same output on any thread count, by drawing each item's randomness from a hash of the seed and its index
-  (the kit's `Seeds.Derive` already is one). `godot-procgen`, "Seeds that stay the same". A .NET run for the kit: 1,000
+  (the kit's `Seeds.Derive` already is one). `procgen`, "Seeds that stay the same". A .NET run for the kit: 1,000
   chunks with derived seeds gave the serial fingerprint on every parallel run; one shared generator behind a lock gave
   a different one each run.
 - Not taken: LCG constants, leapfrogging and TEA on the GPU (the kit's generators are not LCGs).
@@ -135,7 +135,7 @@ words; read the talks for the full argument.
 - Video: https://www.youtube.com/watch?v=pdvCO97jOQk
 - Taken: the vocabulary (camera window, edge and platform snapping, forward and dual forward focus, attractor rings,
   several players) mapped to `Camera2D` properties checked on 4.7.2, and speed-dependent smoothing (0.5 s fast, 2.5-3 s
-  slow). `.agents/skills/godot-camera/SKILL.md` section 9.
+  slow). `.agents/skills/camera/SKILL.md` section 9.
 - Not taken: the speed-up push zone and projected focus (no Godot mapping worth a line); a camera flow test.
 
 ### Game Feel: Why Your Death Animation Sucks
@@ -143,7 +143,7 @@ words; read the talks for the full argument.
   ("the new lens flare of 2015").
 - Video: https://www.youtube.com/watch?v=pmSAG51BybY
 - Taken: feedback as information players notice without looking; a fading death mark; rumble.
-  `.agents/skills/godot-juice/SKILL.md`, checklist rows "Marks" and "Rumble" (the haptics rules themselves are in
-  `godot-input`).
+  `.agents/skills/game-juice/SKILL.md`, checklist rows "Marks" and "Rumble" (the haptics rules themselves are in
+  `input`).
 - Not taken: animating from part sheets with per-frame transforms (an art pipeline choice); movement-sound advice
-  already in `godot-juice` and `godot-audio`.
+  already in `game-juice` and `game-audio`.

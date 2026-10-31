@@ -1,5 +1,5 @@
 extends Node
-# Measures the mono option godot-audio describes: AudioEffectStereoEnhance with pan_pullout 0 on the Master bus, switched
+# Measures the mono option game-audio describes: AudioEffectStereoEnhance with pan_pullout 0 on the Master bus, switched
 # with set_bus_effect_enabled. For a tone in the left channel only, both channels, and both in opposite phase, it prints
 # the RMS of each output channel with the effect off and on, read back with an AudioEffectCapture after it:
 #   @@mono <signal> <on|off> <left rms> <right rms>

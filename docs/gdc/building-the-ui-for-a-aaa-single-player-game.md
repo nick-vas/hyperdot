@@ -45,10 +45,10 @@
   is refused; only changed values are saved and load back marked; the shipped v3 golden save loads; a hand-edited file loads
   what it can. Checked against naive versions: a "was ever set" mark fails 2 tests, saving every value fails 2, allowing two
   definitions fails 1, loading over the current values fails 1.
-- `.agents/skills/godot-ui-accessibility/SKILL.md`, "Settings every game has": presets by need, changed-from-default marks in
+- `.agents/skills/ui-accessibility/SKILL.md`, "Settings every game has": presets by need, changed-from-default marks in
   colour and a symbol (colour alone fails WCAG 1.4.1), a setting listed in every category players look in, text size on the
   first-launch screen with the 60% figure.
-- `.agents/skills/godot-ui-flows/SKILL.md`, "Tutorials and notices": the tutorial rules, seven steps at most, regional notice
+- `.agents/skills/ui-flows/SKILL.md`, "Tutorials and notices": the tutorial rules, seven steps at most, regional notice
   queues, and how to test them with a flow.
 - A row in `docs/wcag-ui.md`.
 
@@ -58,5 +58,5 @@
   scene, so the flow would test a menu written only for it. The one-value property is tested in the model instead.
 - The 24-point body minimum: points in their Maya-based pipeline do not convert to the kit's rule, which stays XAG 101's
   body height in pixels (26 px console, 18 px PC at 1080p).
-- Remapping by action, dynamic layouts and readable fonts: already in `godot-input`, `godot-ui-accessibility` and the `textsize`
+- Remapping by action, dynamic layouts and readable fonts: already in `input`, `ui-accessibility` and the `textsize`
   runner. The engine-specific parts (pre-allocated memory, icon fonts, the journal's render targets) do not apply to Godot.

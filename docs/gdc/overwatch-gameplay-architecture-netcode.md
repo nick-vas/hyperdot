@@ -5,7 +5,7 @@
 - Year: not stated. GDC 2017 is implied: he has worked on the game since summer 2013, speaks of three years of
   development, and of a change made after ship in "patch like 1.2 or 1.3".
 - Video: https://www.youtube.com/watch?v=W3aieHjyNvw (read as a Whisper transcript).
-- Topic doc: [multiplayer.md](../multiplayer.md); skill: `.agents/skills/godot-multiplayer/SKILL.md` section 2.
+- Topic doc: [multiplayer.md](../multiplayer.md); skill: `.agents/skills/multiplayer/SKILL.md` section 2.
 
 ## What the talk says
 
@@ -77,4 +77,4 @@ carrying 18.5 inputs a packet on average and 30 at most. Rewind cap of 250 ms: a
   and extrapolation is another change's subject (dead reckoning). The skill states both.
 - Rewinding only targets whose swept bounds the shot crosses: The C# example judges one target per shot.
 - Quantising the C# example's positions: client and server run the same build, so they already agree exactly.
-- The ECS rules and deferred side effects: `godot-patterns` already has an event queue; Godot's scene tree is not an ECS.
+- The ECS rules and deferred side effects: `patterns` already has an event queue; Godot's scene tree is not an ECS.

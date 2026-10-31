@@ -48,7 +48,7 @@ Results: testers who were legally blind or had low vision mostly rated how likel
   not set `audio/general/text_to_speech=true`, and notes the opposite (setting on, no calls) as INFO. Self-test:
   `tests/doctor-fixture/narrator.gd` and the doctor step in `.github/workflows/self-test.yml` (warns; cleared once the
   setting is added).
-- `.agents/skills/godot-ui-accessibility/SKILL.md`, "Narrating the world": the rules above, with C# compiled against
+- `.agents/skills/ui-accessibility/SKILL.md`, "Narrating the world": the rules above, with C# compiled against
   GodotSharp 4.7.2. Row in `docs/wcag-ui.md` (Game Accessibility Guidelines, screen reader support).
 
 ## Checked in Godot 4.7.2

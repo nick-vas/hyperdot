@@ -10,9 +10,9 @@ A second pass on 2026-10-21 replaced the press write-ups of the Talos Principle 
 captions, added Croteam's talk on CI and automated testing, and read Bohemia's published DayZ economy files and Arma
 Reforger samples in place of the wiki pages Cloudflare blocks.
 
-The skills carry the working version: `godot-game-design` (prototyping and feel), `godot-game-plan` (scope, playtests,
-release), `godot-automation-hooks` (bots, telemetry, testing), `godot-patterns` (simulation apart from presentation),
-`godot-data`, `godot-progression`, `godot-multiplayer` and `weekly-review`. `doctor` checks two of them (keyboard and gamepad bindings, a git remote), and every program the kit runs
+The skills carry the working version: `game-design` (prototyping and feel), `game-plan` (scope, playtests,
+release), `automation-hooks` (bots, telemetry, testing), `patterns` (simulation apart from presentation),
+`game-data`, `progression`, `multiplayer` and `weekly-review`. `doctor` checks two of them (keyboard and gamepad bindings, a git remote), and every program the kit runs
 now has a time limit, so a hung game fails instead of stalling (Croteam's "lockups deadlocks").
 
 ## What recurs across sources
@@ -301,22 +301,22 @@ Missing: everything from Nakamura/Game Preservation Society onwards (Yotsui, Kos
 16. **Grow the commitment one step at a time, as interest proves itself.**
     "It didn’t take too long before it became a project taking up 20% of my time. This soon turned into a 100% fulltime project" (Tatsuo Nomura, 442)
     NEW (extends Untold 1: from a lunch idea to a demo, a fifth of his time, then full time).
-    Apply (`godot-game-plan`): an idea gets more hours only after its last cut got real reactions.
+    Apply (`game-plan`): an idea gets more hours only after its last cut got real reactions.
 
 17. **Internal testing collects ideas as well as bugs.**
     "I remember that someone suggested the idea of having 8-bit style landmarks." (Tatsuo Nomura, 452)
     NEW (the landmarks became the project's best-known part).
-    Apply (`godot-playtest`): the survey asks "What would you add?" next to what broke.
+    Apply (`game-playtest`): the survey asks "What would you add?" next to what broke.
 
 18. **Decisions made in unplanned meetings leave out whoever was absent; write them down.**
     "if you weren’t in the office at that point you didn’t go to the meeting, so it would then be your prerogative to catch up later" (Katsutoshi Eguchi on Eno's meetings called at 3 or 4 in the morning, 644)
     NEW (a cautionary case).
-    Apply (`godot-game-plan`): agents never sit in on a meeting; a decision not in `docs/decisions/` or plan.json does not exist for them.
+    Apply (`game-plan`): agents never sit in on a meeting; a decision not in `docs/decisions/` or plan.json does not exist for them.
 
 19. **Keep every idea, dropped ones included, written down where others can find it; they come back years later.**
     "They’re going through his old notes" (Katsutoshi Eguchi, 659); of the scrapped concepts, "they are still on Eno-san’s computer" (703)
     NEW (it sits beside Untold 6, archive the code).
-    Apply (`godot-game-plan`): park dropped ideas in the GDD's "Out of scope" in the repository, not on one person's machine.
+    Apply (`game-plan`): park dropped ideas in the GDD's "Out of scope" in the repository, not on one person's machine.
 
 20. **Hold the post-mortem with the people who were there, while someone plays the build.**
     "we got everyone who was in the original WARP to come back, and talk about the challenges they faced" (Katsutoshi Eguchi, 655); "I wish more teams would discuss old projects, maybe while someone plays through them." (John Szczepaniak, 656)
@@ -331,7 +331,7 @@ Missing: everything from Nakamura/Game Preservation Society onwards (Yotsui, Kos
 22. **Criticism counts only with the reason attached.**
     "This game is not fun, and here’s why…" (Katsutoshi Eguchi quoting Kenji Eno, 531)
     NEW.
-    Apply (`godot-playtest`): a finding says why it hurts the player, not only that it does.
+    Apply (`game-playtest`): a finding says why it hurts the player, not only that it does.
 
 23. **Work you do not care about wears out the person the project depends on.**
     "take our game, copy it, and change it a bit" (Katsutoshi Eguchi on the contract work at Eno's first studio, which closed after he stopped coming in, 537)
@@ -348,12 +348,12 @@ Missing: everything from Nakamura/Game Preservation Society onwards (Yotsui, Kos
 25. **Build content tools so the game can be made by more than the programmer.**
     "creating the utilities and tools which allowed others to make games" (John Szczepaniak on Toru Hidaka, 801); "Created graphics, map, and audio utilities which in combination with his programming facilitated the creation of games." (DVD notes, 202)
     NEW (the author's summary; Hidaka's own account is in the unread part of the chapter).
-    Apply (`godot-data`): content edited often gets a `@tool` script or a small editor plugin.
+    Apply (`game-data`): content edited often gets a `@tool` script or a small editor plugin.
 
 26. **Learn the limits of your scripting layer early, and drop lower only where it is too slow.**
     "Since BASIC is an interpreted language it tends to be slow." (Toru Hidaka, 867); "In one month I knew the limits of BASIC." (874)
     NEW.
-    Apply (`godot-performance`): bench the hot loop in the first week; move to C# or a server only what `bench` shows over budget.
+    Apply (`performance`): bench the hot loop in the first week; move to C# or a server only what `bench` shows over budget.
 
 27. **Hand-made base, digital finish.**
     "He does hand drawings, then scans it and adds special effects." (Joseph Redon on Hitoshi Yoneda, 385)
@@ -365,64 +365,64 @@ Missing: everything from Nakamura/Game Preservation Society onwards (Yotsui, Kos
 28. **Actors perform with their bodies even in an audio-only game, and it can be heard.**
     "They’re not acting and I want them to act." (Katsutoshi Eguchi quoting Kenji Eno directing Real Sound, 575)
     NEW.
-    Apply (`godot-narrative`): give each line the scene's action and let actors move while recording.
+    Apply (`narrative`): give each line the scene's action and let actors move while recording.
 
 29. **Whoever runs a recording session needs the whole story; out-of-order takes make no sense without it.**
     "he didn’t record the scenes in order, so the story didn’t make any sense to me" (Katsutoshi Eguchi, 579)
     CONFIRMS Untold 13 (the artist reads the whole source) and Blizzard 26 (give actors the history).
-    Apply (`godot-narrative`): the session pack holds the synopsis and where each line falls.
+    Apply (`narrative`): the session pack holds the synopsis and where each line falls.
 
 30. **To win the composer you want, send something playable and say why it has to be them.**
     "We sent him a copy of D no Shokutaku while he was still in England, and he played it and thought it was good." (Katsutoshi Eguchi on Michael Nyman, 587); "why it had to be Michael Nyman, over and over again" (582)
     NEW.
-    Apply (`godot-audio`, its `commissioning.md`): a commission request carries a playable build or video and a one-page "why you".
+    Apply (`game-audio`, its `commissioning.md`): a commission request carries a playable build or video and a one-page "why you".
 
 31. **Give the boot logo a short signature sound.**
     "there should be a “turning on”" (Katsutoshi Eguchi on Eno and the Dreamcast's start-up sound, which Ryuichi Sakamoto wrote, 629)
     NEW (optional).
-    Apply (`godot-juice`): a short sting under a short, skippable splash.
+    Apply (`game-juice`): a short sting under a short, skippable splash.
 
 32. **A game played by sound alone is a design space, not only an accessibility patch.**
     "to make this game for the blind" (Katsutoshi Eguchi on Real Sound, 574)
     NEW.
-    Apply (`godot-ui-accessibility`): for a turn-based or story game, "playable with the screen off" is a goal a test can measure.
+    Apply (`ui-accessibility`): for a turn-based or story game, "playable with the screen off" is a goal a test can measure.
 
 #### Release, business and legal
 
 33. **Launch in many languages from day one, not as a later port.**
     "At Google, we always try to launch products globally." (Tatsuo Nomura, 454)
     CONFIRMS the table at the top (decide localisation up front).
-    Apply (`godot-localization`): the `l10n` runner from the first milestone.
+    Apply (`localization`): the `l10n` runner from the first milestone.
 
 34. **Clear every borrowed name, look and asset with its owner, even for a joke, and use the owner's own assets.**
     "Yes, we did ask Nintendo for permissions." (Tatsuo Nomura, 446); Square Enix "provided us with the assets that were once used in Dragon Quest" (444)
     NEW.
-    Apply (`godot-legal`): homage and parody still need permission.
+    Apply (`legal`): homage and parody still need permission.
 
 35. **Ideas you pitch are not protected; pitch with a prototype, and keep dated records.**
     "six months later or whenever he would spot a game that clearly used his idea" (Katsutoshi Eguchi on Eno's pitches, 539)
     NEW.
-    Apply (`godot-legal`): git history and dated design documents show what you made and when.
+    Apply (`legal`): git history and dated design documents show what you made and when.
 
 36. **Do not announce a game before it is playable; public promises outlive the project.**
     "we’re going to make a game that will sell 300'000 copies, it will be an RPG. No problem." (Eno to Famitsu, as Katsutoshi Eguchi tells it, 651); fans years later: "This is great, but where’s the RPG?" (653)
     NEW.
-    Apply (`godot-store-page`): open the page once the slice works; never promise sales or unbuilt features.
+    Apply (`store-page`): open the page once the slice works; never promise sales or unbuilt features.
 
 37. **The soundtrack is a second product; make sure the music agreement allows it.**
     "My job was that I took the music from games which had been developed by the game companies, and I would take them to record companies and work out how to get them released as albums." (Katsutoshi Eguchi, 512)
     NEW.
-    Apply (`godot-steam`, `godot-legal`): the commission or licence covers a separate soundtrack release.
+    Apply (`steam`, `legal`): the commission or licence covers a separate soundtrack release.
 
 38. **Small releases, contests and even flops build the network the next game needs.**
     "Even though it was a bit of a failure, that’s how we all got to know each other in the industry." (Katsutoshi Eguchi, 510); "So they decided to throw contests and competitions in order to attract prospective candidates" (Toru Hidaka on Enix, 825), and Yuji Horii won one twice: "For Horii-san that was the second time around." (822)
     NEW.
-    Apply (`godot-game-plan`, jam mode): finish small games for jams and contests before the big one.
+    Apply (`game-plan`, jam mode): finish small games for jams and contests before the big one.
 
 39. **Nobody else will spread the word: ask players for reviews, and build a network of people who know the work.**
     "There is no one to spread the word of this book apart from you, the reader." (John Szczepaniak, 127); "It’s very important to build relationships and build a big network, not just supporters but also people who know what they’re doing." (Katsutoshi Eguchi on crowdfunding, 689)
     NEW.
-    Apply (`godot-store-page`): ask for reviews in the game's credits and in posts; keep the press and helper lists in the repository.
+    Apply (`store-page`): ask for reviews in the game's credits and in posts; keep the press and helper lists in the repository.
 
 An open question, not a lesson: whether store art should differ by region. Yoneda: "I think that my illustration was
 perhaps not appropriate for the foreign market." (341); Redon: "We have different tastes in America and Europe." (353).
@@ -775,7 +775,7 @@ The files split the economy into a few jobs:
    (an AKM gets an optic group 50% of the time, then Kashtan 30% or PSO-11 20%), and `cfgrandompresets.xml` shares named cargo
    lists between many types (`foodCity` is used 120 times, `mixArmy` 47).
    Godot: one seeded `RandomNumberGenerator` per stage (`Seed`, `Randf()`, `RandiRange()`), presets as shared Resources, and a
-   test that rolls 10,000 seeds and checks each chance comes out within tolerance (`godot-procgen`).
+   test that rolls 10,000 seeds and checks each chance comes out within tolerance (`procgen`).
 7. **Make events data: N of M fixed spots, radii, a follow-up event and an off switch.**
    The helicopter crash has a nominal of 3 and 95 listed positions, a `saferadius` of 1000, and brings a `secondary` event
    (`InfectedArmy`) and 10 to 15 loot items. Multi-object events such as trains are offset groups in `cfgeventgroups.xml`,
@@ -1157,19 +1157,19 @@ The captions hear "bot" as "boat", "board" and "bodkin", and Ladavac's name as "
 1. **Unit-test the low-level code, play-test the rest.** "we're gonna have unit tests for some things but we're just gonna functionality test the rest as much as we can" ([27:20](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1640))
    Godot: `test -Json` already runs both halves: xUnit, gdUnit4Net or GUT for pure logic, and the `validate`, `smoke` and `flows` runners for the game in the real engine. The `godot-test-loop` skill says when to write which.
 2. **Do not build towers of mocks; game code is cross-cutting.** "90% of your work is just trying to come up with walks in order to create the test and people just give up" (the captions hear "mocks" as "walks") ([27:04](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1624))
-   Godot: keep the rules in plain C# classes that need no scene tree, as `godot-patterns` ("State in plain C#") asks, and test node-heavy code headless in the real engine with `flows` instead of mocking `SceneTree`.
+   Godot: keep the rules in plain C# classes that need no scene tree, as `patterns` ("State in plain C#") asks, and test node-heavy code headless in the real engine with `flows` instead of mocking `SceneTree`.
 3. **A bot cannot prove there are no bugs, but it can prove the game can be finished.** "it can't prove that there are no bugs ... but what he can do is to prove that the game can be completed" ([17:15](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1035))
    Godot: the `playthrough` runner (`playthrough.json`) fails unless the bot logs every milestone, the ending last; the plan gate `production.playthrough` is checked by it. A `smoke` run with `-GameArgs '--autoplay'` alone passes a bot stuck in the first room.
 4. **"Can you complete it?" is the first ship criterion.** "can you complete the game this is the number one if you if you can't complete the game that's obviously not shippable" ([28:45](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1725))
    Godot: the launch gate `launch.gold` checks that the release export launches without engine errors, not that it can be finished. The `playthrough` runner checks the ending on every CI run; run it against the release export by hand before `launch.gold`.
 5. **Record the designer's solution as intent, so it survives level edits.** "we made a bot that is able to record actions in general when developer plays" and replays it "even if you move the geometry around" ([16:37](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=997))
-   Godot: record actions as commands on named things ("take key `Key_A`", "place box on `Socket_2`"), not as raw input or coordinates. `godot-patterns` names the Command pattern for replays, but the kit has no recorder or replay format ([What was decided](roadmap.md#what-was-decided) leaves scripted playtests in a live editor to the editor bridge).
+   Godot: record actions as commands on named things ("take key `Key_A`", "place box on `Socket_2`"), not as raw input or coordinates. `patterns` names the Command pattern for replays, but the kit has no recorder or replay format ([What was decided](roadmap.md#what-was-decided) leaves scripted playtests in a live editor to the editor bridge).
 6. **A bot does not need real time.** "the boat he doesn't really need his time to be real-time" ... "the bodkin completes everything in 20 minutes" ([18:22](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1102))
    Godot: `--headless --fixed-fps 60` makes each frame advance a fixed 1/60 s of game time as fast as the CPU allows. The `juice` and `playthrough` runners run this way, and `smoke -FixedFps 60` does; `export -Run` does not, so a long bot run there is neither fast-forwarded nor reproducible.
 7. **Keep submit-to-verdict time short, and know what it is.** "we came to what we call submit to test it time of less than one hour" ([19:03](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1143))
    Godot: `status` reports `testDuration`, the median of recent passing full runs against the ten before, and warns over `testBudgetSeconds` in `plan.json` or when it grows by half. Use `-Runners` and `-Filter` for the inner loop and leave the full playthrough to CI.
 8. **A bot is the tester a small team cannot hire.** "the board did approximately more than 15,000 hours of human testing" ([19:46](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1186))
-   Godot: for a solo developer the `--autoplay` bot is the only tester that plays every push. Build it with `godot-automation-hooks`, and run it on GitHub with the kit's workflow so it costs no local time.
+   Godot: for a solo developer the `--autoplay` bot is the only tester that plays every push. Build it with `automation-hooks`, and run it on GitHub with the kit's workflow so it costs no local time.
 9. **Add the bot as early as possible, on rough blockouts.** "we always try to implement the board as soon as possible so we have very rough sketches of all the levels" ([31:47](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1907))
    Godot: the vertical-slice gate `slice.hooks` already requires `--seed`, `--autoplay` and `--no-save` to work in an export. Let the bot walk greybox levels before they have art.
 10. **Long bot runs catch crashes and deadlocks for free.** "the engine gets tested as a side effect of that so if there's any big crashes or or any lockups deadlocks" ([32:01](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1921))
@@ -1177,7 +1177,7 @@ The captions hear "bot" as "boat", "board" and "bodkin", and Ladavac's name as "
 11. **Creative breakage still needs people.** "there's no way you can automate testing this you need to have a very very creative human" ([21:25](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1285))
     Godot: the bot proves the intended path; strangers find the unintended one. The gates `prototype.stranger` and `beta.playtest` cover this and stay manual on purpose.
 12. **Make reporting a bug one key and one line, from inside the game.** "you go to the game you see a bug you press the button then you type these rocks look wrong" ([22:26](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1346))
-    Godot: `godot-automation-hooks` already suggests a feedback key that saves a screenshot, the log and the save file. It does not ask for the player's position, camera and scene, which is what makes a vague "rocks look wrong" fixable.
+    Godot: `automation-hooks` already suggests a feedback key that saves a screenshot, the log and the save file. It does not ask for the player's position, camera and scene, which is what makes a vague "rocks look wrong" fixable.
 13. **Show each report where it happened, so duplicates are visible.** "you already see the someone else has put a pin on the same object" ... "you're gonna see the view that a tester has been looking at" ([22:59](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1379))
     Godot: an `@tool` node could load saved reports and draw pins in the editor, with a button that moves the editor camera to the tester's view. The kit has nothing like this yet.
 14. **Fill the gap between unit tests and full playthroughs with small test levels and image comparison.** "just having very smaller levels that are testing specific functionalities" and "you would like to compare those two images" ([41:12](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=2472))
@@ -1197,8 +1197,8 @@ apostrophes are kept. Thirteen posts are under 160 words (video embeds, announce
 interview with Robert Clotworthy, the voice of Jim Raynor. Page 2 of Mike Huang's interview (his work as a producer at Blizzard
 North) could not be read: both of the site's page-2 addresses return page 1.
 
-The kit's own versions: the `data` runner's `totals` (lesson 4) and `names` (lesson 21) rules, the `godot-progression`
-skill (lessons 1 to 15) and the `godot-narrative` skill (lessons 16 to 27).
+The kit's own versions: the `data` runner's `totals` (lesson 4) and `names` (lesson 21) rules, the `progression`
+skill (lessons 1 to 15) and the `narrative` skill (lessons 16 to 27).
 
 ### Rewards and progression
 
@@ -1249,11 +1249,11 @@ skill (lessons 1 to 15) and the `godot-narrative` skill (lessons 16 to 27).
     Apply: in a genre hybrid, test with a bot that aims badly, and make the other genre's systems (loot, levels) impossible to miss.
 15. **Make random items from slots with their own pools.** Roper: "Not every weapon (as an example) can use every type of Mod, and each base type has a maximum number of potential slots for Mods."
     URL: https://www.blizzplanet.com/blog/comments/hellgate_london_exclusive_interview
-    Apply: `base_items` (slots, allowed mod types) and `mods` (type, rarity weight, ranges) tables; a seeded test generates thousands and checks the rarity spread (`godot-procgen`).
+    Apply: `base_items` (slots, allowed mod types) and `mods` (type, rarity weight, ranges) tables; a seeded test generates thousands and checks the rarity spread (`procgen`).
 
 ### Scope, content and the interface
 
-- **Cap the ideas.** Roper: "I think our biggest challenge is in realistically limiting ourselves. We have so many fantastic ideas for the game that if we tried to cram them all in, we?d probably never ship!" Optional modes earn their place by being played: "these modes will evolve and the ones that we can?t stop playing will be the ones that get in." `godot-game-plan`'s parked ideas.
+- **Cap the ideas.** Roper: "I think our biggest challenge is in realistically limiting ourselves. We have so many fantastic ideas for the game that if we tried to cram them all in, we?d probably never ship!" Optional modes earn their place by being played: "these modes will evolve and the ones that we can?t stop playing will be the ones that get in." `game-plan`'s parked ideas.
 - **Complexity is a feature's cost.** Stockton: "Our biggest issue with new features is adding more complexity to the game." Street: "I’d hate to add back plans with no real game purpose just for sake of completeness." Chilton on class quests: "There’s definitely a cost also with anytime a designer is spending time creating a quest for one particular class specifically that’s 10 other classes that aren’t getting content from that person."
 - **Settle a content type's template first.** Street: "The biggest challenge for us was just figuring out what scenarios should be. How long should they last? Should they be hard? How much variability should they have from run to run?" A one-page spec per content type before its production.
 - **Switch a system off where it interacts badly.** Kosak: "What was easiest — for us AND for our users — was to remove mail entirely until you choose a faction."
@@ -1293,7 +1293,7 @@ URLs, in order: Hellgate (above), the developer chat, the Chilton interview, the
 
 - **Decide multiplayer at the start.** Mike Huang, a former Blizzard North employee, on a Tetris clone his high-school studio built: "multiplayer code is something that absolutely has to / be planned from the get go. Adding it on afterwards / created a myriad of bugs, and we ended up rewriting" the game from scratch. (The page wraps its lines; `/` marks the breaks.) The kit's gate `concept.decisions` already asks for it.
 - **Every card a new rule makes the AI unaffordable.** Huang on a card game he tried to build: each card was "essentially a / new rule, and so that writing an AI that could be / challenging was beyond my means". Effects composed from a few data-driven parts keep the AI and the tests per part, not per card.
-- **Original names and art, or the owner may say no.** A Battlefield 1942 mod team: "Sorry to say it, but Blizzard said NO! The Space Combat mod is now of original design." (`godot-legal`.)
+- **Original names and art, or the owner may say no.** A Battlefield 1942 mod team: "Sorry to say it, but Blizzard said NO! The Space Combat mod is now of original design." (`legal`.)
 - **Promise a demo, not a date.** The same team: "Previous projections were hasty and unplanned", and "Currently, more planning is getting done than work." Dawn of Chaos: "I wouldn’t dare speculate on a release date except to say that a comprehensive demo isn’t far in the future."
 - **Friends level at different speeds.** Jeff Grubb on playing World of Warcraft with friends who "would then either outlevel me or quit to get their lives back, either option leaving my character an orphan." A co-op game decides how mismatched progress plays together.
 

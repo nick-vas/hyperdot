@@ -43,9 +43,9 @@
 - `examples/csharp/tests/Example.Core.Tests/DeterminismTests.cs`: `TheInputLogRoundTrips`,
   `TenMinutesOfInputFitInAFewKilobytes`, `SkipToFrameReachesTheSameChecksum`,
   `AnOldLogPlaysUnderTheRulesItWasRecordedWith`, `CosmeticRandomDrawsDoNotChangeTheReplay`.
-- `.agents/skills/godot-determinism/SKILL.md`: completion signals and random streams (section 2), the always-on log,
+- `.agents/skills/determinism/SKILL.md`: completion signals and random streams (section 2), the always-on log,
   saving from a `Logger`, checksum intervals and `Rules` (section 5), a checklist item.
-- `.agents/skills/godot-automation-hooks/SKILL.md`: `--playback=<file>` and `--skip-to-frame=N`.
+- `.agents/skills/automation-hooks/SKILL.md`: `--playback=<file>` and `--skip-to-frame=N`.
 
 ## Measured
 

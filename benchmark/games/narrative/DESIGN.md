@@ -2,10 +2,10 @@
 
 The seventh genre of the staged game programme (`benchmark/PLAN.md`): the one that exercises dialogue data,
 localisation, text that fits its boxes, and saves. The story is data, nodes, choices, flags and endings in JSON checked
-by the `data` runner (`godot-data`, `godot-narrative`), with what the runner cannot see (reachability, dead ends, flags
+by the `data` runner (`game-data`, `narrative`), with what the runner cannot see (reachability, dead ends, flags
 set and never read) checked by a search the game ships; every line is a translation key in English, French and German
-with a length limit per row that the `l10n` runner holds (`godot-localization`); and the save keeps the story at the
-line shown, with its flags and history (`godot-saves`). It is one of the mid tier's three genres (`PLAN.md`, the tier
+with a length limit per row that the `l10n` runner holds (`localization`); and the save keeps the story at the
+line shown, with its flags and history (`saves`). It is one of the mid tier's three genres (`PLAN.md`, the tier
 table), so every task is graded by hard checks. One game, written twice: `gdscript/` and `csharp/` (ported from this
 design), both built. Both behave the same, use the same data files, scene tree, node names and log lines, and pass the
 same flows. Only the code and the test framework differ: GUT for GDScript, gdUnit4 (run by the kit's `gdunit4` runner)

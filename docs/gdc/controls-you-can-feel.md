@@ -44,7 +44,7 @@
 - `tests/layout-fixture/ui/hud.tscn` and `hud_good.tscn`, `tests/Test-Layout.ps1`: on a portrait phone a 40 dp
   `TouchScreenButton` fails both minimums and a 60 dp stick fails `small-control`; on a landscape phone the same button
   is 71 dp, enough to look at and too small for a thumb; the resized HUD (80 dp) passes on every profile.
-- `.agents/skills/godot-mobile-web/SKILL.md`: 48 dp for buttons looked at, 75 dp and few for thumb controls, 40 dp floor
+- `.agents/skills/mobile-web/SKILL.md`: 48 dp for buttons looked at, 75 dp and few for thumb controls, 40 dp floor
   for in-game targets, sticks as the weak option, upward swipes, short movements avoided, and controls allowed to change
   the design.
 

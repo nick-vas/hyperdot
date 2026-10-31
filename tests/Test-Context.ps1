@@ -98,13 +98,13 @@ try {
     New-Item -ItemType Directory -Force (Join-Path $copyDir '.claude') | Out-Null
     & git -C $copyDir init -q
     Assert-True ($null -eq (Get-PluginCopyProblem $copyDir)) 'no plugin and no copies: nothing to say'
-    New-Item -ItemType Directory -Force (Join-Path $copyDir '.claude/skills/godot-game-plan'), (Join-Path $copyDir '.agents/skills/godot-game-plan'), (Join-Path $copyDir '.claude/skills/my-own-skill') | Out-Null
+    New-Item -ItemType Directory -Force (Join-Path $copyDir '.claude/skills/game-plan'), (Join-Path $copyDir '.agents/skills/game-plan'), (Join-Path $copyDir '.claude/skills/my-own-skill') | Out-Null
     Assert-True ($null -eq (Get-PluginCopyProblem $copyDir)) 'copies without the plugin are the way to use the kit, so no warning'
     Set-Content -LiteralPath (Join-Path $copyDir '.claude/settings.json') '{ "enabledPlugins": { "hyperdot@hyperdot": false } }'
     Assert-True ($null -eq (Get-PluginCopyProblem $copyDir)) 'a plugin that is switched off does not count'
     Set-Content -LiteralPath (Join-Path $copyDir '.claude/settings.json') '{ "enabledPlugins": { "hyperdot@hyperdot": true } }'
     $copyWarn = Get-PluginCopyProblem $copyDir
-    Assert-True ($copyWarn -and $copyWarn.Status -eq 'WARN' -and $copyWarn.Message -match 'godot-game-plan \(\.claude/skills, \.agents/skills\)' -and $copyWarn.Message -match '^1 kit skill') 'copies plus the enabled plugin warn, naming the skill and both places'
+    Assert-True ($copyWarn -and $copyWarn.Status -eq 'WARN' -and $copyWarn.Message -match 'game-plan \(\.claude/skills, \.agents/skills\)' -and $copyWarn.Message -match '^1 kit skill') 'copies plus the enabled plugin warn, naming the skill and both places'
     Assert-True ($copyWarn.Message -notmatch 'my-own-skill') "a skill the game wrote itself is not counted: $($copyWarn.Message)"
     Remove-Item -LiteralPath (Join-Path $copyDir '.claude/settings.json')
     Set-Content -LiteralPath (Join-Path $copyDir '.claude/settings.local.json') '{ "enabledPlugins": { "hyperdot@hyperdot": true } }'

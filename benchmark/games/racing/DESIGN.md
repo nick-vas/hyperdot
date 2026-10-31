@@ -2,10 +2,10 @@
 
 The eighth genre of the staged game programme (`benchmark/PLAN.md`): the one that exercises input, physics, the camera
 and frame pacing. A car runs on a fixed physics step whose rates are all per second, so a lap takes the same time at any
-tick rate (`godot-math`, `godot-determinism`); laps are counted by gates crossed in order; the best lap is kept as a
+tick rate (`math`, `determinism`); laps are counted by gates crossed in order; the best lap is kept as a
 ghost of quantised inputs that drives the lap again exactly; AI rivals follow the racing line; a chase camera eases the
-same at any frame rate; keys are rebindable while the gamepad keeps working (`godot-input`); and the save keeps best
-laps, ghosts and keys (`godot-saves`). One game, written twice: `gdscript/` and `csharp/` (ported from this design).
+same at any frame rate; keys are rebindable while the gamepad keeps working (`input`); and the save keeps best
+laps, ghosts and keys (`saves`). One game, written twice: `gdscript/` and `csharp/` (ported from this design).
 Both behave the same, use the same data files, scene tree, node names and log lines, and pass the same flows.
 Only the code and the test framework differ: GUT for GDScript, gdUnit4 (run by the kit's `gdunit4` runner) for C#.
 

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using Example.Core.Platformer;
 using Godot;
 
-// The CharacterBody2D wiring the godot-input skill shows under "Forgiveness", as a test fixture (Breakout has no
+// The CharacterBody2D wiring the input skill shows under "Forgiveness", as a test fixture (Breakout has no
 // platformer). It logs what it saw on every physics tick, so tests check the windows without depending on frame timing.
 public partial class ForgivingJumper : CharacterBody2D
 {

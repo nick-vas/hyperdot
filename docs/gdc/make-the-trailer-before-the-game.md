@@ -42,8 +42,8 @@
   before the loop is built and the verdict.
 - `ci/godot/templates/TRAILER.md`: the five-line written description, the genre/hook/challenge/depth/content table, the six
   scenes with "in the game yet?", three standout moments, a mechanics table with an on-screen feedback column (empty cells
-  are design work, `godot-juice`), and the checks (show it to someone; pitch without comparisons; Pope's test into the verdict).
-- `.agents/skills/godot-game-plan/SKILL.md` explains the gate; `.agents/skills/godot-store-page/SKILL.md` starts the launch
+  are design work, `game-juice`), and the checks (show it to someone; pitch without comparisons; Pope's test into the verdict).
+- `.agents/skills/game-plan/SKILL.md` explains the gate; `.agents/skills/store-page/SKILL.md` starts the launch
   trailer from this script; `docs/plan.md` lists the gate under "Rules baked into the gates".
 - `tests/Test-Plan.ps1`: on a fresh plan the prototype gate is open, automatic and ordered before `prototype.loop` and
   `prototype.verdict`; `plan -Do done` refuses it (`auto-gate`); it turns done when `docs/TRAILER.md` exists; the template
@@ -57,7 +57,7 @@
 - **Checking the script's content** (are the cells filled?): like the other `file:` gates only existence is checked; a
   filled-in script is the developer's honesty, and the verdict is where Pope's test is applied.
 - **Genre viability research:** he says a trailer does not help with it; `concept.market` already covers comparable games.
-- **Store page timing:** already in `launch.store` and `godot-store-page` (months before launch).
+- **Store page timing:** already in `launch.store` and `store-page` (months before launch).
 
 ## Doubts in the transcript
 

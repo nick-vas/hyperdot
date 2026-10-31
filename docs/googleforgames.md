@@ -7,13 +7,13 @@ out their Google Cloud setup (GKE, Cloud Run, Spanner, Datastore, Memorystore, V
 
 | Repository | What it is | What the kit took |
 |---|---|---|
-| agones | Game servers on Kubernetes: states, health, allocation, fleets | The server's life (`ServerLifecycle`, `HealthWatchdog`), the HTTP SDK (`AgonesRest`), placement and drain rules (`godot-servers` 1 and 2) |
-| open-match, open-match2, open-match-ecosystem, space-agon | Matchmaking: tickets, pools, match functions, evaluator, backfill | `Matchmaker` and its rules (`godot-servers` 5) |
-| quilkin | A UDP proxy for game servers: filters, token routing, rate limits | Floods, tokens, per-address limits, drop reasons (`godot-servers` 3 and 4, `JoinTokens`, `RateLimiter`) |
+| agones | Game servers on Kubernetes: states, health, allocation, fleets | The server's life (`ServerLifecycle`, `HealthWatchdog`), the HTTP SDK (`AgonesRest`), placement and drain rules (`servers` 1 and 2) |
+| open-match, open-match2, open-match-ecosystem, space-agon | Matchmaking: tickets, pools, match functions, evaluator, backfill | `Matchmaker` and its rules (`servers` 5) |
+| quilkin | A UDP proxy for game servers: filters, token routing, rate limits | Floods, tokens, per-address limits, drop reasons (`servers` 3 and 4, `JoinTokens`, `RateLimiter`) |
 | cloud-armor-node-controller | Attaches Google's DDoS policies to game nodes | Only the idea: filter floods at the provider's edge, automatically for every new host |
-| open-saves | A save and storage service | Write tokens, compare-and-swap scores, queryable fields beside the save (`godot-saves` 5) |
-| clean-chat | Scoring toxic chat (text and voice) | `ChatGuard`: a rolling average, act once per crossing, escalate, decide how the scorer fails (`godot-servers` 6) |
-| GenAI-quickstart, homerun | A language model in games: NPC chat, a coach | `godot-llm` |
+| open-saves | A save and storage service | Write tokens, compare-and-swap scores, queryable fields beside the save (`saves` 5) |
+| clean-chat | Scoring toxic chat (text and voice) | `ChatGuard`: a rolling average, act once per crossing, escalate, decide how the scorer fails (`servers` 6) |
+| GenAI-quickstart, homerun | A language model in games: NPC chat, a coach | `llm` |
 | global-multiplayer-demo | Unreal, Agones and Open Match at global scale | Read for how servers use the SDK; its pitfalls are in Agones' row |
 | GenAI-unity-demo, open-match-docs, open-match-community, .allstar, .github | Archived or website only | Nothing |
 
@@ -46,10 +46,10 @@ out their Google Cloud setup (GKE, Cloud Run, Spanner, Datastore, Memorystore, V
   counts the message as clean (score 0.00001). Its sample data is web comments, not game chat; it has no actions, review
   or retention policy of its own.
 - homerun embeds its API key in the client and turns the provider's safety filters off; the GenAI quickstart's persona
-  chat puts player text into the system context. `godot-llm` says why not.
+  chat puts player text into the system context. `llm` says why not.
 
 ## Not done
 
 - A per-packet token check in front of ENet needs a proxy (Quilkin, or a C# relay holding one local port per client):
-  Godot exposes no hook before ENet parses a packet. Recorded as an option in `godot-servers`, not built.
+  Godot exposes no hook before ENet parses a packet. Recorded as an option in `servers`, not built.
 - `soak`'s SIGTERM check does not run on Windows, which has no SIGTERM.

@@ -279,7 +279,7 @@ function Invoke-Soak {
     $summary['stop'] = $stop
     if ($stop -and -not $stop.clean) {
         $how = if ($null -eq $stop.exitCode) { "it was still running after $StopGraceSeconds s and was killed" } elseif ($stop.exitCode -eq 143) { 'it died at once with 143, so the game has no handler' } else { "it exited with $($stop.exitCode)" }
-        Write-CiLog "The server did not stop cleanly on SIGTERM: $how. A deploy or scale-down would end its matches mid-play and lose what was not saved; godot-servers shows the handler."
+        Write-CiLog "The server did not stop cleanly on SIGTERM: $how. A deploy or scale-down would end its matches mid-play and lose what was not saved; servers shows the handler."
     }
     if ($JunkPps -gt 0) {
         $sent = if ($flood -and (Test-Path -LiteralPath $flood.CountFile)) { [long](Get-Content -LiteralPath $flood.CountFile -Raw).Trim() } else { 0 }

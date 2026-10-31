@@ -127,8 +127,11 @@ foreach ($dir in $skillDirs) {
     elseif ($bytes -ge $warnBytes) { Add-Finding warning $name size "SKILL.md is $bytes bytes, close to the $maxBytes limit" }
 
     # Cross-references to other skills
-    foreach ($m in [regex]::Matches($text, '`(godot-[a-z0-9-]+)`')) {
-        $ref = $m.Groups[1].Value
+    # A skill is named in backticks as godot-..., game-..., or as "the `x` skill" / "skill `x`".
+    $refs = @([regex]::Matches($text, '`((?:godot|game)-[a-z0-9-]+)`') | ForEach-Object { $_.Groups[1].Value }) +
+        @([regex]::Matches($text, '`([a-z][a-z0-9-]+)` skill\b|\bskill `([a-z][a-z0-9-]+)`') | ForEach-Object { $_.Groups[1].Value + $_.Groups[2].Value })
+    # game-version is an input of the kit's action, not a skill.
+    foreach ($ref in @($refs | Select-Object -Unique | Where-Object { $_ -ne 'game-version' })) {
         if ($ref -ne $name -and $ref -notin $skillNames -and $ref -notin $agentNames) { Add-Finding error $name cross-reference "refers to skill '$ref', which does not exist" }
     }
 

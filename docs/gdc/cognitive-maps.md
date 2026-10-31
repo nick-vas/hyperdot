@@ -35,8 +35,8 @@
 - `tests/placement-fixture/wayfinding/forest.tscn` and `rule_cases/wayfinding.tscn`, checked by
   `tests/Test-Placement.ps1`: a drifting balloon, a tower seen along one stretch and a trail with nothing ahead on the
   way back give exactly those findings; a canopy over the trail and a beacon behind the start fix them.
-- `godot-game-design` section 7 (the audit table, plan then play, playtests with `--capture=nohud`), the `--capture=nohud` row in
-  `godot-automation-hooks` (capture mode: `godot-debug-tools`), rows in `godot-data` section 6, and the eval `evals/lost-in-level`.
+- `game-design` section 7 (the audit table, plan then play, playtests with `--capture=nohud`), the `--capture=nohud` row in
+  `automation-hooks` (capture mode: `debug-tools`), rows in `game-data` section 6, and the eval `evals/lost-in-level`.
 
 ## Numbers
 

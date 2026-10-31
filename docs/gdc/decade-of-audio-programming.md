@@ -36,7 +36,7 @@
   safe to repeat. Tests: `examples/csharp/tests/Example.Core.Tests/VoiceLimiterTests.cs`. Each of these breaks fails
   at least one test: counting every voice of a kind instead of those within the radius, dropping the cooldown, throwing
   on a second `Release`, reusing handles.
-- `.agents/skills/godot-audio/SKILL.md` section 3: the max-within-radius rule with its source, integer handles rather than
+- `.agents/skills/game-audio/SKILL.md` section 3: the max-within-radius rule with its source, integer handles rather than
   pooled players, refused sounds not retried every frame, the 6 dB rule with Godot's `Mathf.DbToLinear` and
   `Mathf.LinearToDb`, and the measured result below.
 

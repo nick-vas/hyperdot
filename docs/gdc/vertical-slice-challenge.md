@@ -41,7 +41,7 @@ then polished); aim for a realistic bar, not smoke and mirrors; judge the result
   - `slice.verdict` reworded: PROCEED only for the intended experience (not a feature list or a tech demo), with core gameplay
     settled and the debt within what was accepted; otherwise more slice time.
 - `ci/godot/templates/TECH-DEBT.md`: the table, a total against the weekly hours, the threshold, and the budget scene.
-- `.agents/skills/godot-game-plan/SKILL.md`: why the gates exist, and that plans made before them lack them.
+- `.agents/skills/game-plan/SKILL.md`: why the gates exist, and that plans made before them lack them.
 - `docs/plan.md`: the phase table and a rule under "Rules baked into the gates".
 - `tests/Test-Plan.ps1`: on a fresh plan, `slice.debt` is open, turns done when the file exists, and `plan -Do done` refuses
   it (`auto-gate`); `slice.budget` is manual and its quoted flags are real `hyperdot.ps1` parameters; every gate id the planning

@@ -1,6 +1,6 @@
 # Game data: sources and measurements
 
-The research behind the `godot-data` skill, the `data` runner (`ci/godot/lib/Data.ps1`) and the `culture-parse`
+The research behind the `game-data` skill, the `data` runner (`ci/godot/lib/Data.ps1`) and the `culture-parse`
 architecture rule, gathered on 2026-10-21. It draws on Godot's documentation and the 4.7.2 class reference, studio
 devlogs and talks. Tests ran on Linux x86_64 (4 cores), .NET SDK 8.0.131 (runtime 8.0.31) and Godot 4.7.2 mono and
 standard, with C# `[GlobalClass]` Resources saved, edited by hand and reloaded, and a project exported with
@@ -96,7 +96,7 @@ short of a number or of another table's field: `{ "sum": "xp", "by": "zone", "at
 next level); a target row without the field needs nothing. `"names"` at the top level (`table`, `field`, `files` as globs
 where `**/` may match no folder, `allow`) fails on capitalised words of four letters or more one or two letters from a
 canonical name, with the file and line (a comic and the game spelled one character Belrysa and Belysra;
-`godot-narrative`). A required `list` field fails when it is empty, so a loot table cannot lose its last drop. A mistyped id, enum value, column or table is reported with the nearest name when one is close (one
+`narrative`). A required `list` field fails when it is empty, so a loot table cannot lose its last drop. A mistyped id, enum value, column or table is reported with the nearest name when one is close (one
 edit up to six letters, two up to nine; a swap of two letters is one edit). Columns not listed fail unless the table
 says `"extra": "allow"`. A JSON table is an array of
 objects or an object keyed by id. A CSV table without `importer="keep"` in its committed `.import` fails, since it would
@@ -161,7 +161,7 @@ cases of `examples/csharp/tests/Example.Core.Tests/criteria-examples.json` (`Res
 
 ### Soft-lock levels (`"kind": "softlock"`)
 
-Example.Core's `SoftLockCheck` (`examples/csharp/src/Example.Core/Level/SoftLock.cs`, `godot-playtest` section 6)
+Example.Core's `SoftLockCheck` (`examples/csharp/src/Example.Core/Level/SoftLock.cs`, `game-playtest` section 6)
 searches every order of play for a state from which the goal can no longer be reached. A JSON table of
 `"kind": "softlock"` writes levels down as data, so the `data` runner runs the same search (`Invoke-SoftLockSearch` in
 `ci/godot/lib/Data.ps1`) for any game, GDScript included, and a C# game loads the file with `SoftLockTable.Load`
@@ -192,12 +192,12 @@ A table of money flows per hour, Example.Core's `EconomySim` rows (a currency, a
 two fields: `"economy": { "currency": "currency", "rate": "perHour" }`. The runner fails a currency with a source and no
 sink (`currency 'gems' has no sink: daily_gems, quest_gems pay it in and nothing takes it out, so it only piles up`),
 as `EconomySim.WithoutSink` does in code; when the currency field is a `ref`, every currency of that table needs a sink
-even with no flow at all. Simulating the balance over 10, 100 and 1,000 hours stays `EconomySim`'s (`godot-progression`).
+even with no flow at all. Simulating the balance over 10, 100 and 1,000 hours stays `EconomySim`'s (`progression`).
 
 ## Placed objects in levels
 
 `ci/godot/templates/placement_check.gd`, copied into a game's tests, checks every node of the groups `ai_point`,
-`interactable`, `zipline`, `landmark` and `route` in each level against limits read from gameplay code (`godot-data` section 6).
+`interactable`, `zipline`, `landmark` and `route` in each level against limits read from gameplay code (`game-data` section 6).
 `tests/Test-Placement.ps1` proves each rule on `tests/placement-fixture`. Navigation answered under `--headless` after 9
 to 11 physics frames for the first level of a GUT run; the checks took about 10 ms per 1,000 nodes. Source and the
 talk's numbers: [Assassin's Creed Origins: world design data](gdc/assassins-creed-origins-world-data.md). The

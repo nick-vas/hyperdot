@@ -41,7 +41,7 @@
   `game/Main.cs` when the last ball is lost, and read back from sent batches by `RunSummary.FromBatch`.
 - `examples/csharp/tests/Example.Core.Tests/BalanceReportTests.cs`: the three traps, the refusal of choices above the
   floor reached, and the event's consent and round trip.
-- `godot-automation-hooks`, "Reading balance from run data"; `godot-telemetry` §5 points at it.
+- `automation-hooks`, "Reading balance from run data"; `game-telemetry` §5 points at it.
 
 ## Measured (BalanceReportTests)
 
@@ -56,10 +56,10 @@ difficulties pooled.
 
 ## Not taken
 
-- Per-player weighting: the kit's telemetry has no player id by design (`godot-telemetry`), so a session stands in for a
+- Per-player weighting: the kit's telemetry has no player id by design (`game-telemetry`), so a session stands in for a
   player; a player who launches often still counts several times.
 - Intervals on the lift: the counts are reported instead, and a decision goes through `Stats` (`three-statistical-tests.md`).
 - A pick in the C# example: it gives each floor's reward without a choice, so its pick rates are all 1; the event and the
   report carry what a game with choices needs.
 - Feedback bots, Discord, beta branches, the weekly cadence and watching streams: process advice with no code to test.
-- Daily seeds from the date: `godot-procgen` already derives every seed from one run seed.
+- Daily seeds from the date: `procgen` already derives every seed from one run seed.

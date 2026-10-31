@@ -55,7 +55,7 @@
 - Workflow input `retry` (`.github/workflows/godot.yml`, `.github/actions/godot/action.yml`).
 - Skills. `godot-test-loop`: `flaky[]` and `quarantined[]` are not a clean pass; poll a condition with a time-out
   instead of waiting a fixed number of frames (the GUT `wait_until` line was run on Godot 4.7.2 with GUT 9.7.1); never
-  quarantine a test without the user's say. `godot-verify-before-done`: report flaky and quarantined tests by name.
+  quarantine a test without the user's say. `verify-before-done`: report flaky and quarantined tests by name.
 - Proof: `tests/Test-Flaky.ps1` with `tests/flaky-fixture` (GUT: one test fails only on its first run, one always
   fails, one passes).
 

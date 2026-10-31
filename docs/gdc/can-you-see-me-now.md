@@ -45,7 +45,7 @@
   a flashbang popped out of order), `ModifiersOnlyReduceSight`, `ABriefOcclusionDoesNotForgetTheTarget`. Each fails on
   the naive version: ray before shape, first sample only, pop clears every modifier, no clamp, "tracked" meaning
   visible this frame.
-- `.agents/skills/godot-game-ai/SKILL.md` section 6, Perception: the rules above and the Godot wiring through
+- `.agents/skills/game-ai/SKILL.md` section 6, Perception: the rules above and the Godot wiring through
   `PhysicsDirectSpaceState2D.IntersectRay` with exclusions and an occluder mask.
 - Measured once in a scratch Godot 4.7.2 mono project, headless (not in the repository): the skill's `RayTo` wiring
   saw a target whose head ray crossed a small box and whose hips ray did not, in 2 rays; a point behind cost no ray;

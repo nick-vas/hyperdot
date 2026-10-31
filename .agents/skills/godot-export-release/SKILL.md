@@ -26,7 +26,7 @@ holding the game's assembly.
 2. Presets live in `export_presets.cfg`; set `export_path`. Exclude `test/*, addons/gut/*, gdunit4_testadapter*/*`.
 3. Pin `Godot.NET.Sdk/x.y.z` so CI and your machine export with the same engine.
 4. Data files: `.json` ships; `.txt` and `.yaml` only through the preset's include filter; a `.csv` only if imported
-   as Keep File (`godot-data`).
+   as Keep File (`game-data`).
 
 ## Versions
 
@@ -50,7 +50,7 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 export -Json -Quiet -Preset Win
 
 - `ExportRelease` compiles without `DEBUG`: code under `#if DEBUG` and calls to `[Conditional("DEBUG")]` methods are not
   in the release build (checked in the DLL). `OS.IsDebugBuild()` and feature tags only switch at run time; that code
-  still ships. Cheats and debug consoles go under `#if DEBUG` (`godot-debug-tools`).
+  still ships. Cheats and debug consoles go under `#if DEBUG` (`debug-tools`).
 - `dotnet/include_debug_symbols=true` ships `<Name>.pdb`, which gives line numbers in C# stack traces. Upload it to the
   crash service (`sentry-cli debug-files upload`) even if the store build leaves it out.
 - Reproducible: two exports from the same path are byte-identical; from another path the `.pck` stays identical but the DLL and PDB differ.
@@ -116,5 +116,5 @@ Upload only the CI build that `export -Run` launched, from a tag or a manual run
 
 ## Gold master
 
-The checklist is `godot-release-readiness` section 1. In short: tag the release commit, let CI build, and upload the CI
+The checklist is `release-readiness` section 1. In short: tag the release commit, let CI build, and upload the CI
 artifacts, never a build from your machine.

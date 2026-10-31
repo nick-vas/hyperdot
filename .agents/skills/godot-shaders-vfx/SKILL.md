@@ -6,7 +6,7 @@ description: Use when writing or reviewing a Godot shader, particle effect, full
 # Shaders, particles and post-processing in Godot 4
 
 Sources, tests and renderer details: `${CLAUDE_PLUGIN_ROOT}/docs/art.md`. Every shader below compiles and renders in Godot
-4.7.2 (the kit compiles them in CI). Feel and timing of effects live in `godot-juice`; this skill is how to build them.
+4.7.2 (the kit compiles them in CI). Feel and timing of effects live in `game-juice`; this skill is how to build them.
 
 ## 1. Shader basics
 
@@ -181,7 +181,7 @@ compare tiers in one run: `bench -Sweep quality=low,medium,high`.
 Each post there is CC0, MIT or GPL v3, chosen by its author and shown at the bottom of the post; its images and videos are not
 covered. Record each one in `assets.json` (source URL, author, licence: `CC0-1.0`, `MIT`, `GPL-3.0-only`); `doctor` warns
 about GPL, which would bind the whole game. MIT asks for nothing on screen; the shipped build needs its copyright line
-and licence text, which `credits` writes (`godot-asset-pipeline`).
+and licence text, which `credits` writes (`asset-pipeline`).
 
 ## 7. Prove it
 

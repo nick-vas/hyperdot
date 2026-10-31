@@ -36,7 +36,7 @@ of attacks on Dota and CS:GO.
 
 ## What the kit took, and where
 
-- A new section **"Denial of service and player IPs"** in `.agents/skills/godot-anti-cheat/SKILL.md` (section 6): ENet
+- A new section **"Denial of service and player IPs"** in `.agents/skills/anti-cheat/SKILL.md` (section 6): ENet
   peer-to-peer and listen servers expose each player's IP; on Steam, relay and identify peers by Steam ID; set a
   `SceneMultiplayer` auth callback and a short timeout; keep addresses out of rich presence, spectator data and debug
   overlays; put the backend on HTTP; record a match result even when the server dies mid-match; give bans a re-entry

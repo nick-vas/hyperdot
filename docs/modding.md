@@ -1,6 +1,6 @@
 # Mod support: sources and measurements
 
-The research behind the `godot-modding` skill and the `untrusted-load` architecture rule, gathered on 2026-10-21. It
+The research behind the `modding` skill and the `untrusted-load` architecture rule, gathered on 2026-10-21. It
 draws on the Godot 4.7.2 class reference and source, Godot's export documentation, Steamworks and mod.io documentation.
 Tests ran on Linux with Godot 4.7.2 (mono and standard), .NET 8 (SDK 8.0.131) and Xvfb: a C# game exported for Linux
 loaded a GDScript mod exported as PCK and ZIP, and a C# mod built with `Godot.NET.Sdk/4.7.2`. Marks: **tested** means

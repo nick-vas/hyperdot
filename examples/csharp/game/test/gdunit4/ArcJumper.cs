@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using Example.Core.Platformer;
 using Godot;
 
-// The CharacterBody2D wiring the godot-math skill shows under "Jumps designed by height and distance", as a test
+// The CharacterBody2D wiring the math skill shows under "Jumps designed by height and distance", as a test
 // fixture (Breakout has no platformer). It runs sideways at its foot speed, jumps on its first tick on the floor and
 // logs its position and floor contact after every physics tick. Exact = false is the usual template: gravity added to
 // the velocity before MoveAndSlide, skipped while on the floor.

@@ -54,7 +54,7 @@
 - Email, web UI and bug-tracker buttons: an agent reads the JSON, so the headline is a field, not a subject line.
 - Last five results and the change list for each failure: the history file has the runs, and an agent knows its own
   change. A per-test streak in `status` could come later.
-- Running twice to check determinism, and grouping crashes without line numbers: already in `godot-determinism`
+- Running twice to check determinism, and grouping crashes without line numbers: already in `determinism`
   (`DeterminismCheck`) and Example.Core's `CrashFingerprint`.
 - Per-test time limits: the kit limits each program (`HYPERDOT_TIMEOUT`), not each test.
 - End-of-replay screenshots: `shot -Baseline` already compares screenshots; a playthrough runner is still on the roadmap.

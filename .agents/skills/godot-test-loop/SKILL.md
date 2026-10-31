@@ -25,8 +25,8 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 test -Json -Quiet   # failures 
    A pass before you wrote the code means the test checks nothing.
 4. **Make it pass with the smallest change.**
 5. **Run the whole suite.** `test -Json` with no filter. `validate`, `flows` and `smoke` run too: they catch broken
-   scene references, broken UI flows and runtime errors that no unit test covers (`godot-ui-flows`).
-6. **Refactor with the kit green**, then repeat. Before saying it is done, follow `godot-verify-before-done`.
+   scene references, broken UI flows and runtime errors that no unit test covers (`ui-flows`).
+6. **Refactor with the kit green**, then repeat. Before saying it is done, follow `verify-before-done`.
 
 ## Choosing a framework
 
@@ -100,7 +100,7 @@ Full contract: `docs/json.md`. Logs are on stderr; never parse them when the JSO
 - Never skip, delete or loosen a test to get green. Fix the code or ask.
 - New bug -> first a regression test that fails, then the fix.
 - Objects placed in levels (AI points, interactables, zip lines, landmarks) are checked in every run, not by hand:
-  `godot-data` section 6.
+  `game-data` section 6.
 - Let the code's own checks do the testing (Kevin Dill, Kythera AI, GDC): validators and `push_error`/`push_warning` in
   the game catch what tests at the interface cannot see. An unexpected one fails the test (GUT 9.7.1 fails on
   `push_error` by default; the kit fails on `ERROR:`); an expected one is counted exactly: feed a bad data file and

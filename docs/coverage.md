@@ -165,7 +165,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `flows.gd` | `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Flows.ps1`, `Test-Layout.ps1`, `Test-Localization.ps1`, `Test-MonoAudio.ps1` and 6 more |
 | `glyphs.gd` | `Test-Localization.ps1` |
 | `Heatmap.cs` | `Test-Playtest.ps1` |
-| `Initialize-HyperdotGame.ps1` | `Test-InitializeGame.ps1` |
+| `Initialize-HyperdotGame.ps1` | `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-InitializeGame.ps1` |
 | `Invoke-Canary.ps1` | `Test-UpdatePins.ps1` |
 | `layout.gd` | `Test-Deck.ps1`, `Test-Layout.ps1` |
 | `notices.gd` | `Test-Credits.ps1`, `Test-ErrorCodes.ps1` |
@@ -190,58 +190,58 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 
 | Skill | Covered by |
 |---|---|
+| `algorithms` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `animation` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `anti-cheat` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `asset-pipeline` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `automation-hooks` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `camera` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `console-cert` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `debug-tools` | `Test-Capture.ps1`, `Test-Help.ps1`, `Test-Skills.ps1` |
+| `determinism` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `game` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `game-ai` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `game-audio` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `game-data` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `game-design` | `Test-Data.ps1`, `Test-Help.ps1`, `Test-Skills.ps1` |
+| `game-juice` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `game-plan` | `Test-Context.ps1`, `Test-Help.ps1`, `Test-Plan.ps1`, `Test-Skills.ps1` |
+| `game-playtest` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `game-telemetry` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `godot-addons` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-algorithms` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-animation` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-anti-cheat` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-asset-pipeline` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-audio` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-automation-hooks` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-camera` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-console-cert` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-data` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-debug-tools` | `Test-Capture.ps1`, `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-determinism` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `godot-diagnose` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `godot-editor-bridge` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `godot-export-release` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-game-ai` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-game-design` | `Test-Data.ps1`, `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-game-plan` | `Test-Context.ps1`, `Test-Help.ps1`, `Test-Plan.ps1`, `Test-Skills.ps1` |
-| `godot-input` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-juice` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-legal` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-llm` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-localization` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-math` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-mobile-web` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-modding` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-multiplayer` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-narrative` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-patterns` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-performance` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `godot-pitfalls` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-playtest` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-procgen` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-progression` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-release-readiness` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-saves` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-servers` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `godot-shaders-vfx` | `Test-SkillShaders.ps1`, `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-steam` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-store-page` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-telemetry` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `godot-test-loop` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-ui-accessibility` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-ui-flows` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-verify-before-done` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-xr` | `Test-Help.ps1`, `Test-Skills.ps1`, `Test-Xr.ps1` |
+| `input` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `kit` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `kit-review` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `legal` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `llm` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `localization` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `look` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `math` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `mobile-web` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `modding` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `multiplayer` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `narrative` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `patterns` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `performance` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `procgen` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `progression` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `release-readiness` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `retro` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `saves` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `servers` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `steam` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `store-page` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `ui-accessibility` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `ui-flows` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `verify-before-done` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `weekly-review` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `xr` | `Test-Help.ps1`, `Test-Skills.ps1`, `Test-Xr.ps1` |
 
 ## Subagents
 

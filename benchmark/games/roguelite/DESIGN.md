@@ -2,10 +2,10 @@
 
 The fifth genre of the staged game programme (`benchmark/PLAN.md`): the one that exercises procedural generation, game
 AI, saves and performance with many entities. Every floor is generated from a seed and checked by a sweep of seeds
-(`godot-procgen`), the enemies wander and hunt by a small state machine over one shared distance field
-(`godot-game-ai`), a swarm of hundreds is one flag away for `bench` (`godot-performance`), meta progress outlasts the
-runs in a versioned save (`godot-saves`), and nothing in the simulation reads the clock or the global generator
-(`godot-determinism`). One game, written twice: `gdscript/` and `csharp/` (ported from this design). Both
+(`procgen`), the enemies wander and hunt by a small state machine over one shared distance field
+(`game-ai`), a swarm of hundreds is one flag away for `bench` (`performance`), meta progress outlasts the
+runs in a versioned save (`saves`), and nothing in the simulation reads the clock or the global generator
+(`determinism`). One game, written twice: `gdscript/` and `csharp/` (ported from this design). Both
 behave the same, use the same data files, scene tree, node names and log lines, and pass the same flows. Only the code
 and the test framework differ: GUT for GDScript, gdUnit4 (run by the kit's `gdunit4` runner) for C#.
 
