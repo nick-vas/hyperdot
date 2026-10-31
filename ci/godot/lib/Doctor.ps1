@@ -620,6 +620,8 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
 
     # The instructions every agent session loads, against the kit's real flags and the project's real files.
     foreach ($problem in @(Get-InstructionProblems $project)) { Add-Check $problem.Status $problem.Message $problem.Fix }
+    $copyProblem = Get-PluginCopyProblem $project
+    if ($copyProblem) { Add-Check $copyProblem.Status $copyProblem.Message $copyProblem.Fix }
 
     # Work that lives on one disk is lost with it (Eastshade postmortem); keep the game in git with a remote.
     $gitRoot = Get-GitRoot $project
