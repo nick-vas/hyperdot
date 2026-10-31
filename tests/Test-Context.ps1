@@ -18,7 +18,7 @@ $gameDir = Join-Path ([System.IO.Path]::GetTempPath()) "ctx-$PID"
 New-Item -ItemType Directory -Force -Path $gameDir | Out-Null
 $realFile = Join-Path $gameDir 'real.ps1'
 Set-Content -LiteralPath $realFile 'x'
-$text = "Run ``$($realFile -replace '\\', '/')`` first.`nDo not commit ``.godot/``, ``bin/``, ``obj/``, ``test-results/``.`nSee ``docs/nothing.md`` for more.`nThe ``build/`` and ``obj/`` folders appear after a run.`n"
+$text = "Run ``$($realFile -replace '\\', '/')`` first.`nDo not commit ``.godot/``, ``bin/``, ``obj/``, ``test-results/``.`nSee ``docs/nothing.md`` for more.`nThe per-machine ``.claude/settings.local.json`` is never in a clone.`nThe ``build/`` and ``obj/`` folders appear after a run.`n"
 $pathProblems = @(Get-InstructionPathProblems $text 'AGENTS.md' $gameDir $gameDir $gameDir)
 Assert-True ($pathProblems.Count -eq 1 -and $pathProblems[0] -match 'docs/nothing\.md') "only the missing relative file is reported: $($pathProblems -join ' | ')"
 Remove-Item -LiteralPath $gameDir -Recurse -Force
@@ -90,6 +90,36 @@ try {
     Assert-True ($messages -match 'commands or flags it does not have' -and $messages -match 'name files that do not exist') 'doctor reports them'
 } finally {
     Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+# The kit's skills and subagents both copied into the game and loaded through the enabled plugin: listed twice, so a warning.
+$copyDir = Join-Path ([System.IO.Path]::GetTempPath()) "context-copies-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
+try {
+    New-Item -ItemType Directory -Force (Join-Path $copyDir '.claude') | Out-Null
+    & git -C $copyDir init -q
+    Assert-True ($null -eq (Get-PluginCopyProblem $copyDir)) 'no plugin and no copies: nothing to say'
+    New-Item -ItemType Directory -Force (Join-Path $copyDir '.claude/skills/godot-game-plan'), (Join-Path $copyDir '.agents/skills/godot-game-plan'), (Join-Path $copyDir '.claude/skills/my-own-skill') | Out-Null
+    Assert-True ($null -eq (Get-PluginCopyProblem $copyDir)) 'copies without the plugin are the way to use the kit, so no warning'
+    Set-Content -LiteralPath (Join-Path $copyDir '.claude/settings.json') '{ "enabledPlugins": { "hyperdot@hyperdot": false } }'
+    Assert-True ($null -eq (Get-PluginCopyProblem $copyDir)) 'a plugin that is switched off does not count'
+    Set-Content -LiteralPath (Join-Path $copyDir '.claude/settings.json') '{ "enabledPlugins": { "hyperdot@hyperdot": true } }'
+    $copyWarn = Get-PluginCopyProblem $copyDir
+    Assert-True ($copyWarn -and $copyWarn.Status -eq 'WARN' -and $copyWarn.Message -match 'godot-game-plan \(\.claude/skills, \.agents/skills\)' -and $copyWarn.Message -match '^1 kit skill') 'copies plus the enabled plugin warn, naming the skill and both places'
+    Assert-True ($copyWarn.Message -notmatch 'my-own-skill') "a skill the game wrote itself is not counted: $($copyWarn.Message)"
+    Remove-Item -LiteralPath (Join-Path $copyDir '.claude/settings.json')
+    Set-Content -LiteralPath (Join-Path $copyDir '.claude/settings.local.json') '{ "enabledPlugins": { "hyperdot@hyperdot": true } }'
+    New-Item -ItemType Directory -Force (Join-Path $copyDir '.claude/agents') | Out-Null
+    Set-Content -LiteralPath (Join-Path $copyDir '.claude/agents/godot-verifier.md') 'x'
+    $copyWarn = Get-PluginCopyProblem $copyDir
+    Assert-True ($copyWarn -and $copyWarn.Message -match '^2 kit' -and $copyWarn.Message -match 'godot-verifier \(\.claude/agents\)') 'settings.local.json counts too, and a copied subagent is listed'
+    Set-Content -LiteralPath (Join-Path $copyDir '.claude/settings.local.json') '{ not json'
+    Assert-True ($null -eq (Get-PluginCopyProblem $copyDir)) 'a settings file that is not JSON is left alone'
+    Set-Content -LiteralPath (Join-Path $copyDir '.claude/settings.local.json') '{ "enabledPlugins": { "hyperdot@hyperdot": true } }'
+    Set-Content -LiteralPath (Join-Path $copyDir 'project.godot') "config_version=5`n`n[application]`n`nconfig/name=`"Copies`"`n"
+    $copyJson = & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') doctor -Project $copyDir -Json 2>$null | Out-String | ConvertFrom-Json
+    Assert-True (@($copyJson.checks | Where-Object { $_.status -eq 'WARN' -and $_.message -match 'also come from the enabled hyperdot plugin' }).Count -eq 1) 'doctor shows the warning once'
+} finally {
+    Remove-Item -LiteralPath $copyDir -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 if ($failures.Count) { throw "$($failures.Count) context check(s) failed" }

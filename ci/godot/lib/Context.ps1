@@ -148,11 +148,47 @@ function Get-InstructionPathProblems([string]$Text, [string]$Where, [string]$Pro
             if (-not $seen.Add("$($c.text)")) { continue }
             # The folders the kit's own runs create (.godot, bin, obj, test-results, build) are not "missing" before the first run.
             if ($clean -match '^(\.godot|bin|obj|test-results|build|gdunit4_testadapter[^/]*)/?$') { continue }
+            # Claude Code's per-machine settings are git-excluded by design (Initialize-HyperdotGame.ps1 writes them), never in a clone.
+            if ($clean -match '(^|/)\.claude/settings\.local\.json$') { continue }
             $found = @($c.roots | Where-Object { $null -ne $_ -and (Test-Path -LiteralPath $(if ($_ -eq '') { $clean } else { Join-Path $_ $clean })) })
             if ($found.Count -eq 0) { $problems.Add("${Where}:$number $($c.text)") }
         }
     }
     return @($problems)
+}
+
+# doctor: a WARN when the game has the kit's skills or subagents both as copies (init -Agents) and through the enabled
+# plugin (init -Plugin), which lists each twice (/godot-game-plan and hyperdot:godot-game-plan) and leaves the copy to go
+# stale as the kit changes. Only copies of the kit's own names count; a skill the game wrote itself is left alone.
+function Get-PluginCopyProblem([string]$ProjectDir) {
+    $root = Get-GitRoot $ProjectDir
+    $root = if ($root) { $root } else { $ProjectDir }
+    $enabled = $false
+    foreach ($name in 'settings.json', 'settings.local.json') {
+        $file = Join-Path $root ".claude/$name"
+        if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { continue }
+        try { $settings = Get-Content -LiteralPath $file -Raw | ConvertFrom-Json -AsHashtable } catch { continue }
+        if ($settings -isnot [System.Collections.IDictionary] -or -not $settings.Contains('enabledPlugins')) { continue }
+        $plugins = $settings['enabledPlugins']
+        if ($plugins -isnot [System.Collections.IDictionary]) { continue }
+        foreach ($key in $plugins.Keys) { if ("$key" -like 'hyperdot@*' -and $plugins[$key] -eq $true) { $enabled = $true } }
+    }
+    if (-not $enabled) { return $null }
+    $suiteRoot = Split-Path (Split-Path (Split-Path $PSScriptRoot))
+    $copies = [System.Collections.Generic.List[string]]::new()
+    foreach ($skill in @(Get-ChildItem -LiteralPath (Join-Path $suiteRoot '.agents/skills') -Directory)) {
+        $where = @(foreach ($base in '.claude/skills', '.agents/skills') { if (Test-Path -LiteralPath (Join-Path $root "$base/$($skill.Name)")) { $base } })
+        if ($where.Count) { $copies.Add("$($skill.Name) ($($where -join ', '))") }
+    }
+    foreach ($agent in @(Get-ChildItem -LiteralPath (Join-Path $suiteRoot 'agents') -File -Filter '*.md')) {
+        if (Test-Path -LiteralPath (Join-Path $root ".claude/agents/$($agent.Name)")) { $copies.Add("$($agent.BaseName) (.claude/agents)") }
+    }
+    if ($copies.Count -eq 0) { return $null }
+    $shown = (@($copies) | Select-Object -First 5) -join '; '
+    if ($copies.Count -gt 5) { $shown += "; and $($copies.Count - 5) more" }
+    return [pscustomobject]@{ Status = 'WARN'
+        Message = "$($copies.Count) kit skill(s) or subagent(s) are in the game as copies and also come from the enabled hyperdot plugin, so each is listed twice (/godot-game-plan and hyperdot:godot-game-plan) and the copy goes stale as the kit changes: $shown"
+        Fix = 'Delete the copies (the plugin loads them from the kit); keep them only if an agent other than Claude Code reads .agents/skills' }
 }
 
 # doctor: one { Status, Message, Fix } per finding for the project's instruction files.

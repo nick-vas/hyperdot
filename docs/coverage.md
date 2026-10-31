@@ -123,7 +123,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Audio.ps1` | 10/11 | `Test-Localization.ps1`, `Test-SelectJobs.ps1`, `Test-Audio.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-Addons.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1` and 6 more |
 | `BuildSize.ps1` | 4/4 | `Test-BuildSize.ps1`, `Test-SelectJobs.ps1`, `Test-ErrorCodes.ps1` |
 | `Common.ps1` | 46/52 | `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-BenchSweep.ps1`, `Test-GpuValidation.ps1`, `Test-Localization.ps1`, `Test-Palette.ps1`, `Test-Playthrough.ps1`, `Test-Soak.ps1` and 54 more |
-| `Context.ps1` | 8/8 | `Test-Context.ps1`, `Test-Help.ps1`, `Test-DoctorFixture.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1` and 5 more |
+| `Context.ps1` | 8/9 | `Test-Context.ps1`, `Test-Help.ps1`, `Test-DoctorFixture.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1` and 5 more |
 | `Credits.ps1` | 6/7 | `Test-Credits.ps1`, `Test-ErrorCodes.ps1` |
 | `Data.ps1` | 0/20 | `Test-Data.ps1` |
 | `Deck.ps1` | 3/3 | `Test-Deck.ps1` |
@@ -208,7 +208,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `godot-export-release` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `godot-game-ai` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `godot-game-design` | `Test-Data.ps1`, `Test-Help.ps1`, `Test-Skills.ps1` |
-| `godot-game-plan` | `Test-Help.ps1`, `Test-Plan.ps1`, `Test-Skills.ps1` |
+| `godot-game-plan` | `Test-Context.ps1`, `Test-Help.ps1`, `Test-Plan.ps1`, `Test-Skills.ps1` |
 | `godot-input` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `godot-juice` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `godot-legal` | `Test-Help.ps1`, `Test-Skills.ps1` |
@@ -250,7 +250,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | Subagent | Covered by |
 |---|---|
 | `godot-architect` | `Test-Handoffs.ps1`, `Test-Help.ps1` |
-| `godot-verifier` | `Test-Handoffs.ps1`, `Test-Help.ps1`, `Test-SelectJobs.ps1`, self-test.yml init: Agent efficiency |
+| `godot-verifier` | `Test-Context.ps1`, `Test-Handoffs.ps1`, `Test-Help.ps1`, `Test-SelectJobs.ps1`, self-test.yml init: Agent efficiency |
 
 ## Workflow jobs, actions, hooks and the GitLab template
 

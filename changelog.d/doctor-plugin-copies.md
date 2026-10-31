@@ -1,0 +1,1 @@
+Added: `doctor` warns when the kit's skills or subagents are in the game as copies (`init -Agents`) and also come from the enabled hyperdot plugin, so each shows twice (`/godot-game-plan` and `hyperdot:godot-game-plan`) and the copy goes stale.
