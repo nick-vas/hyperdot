@@ -484,8 +484,6 @@
 - **`init` pins the kit's workflow at `@v1`** instead of `@main`, so a kit change reaches a game only when a release
   moves the `v1` tag, and a game moves up on purpose. The docs' snippets use `@v1` too. The tag is created at the 0.1.0
   release; a workflow `init` wrote earlier keeps its ref.
-- **Trello sync is marked experimental** wherever it is described (README, `docs/plan.md`, `docs/reference.md`,
-  `docs/json.md`, the skills): it has met only a stand-in Trello, and it uses API keys, not the Trello connector.
 - **The Stop hook says what it checks.** The README, `docs/reference.md`, the hook, the plugin's description and
   `godot-verify-before-done` say plainly that it only checks that the tests passed after the last edit; it is not a design
   or code review.
@@ -505,19 +503,15 @@
   instead of passing unchecked; `export -Run` launches the build with a window for it. `tests/Test-GpuValidation.ps1`
   binds a float texture to an unsigned-integer image in a compute shader, which Godot lets through and the layer
   reports as `VUID-vkCmdDispatch-format-07753`; it runs on Mesa's lavapipe in the web job.
-- **Plan tasks and Trello: the six bugs from the connector test.**
+- **Plan tasks and the board sync: the six bugs from the connector test.**
   - `plan -Do move`, `add` and `link` take a board list's name as `-Column` ("To Do", "testing", "Done" with an emoji),
     case-insensitive and by prefix as sync matches lists, as well as the column id; `plan.json` stores the id. A name
     that is neither fails with `invalid-arguments` and lists both.
   - `plan -Do remove -Id <task>` deletes a task. Its id is never given again (`lastTaskNumber`), and its card goes on
-    `trello.toArchive`, which the next `plan -Do sync` archives (`sync.archived`); with the Trello connector, `/game`
-    archives it itself from the returned `task.cardId`.
+    the plan's archive list, which the next `plan -Do sync` archives (`sync.archived`).
   - A card a person adds on the board becomes a task in its list's column on `plan -Do sync` (`sync.imported`). A card
     the kit made for a task no task links now (`plan task <id>` in its description) is reported, not imported.
   - `plan -Do sync` records the board's column (`boardColumn`) of a task it moves; the self-test now checks it.
-  - `-Card` takes the Trello connector's ARI (`ari:cloud:trello::card/workspace/<workspace>/<card>`) and stores the
-    plain 24-hex id; `sync` fixes an ARI an older plan stored; a card URL is refused. `-Board` also takes a board URL or
-    ARI.
   - `move`, `remove` and `link` return `task` with `-Json`, like `add`.
 - **`plan -Do reopen -Id <gate>`** opens a manual gate marked done again, without editing `plan.json` (note 13). An
   automatic gate is refused with `auto-gate`: it opens by itself when the project stops meeting it.
@@ -634,10 +628,10 @@
     552 of 580 tests never ran. A solution that lists a project of the same name elsewhere was also taken.
   - **Stop hook:** any passing `test` run satisfied it (`-Runners none`, a `-Filter`). It also missed deletions,
     commits, non-ASCII names and data files.
-  - **Trello sync:**
+  - **Board sync:**
     - undid a local `plan -Do move`;
     - duplicated cards after a failure halfway;
-    - dropped a custom `trello.lists` mapping.
+    - dropped a custom list mapping.
   - **Plan and status:**
     - the `tests` gate and doctor counted the data and l10n runners as tests;
     - `status` failed outright on a plan problem.
@@ -684,15 +678,13 @@
 - Docs cleanup for the first release. README: a prerequisites section (Node.js for Web runs and two MCP servers, uv, ffmpeg, a
   display), the `-Project` form throughout, 50 skills grouped by area, every page in `docs/` linked, what each command
   writes into a project, and a refreshed status (exports run, eval results). `docs/roadmap.md` keeps only what is open
-  (44 KB to 24 KB): the release plan, what was decided, the open Trello work (the live run waits for the repository's
+  (44 KB to 24 KB): the release plan, what was decided, the open sync work (the live run waits for the repository's
   secrets) and three to-do groups. `docs/strategies.md` is retired into the roadmap's decisions. AGENTS.md lists the
   self-tests once, in a table; `docs/reference.md` documents `-Templates` and the environment variables.
-- `tests/Test-TrelloSync.ps1` tests `plan -Do sync`: cards created in the right lists (a prefix match on "Done" plus an
-  emoji), a second sync that changes nothing, a card moved on the board, an archived card, a short link as `-Board`, a
-  missing list, missing and rejected credentials, and no token in the output or a URL. It runs against a stand-in Trello
-  in the self-test, and with `-Live` against the real API (the manual Trello sync workflow, with the `TRELLO_KEY` and
-  `TRELLO_TOKEN` repository secrets). The credentials message and `docs/plan.md` point to trello.com/power-ups/admin,
-  which replaced the old app-key page.
+- A self-test of `plan -Do sync`: cards created in the right lists (a prefix match on "Done" plus an emoji), a second sync that changes
+  nothing, a card moved on the board, an archived card, a short link as `-Board`, a missing list, missing and rejected
+  credentials, and no token in the output or a URL. It runs against a stand-in service in the self-test, and live against the
+  real API (a manual workflow with repository secrets).
 - `plan` works on PCs with a day-first date format (Greek, and most of Europe): every plan command after `init` failed
   with "String '10/23/2026 05:57:27' was not recognized as a valid DateTime", because the phase's start time was read back
   through text in the PC's culture. Stored times now go through `ConvertTo-UtcTime` (Common.ps1), which also keeps
@@ -716,8 +708,8 @@
   `godot-progression`, `godot-multiplayer`, `godot-modding`, `godot-shaders-vfx`, `godot-game-design` and
   `godot-algorithms`. Contradictions fixed (Steam Auto-Cloud roots, seeded random in game AI, bot flags only in debug
   builds, MIT credits, hit-stop length, VRAM compression for 3D only, saving on suspend per platform, volume buses, one
-  `--capture=nohud` flag); the `playthrough` runner replaces grepping for an ending; `/game` writes Trello cards the way
-  `plan -Do sync` does, and Trello sync is marked experimental. Descriptions are narrower and no longer share
+  `--capture=nohud` flag); the `playthrough` runner replaces grepping for an ending; `/game` writes board cards the way
+  `plan -Do sync` does, and the board sync is marked experimental. Descriptions are narrower and no longer share
   triggers; legal, audio and game AI moved detail to side files; duplicated advice has one owner. The skill validator
   now checks kit commands in side files too (`tests/skill-fixtures/bad-side-file`). `Update-Versions.ps1` and the credits
   error name the merged skills.
@@ -1189,9 +1181,9 @@
   - `status -Json`: GDD features with the tests tagged `GDD:F<n>`, the plan, the latest run of each command, git activity and an
     inventory (scenes, autoloads, input actions, TODOs), with warnings. Read-only.
   - `ci/godot/templates/GDD.md`, a GDD format the kit can read; `examples/breakout` has a GDD and tagged tests.
-  - `plan -Do add -Feature F3` links a task to a feature; `plan -Do link` records a task's feature, Trello card and the card's
-    list, or the plan's board; `plan -Json` returns `tasks[]` and `trelloBoard`.
-  - Skills: `game` (judges each feature with evidence in `plan/STATUS.md`, drafts the GDD the first time, keeps the Trello
+  - `plan -Do add -Feature F3` links a task to a feature; `plan -Do link` records a task's feature, board card and the card's
+    list, or the plan's board; `plan -Json` returns `tasks[]` and the board.
+  - Skills: `game` (judges each feature with evidence in `plan/STATUS.md`, drafts the GDD the first time, keeps the
     board in step through the connector with the user's moves winning, proposes next tasks) and `weekly-review`.
   - The `AGENTS.md` template adds the scope rule (ask before building what the GDD does not contain) and the test tag.
 - Weekly canary (`.github/workflows/canary.yml`, Fridays 18:47 UTC): `ci/godot/tools/Update-Versions.ps1` compares the pinned
@@ -1237,7 +1229,7 @@
 - `flows` runner: declarative `*.flow.json` UI flows played headless in the real engine (press, input actions, waits, asserts on node properties).
 - Editor-bridge MCP: `init -Mcp godot-mcp` registers satelliteoflove/godot-mcp in `.mcp.json` (adds only, backs up); docs/mcp.md compares it with godot-ai.
 - `init -McpDiagnostics`: registers minimal-godot-mcp (GDScript diagnostics and the running game's console) next to the editor bridge; fixed `init -Mcp` failing when `.mcp.json` did not exist yet.
-- `plan -Do add|move|sync`: tasks with a work-in-progress limit, and Trello sync (plan.json stays the source of truth).
+- `plan -Do add|move|sync`: tasks with a work-in-progress limit, and board sync (plan.json stays the source of truth).
 - Skill quality: `ci/godot/tools/Test-Skills.ps1` validates structure, budgets, discoverability and that quoted commands, error codes and versions are real; fixtures that must fail; new `godot-verify-before-done`, `godot-ui-flows`, `godot-editor-bridge` skills; original descriptions rewritten to triggers only.
 - Nine agent skills in `.agents/skills`, `AGENTS.md`/`CLAUDE.md` templates, and `init -Agents` to install them.
 - Godot 4.7.2 as the default and example target; GUT is reinstalled when the Godot minor changes (stamped copies only).

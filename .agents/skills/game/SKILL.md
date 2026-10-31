@@ -104,7 +104,6 @@ Run `plan -Do sync` and read `sync` in the result:
   removed tasks.
 - `imported` tasks are items the user added on the board; if one is not in the GDD, raise it under the scope rule below.
 - `warnings` name items that are gone or that the kit made for a task nobody links; mention them.
-- A plan left by the Trello sync loses its card ids on the first sync (`droppedTrelloLinks`) and every task gets an item.
 
 List every item created or moved under "Board changes" in `STATUS.md`. If `sync` fails with `project-credentials`, tell
 the user to run `gh auth refresh -s project` and carry on with the plan alone. The plugin's Stop hook runs the same sync

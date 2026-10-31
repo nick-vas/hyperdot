@@ -10,7 +10,7 @@
 # credentials fail with their codes, and the token never appears in the kit's output. Column names ("To Do", "testing")
 # work in move, add and link; an item a person adds becomes a task; a removed task's item is archived by the next sync and
 # its id is not given again; an item the kit made for a task no one links is reported; -Board takes <owner>/<number>, a
-# project URL or an owner; a plan left by the Trello sync loses its card ids and block and gets items.
+# project URL or an owner.
 param([switch]$Live, [switch]$KeepProject)
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
@@ -346,17 +346,6 @@ try {
     $d = Invoke-PlanJson @('-Do', 'link', '-Board', $projectOwner)
     Assert-True (-not $d.ok -and $d.error.code -eq 'invalid-arguments') 'link -Board with just an owner is refused (only sync makes projects)'
     Invoke-PlanJson @('-Do', 'link', '-Board', "$projectOwner/$number") | Out-Null
-
-    # A plan the Trello sync left: card ids and the trello block go; every task gets an item.
-    $plan = Read-PlanFile
-    (@($plan.tasks) | Where-Object { $_.id -eq 't2' }) | Add-Member -NotePropertyName cardId -NotePropertyValue ('a1' * 12) -Force
-    (@($plan.tasks) | Where-Object { $_.id -eq 't2' }).PSObject.Properties.Remove('itemId')
-    $plan | Add-Member -NotePropertyName trello -NotePropertyValue ([pscustomobject]@{ board = 'AbCd1234' }) -Force
-    Save-PlanFile $plan
-    $d = Invoke-PlanJson @('-Do', 'sync')
-    Assert-True ($d.ok -and $d.sync.droppedTrelloLinks -ge 1 -and $d.sync.created -eq 1) "a Trello plan loses its card ids and gets items: $(if ($d.ok) { ConvertTo-Summary $d.sync } else { $d.error.message })"
-    $plan = Read-PlanFile
-    Assert-True (-not $plan.PSObject.Properties['trello'] -and @($plan.tasks | Where-Object { $_.PSObject.Properties['cardId'] }).Count -eq 0 -and (Get-PlanTask 't2').itemId -match '^PVTI_') 'the trello block and every cardId are gone'
 
     # The Stop hook syncs a changed plan by itself, once, and never blocks.
     if (-not $Live) {

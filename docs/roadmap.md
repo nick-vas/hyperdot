@@ -73,9 +73,6 @@ Checking the model graders the same way needs a model call per check, and is not
   session that built it could reach neither the Projects API nor the `gh project` manual, so the calls follow the help text of
   `gh` 2.89 (`gh project --help`). The stand-in run passes in the self-test.
 - **Board view.** The CLI cannot create or edit a project's views, so the owner sets the Board view to group by Column once.
-- **Trello removed.** The Trello sync, its test and workflow, and the `trello-*` error codes are gone; a plan from the old sync is
-  migrated by the first `plan -Do sync` (its card ids are dropped and every task gets an item). The owner's Trello board for
-  the game is untouched and can be archived by hand.
 
 The six bugs the connector test found (list names as columns, cards added on the board, `boardColumn`, removing a
 task, ARI card ids) are fixed and pass against the mock; the live run should also cover importing a card and archiving
