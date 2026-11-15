@@ -83,14 +83,14 @@
       "why": "its README: \"Consider this more as a demo and don't use this for bigger projects\"; its releases are alphas (4.7-alpha21), for Windows and Linux 64-bit only",
       "fix": "Write the game's code in GDScript or C#, and keep py4godot to experiments (docs/addons.md)",
       "archived": null,
-      "head": "6a7ec2b5947d47bab7c199523490159d9b72fdaa",
+      "head": "66f47874be0192988e380382709a56cebae4d585",
       "releaseZip": {
         "tag": "4.7-alpha21",
         "asset": "py4godot.zip",
         "prefix": "install_dir/",
         "checked": "2026-10-29"
       },
-      "confirmed": "2026-10-23 from the repository at 5cdce6d (2026-10-08): folder addons/py4godot and file python.gdextension (create_plugin.py), entry_symbol initialize_pythonscript and compatibility_minimum 4.7.0 (build_resources/gdextension_template.gdextension); newest tag 4.7-alpha21. 2026-10-29 from the release zip py4godot.zip (listed, not run; 243 MB): install_dir/addons/py4godot/python.gdextension (entry_symbol initialize_pythonscript, compatibility_minimum 4.7.0); the folder to copy is install_dir/addons/py4godot. archived not read: GitHub's API and repository pages answered 403 from the sandbox that checked. 2026-11-03 from the repository at 6a7ec2b (2026-11-01, 8 commits since 5cdce6d: typed arrays, a type-checking test, a build fix): the README still says \"Consider this more as a demo and don't use this for bigger projects\" and that only Windows 64 bit and Linux 64 bit are supported (its checklist now also ticks macOS), and the newest tag is still 4.7-alpha21, so the status stays prototype"
+      "confirmed": "2026-10-23 from the repository at 5cdce6d (2026-10-08): folder addons/py4godot and file python.gdextension (create_plugin.py), entry_symbol initialize_pythonscript and compatibility_minimum 4.7.0 (build_resources/gdextension_template.gdextension); newest tag 4.7-alpha21. 2026-10-29 from the release zip py4godot.zip (listed, not run; 243 MB): install_dir/addons/py4godot/python.gdextension (entry_symbol initialize_pythonscript, compatibility_minimum 4.7.0); the folder to copy is install_dir/addons/py4godot. archived not read: GitHub's API and repository pages answered 403 from the sandbox that checked. 2026-11-03 from the repository at 6a7ec2b (2026-11-01, 8 commits since 5cdce6d: typed arrays, a type-checking test, a build fix): the README still says \"Consider this more as a demo and don't use this for bigger projects\" and that only Windows 64 bit and Linux 64 bit are supported (its checklist now also ticks macOS), and the newest tag is still 4.7-alpha21, so the status stays prototype. 2026-11-15 from the repository at 66f4787 (2026-11-14, 4 commits since 6a7ec2b: array and signal cleanup, a removed artifact, a check before copying the Python interpreter on Android; 12 lines in 4 files): the README still says \"Consider this more as a demo and don't use this for bigger projects\", build_resources/gdextension_template.gdextension still has entry_symbol initialize_pythonscript and compatibility_minimum 4.7.0, and the newest tag is still 4.7-alpha21, so the status stays prototype"
     },
     {
       "id": "godot-luaapi",
