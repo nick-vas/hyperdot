@@ -88,6 +88,22 @@ if (-not $IsWindows) {
     $changed = if ($result.PSObject.Properties['changedProjectFiles']) { @($result.changedProjectFiles | ForEach-Object { "$($_.status) $($_.path)" }) } else { @() }
     if (($changed -join '|') -notmatch 'M project\.godot' -or ($changed -join '|') -notmatch '\?\? Thing\.cs\.uid') { $failures += "changedProjectFiles should list the edited project.godot and the new .cs.uid, got '$($changed -join '|')'" }
 
+    # The runtime Godot's C# runs on (#264): every Godot the kit starts gets DOTNET_ROLL_FORWARD=Major, so .NET 8 is used where it is
+    # installed rather than the newest runtime (Godot asks for LatestMajor, and .NET 11 crashed godottest at shutdown); a value the user
+    # set is kept. A stand-in Godot writes what it was given.
+    $seen = Join-Path $dir 'rollforward.txt'
+    Set-Content -LiteralPath $stand -NoNewline -Value "#!/bin/sh`ncase `"`$*`" in *--version*) echo '4.7.2.stable.official.abc'; exit 0;; esac`necho `"`$DOTNET_ROLL_FORWARD`" > '$seen'`nexit 0`n"
+    chmod +x $stand
+    foreach ($case in @(@{ Given = $null; Want = 'Major' }, @{ Given = 'LatestMajor'; Want = 'LatestMajor' })) {
+        Remove-Item -LiteralPath $seen -ErrorAction SilentlyContinue
+        $saved = $env:GODOT_BIN; $savedRoll = $env:DOTNET_ROLL_FORWARD
+        $env:GODOT_BIN = $stand; $env:DOTNET_ROLL_FORWARD = $case.Given
+        try { $null = & $pwshPath -NoProfile -NonInteractive -File (Join-Path $PSScriptRoot '../ci/godot/hyperdot.ps1') build -Json -Project $game 2>$null }
+        finally { $env:GODOT_BIN = $saved; $env:DOTNET_ROLL_FORWARD = $savedRoll }
+        $got = if (Test-Path -LiteralPath $seen) { (Get-Content -LiteralPath $seen -Raw).Trim() } else { '(Godot not started)' }
+        if ($got -ne $case.Want) { $failures += "with DOTNET_ROLL_FORWARD '$($case.Given)' Godot should get '$($case.Want)', got '$got'" }
+    }
+
     # export: an empty export_path stops before anything runs, with no Godot involved. (A missing export template cannot be
     # played with a stand-in: once templates are needed the kit installs its own Godot, so that is tested on the log reader.)
     $export = Join-Path $dir 'export-game'

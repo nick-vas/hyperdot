@@ -88,6 +88,14 @@ Where settings are read:
 | Editor or `--path` | The editor's `GodotSharp/Api/Debug/GodotPlugins.runtimeconfig.json` (`rollForward: LatestMajor`) | No effect (`ConcurrentGarbageCollection`, `TieredPGO`) | Apply (`DOTNET_gcServer=1`, `DOTNET_gcConcurrent=0`) |
 | Exported game | `data_<Name>_<platform>/<Name>.runtimeconfig.json` (self-contained, .NET 8.0.31) | Apply (`System.GC.Concurrent: false`, `TieredPGO: false`) | Not measured |
 
+Which runtime: `rollForward: LatestMajor` makes an editor or `--path` run use the newest .NET runtime installed, not .NET 8.
+On GitHub's ubuntu-26.04 image 20261111 that is .NET 11, and there `godottest` under coverlet hit a CLR assert at shutdown
+(`Attempt to reattach detached thread`, `ebr.cpp:144`) after every test passed; with .NET 8 it did not (reproduced both
+ways, #264). So every Godot the kit starts gets `DOTNET_ROLL_FORWARD=Major`, which the .NET host applies over the
+runtimeconfig's setting: .NET 8 when it is installed, otherwise the lowest newer major. A value you set yourself is kept,
+and the kit's log names the one in force on its `Godot:` line. The editor you open by hand is not changed; set the
+variable in your environment to keep it on .NET 8 too.
+
 `<ServerGarbageCollector>true</ServerGarbageCollector>` is not written to the runtimeconfig (Godot game projects are
 libraries with `EnableDynamicLoading`); `<RuntimeHostConfigurationOption Include="System.GC.Server" Value="true" />`
 works.

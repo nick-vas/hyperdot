@@ -277,7 +277,8 @@ function Install-GodotTools {
             Add-Content -LiteralPath $env:GITHUB_PATH -Value $env:DOTNET_ROOT
         }
     }
-    $dotnet = if ($Mono) { "  .NET: $(& dotnet --version)" } else { '' }
+    # The SDK version, and the rule that picks the runtime Godot's C# runs on (Set-DotnetRollForward).
+    $dotnet = if ($Mono) { "  .NET: $(& dotnet --version)  DOTNET_ROLL_FORWARD=$env:DOTNET_ROLL_FORWARD" } else { '' }
     Write-CiLog "Godot: $(& $paths.Bin --version)$dotnet"
 }
 

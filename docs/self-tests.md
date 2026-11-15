@@ -37,7 +37,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-TestDuration.ps1` | `status`'s test duration (synthetic history) | - |
 | `Test-Handoffs.ps1` | the handoff log: `status -Handoff` writes one line with the commit, cuts the text at 500 and 300 characters, keeps the newest 200, refuses bad arguments; `status` reads it back | git |
 | `Test-ProcessTimeout.ps1` | the process time limit | - |
-| `Test-CrashRetry.ps1` | the repeat of a crashed import or export (pwsh stands in for Godot) | - |
+| `Test-CrashRetry.ps1` | the repeat of a crashed import or export (pwsh stands in for Godot); a Godot the kit starts gets `DOTNET_ROLL_FORWARD=Major` unless the user set one | - |
 | `Test-DownloadFailed.ps1` | the `download-failed` code (about 15 s), and a download checked against Godot's `SHA512-SUMS.txt`: a match, a mismatch (`checksum-mismatch`, the file deleted), a release without the file or not listing the archive (a stand-in server on 127.0.0.1) | - |
 | `Test-InstallLock.ps1` | two installs of one Godot taking turns, a dead run freeing the lock, `install-busy` | - |
 | `Test-InitializeGame.ps1` | `ci/godot/tools/Initialize-HyperdotGame.ps1`: a dry run changes nothing; the setup commit, merge and worktree; a local Godot of the game's version found and others skipped with the reason, several listed with their paths and chosen (`-GodotChoice`, `-Godot`); `.claude/settings.local.json` written and excluded from Git; refusals leave the game untouched; a second run does no harm (a stub kit and fake Godot scripts; passes with a note on Windows) | git |
