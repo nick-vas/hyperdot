@@ -261,6 +261,7 @@ $script:QuietMode = [bool]$Quiet
 # Any unexpected terminating error still ends with a structured result.
 trap { Stop-GodotCi $_.Exception.Message 'unexpected-error' }
 Assert-KitArguments $MyInvocation.MyCommand.ScriptBlock.Ast.ParamBlock $PSBoundParameters
+$null = Set-DotnetRollForward
 
 # help needs no project: it is answered before one is looked for.
 if ($Topic -and $Command -notin 'help', 'telemetry') { Stop-GodotCi "'$Topic' is not a parameter of $Command; only help and telemetry take a name (help $Topic)" 'invalid-arguments' }
