@@ -356,6 +356,17 @@ function Invoke-GitBounded([string]$Dir, [string[]]$GitArgs, [string]$What) {
     return $result
 }
 
+# Godot 4.7's C# asks for .NET 8 with rollForward LatestMajor (GodotSharp/Api/*/GodotPlugins.runtimeconfig.json), so a Godot
+# the kit starts runs on the newest .NET runtime installed. On .NET 11 (GitHub's ubuntu-26.04 image 20261111) godottest under
+# coverlet hit a CLR assert at shutdown, "Attempt to reattach detached thread" (ebr.cpp:144), after every test passed (#264).
+# DOTNET_ROLL_FORWARD=Major, which takes precedence over the runtimeconfig's setting (seen in the host trace), keeps the runtime Godot was built for when it is
+# installed and still allows the lowest newer major when it is not. Every process the kit starts inherits it; a value the user
+# set is kept. Returns the value in force.
+function Set-DotnetRollForward {
+    if (-not $env:DOTNET_ROLL_FORWARD) { $env:DOTNET_ROLL_FORWARD = 'Major' }
+    return $env:DOTNET_ROLL_FORWARD
+}
+
 # True for an exit code that is a crash: 128 and up is a signal (134 is an abort), a negative one is a Windows NTSTATUS code.
 function Test-GodotCrashCode([int]$Code) { return ($Code -ge 128 -or $Code -lt 0) }
 

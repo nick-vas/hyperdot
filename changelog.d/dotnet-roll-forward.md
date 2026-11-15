@@ -1,0 +1,1 @@
+Fixed: every Godot the kit starts runs its C# on .NET 8 when it is installed (`DOTNET_ROLL_FORWARD=Major`, kept if you set your own) instead of the newest runtime Godot's `LatestMajor` picks; on .NET 11 (GitHub's ubuntu-26.04 image 20261111) `godottest` under coverage failed with a CLR assert at shutdown after every test passed (#264)
