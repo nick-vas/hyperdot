@@ -1,9 +1,11 @@
 # {{GAME}}: game design document
 
 <!-- Status: draft. /game proposes this from the code; it becomes the source of truth once each section is confirmed.
-     Feature headings are read by `hyperdot.ps1 status`: keep the form "### F<number> <name>", and give each feature a
-     "Priority:" line (must, should, could or won't), a "Fun:" line naming the kinds of fun it serves (sensation, fantasy,
-     narrative, challenge, fellowship, discovery, expression, submission) and "Done when:" lines. Tag the tests that prove a feature with
+     Feature headings are read by `hyperdot.ps1 status`: keep the form "### F<number> <name>", and give each feature
+     exactly one "Priority:" line (must, should, could or won't), exactly one "Fun:" line and "Done when:" lines. The
+     "Fun:" line holds only the kinds of fun it serves, comma-separated (sensation, fantasy, narrative, challenge,
+     fellowship, discovery, expression, submission), or "none", which only a could or won't feature may have; any
+     explanation goes after a blank line. `doctor` fails on anything else and names the fix. Tag the tests that prove a feature with
      GDD:F<number> in the test's name or a comment on it, so status can find them. A feature that keeps state has a
      "Done when" line saying a save and load keeps it. If it is not in this document, it is not in the game: add it or
      drop it. Sections marked (optional) may be deleted. -->

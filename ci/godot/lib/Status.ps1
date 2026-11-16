@@ -34,23 +34,45 @@ function Get-LookSetup($Info) {
 
 # The eight kinds of fun of the MDA framework (Hunicke, LeBlanc and Zubek); a feature's "Fun:" line names the ones it serves.
 $script:FunKinds = @('sensation', 'fantasy', 'narrative', 'challenge', 'fellowship', 'discovery', 'expression', 'submission')
+$script:GddPriorities = @('must', 'should', 'could', "won't")
 
-# Features are "### F<n> <name>" headings with a "Priority:" line, a "Fun:" line and "Done when:" bullets (templates/GDD.md).
+# Features are "### F<n> <name>" headings with one "Priority:" line, one "Fun:" line and "Done when:" bullets
+# (templates/GDD.md). The lines are kept as written, with their line numbers, so Get-GddProblems can name each mistake
+# and its one fix; nothing here guesses what a malformed line meant.
 function Read-Gdd([string]$Path) {
     $text = Get-Content -LiteralPath $Path -Raw
     $features = [System.Collections.Generic.List[object]]::new()
-    $current = $null; $inDoneWhen = $false
-    foreach ($line in $text -split "`r?`n") {
+    $current = $null; $inDoneWhen = $false; $afterFun = $false
+    $lines = @($text -split "`\r?`\n")
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        $line = $lines[$i]; $number = $i + 1
+        # The line right after "Fun:" must not carry on its text (explanations go after a blank line or on a line of their own key).
+        if ($afterFun -and $current) {
+            $afterFun = $false
+            if ($line.Trim() -and $line -notmatch "^[A-Z][A-Za-z' -]*:" -and $line -notmatch '^\s*([-*]|\d+\.)\s' -and $line -notmatch '^#') { $current.funSpill = $number }
+        }
         if ($line -match '^###\s+(?<id>F\d+)\s+(?<title>.+?)\s*$') {
-            $current = [ordered]@{ id = $Matches.id; title = $Matches.title; priority = $null; fun = @(); doneWhen = [System.Collections.Generic.List[string]]::new() }
+            $current = [ordered]@{ id = $Matches.id; title = $Matches.title; line = $number; priority = $null; fun = @()
+                priorityLines = [System.Collections.Generic.List[object]]::new(); funLines = [System.Collections.Generic.List[object]]::new(); funSpill = $null
+                doneWhen = [System.Collections.Generic.List[string]]::new() }
             $features.Add($current); $inDoneWhen = $false
         } elseif ($line -match '^#{1,3}\s') {
             $current = $null; $inDoneWhen = $false
         } elseif ($current) {
-            if ($line -match '^Priority:\s*(?<p>\w+)') { $current.priority = $Matches.p.ToLowerInvariant(); $inDoneWhen = $false }
-            elseif ($line -match '^Fun:\s*(?<f>.*)$') {
-                $current.fun = @($Matches.f -split '[,;/]' | ForEach-Object { $_.Trim().ToLowerInvariant() } | Where-Object { $_ })
+            if ($line -match '^Priority:\s*(?<p>.*?)\s*$') {
+                # Curly apostrophes and "wont" are the same word; anything else is kept as written for the problem report.
+                $value = $Matches.p.ToLowerInvariant() -replace '[\u2018\u2019]', "'"
+                if ($value -eq 'wont') { $value = "won't" }
+                $current.priorityLines.Add([ordered]@{ line = $number; value = $value })
+                if ($current.priorityLines.Count -eq 1) { $current.priority = $value }
                 $inDoneWhen = $false
+            }
+            elseif ($line -match '^Fun:\s*(?<f>.*?)\s*$') {
+                $current.funLines.Add([ordered]@{ line = $number; value = $Matches.f })
+                if ($current.funLines.Count -eq 1) {
+                    $current.fun = @($Matches.f -split ',' | ForEach-Object { $_.Trim().ToLowerInvariant() } | Where-Object { $_ -in $script:FunKinds })
+                }
+                $afterFun = $true; $inDoneWhen = $false
             }
             elseif ($line -match '^Done when:') { $inDoneWhen = $true }
             elseif ($inDoneWhen -and $line -match '^\s*[-*]\s+(?<c>.+)$') { $current.doneWhen.Add($Matches.c.Trim()) }
@@ -64,8 +86,57 @@ function Read-Gdd([string]$Path) {
     })
     return [ordered]@{
         path = $Path; draft = ($text -match '(?i)Status:\s*draft'); pitch = $pitch; firstSession = $steps
-        features = @($features | ForEach-Object { $_.doneWhen = @($_.doneWhen); $_ })
+        features = @($features | ForEach-Object { $_.doneWhen = @($_.doneWhen); $_.priorityLines = @($_.priorityLines); $_.funLines = @($_.funLines); $_ })
     }
+}
+
+# Every way a GDD's features break the grammar status and doctor read, each with its line and the one fix to make. These
+# are rules, not judgement: an agent applies the fix as written. Each feature has exactly one "Priority:" line (must,
+# should, could or won't) and exactly one "Fun:" line, alone on its line: one or more of the eight kinds, comma-separated,
+# or "none", which only a could or won't feature may have.
+function Get-GddProblems($Gdd) {
+    $kinds = $script:FunKinds -join ', '
+    $problems = [System.Collections.Generic.List[object]]::new()
+    $add = { param($Feature, $Line, [string]$Problem, [string]$Fix) $problems.Add([ordered]@{ feature = $Feature.id; line = $Line; problem = "$($Feature.id) $($Feature.title): $Problem"; fix = $Fix }) }
+    foreach ($group in @($Gdd.features | Group-Object { $_.id } | Where-Object Count -gt 1)) {
+        $first = @($group.Group)[0]
+        & $add $first @($group.Group)[1].line "$($group.Count) features have the id $($group.Name)" "Give each feature its own id: renumber the later ones to the next free F<number>, and retag their tests"
+    }
+    foreach ($f in $Gdd.features) {
+        $priorities = @($f.priorityLines)
+        if ($priorities.Count -eq 0) { & $add $f $f.line 'has no "Priority:" line' "Add a line ""Priority: must"" (or should, could, won't) under the heading" }
+        if ($priorities.Count -gt 1) { & $add $f $priorities[1].line "has $($priorities.Count) ""Priority:"" lines" 'Keep one "Priority:" line and delete the others' }
+        if ($priorities.Count -ge 1 -and $priorities[0].value -notin $script:GddPriorities) {
+            & $add $f $priorities[0].line "'$($priorities[0].value)' is not a priority" "Write one of: Priority: must, Priority: should, Priority: could, Priority: won't"
+        }
+        $funs = @($f.funLines)
+        $low = $f.priority -in 'could', "won't"
+        if ($funs.Count -eq 0) {
+            & $add $f $f.line 'has no "Fun:" line' $(if ($low) { "Add ""Fun: none"" or the kinds it serves (""Fun: challenge, discovery""; kinds: $kinds)" } else { "Add ""Fun: <kinds>"" naming one or more of: $kinds" })
+            continue
+        }
+        if ($funs.Count -gt 1) { & $add $f $funs[1].line "has $($funs.Count) ""Fun:"" lines" 'Merge them into one "Fun:" line, kinds comma-separated' }
+        $value = "$($funs[0].value)"
+        # Empty pieces (a trailing comma) are left out: the line that carries on is its own problem.
+        $tokens = @($value -split ',' | ForEach-Object { $_.Trim().ToLowerInvariant() } | Where-Object { $_ })
+        if (-not $value.Trim()) {
+            & $add $f $funs[0].line '"Fun:" is empty' $(if ($low) { "Write ""Fun: none"" or the kinds it serves ($kinds)" } else { "Write the kinds it serves, comma-separated ($kinds)" })
+        } elseif ($tokens -contains 'none') {
+            if ($tokens.Count -gt 1) { & $add $f $funs[0].line '"Fun: none" is combined with other kinds' 'Write either "Fun: none" or the kinds, not both' }
+            elseif (-not $low) { & $add $f $funs[0].line "is a $($f.priority) feature with ""Fun: none""" "Name the kinds of fun it serves ($kinds), or set ""Priority: could"": only could and won't features may serve none" }
+        } else {
+            $bad = @($tokens | Where-Object { $_ -notin $script:FunKinds })
+            if ($bad.Count) {
+                $good = @($tokens | Where-Object { $_ -in $script:FunKinds })
+                $lead = @($bad | ForEach-Object { if ($_ -match "^(?<k>$($script:FunKinds -join '|'))\b") { $Matches.k } } | Where-Object { $_ })
+                $keep = @(@($good) + @($lead) | Select-Object -Unique)
+                $fix = if ($keep.Count) { "Write ""Fun: $($keep -join ', ')"" and put the rest on a line of its own below it, after a blank line" } else { "Use only these words, comma-separated: $kinds (or ""none"" for a could or won't feature)" }
+                & $add $f $funs[0].line "'$($bad -join "', '")' is not a kind of fun" $fix
+            }
+        }
+        if ($f.funSpill) { & $add $f $f.funSpill 'the "Fun:" line carries on onto the next line' 'Keep "Fun:" to the kinds alone and leave a blank line before any explanation' }
+    }
+    return @($problems)
 }
 
 # Architecture decisions (docs/decisions/NNNN-title.md, templates/ADR.md), wherever the GDD would be.
@@ -280,9 +351,12 @@ function Invoke-Status($Info) {
         }
     }
 
-    $features = @(); $firstSession = @()
+    $features = @(); $firstSession = @(); $gddProblems = @()
     if ($gdd) {
         if ($gdd.draft) { $warnings.Add("$gddPath is still a draft; confirm it with the user before measuring progress against it") }
+        # The grammar problems doctor fails on (Get-GddProblems), each with its one fix.
+        $gddProblems = @(Get-GddProblems $gdd)
+        foreach ($gddProblem in $gddProblems) { $warnings.Add("GDD line $($gddProblem.line): $($gddProblem.problem). Fix: $($gddProblem.fix)") }
         $ids = @($gdd.features | ForEach-Object id)
         $features = @(foreach ($f in $gdd.features) {
             $tagged = $tags.Contains($f.id) ? @($tags[$f.id] | Where-Object { -not $_.stub } | ForEach-Object { [ordered]@{ file = $_.file; line = $_.line } }) : @()
@@ -290,10 +364,6 @@ function Invoke-Status($Info) {
             $passing = $tagged.Count -gt 0 -and $lastFullTest -and $lastFullTest.ok
             if ($plan -and $linked.Count -eq 0 -and $f.priority -ne "won't" -and -not $passing) { $warnings.Add("$($f.id) $($f.title) has no plan task") }
             if ($f.priority -eq 'must' -and $tagged.Count -eq 0) { $warnings.Add("$($f.id) $($f.title) is a must but no test is tagged GDD:$($f.id)") }
-            if ($f.priority -in 'must', 'should' -and $f.fun.Count -eq 0) { $warnings.Add("$($f.id) $($f.title) does not say which kind of fun it serves (a ""Fun:"" line)") }
-            foreach ($kind in @($f.fun | Where-Object { $_ -notin $script:FunKinds })) {
-                $warnings.Add("$($f.id) $($f.title): '$kind' is not a kind of fun ($($script:FunKinds -join ', '))")
-            }
             [ordered]@{ id = $f.id; title = $f.title; priority = $f.priority; fun = @($f.fun); doneWhen = $f.doneWhen
                 taggedTests = $tagged; tasks = @($linked | ForEach-Object { [ordered]@{ id = $_.id; column = $_.column } })
                 # Evidence only: tagged tests exist and the latest full test run passed. Whether that proves the feature is /game's call.
@@ -368,7 +438,7 @@ function Invoke-Status($Info) {
     $handoffs = @($allHandoffs | Select-Object -First 20)
 
     Set-JsonField gdd ($gdd ? [ordered]@{ path = $gdd.path; draft = $gdd.draft; pitch = $gdd.pitch; featureCount = $features.Count
-        firstSession = $firstSession } : $null)
+        firstSession = $firstSession; problems = @($gddProblems) } : $null)
     Set-JsonField features $features
     Set-JsonField plan $plan
     Set-JsonField decisions $decisions

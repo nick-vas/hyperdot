@@ -31,9 +31,10 @@ Hunicke, LeBlanc and Zubek, *MDA: A Formal Approach to Game Design and Game Rese
 | expression | game as self-discovery | What choice is the player's alone? | builds, customisation, creation |
 | submission | game as pastime | Can they play without thinking hard? | low stakes, gentle loops, routine |
 
-Every GDD feature names the kinds it serves on a `Fun:` line; `status` warns when a `must` or `should` feature names none.
-A feature that serves none of the game's main kinds is the first candidate to cut. A feature can serve none and still be
-needed (menus, saving): leave it at `could` without a `Fun:` line.
+Every GDD feature has exactly one `Fun:` line holding only kinds from the table, comma-separated, or `none`; the reason
+goes after a blank line, never on the `Fun:` line. `none` is only for `could` and `won't` features: a `must` or `should`
+feature names at least one kind, or is lowered to `could`. `doctor` fails on any other form and names the one fix; apply
+it as written. A feature that serves none of the game's main kinds is the first candidate to cut.
 
 Bartle's player types (achievers, explorers, socialisers, killers) are a different model, of why people play shared
 online worlds (Richard Bartle, 1996), not MDA; the `Fun:` line uses the eight kinds above.
