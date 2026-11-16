@@ -252,3 +252,4 @@ try {
 
 if ($failures.Count) { Write-Host "`n$($failures.Count) failed"; exit 1 }
 Write-Host "`nAll calendar checks passed"
+exit 0
