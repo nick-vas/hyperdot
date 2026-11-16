@@ -221,6 +221,7 @@ benchmark and evals that measure the kit. The sections after the tables are
 
 | Capability | Command | Result |
 |---|---|---|
+| **Start from an idea** | `/new-game`, `brief` | you describe the game; the kit asks what that leaves open from a fixed bank of questions, takes nothing from your text without quoting it, and writes a draft GDD and style guide |
 | **Plan A to Z** | `plan -Json` | current phase, open gates, warnings |
 | **Track tasks** | `plan -Do add\|move\|remove`, `plan -Do sync` | tasks with a work-in-progress limit; optional GitHub Project mirror (experimental) |
 | **Plan the marketing dates** | `calendar`, `/calendar` | Steam's seasonal sales, Next Fests and themed fests, itch.io jams, Epic giveaways and comparable games' prices (LootRadar) against the release; the planned discounts checked against Steam's rules; `calendar.ics` for a calendar app |

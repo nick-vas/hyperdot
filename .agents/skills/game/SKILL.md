@@ -23,7 +23,8 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 status -Json      # add -Projec
 
 ## 2. The GDD (first run only)
 
-If `gdd` is null, draft `docs/GDD.md` from `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/GDD.md`. Base it on what exists:
+If `gdd` is null and the game has little or no code yet (a new idea), use `new-game` instead: the user describes the
+game and `brief` asks the rest. Otherwise draft `docs/GDD.md` from `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/GDD.md`. Base it on what exists:
 `inventory` (scenes, main scene, autoloads, input actions), the scripts behind them, and any notes in the repository.
 Each feature gets an id (F1, F2...), a guessed priority, the kinds of fun it serves (`Fun:`, from `game-design`) and
 "Done when" lines describing behaviour you can see in the code. The grammar is fixed: one `Priority:` line, one `Fun:`

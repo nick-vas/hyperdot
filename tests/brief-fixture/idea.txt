@@ -1,0 +1,2 @@
+Lantern Keeper is a cosy 2D puzzle game. You slide a little lantern around a dark grid, lighting wicks before the oil runs out.
+It is single player, played with a gamepad or keyboard, on desktop and Steam Deck. I want pixel art and chiptune music.

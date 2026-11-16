@@ -44,12 +44,13 @@ param(
     # playtest: per-level counts, medians and heat maps (PNG) from a folder of playtest telemetry sessions; no Godot needed.
     # help: a Markdown reference of every command, skill and subagent (.godot/kit-help.md of the game), or the page of one (help <name>); no project needed.
     # deck: the Steam Deck check at 1280x800: textsize, layout, shot and bench with a Deck budget, one verdict.
+    # brief: the structured start of a new game: the user's own description, then the questions it leaves open from a fixed bank, then a draft GDD; no Godot project needed.
     # calendar: Steam's sales and fests, itch.io jams, Epic giveaways and comparable games' prices (LootRadar), set against plan.json's release; writes calendar.ics. No Godot needed.
     # telemetry: one read-only view of the project's run history: per command the runs, pass rate and mean, median and p95 duration, and for test the slowest runners, failure hot spots and flaky tests; no Godot needed.
     # The sets of values (here and for -Retry, -Mcp, -Do and -Profile) are [ArgumentCompletions], which PowerShell does not
     # enforce while binding: Assert-KitArguments checks them in the script, so a wrong value still gives a JSON result.
     [Parameter(Position = 0)]
-    [ArgumentCompletions('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx', 'playtest', 'help', 'deck', 'telemetry', 'calendar')]
+    [ArgumentCompletions('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx', 'playtest', 'help', 'deck', 'telemetry', 'calendar', 'brief')]
     [string]$Command = 'test',
     # help: the command, skill or subagent to show the page of, e.g. help shot. telemetry: the command to report on, e.g. telemetry test.
     [Parameter(Position = 1)]
@@ -208,7 +209,8 @@ param(
     # plan: status (default), init (create plan/plan.json), done (mark a manual gate done: -Id), reopen (undo done: -Id), add (a task: -Title),
     # move (a task to -Column: -Id), remove (delete a task: -Id), sync (mirror the tasks to a GitHub Project: -Board), link (a task to a GDD
     # -Feature or a project -Item: -Id).
-    [ArgumentCompletions('status', 'init', 'done', 'reopen', 'add', 'move', 'remove', 'sync', 'link')]
+    # brief: status (default: the answers and the next questions), start (from -TextFile), answer (-Id, -Value, -Quote), gdd (write the draft GDD).
+    [ArgumentCompletions('status', 'init', 'done', 'reopen', 'add', 'move', 'remove', 'sync', 'link', 'start', 'answer', 'gdd')]
     [string]$Do = 'status',
     # plan -Do done|reopen: the gate, e.g. prototype.loop. plan -Do move|remove|link: the task id (move: several as t1,t2,t3).
     [string]$Id,
@@ -244,6 +246,12 @@ param(
     [int]$Days = 365,
     [switch]$Offline,
     [string[]]$Comparable,
+    # brief -Do answer: the answer (an option's label, several comma-separated, or the user's words for a text question), and,
+    # when it comes from the user's description rather than a question, the sentence that states it, word for word.
+    [string]$Value,
+    [string]$Quote,
+    # brief -Do start: a file holding the game described in the user's own words.
+    [string]$TextFile,
     # doctor: when kit files are not committed in the game's repository, show the issue for the kit's repository about it and, after
     # a yes, create it with gh. Without this flag doctor only warns; it never posts anything by itself.
     [switch]$ReportIssue,
@@ -260,7 +268,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons', 'Playtest', 'Palette', 'BuildSize', 'Help', 'Deck', 'Placement', 'Telemetry', 'Workflow', 'WorkingTree', 'Calendar') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons', 'Playtest', 'Palette', 'BuildSize', 'Help', 'Deck', 'Placement', 'Telemetry', 'Workflow', 'WorkingTree', 'Calendar', 'Brief') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 Start-KitCoverage $Command
 if ($Json) {
     Enable-JsonMode $Command
@@ -282,8 +290,20 @@ if ($PSBoundParameters.ContainsKey('Last') -and $Command -ne 'telemetry') { Stop
 foreach ($calendarFlag in 'Source', 'Days', 'Offline', 'Comparable') {
     if ($PSBoundParameters.ContainsKey($calendarFlag) -and $Command -ne 'calendar') { Stop-GodotCi "-$calendarFlag is for calendar, not $Command" 'invalid-arguments' }
 }
+foreach ($briefFlag in 'Value', 'Quote', 'TextFile') {
+    if ($PSBoundParameters.ContainsKey($briefFlag) -and $Command -ne 'brief') { Stop-GodotCi "-$briefFlag is for brief, not $Command" 'invalid-arguments' }
+}
+$briefActions = @('status', 'start', 'answer', 'gdd')
+if ($Command -eq 'brief' -and $Do -notin $briefActions) { Stop-GodotCi "brief -Do $Do is not one of: $($briefActions -join ', ')" 'invalid-arguments' }
+if ($Command -eq 'plan' -and $Do -in 'start', 'answer', 'gdd') { Stop-GodotCi "-Do $Do is for brief, not plan" 'invalid-arguments' }
 if ($Command -eq 'help') {
     Invoke-Help $Topic $Project
+    Write-JsonResult
+    exit 0
+}
+# brief needs no Godot project either: a new game may be only a folder and an idea.
+if ($Command -eq 'brief') {
+    Invoke-Brief -Dir $(if ($Project) { $Project } else { $PWD.Path }) -Action $Do -Id $Id -Value $Value -Quote $Quote -TextFile $TextFile
     Write-JsonResult
     exit 0
 }
