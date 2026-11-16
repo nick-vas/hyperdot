@@ -58,6 +58,9 @@ Assert-True ($brace.Count -eq 1 -and $brace[0].url -eq 'https://itch.io/jam/brac
 $gameOff = @($jams | Where-Object { $_.name -eq 'Game Off 2026' })
 Assert-True ($gameOff.Count -eq 1 -and $gameOff[0].joined -gt 1000 -and $gameOff[0].notes -match 'joined') 'a jam carries how many joined'
 Assert-True (@($jams | ForEach-Object start) -join ',' -eq (@($jams | ForEach-Object start | Sort-Object) -join ',')) 'jams come out by start date'
+$odd = $itchHtml.Replace('"joined":12', '"joined":"n/a"')
+$oddJams = @(ConvertFrom-ItchJamsHtml $odd (Get-Day '2026-11-16') (Get-Day '2027-11-16'))
+Assert-True ($oddJams.Count -eq 3 -and @($oddJams | Where-Object { $_.name -like 'Brace*' })[0].joined -eq 0) 'a jam whose entrant count is not a number counts 0 and the other jams stay'
 Assert-True (@(ConvertFrom-ItchJamsHtml '<p>no calendar</p>' (Get-Day '2026-11-16') (Get-Day '2027-11-16')).Count -eq 0) 'a page without the calendar gives no jams'
 
 # --- Epic's free-games feed ---
@@ -68,13 +71,19 @@ $windows = @($epic | Where-Object { $_.kind -eq 'epic-discounts' })
 $holiday = @($windows | Where-Object { $_.start -eq '2026-12-10' -and $_.end -eq '2027-01-07' })
 Assert-True ($windows.Count -eq 2 -and $holiday.Count -eq 1 -and $holiday[0].notes -match 'Ghostrunner 2 \(80% off\)' -and $holiday[0].notes -match '45% off') "discounted offers are grouped by window, the percent read as the share paid: $(@($windows | ForEach-Object { "$($_.start) $($_.notes)" }) -join ' | ')"
 
+$epicOdd = (Get-Content -LiteralPath (Join-Path $fixture 'epic-2026-11-16.json') -Raw) -replace '"discountPercentage": 20', '"discountPercentage": "abc"'
+$epicOddEvents = @(ConvertFrom-EpicFreeGamesJson $epicOdd)
+Assert-True (@($epicOddEvents | Where-Object { $_.kind -eq 'epic-free' }).Count -eq 1 -and @($epicOddEvents | Where-Object { $_.notes -match 'Ghostrunner' }).Count -eq 0 -and @($epicOddEvents | Where-Object { $_.notes -match 'LISA' }).Count -eq 1) 'an offer whose percentage is not a number is skipped; the rest of the feed stays'
+
 # --- LootRadar ---
 $hades = ConvertFrom-LootRadarGame (Get-Content -LiteralPath (Join-Path $fixture 'lootradar-hades-ii-2026-11-16.json') -Raw) 'hades-ii'
 Assert-True ($hades.title -eq 'Hades II' -and $hades.basePrice -eq 29.99 -and $hades.steamPrice -eq 29.99 -and $hades.bestOfficialStore -eq 'Fanatical' -and $hades.bestOfficialPrice -eq 25.49) "Hades II: Steam's base price and the best official store, keyshops left out: $($hades | ConvertTo-Json -Depth 5 -Compress)"
-Assert-True ($hades.lowestSeen -eq 15.65 -and $hades.deepestDiscountPercent -eq 48 -and $hades.historyWeeks -eq 13 -and $hades.honestyScore -eq 55) 'the lowest price seen makes the deepest discount, 48%'
+Assert-True ($hades.officialDiscountNowPercent -eq 15 -and $hades.steamDiscountPercent -eq 0) 'the official discount now is the deepest official store discount (Fanatical, 15%); keyshop deals are not counted'
+Assert-True ($hades.lowestSeenAllStores -eq 15.65 -and $hades.deepestDiscountAllStoresPercent -eq 48 -and $hades.historyWeeks -eq 13 -and $hades.historyLowAllStores -eq 15.65 -and $hades.honestyScore -eq 55) "LootRadar's history and lows cover every store, keyshops included, and are named so: 15.65 is 48% under the base price"
+Assert-True (@($hades.Keys | Where-Object { $_ -in 'lowestSeen', 'deepestDiscountPercent', 'historyLow', 'historyHigh' }).Count -eq 0) 'no field suggests an official-store low the data cannot give'
 Assert-True ($null -eq (ConvertFrom-LootRadarGame '{"result":{"data":{"json":null}}}' 'no-such-game')) 'an unknown slug gives no game'
-$two = Get-CalendarComparableSummary @($hades, ([ordered]@{ basePrice = 19.99; deepestDiscountPercent = 30; steamDiscountPercent = $null }))
-Assert-True ($two.games -eq 2 -and $two.medianBasePrice -eq 24.99 -and $two.medianDeepestDiscountPercent -eq 39 -and $two.medianSteamDiscountNowPercent -eq 0) "the medians keep cents and skip missing values: $($two | ConvertTo-Json -Depth 5 -Compress)"
+$two = Get-CalendarComparableSummary @($hades, ([ordered]@{ basePrice = 19.99; deepestDiscountAllStoresPercent = 30; steamDiscountPercent = $null; officialDiscountNowPercent = 25 }))
+Assert-True ($two.games -eq 2 -and $two.medianBasePrice -eq 24.99 -and $two.medianDeepestDiscountAllStoresPercent -eq 39 -and $two.medianSteamDiscountNowPercent -eq 0 -and $two.medianOfficialDiscountNowPercent -eq 20) "the medians keep cents and skip missing values: $($two | ConvertTo-Json -Depth 5 -Compress)"
 $one = Get-CalendarComparableSummary @($hades)
 Assert-True ($one.medianBasePrice -eq 29.99) 'one comparable gives its own numbers'
 
@@ -91,15 +100,18 @@ Assert-True ($clean.Count -eq 0) "a launch discount, a custom discount 30 days l
 $cases = @(
     @(@{ launchDiscount = [pscustomobject]@{ percent = 50; days = 7 } }, 'launch discount is 50%; Steam allows 10 to 40%', 'a 50% launch discount warns'),
     @(@{ launchDiscount = [pscustomobject]@{ percent = 10; days = 5 } }, 'launch discount runs 5 days; Steam allows 7 to 14', 'a 5-day launch discount warns'),
-    @(@{ launchDiscount = [pscustomobject]@{ percent = 10 } }, 'needs a percent and a number of days', 'a launch discount without days is ignored with a warning'),
+    @(@{ launchDiscount = [pscustomobject]@{ percent = 10 } }, 'needs a percent and a whole number of days', 'a launch discount without days is ignored with a warning'),
     @(@{ discounts = @([pscustomobject]@{ name = 'Early'; start = '2027-05-01'; end = '2027-05-07'; percent = 20 }) }, "'Early' starts on 2027-05-01, inside the 30 days after release \(until 2027-05-20\)", 'a custom discount inside the 30 days after release warns'),
-    @(@{ discounts = @([pscustomobject]@{ name = 'Spring'; start = '2027-05-10'; end = '2027-05-17'; percent = 20; seasonal = $true }) }, 'can join the sale only from 2027-05-20, part-way', 'a seasonal sale inside the 30 days after release is joined part-way'),
+    @(@{ discounts = @([pscustomobject]@{ name = 'Spring'; start = '2027-05-10'; end = '2027-05-30'; percent = 20; seasonal = $true }) }, 'can join the sale only from 2027-05-20, part-way', 'a seasonal sale inside the 30 days after release is joined part-way'),
     @(@{ discounts = @([pscustomobject]@{ name = 'A'; start = '2027-06-01'; end = '2027-06-07'; percent = 20 }; [pscustomobject]@{ name = 'B'; start = '2027-06-17'; end = '2027-06-24'; percent = 20 }) }, "^The discount 'B' starts 10 days after the discount 'A' ends", 'two custom discounts 10 days apart warn, capitalised'),
     @(@{ discounts = @([pscustomobject]@{ name = 'A'; start = '2027-06-01'; end = '2027-06-10'; percent = 20 }; [pscustomobject]@{ name = 'S'; start = '2027-06-05'; end = '2027-06-20'; percent = 20; seasonal = $true }) }, 'overlap; a game has one discount at a time', 'overlapping discounts warn, even with a seasonal sale'),
     @(@{ discounts = @([pscustomobject]@{ name = 'Long'; start = '2027-06-01'; end = '2027-06-21'; percent = 20 }) }, 'runs 20 days; Steam allows 1 to 14', 'a 20-day custom discount warns'),
     @(@{ discounts = @([pscustomobject]@{ name = 'Deep'; start = '2027-06-01'; end = '2027-06-07'; percent = 99 }) }, 'is 99%; Steam allows 10 to 95%', 'a 99% discount warns'),
     @(@{ discounts = @([pscustomobject]@{ name = 'Bad'; start = 'June'; end = '2027-06-07'; percent = 20 }) }, "'Bad' needs start and end dates", 'a discount with a bad date is ignored with a warning'),
-    @(@{ discounts = @([pscustomobject]@{ name = 'Back'; start = '2027-06-07'; end = '2027-06-01'; percent = 20 }) }, 'on or before it starts', 'a discount that ends before it starts is ignored with a warning'))
+    @(@{ discounts = @([pscustomobject]@{ name = 'Back'; start = '2027-06-07'; end = '2027-06-01'; percent = 20 }) }, 'on or before it starts', 'a discount that ends before it starts is ignored with a warning'),
+    @(@{ launchDiscount = [pscustomobject]@{ percent = 10; days = 10000000000 } }, 'needs a percent and a whole number of days', 'a launch discount of ten billion days is ignored with a warning, not a crash'),
+    @(@{ launchDiscount = [pscustomobject]@{ percent = 10; days = -3 } }, 'needs a percent and a whole number of days', 'a negative launch discount length is ignored with a warning'),
+    @(@{ discounts = @([pscustomobject]@{ name = 'Gone'; start = '2027-04-25'; end = '2027-05-10'; percent = 20; seasonal = $true }) }, "'Gone' \(2027-04-25 to 2027-05-10\) ends before the 30 days after release do \(2027-05-20\); the game cannot join that sale", 'a seasonal sale that ends inside the 30 days after release cannot be joined, not even part-way'))
 foreach ($case in $cases) {
     $found = @(Get-ScheduleWarnings $case[0])
     Assert-True (@($found | Where-Object { $_ -match $case[1] }).Count -eq 1) "$($case[2]): $($found -join ' | ')"
@@ -117,7 +129,10 @@ $events = @(
     (New-CalendarEvent 'steam' 'next-fest' 'Next Fest (February 2027)' (Get-Day '2027-02-22') (Get-Day '2027-03-01'))
     (New-CalendarEvent 'steam' 'next-fest' 'Next Fest (June 2027)' (Get-Day '2027-06-14') (Get-Day '2027-06-21'))
     (New-CalendarEvent 'epic' 'epic-free' 'Free on Epic: Rival' (Get-Day '2027-04-22') (Get-Day '2027-04-29')))
+$events += (New-CalendarEvent 'steam' 'seasonal-sale' 'Ends on the day' (Get-Day '2027-05-12') (Get-Day '2027-05-20'))
 $related = Get-CalendarRelease ([pscustomobject]@{ date = '2027-04-20' }) $events (Get-Day '2026-11-16')
+$lastDay = @($related.seasonalSales | Where-Object { $_.name -eq 'Ends on the day' })[0]
+Assert-True (-not $lastDay.joinable -and $null -eq $lastDay.joinFrom) 'a sale whose last day is the first day a discount may start cannot be joined: Valve ends sales at 10 am that day'
 $spring = @($related.seasonalSales | Where-Object { $_.name -eq 'Spring' })[0]
 $late = @($related.seasonalSales | Where-Object { $_.name -eq 'Late spring' })[0]
 Assert-True (-not $spring.joinable -and $late.joinable -and $late.partWay -and $late.joinFrom -eq '2027-05-20' -and $related.firstSeasonalSale -eq 'Late spring') "a sale running on release day cannot be joined; one the 30 days end inside is joined part-way: $($related.seasonalSales | ConvertTo-Json -Depth 5 -Compress)"
@@ -194,6 +209,20 @@ try {
     $again = Invoke-Kit $dir @('calendar', '-Offline', '-Results', $results)
     $uidsAgain = @([System.IO.File]::ReadAllLines($ics) | Where-Object { $_ -match '^UID:' })
     Assert-True ($again.Doc.ok -and ($uidsAgain -join ',') -eq ($uids -join ',')) 'a second run gives the same UIDs, so a re-import updates instead of duplicating'
+    $planFile = Join-Path $dir 'plan/plan.json'
+    $moved = Get-Content -LiteralPath $planFile -Raw | ConvertFrom-Json -Depth 10
+    $moved.release.discounts[0].start = $releaseDay.AddDays(40).ToString('yyyy-MM-dd', [cultureinfo]::InvariantCulture)
+    $moved.release.discounts[0].end = $releaseDay.AddDays(45).ToString('yyyy-MM-dd', [cultureinfo]::InvariantCulture)
+    $moved.release.discounts += [pscustomobject]@{ name = 'Backwards'; start = $releaseDay.AddDays(80).ToString('yyyy-MM-dd', [cultureinfo]::InvariantCulture); end = $releaseDay.AddDays(70).ToString('yyyy-MM-dd', [cultureinfo]::InvariantCulture); percent = 20 }
+    Set-Content -LiteralPath $planFile ($moved | ConvertTo-Json -Depth 10)
+    $third = Invoke-Kit $dir @('calendar', '-Offline', '-Results', $results)
+    $thirdLines = @([System.IO.File]::ReadAllLines($ics))
+    $uidsThird = @($thirdLines | Where-Object { $_ -match '^UID:' })
+    Assert-True ($third.Doc.ok -and ($uidsThird -join ',') -eq ($uids -join ',')) 'moving a planned discount keeps its UID, and one the check ignored adds none'
+    Assert-True (@($thirdLines | Where-Object { $_ -match 'Backwards' }).Count -eq 0 -and @($third.Doc.warnings | Where-Object { $_ -match "'Backwards' ends .* on or before it starts" }).Count -eq 1) 'a discount that ends before it starts is warned about and kept out of calendar.ics'
+    $starts = @($thirdLines | Where-Object { $_ -match '^DTSTART' } | ForEach-Object { $_.Split(':')[1] })
+    $ends = @($thirdLines | Where-Object { $_ -match '^DTEND' } | ForEach-Object { $_.Split(':')[1] })
+    Assert-True ($starts.Count -eq $ends.Count -and @(for ($i = 0; $i -lt $starts.Count; $i++) { if ($ends[$i] -le $starts[$i]) { $i } }).Count -eq 0) 'every event in calendar.ics ends after it starts'
     $history = Join-Path $dir '.godot/hyperdot-history.jsonl'
     Assert-True ((Test-Path -LiteralPath $history) -and @(Get-Content -LiteralPath $history | Where-Object { $_ -match '"command":"calendar"' }).Count -ge 1) 'the run is recorded in the history, for status and its workflow rules'
     $narrow = Invoke-Kit $dir @('calendar', '-Offline', '-Source', 'steam', '-Days', '30', '-Results', $results)

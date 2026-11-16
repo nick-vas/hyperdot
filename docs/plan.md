@@ -142,7 +142,7 @@ Steam's dates depend on each other, and a missed one moves the release. `plan.js
 | `demoSubmitted` | When the Next Fest demo went to review | after 3 weeks before `nextFest` (5 with `pressPreview`), or unset once that day has passed |
 | `pressPreview` | `true` when the demo is in the press preview | - |
 | `launchDiscount` | `{ "percent": 10, "days": 7 }`, the optional launch discount, or `null` | outside 10 to 40%, or 7 to 14 days |
-| `discounts` | The planned discounts: `{ "name", "start", "end", "percent", "seasonal" }` each, `seasonal` for a seasonal sale's own discount | below; a bad entry is skipped with a warning |
+| `discounts` | The planned discounts: `{ "name", "start", "end", "percent", "seasonal" }` each, `seasonal` for a seasonal sale's own discount. A discount lasts `end` minus `start` days, as Valve counts them (its 7-day launch discount runs November 15 to 22): a 1-day discount ends the day after it starts | below; a bad entry (dates that do not parse, an `end` on or before `start`) is skipped with a warning and left out of `calendar.ics` |
 | `comparables` | LootRadar slugs of comparable games (`lootradar.gg/game/<slug>`), for `calendar` | - |
 
 Reviews take 3 to 5 business days, so the kit asks for 7; business days are Monday to Friday (public holidays are not

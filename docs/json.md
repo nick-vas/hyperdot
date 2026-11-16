@@ -90,7 +90,7 @@ Branch on `error.code`; `message` can change.
 | `download-failed` | Godot or its export templates could not be downloaded after four attempts (an HTTP error, no network): the network or the server, not the project; retry later | `error.message` (the URL and the last error) |
 | `checksum-mismatch` | A downloaded Godot editor or export-templates archive does not match the SHA-512 Godot publishes in `SHA512-SUMS.txt` beside the release; the file is deleted. Retry; if it repeats, the file is being altered on the way or the mirror is wrong. A release with no `SHA512-SUMS.txt`, or one that does not list the archive, is used with a note instead | `error.message` (the expected and actual sums) |
 | `install-busy` | Another run on the same machine has been installing the same Godot for longer than `HYPERDOT_TIMEOUT`; the two take turns, so this is a stuck or very slow install, not the project; stop it or wait, then retry | `error.message` (the lock file) |
-| `calendar-unavailable` | `calendar`: none of the sources asked for could be read: no network and no cached copy (with `-Offline`, nothing cached), or every page failed. One source failing is a warning, not this | `calendar.sources[]` (`error` each) |
+| `calendar-unavailable` | `calendar`: none of the sources asked for could be read: no network and no cached copy (with `-Offline`, nothing cached), every page failed, or only `lootradar` was asked for and there are no comparables. One source failing is a warning, not this | `calendar.sources[]` (`error` each) |
 | `unexpected-error` | An error the kit did not expect, such as a `-Project` folder that does not exist, a file it cannot read, or a bug in the kit | `error.message` |
 | `failed` | A failure with no code of its own: no `project.godot` in the project folder, a program not found (the .NET SDK, a tool on the `PATH`), an add-on or runner set-up that is missing or misnamed, a tool that exited non-zero | `error.message` |
 
@@ -498,18 +498,21 @@ LootRadar slug, or any of the four flags on another command is `invalid-argument
   events overlapping today to `until` are listed, at most 15 jams (the most joined).
 - `counts`: events per kind.
 - `release`: `null` without plan.json's `release.date`, else `date`, `firstDiscount`, `seasonalSales[]` (each sale ending on
-  or after release: `name`, `start`, `end`, `joinable`, `partWay` (the 30 days after release end inside it), `joinFrom`),
+  or after release: `name`, `start`, `end`, `joinable` (the first day a discount may start falls before the sale's last day,
+  when Valve ends it at 10 am), `partWay` (the 30 days after release end inside it), `joinFrom`),
   `firstSeasonalSale` (name, or `null`), `nextFest` (`planned`, `edition` (the edition it matches), `suggested` (the last
   edition before release whose demo deadline has not passed, when none is planned), `demoReviewBy`), `warnings[]`, `notes[]`
   (release on a sale or Next Fest day, an Epic giveaway in launch week, the plan timeline's notes).
 - `timeline`: plan's release timeline (as `plan`'s `release`), or `null`.
 - `comparables[]`, one per LootRadar slug read: `slug`, `title`, `url`, `steamAppId`, `genres`, `releaseDate` (LootRadar's
   text), `basePrice` (Steam's, else the highest official store's), `steamPrice`, `steamDiscountPercent`, `bestOfficialPrice`,
-  `bestOfficialStore`, `lowestSeen`, `lowestSeenDate`, `deepestDiscountPercent` (the lowest price seen against `basePrice`),
-  `historyWeeks`, `historyLow`, `historyHigh` (weekly prices, about 12 weeks), `historySynthetic`, `historyThin`,
-  `honestyScore`, `verdict`, `nextDropHintDays`, `playersNow`, `fetchedAt`. Prices as LootRadar lists them; keyshops are left out.
-- `comparableSummary`: `null` without comparables, else `games`, `medianBasePrice`, `medianDeepestDiscountPercent`,
-  `medianSteamDiscountNowPercent`.
+  `bestOfficialStore`, `officialDiscountNowPercent` (the deepest discount at an official store now), all from official stores'
+  deals only; then LootRadar's own best price over every store, keyshops included, which it does not split by store:
+  `lowestSeenAllStores`, `lowestSeenAllStoresDate`, `deepestDiscountAllStoresPercent` (that price against `basePrice`),
+  `historyWeeks`, `historyLowAllStores`, `historyHighAllStores` (weekly, about 12 weeks); and `historySynthetic`, `historyThin`,
+  `honestyScore`, `verdict`, `nextDropHintDays`, `playersNow`, `fetchedAt`. Prices as LootRadar lists them.
+- `comparableSummary`: `null` without comparables, else `games`, `medianBasePrice`, `medianDeepestDiscountAllStoresPercent`,
+  `medianSteamDiscountNowPercent`, `medianOfficialDiscountNowPercent`.
 `warnings[]`: sources not read or read from an old copy, comparables skipped, the release timeline's and the discount rules'
 warnings, and a `release.nextFest` that is not an edition Valve lists. The run is recorded in the history (for `status`'s rules)
 but writes no run log.

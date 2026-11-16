@@ -143,7 +143,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Measure.ps1` | 12/13 | `Test-GpuValidation.ps1`, `Test-SelectJobs.ps1`, `Test-BenchSweep.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-BenchHotspots.ps1`, `Test-Capture.ps1`, `Test-ColorVision.ps1` and 37 more |
 | `Palette.ps1` | 3/3 | `Test-Palette.ps1`, `Test-Capture.ps1`, `Test-ColorVision.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-GpuValidation.ps1`, `Test-ShotChanged.ps1` |
 | `Placement.ps1` | 2/2 | `Test-Placement.ps1` |
-| `Plan.ps1` | 34/35 | `Test-Plan.ps1`, `Test-Calendar.ps1`, `Test-ProjectSync.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Handoffs.ps1` |
+| `Plan.ps1` | 35/36 | `Test-Plan.ps1`, `Test-Calendar.ps1`, `Test-ProjectSync.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Handoffs.ps1` |
 | `Platforms.ps1` | 1/1 | `Test-Platforms.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1` and 5 more |
 | `Playtest.ps1` | 8/8 | `Test-Playtest.ps1` |
 | `Playthrough.ps1` | 3/3 | `Test-Playthrough.ps1` |

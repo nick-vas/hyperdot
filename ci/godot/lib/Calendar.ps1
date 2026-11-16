@@ -109,7 +109,7 @@ function ConvertFrom-SteamEventsHtml([string]$Html) {
             foreach ($m in [regex]::Matches($section, '(?s)<h2 class="bb_subsection">(?:<a[^>]*></a>)?\s*<strong>([^<]+)</strong>\s*\|\s*([^<]+)</h2>')) {
                 $name = ConvertFrom-CalendarHtmlText $m.Groups[1].Value
                 $range = ConvertFrom-CalendarRange (ConvertFrom-CalendarHtmlText $m.Groups[2].Value)
-                $notes = 'Games released at least 30 days before it starts can join with a discount (Discount Management page); exempt from the 30 days between discounts.'
+                $notes = 'Games released at least 30 days before it starts join with a discount from its first day (Discount Management page); one released later joins part-way, once its 30 days after release end. Exempt from the 30 days between discounts.'
                 $events.Add((New-CalendarEvent 'steam' 'seasonal-sale' "Steam $name" ($range ? $range.start : $null) ($range ? $range.end : $null) "$url#1" '' $notes))
             }
         } elseif ($title -match 'Black Friday\s+(\d{4})') {
@@ -186,7 +186,8 @@ function ConvertFrom-ItchJamsHtml([string]$Html, [datetime]$From, [datetime]$To)
         $start = ConvertTo-CalendarDay (Get-CalendarField $jam 'start_date')
         $end = ConvertTo-CalendarDay (Get-CalendarField $jam 'end_date')
         if ($null -eq $start -or $null -eq $end -or $end -lt $From -or $start -gt $To) { continue }
-        [pscustomobject]@{ jam = $jam; start = $start; end = $end; joined = [int](Get-CalendarField $jam 'joined') }
+        $joined = Get-CalendarNumber (Get-CalendarField $jam 'joined')
+        [pscustomobject]@{ jam = $jam; start = $start; end = $end; joined = ($null -ne $joined ? [int][math]::Min($joined, [int]::MaxValue) : 0) }
     })
     return @(foreach ($entry in @($jams | Sort-Object @{ Expression = 'joined'; Descending = $true }, start | Select-Object -First $script:CalendarJamCount)) {
         $jam = $entry.jam
@@ -216,10 +217,10 @@ function ConvertFrom-EpicFreeGamesJson([string]$Json) {
         foreach ($group in @(@(Get-CalendarField $promotions 'promotionalOffers') + @(Get-CalendarField $promotions 'upcomingPromotionalOffers'))) {
             foreach ($offer in @(Get-CalendarField $group 'promotionalOffers')) {
                 if ($null -eq $offer) { continue }
-                $percent = Get-CalendarField (Get-CalendarField $offer 'discountSetting') 'discountPercentage'
+                $percent = Get-CalendarNumber (Get-CalendarField (Get-CalendarField $offer 'discountSetting') 'discountPercentage')
                 $start = ConvertTo-CalendarDay (Get-CalendarField $offer 'startDate')
                 $end = ConvertTo-CalendarDay (Get-CalendarField $offer 'endDate')
-                if ($null -eq $start -or $null -eq $end -or $null -eq $percent) { continue }
+                if ($null -eq $start -or $null -eq $end -or $null -eq $percent -or $percent -lt 0 -or $percent -ge 100) { continue }
                 if ($percent -eq 0) {
                     $events.Add((New-CalendarEvent 'epic' 'epic-free' "Free on Epic: $title" $start $end $url '' 'A game Epic gives away that week; its genre competes for the same players.'))
                 } else {
@@ -249,9 +250,10 @@ function Get-CalendarNumber($Value) {
 }
 
 # One comparable game from LootRadar's catalog.game: its base price (Steam's, else the highest official store's), the
-# price on Steam now, the best official price, the lowest price LootRadar has seen and the deepest discount that makes,
-# the 12-week history's range, the honesty score and the wait-or-buy hint. Keyshop prices are left out: a developer's
-# own sale is on official stores.
+# price on Steam now, the best official price and the deepest official discount now, from the official stores' deals
+# only (a developer's own sale is on official stores). LootRadar's price history, historical low and lowest-ever price
+# are its best price over every store, keyshops included, and cannot be split by store: they are reported as such
+# (the *AllStores fields), with the honesty score and the wait-or-buy hint.
 function ConvertFrom-LootRadarGame([string]$Json, [string]$Slug) {
     $data = Get-CalendarField (Get-CalendarField (Get-CalendarField ($Json | ConvertFrom-Json -DateKind String -Depth 30) 'result') 'data') 'json'
     $game = Get-CalendarField $data 'game'
@@ -271,6 +273,7 @@ function ConvertFrom-LootRadarGame([string]$Json, [string]$Slug) {
     $waitOrBuy = Get-CalendarField $data 'waitOrBuy'
     $lows = @((Get-CalendarNumber (Get-CalendarField $game 'historicalLow')), (Get-CalendarNumber (Get-CalendarField $waitOrBuy 'lowestEver'))) + @($history) | Where-Object { $null -ne $_ -and $_ -gt 0 }
     $lowest = @($lows).Count ? (@($lows) | Measure-Object -Minimum).Minimum : $null
+    $officialDiscounts = @($official | Where-Object { $null -ne $_.discount } | ForEach-Object discount)
     $deepest = ($null -ne $basePrice -and $basePrice -gt 0 -and $null -ne $lowest) ? [math]::Max(0, [math]::Round((1 - $lowest / $basePrice) * 100)) : $null
     return [ordered]@{
         slug = $Slug; title = "$(Get-CalendarField $game 'title')"; url = "https://lootradar.gg/game/$Slug"
@@ -278,10 +281,11 @@ function ConvertFrom-LootRadarGame([string]$Json, [string]$Slug) {
         basePrice = $basePrice
         steamPrice = ($steam.Count ? $steam[0].price : $null); steamDiscountPercent = ($steam.Count ? $steam[0].discount : $null)
         bestOfficialPrice = ($priced.Count ? $priced[0].price : $null); bestOfficialStore = ($priced.Count ? $priced[0].store : $null)
-        lowestSeen = $lowest; lowestSeenDate = Get-CalendarField $waitOrBuy 'lowestEverDate'; deepestDiscountPercent = $deepest
+        officialDiscountNowPercent = ($officialDiscounts.Count ? ($officialDiscounts | Measure-Object -Maximum).Maximum : $null)
+        lowestSeenAllStores = $lowest; lowestSeenAllStoresDate = Get-CalendarField $waitOrBuy 'lowestEverDate'; deepestDiscountAllStoresPercent = $deepest
         historyWeeks = @($history).Count
-        historyLow = (@($history).Count ? (@($history) | Measure-Object -Minimum).Minimum : $null)
-        historyHigh = (@($history).Count ? (@($history) | Measure-Object -Maximum).Maximum : $null)
+        historyLowAllStores = (@($history).Count ? (@($history) | Measure-Object -Minimum).Minimum : $null)
+        historyHighAllStores = (@($history).Count ? (@($history) | Measure-Object -Maximum).Maximum : $null)
         historySynthetic = [bool](Get-CalendarField $data 'historySynthetic'); historyThin = [bool](Get-CalendarField $data 'thin')
         honestyScore = Get-CalendarField (Get-CalendarField $data 'honesty') 'score'
         verdict = Get-CalendarField $waitOrBuy 'action'; nextDropHintDays = Get-CalendarField $waitOrBuy 'nextDropHintDays'
@@ -336,8 +340,10 @@ function Get-CalendarRelease($Release, [object[]]$Events, [datetime]$Today) {
         $start = ConvertTo-PlanDate $item.start; $end = ConvertTo-PlanDate $item.end
         if ($end -lt $releaseDay) { continue }
         $joinFrom = $start -gt $firstDiscount ? $start : $firstDiscount
-        [ordered]@{ name = $item.name; start = $item.start; end = $item.end; joinable = ($joinFrom -le $end)
-            partWay = ($joinFrom -le $end -and $joinFrom -gt $start); joinFrom = ($joinFrom -le $end ? (Format-CalendarDay $joinFrom) : $null) }
+        # Valve's sales end at 10 am Pacific on their last day: joining on it leaves nothing to join.
+        $joinable = $joinFrom -lt $end
+        [ordered]@{ name = $item.name; start = $item.start; end = $item.end; joinable = $joinable
+            partWay = ($joinable -and $joinFrom -gt $start); joinFrom = ($joinable ? (Format-CalendarDay $joinFrom) : $null) }
     })
     $first = @($seasonal | Where-Object { $_.joinable } | Select-Object -First 1)
 
@@ -387,12 +393,14 @@ function Get-CalendarMedian([double[]]$Values, [int]$Decimals) {
 # The comparables' medians: what similar games cost (to the cent) and how deep they have been cut (whole percent).
 function Get-CalendarComparableSummary([object[]]$Games) {
     $base = [double[]]@($Games | ForEach-Object { $_['basePrice'] } | Where-Object { $null -ne $_ })
-    $deepest = [double[]]@($Games | ForEach-Object { $_['deepestDiscountPercent'] } | Where-Object { $null -ne $_ })
+    $deepest = [double[]]@($Games | ForEach-Object { $_['deepestDiscountAllStoresPercent'] } | Where-Object { $null -ne $_ })
     $now = [double[]]@($Games | ForEach-Object { $_['steamDiscountPercent'] } | Where-Object { $null -ne $_ })
+    $official = [double[]]@($Games | ForEach-Object { $_['officialDiscountNowPercent'] } | Where-Object { $null -ne $_ })
     return [ordered]@{ games = @($Games).Count
         medianBasePrice = Get-CalendarMedian $base 2
-        medianDeepestDiscountPercent = Get-CalendarMedian $deepest 0
-        medianSteamDiscountNowPercent = Get-CalendarMedian $now 0 }
+        medianDeepestDiscountAllStoresPercent = Get-CalendarMedian $deepest 0
+        medianSteamDiscountNowPercent = Get-CalendarMedian $now 0
+        medianOfficialDiscountNowPercent = Get-CalendarMedian $official 0 }
 }
 
 function ConvertTo-IcsText([string]$Text) {
@@ -412,14 +420,21 @@ function Add-IcsLine([System.Collections.Generic.List[string]]$Lines, [string]$L
 }
 
 # calendar.ics: every dated event, the release timeline's deadlines and the planned discounts as all-day events, for a
-# calendar app to import or subscribe to. UIDs are stable, so a re-import updates rather than duplicates.
+# calendar app to import or subscribe to. A UID is made from what names an event, not its dates (a Valve event by its
+# name and year, an Epic discount window by its days, a planned discount by its name), so importing the file again
+# updates an event whose dates moved instead of adding a second one.
 function Write-CalendarIcs([string]$Path, [string]$Game, [object[]]$Events, $Timeline, $Release) {
     $lines = [System.Collections.Generic.List[string]]::new()
     $stamp = [datetime]::UtcNow.ToString("yyyyMMdd'T'HHmmss'Z'", [cultureinfo]::InvariantCulture)
     $sha = [System.Security.Cryptography.SHA256]::Create()
     $entries = [System.Collections.Generic.List[object]]::new()
     foreach ($item in @($Events | Where-Object { $_.start -and $_.end })) {
-        $entries.Add([pscustomobject]@{ key = "$($item.source)|$($item.kind)|$($item.name)|$($item.start)"; summary = $item.name; start = $item.start; end = $item.end
+        $key = switch ($item.kind) {
+            'epic-discounts' { "epic|epic-discounts|$($item.start)|$($item.end)" }
+            'epic-free' { "epic|epic-free|$($item.name)|$($item.start)" }
+            default { "$($item.source)|$($item.kind)|$($item.name)|$($item.start.Substring(0, 4))" }
+        }
+        $entries.Add([pscustomobject]@{ key = $key; summary = $item.name; start = $item.start; end = $item.end
                 url = ($item.registration ? $item.registration : $item.url); description = (@($item.notes, $item.url) | Where-Object { $_ }) -join "`n" })
     }
     if ($Timeline) {
@@ -432,18 +447,14 @@ function Write-CalendarIcs([string]$Path, [string]$Game, [object[]]$Events, $Tim
         }
         $entries.Add([pscustomobject]@{ key = 'plan|release'; summary = "$($Game): release day"; start = $Timeline.date; end = $Timeline.date; url = $null; description = 'release.date in plan.json.' })
     }
-    $launch = Get-CalendarField $Release 'launchDiscount'
+    # Only the discounts the plan check could read: one it ignored (bad dates, an end before its start) is not drawn.
     $releaseDay = ConvertTo-PlanDate (Get-CalendarField $Release 'date')
-    if ($launch -and $releaseDay -and (Test-PlanNumber (Get-CalendarField $launch 'days'))) {
-        $entries.Add([pscustomobject]@{ key = 'plan|launch-discount'; summary = "$($Game): launch discount $(Get-CalendarField $launch 'percent')%"
-                start = Format-CalendarDay $releaseDay; end = Format-CalendarDay $releaseDay.AddDays([int](Get-CalendarField $launch 'days')); url = $null; description = 'release.launchDiscount in plan.json.' })
-    }
-    foreach ($discount in @(Get-CalendarField $Release 'discounts')) {
-        $start = ConvertTo-PlanDate (Get-CalendarField $discount 'start'); $end = ConvertTo-PlanDate (Get-CalendarField $discount 'end')
-        if (-not $start -or -not $end) { continue }
-        $name = Get-CalendarField $discount 'name'
-        $entries.Add([pscustomobject]@{ key = "plan|discount|$name|$(Format-CalendarDay $start)"; summary = "$($Game): discount $(Get-CalendarField $discount 'percent')%$(if ($name) { " ($name)" })"
-                start = Format-CalendarDay $start; end = Format-CalendarDay $end; url = $null; description = 'release.discounts in plan.json.' })
+    if ($releaseDay) {
+        foreach ($discount in @((Get-PlannedDiscounts $Release $releaseDay).discounts)) {
+            $entries.Add([pscustomobject]@{ key = "plan|discount|$($discount.label)"; summary = "$($Game): $($discount.label) $($discount.percent)%"
+                    start = Format-CalendarDay $discount.start; end = Format-CalendarDay $discount.end; url = $null
+                    description = $discount.launch ? 'release.launchDiscount in plan.json.' : 'release.discounts in plan.json.' })
+        }
     }
     $lines.Add('BEGIN:VCALENDAR'); $lines.Add('VERSION:2.0'); $lines.Add('PRODID:-//hyperdot//calendar//EN'); $lines.Add('CALSCALE:GREGORIAN')
     Add-IcsLine $lines "X-WR-CALNAME:$(ConvertTo-IcsText "$Game marketing calendar")"
@@ -582,7 +593,7 @@ function Invoke-Calendar($Info, [string[]]$Source, [int]$Days, [bool]$Offline, [
         Write-CiLog "No release.date in plan.json: set it to relate the release to these events ($(Format-KitCommand 'plan'))."
     }
     foreach ($similar in $comparables) {
-        Write-CiLog "  $($similar.title): base $($similar.basePrice), Steam now $($similar.steamPrice) (-$($similar.steamDiscountPercent)%), lowest seen $($similar.lowestSeen) (-$($similar.deepestDiscountPercent)%)"
+        Write-CiLog "  $($similar.title): base $($similar.basePrice), Steam now $($similar.steamPrice) (-$($similar.steamDiscountPercent)%), lowest seen at any store, keyshops included, $($similar.lowestSeenAllStores) (-$($similar.deepestDiscountAllStoresPercent)%)"
     }
     foreach ($warning in $warnings) { Write-CiLog "WARNING: $warning" }
     Write-CiLog "Wrote $icsPath ($icsEvents events)"

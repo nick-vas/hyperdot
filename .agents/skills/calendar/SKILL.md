@@ -16,7 +16,7 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 calendar -Offline -Json        
 ```
 
 It writes `calendar-results/calendar.ics` (every event, the plan's deadlines and discounts as all-day events; stable UIDs,
-so importing it again updates instead of duplicating). Pages are cached in `.godot/hyperdot-calendar` for 6 hours. A
+so importing it again updates an event whose dates moved instead of adding a second one). Pages are cached in `.godot/hyperdot-calendar` for 6 hours. A
 source that fails is a warning; only all of them failing is `calendar-unavailable`.
 
 ## 1. Sources
@@ -26,7 +26,7 @@ source that fails is a warning; only all of them failing is `calendar-unavailabl
 | `steam` | Valve's Upcoming Steam Events: the four seasonal sales, Next Fest editions, themed fests with eligibility and registration links, the Black Friday discount hub | Valve's own page; the source of truth for dates. "TBD" sales have no dates yet |
 | `itch` | The most-joined itch.io jams in the window, with dates and how many joined | itch.io's own calendar data; times are read as UTC |
 | `epic` | Epic's free games now and upcoming, and windows where the feed shows other games discounted | An undocumented feed; Epic's sale calendar is only in its developer portal |
-| `lootradar` | Per comparable game: base price, Steam price now, lowest price seen and the deepest discount it makes, 12 weeks of price range, honesty score, live players | LootRadar's public API; 12 weeks of history, so "deepest" means recent. Attribute "LootRadar (lootradar.gg)" wherever the numbers are shown publicly |
+| `lootradar` | Per comparable game: base price, Steam price and the deepest official-store discount now; LootRadar's lowest price, deepest discount and 12-week range over all stores; honesty score, live players | LootRadar's public API. Its history and lows include keyshops (the `*AllStores` fields) and cover about 12 weeks. Attribute "LootRadar (lootradar.gg)" wherever the numbers are shown publicly |
 
 ## 2. What goes in plan.json
 
@@ -79,8 +79,9 @@ together. A deep discount weeks after launch tells the people who paid full pric
 
 - Pick 3 to 5 games a player of this game would also buy (`game-design` section 4 has the teardown); their slugs go in
   `release.comparables`. `comparableSummary` gives the median base price and the median deepest discount.
-- Use official-store prices only (keyshop prices are left out on purpose). A high `deepestDiscountPercent` within 12 weeks of a
-  recent release is a game in trouble or in a sale, not a target.
+- Plan prices and discounts from the official-store fields (`basePrice`, `steamDiscountPercent`, `officialDiscountNowPercent`).
+  The `*AllStores` fields are LootRadar's best price anywhere, keyshops included: a ceiling on how cheap players have seen the
+  game, not a discount its developer ran. A deep one shortly after release is a game in trouble or on a keyshop, not a target.
 - Never present LootRadar's verdicts as advice to the user's own players; they are price history for shoppers.
 
 ## 6. Turn it into the plan

@@ -174,9 +174,11 @@ function ConvertTo-PlanDate($Value) {
 function Test-PlanNumber($Value) { return $Value -is [int] -or $Value -is [long] -or $Value -is [double] -or $Value -is [decimal] }
 
 # plan.json's release.launchDiscount ({ percent, days }) and release.discounts[] ({ name, start, end, percent, seasonal })
-# against the rules above. Days are calendar days, a discount running from its start day to its end day (Valve's own
-# example: a 7-day launch discount from November 15 to 22). Warnings only.
-function Get-DiscountScheduleWarnings($Release, [datetime]$ReleaseDay) {
+# against the rules above. A discount runs from its start day to its end day, and its length is end minus start (Valve's
+# own example: a 7-day launch discount from November 15 to 22), so a 1-day discount ends the day after it starts.
+# Warnings only. Returns the warnings and the discounts it could read (an entry it cannot read is left out of both the
+# checks and calendar.ics).
+function Get-PlannedDiscounts($Release, [datetime]$ReleaseDay) {
     $rules = $script:SteamDiscountRules
     $cooldown = $script:SteamDiscountCooldownDays
     $source = '(Steamworks discounting rules, docs/store-and-legal.md)'
@@ -189,12 +191,12 @@ function Get-DiscountScheduleWarnings($Release, [datetime]$ReleaseDay) {
     if ($null -ne $launch) {
         $percent = $launch.PSObject.Properties['percent'] ? $launch.percent : $null
         $days = $launch.PSObject.Properties['days'] ? $launch.days : $null
-        if (-not (Test-PlanNumber $percent) -or -not (Test-PlanNumber $days)) {
-            $warnings.Add('release.launchDiscount needs a percent and a number of days, e.g. { "percent": 10, "days": 7 }; it was ignored.')
+        if (-not (Test-PlanNumber $percent) -or -not (Test-PlanNumber $days) -or $days -lt 1 -or $days -gt 366 -or $days -ne [math]::Floor($days)) {
+            $warnings.Add('release.launchDiscount needs a percent and a whole number of days, e.g. { "percent": 10, "days": 7 }; it was ignored.')
         } else {
             if ($percent -lt $rules.launchMin -or $percent -gt $rules.launchMax) { $warnings.Add("The launch discount is $percent%; Steam allows $($rules.launchMin) to $($rules.launchMax)% $source.") }
             if ($days -lt $rules.launchDaysMin -or $days -gt $rules.launchDaysMax) { $warnings.Add("The launch discount runs $days days; Steam allows $($rules.launchDaysMin) to $($rules.launchDaysMax) $source.") }
-            $discounts.Add([pscustomobject]@{ name = 'the launch discount'; start = $ReleaseDay; end = $ReleaseDay.AddDays([int]$days); seasonal = $false; launch = $true })
+            $discounts.Add([pscustomobject]@{ name = 'the launch discount'; label = 'launch discount'; start = $ReleaseDay; end = $ReleaseDay.AddDays([int]$days); seasonal = $false; launch = $true; percent = $percent })
         }
     }
 
@@ -216,13 +218,16 @@ function Get-DiscountScheduleWarnings($Release, [datetime]$ReleaseDay) {
         $length = [int]($end - $start).TotalDays
         if (-not $seasonal -and $length -gt $rules.daysMax) { $warnings.Add("The discount $name runs $length days; Steam allows $($rules.daysMin) to $($rules.daysMax) (a seasonal sale's own discount runs as long as the sale: mark it seasonal) $source.") }
         if ($start -lt $firstDay) {
-            if ($seasonal) {
+            if ($seasonal -and $firstDay -ge $end) {
+                $warnings.Add("The seasonal discount $name ($(& $format $start) to $(& $format $end)) ends before the $cooldown days after release do ($(& $format $firstDay)); the game cannot join that sale $source.")
+            } elseif ($seasonal) {
                 $warnings.Add("The seasonal discount $name starts on $(& $format $start), inside the $cooldown days after release; the game can join the sale only from $(& $format $firstDay), part-way through, and the discount cannot be entered before then $source.")
             } else {
                 $warnings.Add("The discount $name starts on $(& $format $start), inside the $cooldown days after release (until $(& $format $firstDay)); only the launch discount may run then $source.")
             }
         }
-        $discounts.Add([pscustomobject]@{ name = "the discount $name"; start = $start; end = $end; seasonal = $seasonal; launch = $false })
+        $discounts.Add([pscustomobject]@{ name = "the discount $name"; label = (($entry.PSObject.Properties['name'] -and $entry.name) ? "$($entry.name)" : "discount $index")
+                start = $start; end = $end; seasonal = $seasonal; launch = $false; percent = $percent })
     }
 
     $sorted = @($discounts | Sort-Object start)
@@ -237,8 +242,11 @@ function Get-DiscountScheduleWarnings($Release, [datetime]$ReleaseDay) {
             }
         }
     }
-    return @($warnings)
+    return [ordered]@{ warnings = @($warnings); discounts = @($sorted) }
 }
+
+function Get-DiscountScheduleWarnings($Release, [datetime]$ReleaseDay) { return @((Get-PlannedDiscounts $Release $ReleaseDay).warnings) }
+
 function Get-ReleaseTimeline($Release, [datetime]$Today) {
     $warnings = [System.Collections.Generic.List[string]]::new()
     $notes = [System.Collections.Generic.List[string]]::new()
