@@ -93,7 +93,7 @@ Branch on `error.code`; `message` can change.
 | `calendar-unavailable` | `calendar`: none of the sources asked for could be read: no network and no cached copy (with `-Offline`, nothing cached), every page failed, or only `lootradar` was asked for and there are no comparables. One source failing is a warning, not this | `calendar.sources[]` (`error` each) |
 | `brief-missing` | `brief`: no `docs/brief.json` in the folder (start one with `brief -Do start -TextFile <file>`), or it is not a brief | `error.message` |
 | `brief-exists` | `brief -Do start`: the folder already has `docs/brief.json`; answer its questions, or delete it to start over | - |
-| `invalid-answer` | `brief -Do answer`: the value is not one of the question's options (or, for a genre, not a gameplay term of `genres-uw.json`), the `-Quote` is not in the description word for word, or the question does not apply with the answers so far | `error.message` |
+| `invalid-answer` | `brief -Do answer`: the value is not one of the question's options (or, for a genre, not a gameplay term of `genres-uw.json`), or empty; a text answer is not one line of plain words or has the wrong number of parts; the `-Quote` is not a whole sentence of the description (or several in a row) word for word, contains a negation, or does not name the answer (its label or a cue); an answer without `-Quote` is for a question not among `brief.next` and not yet answered; or the question does not apply with the answers so far | `error.message` |
 | `brief-incomplete` | `brief -Do gdd`: questions are still open, or answers break a rule (`brief.conflicts`) | `brief` |
 | `gdd-exists` | `brief -Do gdd`: the folder already has `docs/GDD.md`; `/game` confirms and edits it | - |
 | `unexpected-error` | An error the kit did not expect, such as a `-Project` folder that does not exist, a file it cannot read, or a bug in the kit | `error.message` |
@@ -534,15 +534,19 @@ there is none, `docs/STYLE.md`): `brief [-Do status|start|answer|gdd] [-TextFile
 a question with `when` applies only once the answers it names hold one of its values. The result is `brief`:
 - `path` (of `docs/brief.json`), `text` (the user's description, as given to `-Do start`).
 - `applicable` (questions that apply), `answeredCount`, `open`, `complete` (none open and no conflict).
-- `answers[]`: `id`, `header`, `value[]` (the option labels as the bank spells them, or the user's words), `source`
-  (`text`: taken from the description with `quote`, the sentence that states it, found in it word for word; `asked`).
+- `answers[]`, only those whose question still applies: `id`, `header`, `value[]` (the option labels as the bank spells them,
+  or the user's words), `source` (`text`: taken from the description with `quote`, a whole sentence of it, word for word,
+  that names the answer and says no "not"; `asked`: recorded without a quote, for a question `brief` listed next or as a
+  correction. The kit cannot prove the user was asked; the `/new-game` skill asks it as written).
 - `next[]`: up to four open questions to ask as written: `id`, `header`, `question`, `kind` (`choice`, `multi`, `text`,
   `term`: one to `max` gameplay genres from `genres-uw.json`), `multiSelect`, `optional` (`none` is an answer), `options[]`
   (`label`, `description`), `max`.
 - `stale[]`: ids answered whose question no longer applies (left out of `answers`).
 - `conflicts[]`: `rule` (`fun-at-least-one`, `csharp-web`, `touch-needs-mobile`), `message`, `fix`.
 `-Do gdd` also returns `written[]` (paths), `nextSteps[]` (create the Godot project when there is none, the `plan -Do init`
-command with its profile, `/game`), `planProfile` (`jam` or `full`) and `weeklyHours` (or `null` for a jam). `-Value`,
+command with its profile, scaling a jam plan to the jam's length, `/game`), `planProfile` (`jam` or `full`), `weeklyHours`
+(or `null` for a jam) and `jamLength` (or `null`). The GDD and the result use only the answers that still apply. A
+`-Project` folder that does not exist is `unexpected-error`, as for every command. `-Value`,
 `-Quote` and `-TextFile` on another command, a `-Do` of `plan`'s on `brief` and `brief`'s on `plan` are `invalid-arguments`.
 
 **telemetry** (read-only; it never fails on what it finds, and writes nothing, not even a history line of its own): one view

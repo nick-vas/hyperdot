@@ -25,12 +25,14 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 brief -Do gdd -Project <folder>
 
 ## 2. Answers the description already gives
 
-Run `brief -Json` and read `brief.next`. For each question listed there, answer it from the description only when a
-sentence in it states the answer outright: pass that sentence, copied exactly, as `-Quote`, and the option it states as
-`-Value`. `brief` refuses a quote that is not in the description word for word, and a value that is not an option.
+Run `brief -Json` and read `brief.next`. Answer a question from the description only when one of its sentences states
+the answer outright: pass the whole sentence, copied exactly, as `-Quote`, and the option it names as `-Value`. `brief`
+refuses a quote that is not a whole sentence of the description (or several in a row), one with a negation ("not",
+"no", "never", "without"), and one that does not name the answer (the option's label or a cue from the bank); take a
+refusal as "ask it" and leave that question to step 3.
 
 - An answer that needs inference ("a puzzle game" does not say "single player") is not stated: leave it to step 3.
-- Never quote for one question a sentence that answers a different one.
+- One sentence may answer several questions when it names each answer.
 - Repeat `brief -Json` after each round: answers open new questions (`when`), and close others.
 
 ## 3. Ask the rest, as written
@@ -38,7 +40,8 @@ sentence in it states the answer outright: pass that sentence, copied exactly, a
 Ask `brief.next` with the AskUserQuestion tool, all of them in one call (at most four): `question` as the question,
 `header` as the header, each of `options` as an option with its `label` and `description` unchanged, `multiSelect` as
 given. A `text` question has no options: ask it in plain words and take the reply as written. Record each reply with
-`brief -Do answer -Id <id> -Value "<reply>"` (no `-Quote`); several options are comma-separated. For "Other", pass the
+`brief -Do answer -Id <id> -Value "<reply>"` (no `-Quote`; `brief` takes such an answer only for a question it lists next,
+or to correct an earlier one); several options are comma-separated. For "Other", pass the
 user's words: `brief` refuses anything outside the options (a `term` question takes any gameplay genre from the kit's
 list, and suggests the nearest on a typo), and you ask that question again with its refusal. Repeat until
 `brief.complete` is true.

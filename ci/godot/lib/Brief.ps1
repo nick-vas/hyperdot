@@ -44,9 +44,43 @@ function ConvertTo-BriefComparable([string]$Text) {
     return (($Text -replace '[‘’]', "'" -replace '[“”]', '"' -replace '\s+', ' ').Trim().ToLowerInvariant())
 }
 
-function Test-BriefQuote([string]$Text, [string]$Quote) {
-    $q = ConvertTo-BriefComparable $Quote
-    return ($q.Length -ge 3 -and (ConvertTo-BriefComparable $Text).Contains($q))
+# A quote is evidence only when it is a whole sentence of the description (or several next to each other), says no
+# "not", and names the answer: an option's label or one of its cues, the genre term, or a text answer's own words.
+# Returns $null when it holds, else why not.
+function Get-BriefQuoteProblem([string]$Text, [string]$Quote, $Question, [string[]]$Values) {
+    $strip = { param([string]$S) ((ConvertTo-BriefComparable $S) -replace '[.!?]+$', '').Trim() }
+    $q = & $strip $Quote
+    if (-not $q) { return 'the quote is empty' }
+    $sentences = @([regex]::Split($Text.Trim(), '(?<=[.!?])\s+|\r?\n') | ForEach-Object { ConvertTo-BriefComparable $_ } | Where-Object { $_ })
+    $whole = $false
+    for ($i = 0; $i -lt $sentences.Count -and -not $whole; $i++) {
+        for ($j = $i; $j -lt $sentences.Count; $j++) {
+            if ((& $strip (($sentences[$i..$j]) -join ' ')) -eq $q) { $whole = $true; break }
+        }
+    }
+    if (-not $whole) { return "it is not a whole sentence of the description, word for word (quote the full sentence, or ask the question)" }
+    if ($q -match "\b(not|no|never|without|none)\b|n't\b") { return 'it contains a negation ("not", "no", "never", "without"): ask the question instead' }
+    if (@($Values).Count -eq 0) { return 'an answer of "none" cannot come from a quote: ask the question' }
+    foreach ($value in $Values) {
+        $cues = [System.Collections.Generic.List[string]]::new(); $cues.Add($value)
+        if ($Question.PSObject.Properties['options']) {
+            $option = @($Question.options | Where-Object { $_.label -eq $value })
+            if ($option.Count -and $option[0].PSObject.Properties['cues']) { foreach ($cue in @($option[0].cues)) { $cues.Add([string]$cue) } }
+        }
+        $named = @($cues | Where-Object { $q -match ('(?<![a-z0-9])' + [regex]::Escape((ConvertTo-BriefComparable $_)) + '(?![a-z0-9])') })
+        if ($named.Count -eq 0) { return "it does not name '$value'$(if ($cues.Count -gt 1) { " (or $(@($cues | Select-Object -Skip 1) -join ', '))" }): ask the question instead" }
+    }
+    return $null
+}
+
+# The answers whose questions still apply, in the bank's order: a question that no longer applies (its "when" changed)
+# leaves the brief, the rules and the GDD, though the answer stays on file in case it applies again.
+function Get-BriefLiveAnswers($Answers) {
+    $live = [ordered]@{}
+    foreach ($q in (Get-BriefQuestions).questions) {
+        if ($Answers.Contains($q.id) -and (Test-BriefApplies $q $live)) { $live[$q.id] = $Answers[$q.id] }
+    }
+    return $live
 }
 
 # Whether a question applies, from its "when": every listed answer must hold one of the listed values.
@@ -70,6 +104,15 @@ function ConvertTo-BriefValue($Question, [string]$Value) {
     switch ($Question.kind) {
         'text' {
             if ($raw.Length -gt 500) { return [ordered]@{ ok = $false; message = "The answer to '$($Question.id)' is $($raw.Length) characters; keep it under 500" } }
+            # One line of plain words: it goes into the GDD, where a line break, a heading or a comment would change its structure.
+            if ($raw -match '[\r\n]' -or $raw -match '^[#>|-]' -or $raw.Contains('<!--')) {
+                return [ordered]@{ ok = $false; message = "The answer to '$($Question.id)' must be one line of plain words: no line break, no leading #, >, | or -, no <!--" }
+            }
+            if ($Question.PSObject.Properties['parts']) {
+                $parts = @($raw -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+                $min = [int]$Question.parts.min; $max = [int]$Question.parts.max
+                if ($parts.Count -lt $min -or $parts.Count -gt $max) { return [ordered]@{ ok = $false; message = "'$($Question.id)' takes $min to $max parts, comma-separated, not $($parts.Count)" } }
+            }
             return [ordered]@{ ok = $true; value = @($raw) }
         }
         'choice' {
@@ -80,6 +123,7 @@ function ConvertTo-BriefValue($Question, [string]$Value) {
         'multi' {
             if ($raw -ieq 'none' -and $Question.PSObject.Properties['optional'] -and $Question.optional) { return [ordered]@{ ok = $true; value = @() } }
             $items = @($raw -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+            if ($items.Count -eq 0) { return [ordered]@{ ok = $false; message = "An answer to '$($Question.id)' names at least one of: $($labels -join ', ')" } }
             $values = [System.Collections.Generic.List[string]]::new()
             foreach ($item in $items) {
                 $found = @(& $match $item)
@@ -95,6 +139,7 @@ function ConvertTo-BriefValue($Question, [string]$Value) {
             $terms = Get-BriefGenreTerms
             $items = @($raw -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
             $max = $Question.PSObject.Properties['max'] ? [int]$Question.max : 3
+            if ($items.Count -eq 0) { return [ordered]@{ ok = $false; message = "An answer to '$($Question.id)' names at least one genre" } }
             if ($items.Count -gt $max) { return [ordered]@{ ok = $false; message = "'$($Question.id)' takes at most $max terms, not $($items.Count)" } }
             $values = [System.Collections.Generic.List[string]]::new()
             foreach ($item in $items) {
@@ -134,7 +179,7 @@ function Get-BriefConflicts($Answers) {
 # four), answers whose question no longer applies, and broken rules.
 function Get-BriefState($Brief) {
     $bank = Get-BriefQuestions
-    $answers = $Brief['answers']
+    $answers = Get-BriefLiveAnswers $Brief['answers']
     $applicable = @($bank.questions | Where-Object { Test-BriefApplies $_ $answers })
     $open = @($applicable | Where-Object { -not $answers.Contains($_.id) })
     $next = @($open | Select-Object -First $script:BriefMaxNext | ForEach-Object {
@@ -144,7 +189,7 @@ function Get-BriefState($Brief) {
                 options = @(if ($q.PSObject.Properties['options']) { $q.options | ForEach-Object { [ordered]@{ label = $_.label; description = $_.description } } })
                 max = ($q.PSObject.Properties['max'] ? [int]$q.max : $null) }
         })
-    $stale = @($answers.Keys | Where-Object { $id = $_; @($applicable | Where-Object { $_.id -eq $id }).Count -eq 0 })
+    $stale = @($Brief['answers'].Keys | Where-Object { -not $answers.Contains($_) })
     $conflicts = @(Get-BriefConflicts $answers)
     $listed = @(foreach ($q in $applicable) {
             if (-not $answers.Contains($q.id)) { continue }
@@ -171,7 +216,7 @@ function ConvertTo-BriefSentence([string]$Text) {
 # docs/GDD.md (draft) and, when there is none, docs/STYLE.md, from a complete brief. The GDD follows the feature grammar
 # doctor checks (Get-GddProblems): it is checked before it is written.
 function New-BriefGdd($Brief, [string]$Dir) {
-    $a = $Brief['answers']
+    $a = Get-BriefLiveAnswers $Brief['answers']
     $one = { param([string]$Id) $v = @(Get-BriefAnswerValues $a $Id); $v.Count ? [string]$v[0] : '' }
     $all = { param([string]$Id) @(Get-BriefAnswerValues $a $Id) }
     $title = & $one 'title'
@@ -181,7 +226,7 @@ function New-BriefGdd($Brief, [string]$Dir) {
     $fun = @(@(& $all 'funA') + @(& $all 'funB'))
     $comparables = & $one 'comparables'
     $doc = Set-BriefSection $doc 'Pitch' (@(
-            "$title is a $(($genres -join ', ').ToLowerInvariant()) game. $(ConvertTo-BriefSentence (& $one 'coreLoop'))"
+            "$title is $($genreText = ($genres -join ', ').ToLowerInvariant(); ($genreText -match '^[aeiou]') ? 'an' : 'a') $genreText game. $(ConvertTo-BriefSentence (& $one 'coreLoop'))"
             ''
             "Genre: $($genres -join ', ')"
             ''
@@ -255,7 +300,7 @@ function Join-BriefResult([string]$Path, $Text, $State) {
 }
 
 function Invoke-Brief([string]$Dir, [string]$Action, [string]$Id, [string]$Value, [string]$Quote, [string]$TextFile) {
-    if (-not (Test-Path -LiteralPath $Dir -PathType Container)) { Stop-GodotCi "The game's folder $Dir does not exist; create it, or pass -Project <folder>" 'invalid-arguments' }
+    if (-not (Test-Path -LiteralPath $Dir -PathType Container)) { Stop-GodotCi "The game's folder $Dir does not exist; create it, or pass -Project <folder>" 'unexpected-error' }
     $Dir = (Resolve-Path -LiteralPath $Dir).Path
     $path = Get-BriefPath $Dir
     switch ($Action) {
@@ -279,14 +324,21 @@ function Invoke-Brief([string]$Dir, [string]$Action, [string]$Id, [string]$Value
                 Stop-GodotCi "'$Id' is not a brief question$(if ($close) { " (did you mean $($close)?)" }); the questions: $($ids -join ', ')" 'invalid-arguments'
             }
             $question = $question[0]
-            if (-not (Test-BriefApplies $question $brief['answers'])) { Stop-GodotCi "'$Id' does not apply to this game with the answers so far ($(@($question.when.PSObject.Properties | ForEach-Object { "$($_.Name): $(@($_.Value) -join ' or ')" }) -join '; '))" 'invalid-answer' }
+            if (-not (Test-BriefApplies $question (Get-BriefLiveAnswers $brief['answers']))) { Stop-GodotCi "'$Id' does not apply to this game with the answers so far ($(@($question.when.PSObject.Properties | ForEach-Object { "$($_.Name): $(@($_.Value) -join ' or ')" }) -join '; '))" 'invalid-answer' }
             if (-not $Value) { Stop-GodotCi "brief -Do answer -Id $Id needs -Value" 'invalid-arguments' }
             $converted = ConvertTo-BriefValue $question $Value
             if (-not $converted.ok) { Stop-GodotCi $converted.message 'invalid-answer' }
             $source = 'asked'
             if ($Quote) {
-                if (-not (Test-BriefQuote $brief['text'] $Quote)) { Stop-GodotCi "The quote is not in the description word for word: ""$Quote"". Quote the sentence that states the answer exactly, or ask the question instead" 'invalid-answer' }
+                $problem = Get-BriefQuoteProblem $brief['text'] $Quote $question @($converted.value)
+                if ($problem) { Stop-GodotCi "The quote does not state the answer to '$Id': $problem. Quote: ""$Quote""" 'invalid-answer' }
                 $source = 'text'
+            } else {
+                # Without a quote the answer comes from asking: only a question brief lists next (in its order), or a correction.
+                $listed = @((Get-BriefState $brief).next | ForEach-Object { $_.id })
+                if ($Id -notin $listed -and -not $brief['answers'].Contains($Id)) {
+                    Stop-GodotCi "'$Id' is not among the questions to ask now ($($listed -join ', ')): ask those first, in order, or quote the description's sentence that states it" 'invalid-answer'
+                }
             }
             $brief['answers'][$Id] = [ordered]@{ value = @($converted.value); source = $source; quote = ($Quote ? $Quote.Trim() : $null); at = [datetime]::UtcNow.ToString('o') }
             Save-Brief $Dir $brief
@@ -302,7 +354,7 @@ function Invoke-Brief([string]$Dir, [string]$Action, [string]$Id, [string]$Value
             $gddPath = Join-Path $Dir 'docs/GDD.md'
             if (Test-Path -LiteralPath $gddPath) { Stop-GodotCi "$gddPath already exists; /game confirms and edits it. Delete it to write it again from the brief" 'gdd-exists' }
             $written = New-BriefGdd $brief $Dir
-            $a = $brief['answers']
+            $a = Get-BriefLiveAnswers $brief['answers']
             $scope = @(Get-BriefAnswerValues $a 'scope')[0]
             $planProfile = $scope -eq 'Game jam' ? 'jam' : 'full'
             $title = @(Get-BriefAnswerValues $a 'title')[0]
@@ -313,11 +365,14 @@ function Invoke-Brief([string]$Dir, [string]$Action, [string]$Id, [string]$Value
                 $next.Add("Create the Godot 4.7 project in $Dir$(if ('C#' -in (Get-BriefAnswerValues $a 'language')) { ' with the .NET build of Godot (C#)' })")
             }
             $next.Add((Format-KitCommand "plan -Do init -Profile $planProfile -Game ""$title"""))
+            $jamLength = $a.Contains('jamLength') ? @(Get-BriefAnswerValues $a 'jamLength')[0] : $null
+            if ($jamLength -and $jamLength -ne '7 days') { $next.Add("The jam plan is sized for 7 days: scale each phase's timeboxDays in plan/plan.json to $($jamLength.ToLowerInvariant())") }
             $next.Add('/game: confirm the draft GDD section by section')
             Set-JsonField written @($written)
             Set-JsonField nextSteps @($next)
             Set-JsonField planProfile $planProfile
             Set-JsonField weeklyHours $weekly
+            Set-JsonField jamLength $jamLength
             Write-CiLog "Wrote $($written -join ', ') from the brief. Next: $($next -join '; ')"
         }
     }

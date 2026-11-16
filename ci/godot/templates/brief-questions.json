@@ -1,78 +1,695 @@
 {
   "schema": "hyperdot-brief-questions/1",
-  "notes": "The questions `brief` asks about a new game, in this order. Each answer comes from the user's own description (with the sentence that states it, quoted word for word) or from asking the question exactly as written here. kind: choice (one option), multi (one or more options), text (the user's words), term (one to three gameplay genres from genres-uw.json). options: at most four, as a question dialog shows; an answer outside them is refused, except a term from the vocabulary for kind term. when: the question is asked only if every listed answer holds (an answer id and the values, any of which matches). group: the area the question belongs to.",
+  "notes": "The questions `brief` asks about a new game, in this order. Each answer comes from the user's own description (with the sentence that states it, quoted word for word) or from asking the question exactly as written here. kind: choice (one option), multi (one or more options), text (the user's words), term (one to three gameplay genres from genres-uw.json). options: at most four, as a question dialog shows; an answer outside them is refused, except a term from the vocabulary for kind term. when: the question is asked only if every listed answer holds (an answer id and the values, any of which matches). group: the area the question belongs to. cues: other words in a description that name an option, for an answer taken from it with a quote (a quote must be a whole sentence of the description, name the option's label or a cue, and contain no negation). parts: the number of comma-separated parts a text answer takes.",
   "questions": [
-    { "id": "title", "group": "basics", "kind": "text", "question": "What is the game called? A working title is fine.", "header": "Title", "target": "GDD title" },
-    { "id": "genre", "group": "basics", "kind": "term", "max": 3, "question": "Which genre is it? Pick up to three; any gameplay term from the kit's genre list is accepted.", "header": "Genre",
-      "options": [ { "label": "Action", "description": "Fast, reaction-based challenges" }, { "label": "Puzzle", "description": "Problems the player solves by thinking" },
-                   { "label": "Strategy", "description": "Planning and decisions that pay off later" }, { "label": "Simulation", "description": "A system the player runs or lives in" } ],
-      "target": "GDD Pitch (Genre)" },
-    { "id": "dimension", "group": "basics", "kind": "choice", "question": "Is the game 2D or 3D?", "header": "2D or 3D",
-      "options": [ { "label": "2D", "description": "Sprites or vector shapes on a flat plane" }, { "label": "3D", "description": "Models in a 3D world" },
-                   { "label": "2.5D", "description": "3D graphics, gameplay on a plane" } ], "target": "GDD Screens" },
-    { "id": "camera2d", "group": "basics", "kind": "choice", "when": { "dimension": [ "2D" ] }, "question": "How does the camera show the world?", "header": "Camera",
-      "options": [ { "label": "Side view", "description": "Platformers, side-scrollers" }, { "label": "Top-down", "description": "Seen from above" },
-                   { "label": "Isometric", "description": "Angled view of a grid" }, { "label": "Single screen", "description": "The whole playfield fits one screen" } ], "target": "GDD Screens" },
-    { "id": "camera3d", "group": "basics", "kind": "choice", "when": { "dimension": [ "3D", "2.5D" ] }, "question": "How does the camera show the world?", "header": "Camera",
-      "options": [ { "label": "First person", "description": "Through the character's eyes" }, { "label": "Third person", "description": "Behind or over the character" },
-                   { "label": "Top-down or isometric", "description": "Looking down on the play area" }, { "label": "Fixed or on rails", "description": "Set angles the game chooses" } ], "target": "GDD Screens" },
-    { "id": "platforms", "group": "basics", "kind": "multi", "question": "Which platforms should it run on?", "header": "Platforms",
-      "options": [ { "label": "Desktop", "description": "Windows, macOS, Linux (Steam, itch.io)" }, { "label": "Web", "description": "In a browser" },
-                   { "label": "Mobile", "description": "Android and iOS" }, { "label": "Steam Deck", "description": "Handheld PC at 1280x800" } ], "target": "GDD Screens" },
-    { "id": "input", "group": "basics", "kind": "multi", "question": "How does the player control it?", "header": "Controls",
-      "options": [ { "label": "Keyboard and mouse", "description": "" }, { "label": "Gamepad", "description": "" },
-                   { "label": "Touch", "description": "Phones and tablets" }, { "label": "Mouse only", "description": "Point and click" } ], "target": "GDD Screens" },
-    { "id": "language", "group": "basics", "kind": "choice", "question": "Which language will the game's code be written in?", "header": "Language",
-      "options": [ { "label": "GDScript", "description": "Godot's own language; the only one that exports to the Web" }, { "label": "C#", "description": ".NET; no Web export in Godot 4.7" } ],
-      "target": "project setup" },
-    { "id": "players", "group": "basics", "kind": "choice", "question": "How many people play at once?", "header": "Players",
-      "options": [ { "label": "Single player", "description": "" }, { "label": "Local multiplayer", "description": "Same screen or device" },
-                   { "label": "Online multiplayer", "description": "Over the network" }, { "label": "Local and online", "description": "Both" } ], "target": "GDD Modes" },
-    { "id": "network", "group": "basics", "kind": "choice", "when": { "players": [ "Online multiplayer", "Local and online" ] }, "question": "How do online players connect?", "header": "Network",
-      "options": [ { "label": "A player hosts", "description": "Listen server or peer-to-peer" }, { "label": "Dedicated server", "description": "A headless server runs the match" },
-                   { "label": "Turn-based, asynchronous", "description": "Players take turns, not at the same time" } ], "target": "GDD Modes" },
-    { "id": "coreLoop", "group": "basics", "kind": "text", "question": "In one sentence: what does the player do again and again, every few seconds?", "header": "Core loop", "target": "GDD Core loop" },
-    { "id": "session", "group": "basics", "kind": "choice", "question": "How long is a typical sitting?", "header": "Session",
-      "options": [ { "label": "Under 5 minutes", "description": "" }, { "label": "5 to 20 minutes", "description": "" },
-                   { "label": "20 to 60 minutes", "description": "" }, { "label": "Over an hour", "description": "" } ], "target": "GDD Core loop" },
-    { "id": "funA", "group": "basics", "kind": "multi", "optional": true, "question": "Which kinds of fun is it mostly about? (First four of eight; the next question has the rest.)", "header": "Fun 1/2",
-      "options": [ { "label": "sensation", "description": "Actions that feel good: juice, sound, motion" }, { "label": "fantasy", "description": "Being someone or somewhere else" },
-                   { "label": "narrative", "description": "A story that unfolds" }, { "label": "challenge", "description": "Obstacles that take skill" } ], "target": "GDD Pillars" },
-    { "id": "funB", "group": "basics", "kind": "multi", "optional": true, "question": "Which kinds of fun is it mostly about? (The other four.)", "header": "Fun 2/2",
-      "options": [ { "label": "fellowship", "description": "Playing with or against others" }, { "label": "discovery", "description": "Finding what is hidden" },
-                   { "label": "expression", "description": "Choices and creations that are the player's own" }, { "label": "submission", "description": "A relaxing pastime" } ], "target": "GDD Pillars" },
-    { "id": "pillars", "group": "basics", "kind": "text", "question": "Two or three design rules every feature must serve (short phrases, comma-separated).", "header": "Pillars", "target": "GDD Pillars" },
-    { "id": "failure", "group": "basics", "kind": "choice", "question": "What happens when the player fails?", "header": "Failure",
-      "options": [ { "label": "Nothing to fail", "description": "No losing state" }, { "label": "Retry at once", "description": "Back a few seconds, nothing lost" },
-                   { "label": "Back to a checkpoint", "description": "Lose progress since the last checkpoint" }, { "label": "The run ends", "description": "Start over; maybe keep meta progress" } ], "target": "GDD Core loop" },
-    { "id": "saves", "group": "basics", "kind": "choice", "question": "What does the game save?", "header": "Saves",
-      "options": [ { "label": "Nothing", "description": "Every session starts fresh" }, { "label": "Settings only", "description": "" },
-                   { "label": "Progress, automatically", "description": "" }, { "label": "Save slots", "description": "The player chooses when and where" } ], "target": "GDD Features" },
-    { "id": "scope", "group": "scope", "kind": "choice", "question": "How big is this project?", "header": "Scope",
-      "options": [ { "label": "Game jam", "description": "Days; the jam plan (plan -Do init -Profile jam)" }, { "label": "Small game", "description": "Weeks to about three months" },
-                   { "label": "Full game", "description": "Several months or more" } ], "target": "plan.json" },
-    { "id": "jamLength", "group": "scope", "kind": "choice", "when": { "scope": [ "Game jam" ] }, "question": "How long is the jam?", "header": "Jam length",
-      "options": [ { "label": "48 hours", "description": "" }, { "label": "3 days", "description": "" }, { "label": "7 days", "description": "" }, { "label": "9 to 14 days", "description": "" } ], "target": "plan.json" },
-    { "id": "weeklyHours", "group": "scope", "kind": "choice", "when": { "scope": [ "Small game", "Full game" ] }, "question": "How many hours a week will you work on it?", "header": "Hours",
-      "options": [ { "label": "Under 5", "description": "" }, { "label": "5 to 10", "description": "" }, { "label": "10 to 20", "description": "" }, { "label": "Over 20", "description": "" } ], "target": "plan.json" },
-    { "id": "comparables", "group": "scope", "kind": "text", "question": "Up to three games it is like, and what to take from each (or \"none\").", "header": "Like", "target": "GDD Pitch" },
-    { "id": "outOfScope", "group": "scope", "kind": "text", "question": "What will this game deliberately not have (or \"none\")?", "header": "Not in it", "target": "GDD Out of scope" },
-    { "id": "artStyle", "group": "look", "kind": "choice", "question": "What is the art style?", "header": "Art style",
-      "options": [ { "label": "Pixel art", "description": "" }, { "label": "Hand-drawn or vector 2D", "description": "" },
-                   { "label": "Low-poly 3D", "description": "" }, { "label": "Detailed 3D", "description": "" } ], "target": "STYLE.md" },
-    { "id": "resolution", "group": "look", "kind": "choice", "question": "Which resolution is the game designed at?", "header": "Resolution",
-      "options": [ { "label": "320x180", "description": "Chunky pixel art, scaled up" }, { "label": "640x360", "description": "Detailed pixel art" },
-                   { "label": "1280x720", "description": "HD" }, { "label": "1920x1080", "description": "Full HD" } ], "target": "STYLE.md Resolutions" },
-    { "id": "palette", "group": "look", "kind": "choice", "question": "What should the colours feel like?", "header": "Colours",
-      "options": [ { "label": "Bright and saturated", "description": "" }, { "label": "Muted or dark", "description": "" },
-                   { "label": "Limited palette", "description": "16 colours or fewer" }, { "label": "Monochrome and one accent", "description": "" } ], "target": "STYLE.md Palette" },
-    { "id": "audio", "group": "look", "kind": "choice", "question": "What should it sound like?", "header": "Sound",
-      "options": [ { "label": "Chiptune", "description": "" }, { "label": "Orchestral or acoustic", "description": "" },
-                   { "label": "Electronic or ambient", "description": "" }, { "label": "Little or no music", "description": "Sound effects carry it" } ], "target": "GDD Screens" }
+    {
+      "id": "title",
+      "group": "basics",
+      "kind": "text",
+      "question": "What is the game called? A working title is fine.",
+      "header": "Title",
+      "target": "GDD title"
+    },
+    {
+      "id": "genre",
+      "group": "basics",
+      "kind": "term",
+      "max": 3,
+      "question": "Which genre is it? Pick up to three; any gameplay term from the kit's genre list is accepted.",
+      "header": "Genre",
+      "options": [
+        {
+          "label": "Action",
+          "description": "Fast, reaction-based challenges"
+        },
+        {
+          "label": "Puzzle",
+          "description": "Problems the player solves by thinking"
+        },
+        {
+          "label": "Strategy",
+          "description": "Planning and decisions that pay off later"
+        },
+        {
+          "label": "Simulation",
+          "description": "A system the player runs or lives in"
+        }
+      ],
+      "target": "GDD Pitch (Genre)"
+    },
+    {
+      "id": "dimension",
+      "group": "basics",
+      "kind": "choice",
+      "question": "Is the game 2D or 3D?",
+      "header": "2D or 3D",
+      "options": [
+        {
+          "label": "2D",
+          "description": "Sprites or vector shapes on a flat plane",
+          "cues": [
+            "2-d"
+          ]
+        },
+        {
+          "label": "3D",
+          "description": "Models in a 3D world",
+          "cues": [
+            "3-d"
+          ]
+        },
+        {
+          "label": "2.5D",
+          "description": "3D graphics, gameplay on a plane"
+        }
+      ],
+      "target": "GDD Screens"
+    },
+    {
+      "id": "camera2d",
+      "group": "basics",
+      "kind": "choice",
+      "when": {
+        "dimension": [
+          "2D"
+        ]
+      },
+      "question": "How does the camera show the world?",
+      "header": "Camera",
+      "options": [
+        {
+          "label": "Side view",
+          "description": "Platformers, side-scrollers"
+        },
+        {
+          "label": "Top-down",
+          "description": "Seen from above"
+        },
+        {
+          "label": "Isometric",
+          "description": "Angled view of a grid"
+        },
+        {
+          "label": "Single screen",
+          "description": "The whole playfield fits one screen"
+        }
+      ],
+      "target": "GDD Screens"
+    },
+    {
+      "id": "camera3d",
+      "group": "basics",
+      "kind": "choice",
+      "when": {
+        "dimension": [
+          "3D",
+          "2.5D"
+        ]
+      },
+      "question": "How does the camera show the world?",
+      "header": "Camera",
+      "options": [
+        {
+          "label": "First person",
+          "description": "Through the character's eyes"
+        },
+        {
+          "label": "Third person",
+          "description": "Behind or over the character"
+        },
+        {
+          "label": "Top-down or isometric",
+          "description": "Looking down on the play area"
+        },
+        {
+          "label": "Fixed or on rails",
+          "description": "Set angles the game chooses"
+        }
+      ],
+      "target": "GDD Screens"
+    },
+    {
+      "id": "platforms",
+      "group": "basics",
+      "kind": "multi",
+      "question": "Which platforms should it run on?",
+      "header": "Platforms",
+      "options": [
+        {
+          "label": "Desktop",
+          "description": "Windows, macOS, Linux (Steam, itch.io)",
+          "cues": [
+            "pc",
+            "windows",
+            "mac",
+            "macos",
+            "linux",
+            "computer"
+          ]
+        },
+        {
+          "label": "Web",
+          "description": "In a browser",
+          "cues": [
+            "browser",
+            "html5"
+          ]
+        },
+        {
+          "label": "Mobile",
+          "description": "Android and iOS",
+          "cues": [
+            "phone",
+            "phones",
+            "android",
+            "ios",
+            "iphone",
+            "tablet"
+          ]
+        },
+        {
+          "label": "Steam Deck",
+          "description": "Handheld PC at 1280x800"
+        }
+      ],
+      "target": "GDD Screens"
+    },
+    {
+      "id": "input",
+      "group": "basics",
+      "kind": "multi",
+      "question": "How does the player control it?",
+      "header": "Controls",
+      "options": [
+        {
+          "label": "Keyboard and mouse",
+          "description": "",
+          "cues": [
+            "keyboard",
+            "mouse and keyboard"
+          ]
+        },
+        {
+          "label": "Gamepad",
+          "description": "",
+          "cues": [
+            "controller",
+            "joypad"
+          ]
+        },
+        {
+          "label": "Touch",
+          "description": "Phones and tablets",
+          "cues": [
+            "touch screen",
+            "touchscreen"
+          ]
+        },
+        {
+          "label": "Mouse only",
+          "description": "Point and click",
+          "cues": [
+            "point and click",
+            "point-and-click"
+          ]
+        }
+      ],
+      "target": "GDD Screens"
+    },
+    {
+      "id": "language",
+      "group": "basics",
+      "kind": "choice",
+      "question": "Which language will the game's code be written in?",
+      "header": "Language",
+      "options": [
+        {
+          "label": "GDScript",
+          "description": "Godot's own language; the only one that exports to the Web"
+        },
+        {
+          "label": "C#",
+          "description": ".NET; no Web export in Godot 4.7"
+        }
+      ],
+      "target": "project setup"
+    },
+    {
+      "id": "players",
+      "group": "basics",
+      "kind": "choice",
+      "question": "How many people play at once?",
+      "header": "Players",
+      "options": [
+        {
+          "label": "Single player",
+          "description": "",
+          "cues": [
+            "single player",
+            "single-player",
+            "solo",
+            "one player"
+          ]
+        },
+        {
+          "label": "Local multiplayer",
+          "description": "Same screen or device",
+          "cues": [
+            "local multiplayer",
+            "couch co-op",
+            "split screen",
+            "same screen"
+          ]
+        },
+        {
+          "label": "Online multiplayer",
+          "description": "Over the network",
+          "cues": [
+            "online multiplayer",
+            "online",
+            "multiplayer online"
+          ]
+        },
+        {
+          "label": "Local and online",
+          "description": "Both"
+        }
+      ],
+      "target": "GDD Modes"
+    },
+    {
+      "id": "network",
+      "group": "basics",
+      "kind": "choice",
+      "when": {
+        "players": [
+          "Online multiplayer",
+          "Local and online"
+        ]
+      },
+      "question": "How do online players connect?",
+      "header": "Network",
+      "options": [
+        {
+          "label": "A player hosts",
+          "description": "Listen server or peer-to-peer"
+        },
+        {
+          "label": "Dedicated server",
+          "description": "A headless server runs the match"
+        },
+        {
+          "label": "Turn-based, asynchronous",
+          "description": "Players take turns, not at the same time"
+        }
+      ],
+      "target": "GDD Modes"
+    },
+    {
+      "id": "coreLoop",
+      "group": "basics",
+      "kind": "text",
+      "question": "In one sentence: what does the player do again and again, every few seconds?",
+      "header": "Core loop",
+      "target": "GDD Core loop"
+    },
+    {
+      "id": "session",
+      "group": "basics",
+      "kind": "choice",
+      "question": "How long is a typical sitting?",
+      "header": "Session",
+      "options": [
+        {
+          "label": "Under 5 minutes",
+          "description": ""
+        },
+        {
+          "label": "5 to 20 minutes",
+          "description": ""
+        },
+        {
+          "label": "20 to 60 minutes",
+          "description": ""
+        },
+        {
+          "label": "Over an hour",
+          "description": ""
+        }
+      ],
+      "target": "GDD Core loop"
+    },
+    {
+      "id": "funA",
+      "group": "basics",
+      "kind": "multi",
+      "optional": true,
+      "question": "Which kinds of fun is it mostly about? (First four of eight; the next question has the rest.)",
+      "header": "Fun 1/2",
+      "options": [
+        {
+          "label": "sensation",
+          "description": "Actions that feel good: juice, sound, motion"
+        },
+        {
+          "label": "fantasy",
+          "description": "Being someone or somewhere else"
+        },
+        {
+          "label": "narrative",
+          "description": "A story that unfolds"
+        },
+        {
+          "label": "challenge",
+          "description": "Obstacles that take skill"
+        }
+      ],
+      "target": "GDD Pillars"
+    },
+    {
+      "id": "funB",
+      "group": "basics",
+      "kind": "multi",
+      "optional": true,
+      "question": "Which kinds of fun is it mostly about? (The other four.)",
+      "header": "Fun 2/2",
+      "options": [
+        {
+          "label": "fellowship",
+          "description": "Playing with or against others"
+        },
+        {
+          "label": "discovery",
+          "description": "Finding what is hidden"
+        },
+        {
+          "label": "expression",
+          "description": "Choices and creations that are the player's own"
+        },
+        {
+          "label": "submission",
+          "description": "A relaxing pastime"
+        }
+      ],
+      "target": "GDD Pillars"
+    },
+    {
+      "id": "pillars",
+      "group": "basics",
+      "kind": "text",
+      "question": "Two or three design rules every feature must serve (short phrases, comma-separated).",
+      "header": "Pillars",
+      "target": "GDD Pillars",
+      "parts": {
+        "min": 2,
+        "max": 3
+      }
+    },
+    {
+      "id": "failure",
+      "group": "basics",
+      "kind": "choice",
+      "question": "What happens when the player fails?",
+      "header": "Failure",
+      "options": [
+        {
+          "label": "Nothing to fail",
+          "description": "No losing state"
+        },
+        {
+          "label": "Retry at once",
+          "description": "Back a few seconds, nothing lost"
+        },
+        {
+          "label": "Back to a checkpoint",
+          "description": "Lose progress since the last checkpoint"
+        },
+        {
+          "label": "The run ends",
+          "description": "Start over; maybe keep meta progress"
+        }
+      ],
+      "target": "GDD Core loop"
+    },
+    {
+      "id": "saves",
+      "group": "basics",
+      "kind": "choice",
+      "question": "What does the game save?",
+      "header": "Saves",
+      "options": [
+        {
+          "label": "Nothing",
+          "description": "Every session starts fresh"
+        },
+        {
+          "label": "Settings only",
+          "description": ""
+        },
+        {
+          "label": "Progress, automatically",
+          "description": ""
+        },
+        {
+          "label": "Save slots",
+          "description": "The player chooses when and where"
+        }
+      ],
+      "target": "GDD Features"
+    },
+    {
+      "id": "scope",
+      "group": "scope",
+      "kind": "choice",
+      "question": "How big is this project?",
+      "header": "Scope",
+      "options": [
+        {
+          "label": "Game jam",
+          "description": "Days; the jam plan (plan -Do init -Profile jam)",
+          "cues": [
+            "jam"
+          ]
+        },
+        {
+          "label": "Small game",
+          "description": "Weeks to about three months"
+        },
+        {
+          "label": "Full game",
+          "description": "Several months or more"
+        }
+      ],
+      "target": "plan.json"
+    },
+    {
+      "id": "jamLength",
+      "group": "scope",
+      "kind": "choice",
+      "when": {
+        "scope": [
+          "Game jam"
+        ]
+      },
+      "question": "How long is the jam?",
+      "header": "Jam length",
+      "options": [
+        {
+          "label": "48 hours",
+          "description": ""
+        },
+        {
+          "label": "3 days",
+          "description": ""
+        },
+        {
+          "label": "7 days",
+          "description": ""
+        },
+        {
+          "label": "9 to 14 days",
+          "description": ""
+        }
+      ],
+      "target": "plan.json"
+    },
+    {
+      "id": "weeklyHours",
+      "group": "scope",
+      "kind": "choice",
+      "when": {
+        "scope": [
+          "Small game",
+          "Full game"
+        ]
+      },
+      "question": "How many hours a week will you work on it?",
+      "header": "Hours",
+      "options": [
+        {
+          "label": "Under 5",
+          "description": ""
+        },
+        {
+          "label": "5 to 10",
+          "description": ""
+        },
+        {
+          "label": "10 to 20",
+          "description": ""
+        },
+        {
+          "label": "Over 20",
+          "description": ""
+        }
+      ],
+      "target": "plan.json"
+    },
+    {
+      "id": "comparables",
+      "group": "scope",
+      "kind": "text",
+      "question": "Up to three games it is like, and what to take from each (or \"none\").",
+      "header": "Like",
+      "target": "GDD Pitch"
+    },
+    {
+      "id": "outOfScope",
+      "group": "scope",
+      "kind": "text",
+      "question": "What will this game deliberately not have (or \"none\")?",
+      "header": "Not in it",
+      "target": "GDD Out of scope"
+    },
+    {
+      "id": "artStyle",
+      "group": "look",
+      "kind": "choice",
+      "question": "What is the art style?",
+      "header": "Art style",
+      "options": [
+        {
+          "label": "Pixel art",
+          "description": "",
+          "cues": [
+            "pixel-art",
+            "pixelart"
+          ]
+        },
+        {
+          "label": "Hand-drawn or vector 2D",
+          "description": ""
+        },
+        {
+          "label": "Low-poly 3D",
+          "description": "",
+          "cues": [
+            "low-poly",
+            "low poly"
+          ]
+        },
+        {
+          "label": "Detailed 3D",
+          "description": ""
+        }
+      ],
+      "target": "STYLE.md"
+    },
+    {
+      "id": "resolution",
+      "group": "look",
+      "kind": "choice",
+      "question": "Which resolution is the game designed at?",
+      "header": "Resolution",
+      "options": [
+        {
+          "label": "320x180",
+          "description": "Chunky pixel art, scaled up"
+        },
+        {
+          "label": "640x360",
+          "description": "Detailed pixel art"
+        },
+        {
+          "label": "1280x720",
+          "description": "HD"
+        },
+        {
+          "label": "1920x1080",
+          "description": "Full HD"
+        }
+      ],
+      "target": "STYLE.md Resolutions"
+    },
+    {
+      "id": "palette",
+      "group": "look",
+      "kind": "choice",
+      "question": "What should the colours feel like?",
+      "header": "Colours",
+      "options": [
+        {
+          "label": "Bright and saturated",
+          "description": ""
+        },
+        {
+          "label": "Muted or dark",
+          "description": ""
+        },
+        {
+          "label": "Limited palette",
+          "description": "16 colours or fewer"
+        },
+        {
+          "label": "Monochrome and one accent",
+          "description": ""
+        }
+      ],
+      "target": "STYLE.md Palette"
+    },
+    {
+      "id": "audio",
+      "group": "look",
+      "kind": "choice",
+      "question": "What should it sound like?",
+      "header": "Sound",
+      "options": [
+        {
+          "label": "Chiptune",
+          "description": "",
+          "cues": [
+            "chip tune",
+            "8-bit music"
+          ]
+        },
+        {
+          "label": "Orchestral or acoustic",
+          "description": ""
+        },
+        {
+          "label": "Electronic or ambient",
+          "description": ""
+        },
+        {
+          "label": "Little or no music",
+          "description": "Sound effects carry it"
+        }
+      ],
+      "target": "GDD Screens"
+    }
   ],
   "rules": [
-    { "id": "fun-at-least-one", "check": "funA and funB together name at least one kind of fun" },
-    { "id": "csharp-web", "check": "language C# with platform Web: Godot 4.7 cannot export C# to the Web, so change one" },
-    { "id": "touch-needs-mobile", "check": "input Touch without platform Mobile or Web: there is no touch screen to play on" }
+    {
+      "id": "fun-at-least-one",
+      "check": "funA and funB together name at least one kind of fun"
+    },
+    {
+      "id": "csharp-web",
+      "check": "language C# with platform Web: Godot 4.7 cannot export C# to the Web, so change one"
+    },
+    {
+      "id": "touch-needs-mobile",
+      "check": "input Touch without platform Mobile or Web: there is no touch screen to play on"
+    }
   ]
 }
