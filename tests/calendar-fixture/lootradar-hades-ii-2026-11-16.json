@@ -1,0 +1,443 @@
+{
+ "result": {
+  "data": {
+   "json": {
+    "game": {
+     "id": 7,
+     "title": "Hades II",
+     "slug": "hades-ii",
+     "steamAppId": "1145350",
+     "coverUrl": "https://cdn.cloudflare.steamstatic.com/steam/apps/1145350/header.jpg",
+     "genres": "Roguelike, Action, Mythology",
+     "platforms": "PC",
+     "releaseDate": "May 2024 (EA)",
+     "criticScore": 93,
+     "userScore": 94,
+     "playersNow": 2164,
+     "playersDelta": -42,
+     "hoursMain": "30.0",
+     "historicalLow": "19.05",
+     "trending": true,
+     "createdAt": "2026-07-31T05:57:02.019Z"
+    },
+    "deals": [
+     {
+      "deal": {
+       "id": 72,
+       "gameId": 7,
+       "storeId": 11,
+       "price": "20.71",
+       "basePrice": "29.99",
+       "discountPct": 31,
+       "edition": "Standard",
+       "regionLock": "Global (key)",
+       "url": "https://www.instant-gaming.com/en/search/?q=Hades%20II",
+       "historicalLow": false,
+       "active": true,
+       "updatedAt": "2026-07-31T05:57:02.019Z",
+       "feePct": null,
+       "allIn": null
+      },
+      "store": {
+       "id": 11,
+       "name": "Instant Gaming",
+       "slug": "instant-gaming",
+       "type": "keyshop",
+       "trustScore": 80,
+       "active": true
+      }
+     },
+     {
+      "deal": {
+       "id": 71,
+       "gameId": 7,
+       "storeId": 10,
+       "price": "21.80",
+       "basePrice": "29.99",
+       "discountPct": 27,
+       "edition": "Standard",
+       "regionLock": "Global (key)",
+       "url": "https://www.g2a.com/search?query=Hades%20II",
+       "historicalLow": false,
+       "active": true,
+       "updatedAt": "2026-07-31T05:57:02.019Z",
+       "feePct": 0.108,
+       "allIn": 24.15
+      },
+      "store": {
+       "id": 10,
+       "name": "G2A",
+       "slug": "g2a",
+       "type": "keyshop",
+       "trustScore": 61,
+       "active": true
+      }
+     },
+     {
+      "deal": {
+       "id": 69,
+       "gameId": 7,
+       "storeId": 8,
+       "price": "22.50",
+       "basePrice": "29.99",
+       "discountPct": 25,
+       "edition": "Standard",
+       "regionLock": "Global (key)",
+       "url": "https://www.eneba.com/store?text=Hades%20II",
+       "historicalLow": false,
+       "active": true,
+       "updatedAt": "2026-07-31T05:57:02.019Z",
+       "feePct": 0.095,
+       "allIn": 24.64
+      },
+      "store": {
+       "id": 8,
+       "name": "Eneba",
+       "slug": "eneba",
+       "type": "keyshop",
+       "trustScore": 74,
+       "active": true
+      }
+     },
+     {
+      "deal": {
+       "id": 70,
+       "gameId": 7,
+       "storeId": 9,
+       "price": "23.10",
+       "basePrice": "29.99",
+       "discountPct": 23,
+       "edition": "Standard",
+       "regionLock": "Global (key)",
+       "url": "https://www.kinguin.net/listing?name=Hades%20II",
+       "historicalLow": false,
+       "active": true,
+       "updatedAt": "2026-07-31T05:57:02.019Z",
+       "feePct": 0.099,
+       "allIn": 25.39
+      },
+      "store": {
+       "id": 9,
+       "name": "Kinguin",
+       "slug": "kinguin",
+       "type": "keyshop",
+       "trustScore": 68,
+       "active": true
+      }
+     },
+     {
+      "deal": {
+       "id": 68,
+       "gameId": 7,
+       "storeId": 7,
+       "price": "23.99",
+       "basePrice": "29.99",
+       "discountPct": 20,
+       "edition": "Standard",
+       "regionLock": "Global (key)",
+       "url": "https://www.cdkeys.com/?q=Hades%20II",
+       "historicalLow": false,
+       "active": true,
+       "updatedAt": "2026-07-31T05:57:02.019Z",
+       "feePct": null,
+       "allIn": null
+      },
+      "store": {
+       "id": 7,
+       "name": "CDKeys",
+       "slug": "cdkeys",
+       "type": "keyshop",
+       "trustScore": 78,
+       "active": true
+      }
+     },
+     {
+      "deal": {
+       "id": 66,
+       "gameId": 7,
+       "storeId": 5,
+       "price": "25.49",
+       "basePrice": "29.99",
+       "discountPct": 15,
+       "edition": "Standard",
+       "regionLock": "Global",
+       "url": "https://www.fanatical.com/en/search?search=Hades%20II",
+       "historicalLow": false,
+       "active": true,
+       "updatedAt": "2026-07-31T05:57:02.019Z",
+       "feePct": null,
+       "allIn": null
+      },
+      "store": {
+       "id": 5,
+       "name": "Fanatical",
+       "slug": "fanatical",
+       "type": "official",
+       "trustScore": 95,
+       "active": true
+      }
+     },
+     {
+      "deal": {
+       "id": 67,
+       "gameId": 7,
+       "storeId": 6,
+       "price": "26.09",
+       "basePrice": "29.99",
+       "discountPct": 13,
+       "edition": "Standard",
+       "regionLock": "Global",
+       "url": "https://www.greenmangaming.com/search?query=Hades%20II",
+       "historicalLow": false,
+       "active": true,
+       "updatedAt": "2026-07-31T05:57:02.019Z",
+       "feePct": null,
+       "allIn": null
+      },
+      "store": {
+       "id": 6,
+       "name": "Green Man Gaming",
+       "slug": "gmg",
+       "type": "official",
+       "trustScore": 93,
+       "active": true
+      }
+     },
+     {
+      "deal": {
+       "id": 65,
+       "gameId": 7,
+       "storeId": 4,
+       "price": "26.99",
+       "basePrice": "29.99",
+       "discountPct": 10,
+       "edition": "Standard",
+       "regionLock": "Global",
+       "url": "https://www.humblebundle.com/store/search?search=Hades%20II",
+       "historicalLow": false,
+       "active": true,
+       "updatedAt": "2026-07-31T05:57:02.019Z",
+       "feePct": null,
+       "allIn": null
+      },
+      "store": {
+       "id": 4,
+       "name": "Humble Store",
+       "slug": "humble",
+       "type": "official",
+       "trustScore": 96,
+       "active": true
+      }
+     },
+     {
+      "deal": {
+       "id": 63,
+       "gameId": 7,
+       "storeId": 1,
+       "price": "29.99",
+       "basePrice": "29.99",
+       "discountPct": 0,
+       "edition": "Standard",
+       "regionLock": "Global",
+       "url": "https://store.steampowered.com/app/1145350",
+       "historicalLow": false,
+       "active": true,
+       "updatedAt": "2026-07-31T05:57:02.019Z",
+       "feePct": null,
+       "allIn": null
+      },
+      "store": {
+       "id": 1,
+       "name": "Steam",
+       "slug": "steam",
+       "type": "official",
+       "trustScore": 99,
+       "active": true
+      }
+     },
+     {
+      "deal": {
+       "id": 64,
+       "gameId": 7,
+       "storeId": 2,
+       "price": "29.99",
+       "basePrice": "29.99",
+       "discountPct": 0,
+       "edition": "Standard",
+       "regionLock": "Global",
+       "url": "https://store.epicgames.com/en-US/browse?q=Hades%20II",
+       "historicalLow": false,
+       "active": true,
+       "updatedAt": "2026-07-31T05:57:02.019Z",
+       "feePct": null,
+       "allIn": null
+      },
+      "store": {
+       "id": 2,
+       "name": "Epic Games",
+       "slug": "epic",
+       "type": "official",
+       "trustScore": 97,
+       "active": true
+      }
+     }
+    ],
+    "history": [
+     {
+      "id": 612,
+      "gameId": 7,
+      "price": "17.50",
+      "recordedAt": "2026-08-24T05:41:26.587Z"
+     },
+     {
+      "id": 611,
+      "gameId": 7,
+      "price": "22.35",
+      "recordedAt": "2026-08-31T05:41:26.587Z"
+     },
+     {
+      "id": 610,
+      "gameId": 7,
+      "price": "20.96",
+      "recordedAt": "2026-09-07T05:41:26.587Z"
+     },
+     {
+      "id": 609,
+      "gameId": 7,
+      "price": "19.20",
+      "recordedAt": "2026-09-14T05:41:26.587Z"
+     },
+     {
+      "id": 608,
+      "gameId": 7,
+      "price": "16.12",
+      "recordedAt": "2026-09-21T05:41:26.587Z"
+     },
+     {
+      "id": 607,
+      "gameId": 7,
+      "price": "21.66",
+      "recordedAt": "2026-09-28T05:41:26.587Z"
+     },
+     {
+      "id": 606,
+      "gameId": 7,
+      "price": "22.27",
+      "recordedAt": "2026-10-05T05:41:26.587Z"
+     },
+     {
+      "id": 605,
+      "gameId": 7,
+      "price": "20.60",
+      "recordedAt": "2026-10-12T05:41:26.587Z"
+     },
+     {
+      "id": 604,
+      "gameId": 7,
+      "price": "15.65",
+      "recordedAt": "2026-10-19T05:41:26.587Z"
+     },
+     {
+      "id": 603,
+      "gameId": 7,
+      "price": "19.95",
+      "recordedAt": "2026-10-26T05:41:26.587Z"
+     },
+     {
+      "id": 602,
+      "gameId": 7,
+      "price": "21.93",
+      "recordedAt": "2026-11-02T05:41:26.587Z"
+     },
+     {
+      "id": 601,
+      "gameId": 7,
+      "price": "22.12",
+      "recordedAt": "2026-11-09T05:41:26.587Z"
+     },
+     {
+      "id": 600,
+      "gameId": 7,
+      "price": "16.60",
+      "recordedAt": "2026-11-16T05:41:26.587Z"
+     }
+    ],
+    "thin": false,
+    "historySynthetic": false,
+    "honesty": {
+     "score": 55,
+     "verdict": "Check history",
+     "pctOnSale": 100,
+     "trueDiscount": -1,
+     "hikeFlag": false
+    },
+    "waitOrBuy": {
+     "action": "either",
+     "confidence": "low",
+     "reasons": [
+      "1% above its 12-week median ($20.60)",
+      "All-time low: $15.65 (2026-10-19)",
+      "Price drops historically recur \u2014 next one plausible in ~28 days"
+     ],
+     "currentPrice": 20.71,
+     "lowestEver": 15.65,
+     "lowestEverDate": "2026-10-19",
+     "vsMedianPct": 1,
+     "daysAtOrBelowPct": 54,
+     "nextDropHintDays": 28
+    },
+    "prediction": null,
+    "velocity": {
+     "drops14d": 1,
+     "totalDropPct": 25,
+     "falling": false
+    },
+    "pricesCheckedAt": 1794815070643
+   },
+   "meta": {
+    "values": {
+     "history.0.recordedAt": [
+      "Date"
+     ],
+     "history.1.recordedAt": [
+      "Date"
+     ],
+     "history.2.recordedAt": [
+      "Date"
+     ],
+     "history.3.recordedAt": [
+      "Date"
+     ],
+     "history.4.recordedAt": [
+      "Date"
+     ],
+     "history.5.recordedAt": [
+      "Date"
+     ],
+     "history.6.recordedAt": [
+      "Date"
+     ],
+     "history.7.recordedAt": [
+      "Date"
+     ],
+     "history.8.recordedAt": [
+      "Date"
+     ],
+     "history.9.recordedAt": [
+      "Date"
+     ],
+     "history.10.recordedAt": [
+      "Date"
+     ],
+     "history.11.recordedAt": [
+      "Date"
+     ],
+     "history.12.recordedAt": [
+      "Date"
+     ]
+    },
+    "v": 1
+   }
+  }
+ }
+}

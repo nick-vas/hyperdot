@@ -156,6 +156,17 @@ Reads .godot/hyperdot-history.jsonl and writes nothing. -Last is how many of eac
 command name narrows it. With fewer than 3 passing runs a duration is null and insufficient is true, never a guess. A
 test is flaky when it failed and passed at the same commit, or passed only on a -Retry. Needs no Godot.
 
+### calendar
+Steam's sales and fests, itch.io jams, Epic giveaways and comparable games' prices (LootRadar), set against plan.json's release and its discounts.
+
+    hyperdot.ps1 calendar [-Source steam,itch,epic,lootradar] [-Days 365] [-Comparable <slug>,<slug>] [-Offline] -Json
+
+Reads the stores' pages at run time and caches them in .godot/hyperdot-calendar for 6 hours; -Offline reads only the cache.
+With release.date in plan.json it says which seasonal sales the game can join (released 30 days before they start),
+checks release.nextFest against the editions Valve lists and the planned discounts against Steam's rules, and names the
+last Next Fest before release. Writes calendar-results/calendar.ics. A source that fails is a warning; all of them
+failing is calendar-unavailable. Needs no Godot; the /calendar skill reads the result.
+
 ### help
 List every command, skill and subagent in one line each, or show the page of one.
 
@@ -318,6 +329,9 @@ Steamworks: achievements, stats, cloud saves, DLC, demos, depots and branches.
 ### store-page
 Store pages: capsule art, screenshots, trailer, tags, Next Fest, press and marketing dates.
 
+### calendar
+Release dates, discounts, Steam Next Fest and themed fests, game jams and comparable games' prices, from the calendar command.
+
 ### legal
 Age ratings, privacy policy, licences, loot boxes and agreements.
 
@@ -335,7 +349,7 @@ How the page `help` writes sorts the skills. One bullet per group, in the order 
 - **Code and systems**: `patterns`, `math`, `algorithms`, `procgen`, `game-ai`, `game-data`, `saves`, `input`, `xr`, `determinism`, `godot-addons`, `llm`
 - **Look and feel**: `game-juice`, `camera`, `animation`, `godot-shaders-vfx`, `asset-pipeline`, `game-audio`, `ui-accessibility`, `typography`, `localization`
 - **Performance and online**: `performance`, `multiplayer`, `servers`, `anti-cheat`, `game-telemetry`, `modding`
-- **Ship and sell**: `godot-export-release`, `release-readiness`, `mobile-web`, `steam`, `store-page`, `legal`, `console-cert`
+- **Ship and sell**: `godot-export-release`, `release-readiness`, `mobile-web`, `steam`, `store-page`, `calendar`, `legal`, `console-cert`
 
 ## Subagents
 

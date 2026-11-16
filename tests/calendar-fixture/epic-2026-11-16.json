@@ -1,0 +1,129 @@
+{
+ "data": {
+  "Catalog": {
+   "searchStore": {
+    "elements": [
+     {
+      "title": "Alien: Isolation",
+      "productSlug": "alien-isolation",
+      "offerMappings": [
+       {
+        "pageSlug": "alien-isolation",
+        "pageType": "productHome"
+       }
+      ],
+      "promotions": {
+       "promotionalOffers": [],
+       "upcomingPromotionalOffers": [
+        {
+         "promotionalOffers": [
+          {
+           "startDate": "2026-11-19T16:00:00.000Z",
+           "endDate": "2026-11-26T16:00:00.000Z",
+           "discountSetting": {
+            "discountType": "PERCENTAGE",
+            "discountPercentage": 0
+           }
+          }
+         ]
+        }
+       ]
+      }
+     },
+     {
+      "title": "Ghostrunner 2",
+      "productSlug": "ghostrunner-2",
+      "offerMappings": [
+       {
+        "pageSlug": "ghostrunner-2",
+        "pageType": "productHome"
+       }
+      ],
+      "promotions": {
+       "promotionalOffers": [],
+       "upcomingPromotionalOffers": [
+        {
+         "promotionalOffers": [
+          {
+           "startDate": "2026-12-10T17:00:00.000Z",
+           "endDate": "2027-01-07T23:59:00.000Z",
+           "discountSetting": {
+            "discountType": "PERCENTAGE",
+            "discountPercentage": 20
+           }
+          }
+         ]
+        }
+       ]
+      }
+     },
+     {
+      "title": "LISA: The Definitive Edition",
+      "productSlug": "lisa-the-definitive-edition",
+      "offerMappings": [
+       {
+        "pageSlug": "lisa-the-definitive-edition",
+        "pageType": "productHome"
+       }
+      ],
+      "promotions": {
+       "promotionalOffers": [],
+       "upcomingPromotionalOffers": [
+        {
+         "promotionalOffers": [
+          {
+           "startDate": "2026-12-10T16:00:00.000Z",
+           "endDate": "2027-01-07T16:00:00.000Z",
+           "discountSetting": {
+            "discountType": "PERCENTAGE",
+            "discountPercentage": 55
+           }
+          }
+         ]
+        }
+       ]
+      }
+     },
+     {
+      "title": "Them's Fightin' Herds",
+      "productSlug": "thems-fightin-herds/home",
+      "offerMappings": [
+       {
+        "pageSlug": "thems-fightin-herds",
+        "pageType": "productHome"
+       }
+      ],
+      "promotions": null
+     },
+     {
+      "title": "Half Price Test",
+      "productSlug": null,
+      "offerMappings": [
+       {
+        "pageSlug": "half-price-test",
+        "pageType": "productHome"
+       }
+      ],
+      "promotions": {
+       "promotionalOffers": [
+        {
+         "promotionalOffers": [
+          {
+           "startDate": "2026-11-12T16:00:00.000Z",
+           "endDate": "2026-11-19T16:00:00.000Z",
+           "discountSetting": {
+            "discountType": "PERCENTAGE",
+            "discountPercentage": 50
+           }
+          }
+         ]
+        }
+       ],
+       "upcomingPromotionalOffers": []
+      }
+     }
+    ]
+   }
+  }
+ }
+}

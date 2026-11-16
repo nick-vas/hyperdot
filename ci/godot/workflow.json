@@ -17,6 +17,7 @@
     { "when": "At the end of a milestone", "run": "export -Run, bench, playtest", "why": "A build that starts, frame times and draw calls, then heat maps from play sessions." },
     { "when": "Before an alpha or beta, and for a Steam Deck or server game", "run": "deck, soak", "why": "The Deck check at 1280x800, and memory over a long session." },
     { "when": "Before a release", "run": "doctor, credits, export", "why": "Store art and Steam files, the credits file, a versioned build." },
+    { "when": "When the release date or a planned discount changes, and every two weeks from the vertical slice", "run": "calendar", "why": "Steam's sales and fests, Next Fest and jams against the release, and the discounts against Steam's rules." },
     { "when": "Once a week", "run": "status, plan, telemetry", "why": "Where the game stands, the next gates, and how the kit's own runs are going." }
   ],
   "rules": [
@@ -38,6 +39,8 @@
     { "id": "bench.never", "command": "bench", "trigger": "never-run", "fromStage": 3, "reason": "No frame-time measurement is recorded for production" },
     { "id": "bench.old", "command": "bench", "trigger": "older-than", "days": 14, "fromStage": 4, "reason": "The last frame-time measurement is over two weeks old" },
     { "id": "deck.never", "command": "deck", "trigger": "never-run", "fromStage": 4, "reason": "No Steam Deck check is recorded (skip it if the game will not ship on Steam)" },
-    { "id": "credits.never", "command": "credits", "trigger": "never-run", "fromStage": 5, "reason": "No credits file has been generated for launch" }
+    { "id": "credits.never", "command": "credits", "trigger": "never-run", "fromStage": 5, "reason": "No credits file has been generated for launch" },
+    { "id": "calendar.never", "command": "calendar", "trigger": "never-run", "fromStage": 2, "reason": "No marketing calendar is recorded: the store page, Next Fest and the release date are planned from the vertical slice" },
+    { "id": "calendar.old", "command": "calendar", "trigger": "older-than", "days": 14, "fromStage": 2, "reason": "Valve adds and moves sales and fests; the last calendar run is over two weeks old" }
   ]
 }

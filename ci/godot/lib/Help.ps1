@@ -184,14 +184,20 @@ function Invoke-Help([string]$Topic, [string]$Project) {
         $closest = Get-ClosestName $name @($entries | ForEach-Object name)
         Stop-GodotCi "help has no entry '$Topic'$(if ($closest) { " (did you mean $($closest)?)" }); hyperdot.ps1 help lists them all" 'invalid-arguments'
     }
-    $details = Get-HelpEntryDetails $entry[0]
+    # A name can be both a command and the skill that uses it (calendar): the command is the entry, the rest are "also".
+    $all = @(foreach ($match in $entry) { Get-HelpEntryDetails $match })
+    $details = $all[0]
     Set-JsonField entry $details
+    if ($all.Count -gt 1) { Set-JsonField also @($all | Select-Object -Skip 1) }
     if (-not $script:JsonMode) {
-        Write-Console "$($details.name) ($($details.kind)): $($details.summary)"
-        if ($details.page) { Write-Console ''; Write-Console $details.page }
-        Write-Console ''
-        if ($details.Contains('when') -and $details.when) { Write-Console "When: $($details.when)" }
-        if ($details.Contains('start')) { Write-Console "Start: $($details.start)" }
-        if ($details.Contains('file')) { Write-Console "File: $($details.file)" }
+        foreach ($shown in $all) {
+            if ($shown -ne $details) { Write-Console '' }
+            Write-Console "$($shown.name) ($($shown.kind)): $($shown.summary)"
+            if ($shown.page) { Write-Console ''; Write-Console $shown.page }
+            Write-Console ''
+            if ($shown.Contains('when') -and $shown.when) { Write-Console "When: $($shown.when)" }
+            if ($shown.Contains('start')) { Write-Console "Start: $($shown.start)" }
+            if ($shown.Contains('file')) { Write-Console "File: $($shown.file)" }
+        }
     }
 }

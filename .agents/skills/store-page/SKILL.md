@@ -143,6 +143,7 @@ social-platform advice and wishlist conversion figures are dated and left out: s
   announced on the genre's forums and communities; then Steam and the other stores.
 - **Sales:** plan around Steam's seasonal sales and themed fests from its own calendar
   ([Upcoming Steam Events](https://partner.steamgames.com/doc/marketing/upcoming_events)); never hard-code their dates.
+  The `calendar` skill reads that page, checks the planned discounts against Steam's rules and writes a `.ics` file.
 - **Reviews:** Valve's rule is not to ask customers to review the game from inside it (no credits-screen or end-screen prompt,
   no pop-up), and not to reward reviews; free copies to press are the exception (store/reviews). Asking in a devlog or on social
   media is outside that rule. Keep the

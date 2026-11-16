@@ -154,6 +154,91 @@ function Get-BusinessDayBefore([datetime]$Date, [int]$Count) {
 # ahead (the store page before the build), the release date locked 2 weeks before it, and a Next Fest demo submitted for
 # review 3 weeks before the festival (5 for the press preview). Dates are yyyy-MM-dd. Only warnings: plans are advice.
 $script:ReleaseDateFields = 'date', 'steamFeePaid', 'comingSoon', 'storePageSubmitted', 'buildSubmitted', 'nextFest', 'demoSubmitted'
+
+# Steam's discounting rules (Steamworks "Discounting", read 2026-11-16; docs/store-and-legal.md): no discount for 30 days
+# after release but the optional launch discount (10 to 40%, 7 to 14 days, set up before release); 30 days between the
+# end of one discount and the start of the next; any discount 10 to 95% and 1 to 14 days. The four seasonal sales are
+# exempt from the 30 days between discounts, both ways, but not from the 30 days after release: a game still in that
+# cooldown joins a seasonal sale part-way, once it ends.
+$script:SteamDiscountCooldownDays = 30
+$script:SteamDiscountRules = @{ launchMin = 10; launchMax = 40; launchDaysMin = 7; launchDaysMax = 14; min = 10; max = 95; daysMin = 1; daysMax = 14 }
+
+function ConvertTo-PlanDate($Value) {
+    if ($null -eq $Value -or "$Value" -eq '') { return $null }
+    if ($Value -is [datetime]) { return $Value.Date }
+    $parsed = [datetime]::MinValue
+    if ([datetime]::TryParseExact("$Value", 'yyyy-MM-dd', [cultureinfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::None, [ref]$parsed)) { return $parsed.Date }
+    return $null
+}
+
+function Test-PlanNumber($Value) { return $Value -is [int] -or $Value -is [long] -or $Value -is [double] -or $Value -is [decimal] }
+
+# plan.json's release.launchDiscount ({ percent, days }) and release.discounts[] ({ name, start, end, percent, seasonal })
+# against the rules above. Days are calendar days, a discount running from its start day to its end day (Valve's own
+# example: a 7-day launch discount from November 15 to 22). Warnings only.
+function Get-DiscountScheduleWarnings($Release, [datetime]$ReleaseDay) {
+    $rules = $script:SteamDiscountRules
+    $cooldown = $script:SteamDiscountCooldownDays
+    $source = '(Steamworks discounting rules, docs/store-and-legal.md)'
+    $format = { param([datetime]$Day) $Day.ToString('yyyy-MM-dd', [cultureinfo]::InvariantCulture) }
+    $warnings = [System.Collections.Generic.List[string]]::new()
+    $discounts = [System.Collections.Generic.List[object]]::new()
+    $firstDay = $ReleaseDay.AddDays($cooldown)
+
+    $launch = $Release.PSObject.Properties['launchDiscount'] ? $Release.launchDiscount : $null
+    if ($null -ne $launch) {
+        $percent = $launch.PSObject.Properties['percent'] ? $launch.percent : $null
+        $days = $launch.PSObject.Properties['days'] ? $launch.days : $null
+        if (-not (Test-PlanNumber $percent) -or -not (Test-PlanNumber $days)) {
+            $warnings.Add('release.launchDiscount needs a percent and a number of days, e.g. { "percent": 10, "days": 7 }; it was ignored.')
+        } else {
+            if ($percent -lt $rules.launchMin -or $percent -gt $rules.launchMax) { $warnings.Add("The launch discount is $percent%; Steam allows $($rules.launchMin) to $($rules.launchMax)% $source.") }
+            if ($days -lt $rules.launchDaysMin -or $days -gt $rules.launchDaysMax) { $warnings.Add("The launch discount runs $days days; Steam allows $($rules.launchDaysMin) to $($rules.launchDaysMax) $source.") }
+            $discounts.Add([pscustomobject]@{ name = 'the launch discount'; start = $ReleaseDay; end = $ReleaseDay.AddDays([int]$days); seasonal = $false; launch = $true })
+        }
+    }
+
+    $index = 0
+    foreach ($entry in @($Release.PSObject.Properties['discounts'] ? $Release.discounts : @())) {
+        $index++
+        if ($null -eq $entry) { continue }
+        $name = ($entry.PSObject.Properties['name'] -and $entry.name) ? "'$($entry.name)'" : "release.discounts[$index]"
+        $start = ConvertTo-PlanDate ($entry.PSObject.Properties['start'] ? $entry.start : $null)
+        $end = ConvertTo-PlanDate ($entry.PSObject.Properties['end'] ? $entry.end : $null)
+        $percent = $entry.PSObject.Properties['percent'] ? $entry.percent : $null
+        $seasonal = [bool]($entry.PSObject.Properties['seasonal'] -and $entry.seasonal -eq $true)
+        if ($null -eq $start -or $null -eq $end -or -not (Test-PlanNumber $percent)) {
+            $warnings.Add("The discount $name needs start and end dates (yyyy-MM-dd) and a percent; it was ignored.")
+            continue
+        }
+        if ($end -le $start) { $warnings.Add("The discount $name ends ($(& $format $end)) on or before it starts ($(& $format $start)); it was ignored."); continue }
+        if ($percent -lt $rules.min -or $percent -gt $rules.max) { $warnings.Add("The discount $name is $percent%; Steam allows $($rules.min) to $($rules.max)% $source.") }
+        $length = [int]($end - $start).TotalDays
+        if (-not $seasonal -and $length -gt $rules.daysMax) { $warnings.Add("The discount $name runs $length days; Steam allows $($rules.daysMin) to $($rules.daysMax) (a seasonal sale's own discount runs as long as the sale: mark it seasonal) $source.") }
+        if ($start -lt $firstDay) {
+            if ($seasonal) {
+                $warnings.Add("The seasonal discount $name starts on $(& $format $start), inside the $cooldown days after release; the game can join the sale only from $(& $format $firstDay), part-way through, and the discount cannot be entered before then $source.")
+            } else {
+                $warnings.Add("The discount $name starts on $(& $format $start), inside the $cooldown days after release (until $(& $format $firstDay)); only the launch discount may run then $source.")
+            }
+        }
+        $discounts.Add([pscustomobject]@{ name = "the discount $name"; start = $start; end = $end; seasonal = $seasonal; launch = $false })
+    }
+
+    $sorted = @($discounts | Sort-Object start)
+    for ($i = 0; $i -lt $sorted.Count; $i++) {
+        for ($j = $i + 1; $j -lt $sorted.Count; $j++) {
+            $a = $sorted[$i]; $b = $sorted[$j]
+            if ($b.start -lt $a.end) {
+                $warnings.Add("$($a.name.Substring(0, 1).ToUpperInvariant())$($a.name.Substring(1)) ($(& $format $a.start) to $(& $format $a.end)) and $($b.name) ($(& $format $b.start) to $(& $format $b.end)) overlap; a game has one discount at a time $source.")
+            } elseif (-not $a.seasonal -and -not $b.seasonal) {
+                $gap = [int]($b.start - $a.end).TotalDays
+                if ($gap -lt $cooldown) { $warnings.Add("$($b.name.Substring(0, 1).ToUpperInvariant())$($b.name.Substring(1)) starts $gap days after $($a.name) ends ($(& $format $a.end)); Steam wants $cooldown days between discounts (seasonal sales are exempt) $source.") }
+            }
+        }
+    }
+    return @($warnings)
+}
 function Get-ReleaseTimeline($Release, [datetime]$Today) {
     $warnings = [System.Collections.Generic.List[string]]::new()
     $notes = [System.Collections.Generic.List[string]]::new()
@@ -243,6 +328,10 @@ function Get-ReleaseTimeline($Release, [datetime]$Today) {
         }
         if ($fest -ge $releaseDay) { $warnings.Add("Next Fest ($(& $format $fest)) is on or after release ($(& $format $releaseDay)); do the last Next Fest before launch (store-page).") }
     }
+
+    # Discounts: the launch discount and the planned ones, against Steam's discounting rules.
+    $deadlines['firstDiscount'] = & $format $releaseDay.AddDays($script:SteamDiscountCooldownDays)
+    foreach ($warning in @(Get-DiscountScheduleWarnings $Release $releaseDay)) { $warnings.Add($warning) }
 
     $timeline = [ordered]@{ date = & $format $releaseDay; daysLeft = $daysLeft
         businessDaysLeft = ($upcoming ? (Get-BusinessDayCount $today $releaseDay) : 0); dateLocked = $locked; deadlines = $deadlines }

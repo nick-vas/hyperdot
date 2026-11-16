@@ -9,11 +9,11 @@ gives the percentages and the floors CI holds them to.
 
 | Part | Items | Covered |
 |---|---|---|
-| [Commands](#commands) | 19 | 19 |
-| [Error codes](#error-codes) | 64 | 61 |
-| [Library files](#library-files) | 38 | 38 |
+| [Commands](#commands) | 20 | 20 |
+| [Error codes](#error-codes) | 65 | 62 |
+| [Library files](#library-files) | 39 | 39 |
 | [Tools](#tools) | 23 | 23 |
-| [Skills](#skills) | 53 | 53 |
+| [Skills](#skills) | 54 | 54 |
 | [Subagents](#subagents) | 2 | 2 |
 | [Workflow jobs, actions, hooks and the GitLab template](#workflow-jobs-actions-hooks-and-the-gitlab-template) | 35 | 32 |
 
@@ -28,12 +28,12 @@ The values of `hyperdot.ps1`'s `-Command`, and the self-tests and workflow steps
 | `export` | `Test-BuildSize.ps1`, `Test-CrashRetry.ps1`, `Test-ErrorCodes.ps1`, `Test-GameVersion.ps1`, `Test-GpuValidation.ps1`, `Test-Web.ps1`, self-test.yml local-windows: Export the Windows build and launch it |
 | `setup` | `Test-BenchmarkIsolation.ps1`, `Test-DownloadFailed.ps1`, `Test-FieldTest.ps1`, `Test-GameBenchmark.ps1`, `Test-GameProgramme.ps1`, `Test-InstallLock.ps1`, self-test.yml field-test: Godot, self-test.yml game-benchmark: Godot and 1 more |
 | `detect` | `Test-Detect.ps1`, `Test-ErrorCodes.ps1`, `Test-Localization.ps1`, `Test-OldState.ps1`, `Test-Playthrough.ps1`, `Test-StopGate.ps1`, `Test-Telemetry.ps1`, self-test.yml init: The juice runner passes timely feedback and fails late feedback and 2 more |
-| `doctor` | `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-EvalGraders.ps1`, `Test-Flaky.ps1` and 8 more |
+| `doctor` | `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-EvalGraders.ps1`, `Test-Flaky.ps1` and 9 more |
 | `init` | `Test-ErrorCodes.ps1`, `Test-ErrorKeys.ps1`, `Test-InitializeGame.ps1`, `Test-OldState.ps1`, `Test-Plan.ps1`, `Test-UpdatePins.ps1`, self-test.yml init: Agent efficiency, self-test.yml init: step 3 and 1 more |
-| `plan` | `Test-ErrorCodes.ps1`, `Test-Plan.ps1`, `Test-ProjectSync.ps1`, self-test.yml lint: status reads the GDD, self-test.yml local-windows: Plan |
+| `plan` | `Test-Calendar.ps1`, `Test-ErrorCodes.ps1`, `Test-Plan.ps1`, `Test-ProjectSync.ps1`, self-test.yml lint: status reads the GDD, self-test.yml local-windows: Plan |
 | `bench` | `Test-BenchHotspots.ps1`, `Test-BenchSweep.ps1`, `Test-ErrorCodes.ps1`, `Test-GpuValidation.ps1`, `Test-SceneCount.ps1`, self-test.yml measure: bench |
 | `shot` | `Test-BenchSweep.ps1`, `Test-Capture.ps1`, `Test-ColorVision.ps1`, `Test-ErrorCodes.ps1`, `Test-GpuValidation.ps1`, `Test-Palette.ps1`, `Test-ShotChanged.ps1`, self-test.yml measure: shot and 1 more |
-| `status` | `Test-AssetManifest.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Handoffs.ps1`, `Test-InitializeGame.ps1`, `Test-Plan.ps1`, `Test-Telemetry.ps1`, `Test-Workflow.ps1` and 1 more |
+| `status` | `Test-AssetManifest.ps1`, `Test-Calendar.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Handoffs.ps1`, `Test-InitializeGame.ps1`, `Test-Plan.ps1`, `Test-Telemetry.ps1` and 2 more |
 | `audio` | `Test-Audio.ps1`, `Test-ErrorCodes.ps1`, `Test-SceneCount.ps1` |
 | `soak` | `Test-Soak.ps1` |
 | `credits` | `Test-Credits.ps1`, `Test-ErrorCodes.ps1` |
@@ -42,6 +42,7 @@ The values of `hyperdot.ps1`'s `-Command`, and the self-tests and workflow steps
 | `help` | `Test-ErrorCodes.ps1`, `Test-Help.ps1` |
 | `deck` | `Test-Deck.ps1` |
 | `telemetry` | `Test-Telemetry.ps1` |
+| `calendar` | `Test-Calendar.ps1` |
 
 ## Error codes
 
@@ -63,8 +64,8 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `export-no-keystore` | **none** |
 | `export-template-missing` | **none** |
 | `unsafe-results-dir` | `Test-ResultsDir.ps1` |
-| `doctor-problems` | `Test-ErrorCodes.ps1`, `Test-Steam.ps1` |
-| `invalid-arguments` | `Test-BenchHotspots.ps1`, `Test-BenchSweep.ps1`, `Test-BuildSize.ps1`, `Test-ColorVision.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-GameVersion.ps1`, `Test-Handoffs.ps1` and 13 more |
+| `doctor-problems` | `Test-ErrorCodes.ps1`, `Test-Steam.ps1`, `Test-Workflow.ps1` |
+| `invalid-arguments` | `Test-BenchHotspots.ps1`, `Test-BenchSweep.ps1`, `Test-BuildSize.ps1`, `Test-Calendar.ps1`, `Test-ColorVision.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-GameVersion.ps1` and 14 more |
 | `no-plan` | `Test-ErrorCodes.ps1` |
 | `invalid-plan` | `Test-ErrorCodes.ps1`, `Test-Plan.ps1`, `Test-ProjectSync.ps1` |
 | `unknown-gate` | `Test-ErrorCodes.ps1`, `Test-Plan.ps1` |
@@ -111,6 +112,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `download-failed` | `Test-DownloadFailed.ps1` |
 | `checksum-mismatch` | **none** |
 | `install-busy` | `Test-InstallLock.ps1` |
+| `calendar-unavailable` | `Test-Calendar.ps1` |
 | `unexpected-error` | `Test-ErrorCodes.ps1` |
 | `failed` | `Test-ErrorCodes.ps1`, `Test-GameVersion.ps1` |
 
@@ -120,32 +122,33 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 
 | File | Reached | Covered by |
 |---|---|---|
-| `Addons.ps1` | 7/13 | `Test-Addons.ps1`, `Test-Steam.ps1`, `Test-SelectJobs.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1` and 5 more |
+| `Addons.ps1` | 11/13 | `Test-Addons.ps1`, `Test-Steam.ps1`, `Test-SelectJobs.ps1`, `Test-Plan.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1` and 5 more |
 | `Architecture.ps1` | 4/9 | `Test-ArchitectureFixtures.ps1`, `Test-Detect.ps1`, `Test-ResultsDir.ps1` |
 | `Assets.ps1` | 12/12 | `Test-AssetManifest.ps1`, `Test-Addons.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1`, `Test-OldState.ps1` and 6 more |
 | `Audio.ps1` | 10/11 | `Test-Localization.ps1`, `Test-SelectJobs.ps1`, `Test-Audio.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-Addons.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1` and 6 more |
 | `BuildSize.ps1` | 4/4 | `Test-BuildSize.ps1`, `Test-SelectJobs.ps1`, `Test-ErrorCodes.ps1` |
-| `Common.ps1` | 46/65 | `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Deck.ps1`, `Test-BenchSweep.ps1`, `Test-GpuValidation.ps1`, `Test-Localization.ps1`, `Test-Flows.ps1`, `Test-Palette.ps1` and 54 more |
-| `Context.ps1` | 8/10 | `Test-Context.ps1`, `Test-Help.ps1`, `Test-DoctorFixture.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1` and 5 more |
+| `Calendar.ps1` | 22/22 | `Test-Calendar.ps1` |
+| `Common.ps1` | 54/66 | `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Deck.ps1`, `Test-BenchSweep.ps1`, `Test-GpuValidation.ps1`, `Test-Localization.ps1`, `Test-Plan.ps1`, `Test-Flows.ps1` and 55 more |
+| `Context.ps1` | 10/10 | `Test-Context.ps1`, `Test-Help.ps1`, `Test-DoctorFixture.ps1`, `Test-Plan.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-ErrorCodes.ps1` and 5 more |
 | `Credits.ps1` | 6/7 | `Test-Credits.ps1`, `Test-ErrorCodes.ps1` |
 | `Data.ps1` | 0/20 | `Test-Data.ps1` |
 | `Deck.ps1` | 3/5 | `Test-Deck.ps1` |
-| `Detect.ps1` | 11/12 | `Test-Addons.ps1`, `Test-Steam.ps1`, `Test-Detect.ps1`, `Test-Platforms.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-BuildSize.ps1` and 37 more |
+| `Detect.ps1` | 11/12 | `Test-Addons.ps1`, `Test-Steam.ps1`, `Test-Detect.ps1`, `Test-Platforms.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-BuildSize.ps1` and 38 more |
 | `Doctor.ps1` | 13/16 | `Test-Addons.ps1`, `Test-Steam.ps1`, `Test-SelectJobs.ps1`, `Test-DoctorFixture.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-ErrorCodes.ps1` and 5 more |
-| `Help.ps1` | 5/11 | `Test-Help.ps1`, `Test-ErrorCodes.ps1` |
-| `Init.ps1` | 10/14 | `Test-KitPaths.ps1`, `Test-UpdatePins.ps1`, `Test-ErrorCodes.ps1`, `Test-OldState.ps1`, `Test-Plan.ps1` |
+| `Help.ps1` | 9/11 | `Test-Help.ps1`, `Test-ErrorCodes.ps1` |
+| `Init.ps1` | 12/14 | `Test-KitPaths.ps1`, `Test-UpdatePins.ps1`, `Test-Plan.ps1`, `Test-ErrorCodes.ps1`, `Test-OldState.ps1` |
 | `Juice.ps1` | 1/4 | `Test-JuiceLog.ps1`, `Test-AssetManifest.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Handoffs.ps1`, `Test-Plan.ps1` |
 | `Layout.ps1` | 3/3 | `Test-Deck.ps1`, `Test-Layout.ps1` |
-| `Localization.ps1` | 19/22 | `Test-Localization.ps1`, `Test-Data.ps1`, `Test-Detect.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-BenchHotspots.ps1`, `Test-BenchSweep.ps1` and 28 more |
-| `Measure.ps1` | 11/13 | `Test-GpuValidation.ps1`, `Test-SelectJobs.ps1`, `Test-BenchSweep.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-BenchHotspots.ps1`, `Test-Capture.ps1`, `Test-ColorVision.ps1` and 36 more |
+| `Localization.ps1` | 19/22 | `Test-Localization.ps1`, `Test-Data.ps1`, `Test-Detect.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-BenchHotspots.ps1`, `Test-BenchSweep.ps1` and 29 more |
+| `Measure.ps1` | 12/13 | `Test-GpuValidation.ps1`, `Test-SelectJobs.ps1`, `Test-BenchSweep.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-BenchHotspots.ps1`, `Test-Capture.ps1`, `Test-ColorVision.ps1` and 37 more |
 | `Palette.ps1` | 3/3 | `Test-Palette.ps1`, `Test-Capture.ps1`, `Test-ColorVision.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-GpuValidation.ps1`, `Test-ShotChanged.ps1` |
 | `Placement.ps1` | 2/2 | `Test-Placement.ps1` |
-| `Plan.ps1` | 31/32 | `Test-Plan.ps1`, `Test-ProjectSync.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Handoffs.ps1` |
+| `Plan.ps1` | 34/35 | `Test-Plan.ps1`, `Test-Calendar.ps1`, `Test-ProjectSync.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Handoffs.ps1` |
 | `Platforms.ps1` | 1/1 | `Test-Platforms.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1` and 5 more |
 | `Playtest.ps1` | 8/8 | `Test-Playtest.ps1` |
 | `Playthrough.ps1` | 3/3 | `Test-Playthrough.ps1` |
-| `Report.ps1` | 29/34 | `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Flows.ps1`, `Test-Localization.ps1`, `Test-ArchitectureFixtures.ps1`, `Test-Data.ps1`, `Test-Detect.ps1`, `Test-FailureDelta.ps1` and 25 more |
-| `Runners.ps1` | 7/9 | `Test-Flaky.ps1`, `Test-Flows.ps1`, `Test-StaleTres.ps1`, `Test-Detect.ps1`, `Test-SelectJobs.ps1`, `Test-TestsNotRun.ps1`, `Test-ErrorCodes.ps1`, `Test-DotnetTempDir.ps1` and 10 more |
+| `Report.ps1` | 29/34 | `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Flows.ps1`, `Test-Localization.ps1`, `Test-ArchitectureFixtures.ps1`, `Test-Calendar.ps1`, `Test-Data.ps1`, `Test-Detect.ps1` and 26 more |
+| `Runners.ps1` | 7/10 | `Test-Flaky.ps1`, `Test-Flows.ps1`, `Test-StaleTres.ps1`, `Test-Detect.ps1`, `Test-SelectJobs.ps1`, `Test-TestsNotRun.ps1`, `Test-ErrorCodes.ps1`, `Test-DotnetTempDir.ps1` and 10 more |
 | `Setup.ps1` | 11/16 | `Test-DownloadFailed.ps1`, `Test-BenchSweep.ps1`, `Test-Flows.ps1`, `Test-InstallLock.ps1`, `Test-GameVersion.ps1`, `Test-InstallAddon.ps1`, `Test-ReportPins.ps1`, `Test-SelectJobs.ps1` and 34 more |
 | `Sfx.ps1` | 5/6 | `Test-SelectJobs.ps1`, `Test-Sfx.ps1` |
 | `Soak.ps1` | 6/10 | `Test-Soak.ps1` |
@@ -156,7 +159,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `TextSize.ps1` | 3/3 | `Test-Deck.ps1`, `Test-TextSize.ps1` |
 | `Version.ps1` | 3/6 | `Test-GameVersion.ps1`, `Test-KitPaths.ps1` |
 | `Web.ps1` | 3/3 | `Test-InputHash.ps1`, `Test-SelectJobs.ps1`, `Test-ErrorCodes.ps1` |
-| `Workflow.ps1` | 0/3 | `Test-Workflow.ps1` |
+| `Workflow.ps1` | 3/3 | `Test-Workflow.ps1`, `Test-Plan.ps1` |
 | `WorkingTree.ps1` | 0/1 | `Test-StopGate.ps1` |
 
 ## Tools
@@ -200,6 +203,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `anti-cheat` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `asset-pipeline` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `automation-hooks` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `calendar` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `camera` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `console-cert` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `debug-tools` | `Test-Capture.ps1`, `Test-Help.ps1`, `Test-Skills.ps1` |
@@ -274,7 +278,7 @@ A job of `self-test.yml` is a test itself (it lists what it runs); another workf
 | pages.yml/deploy | **none**; publishes the site the build job made and `Test-Site.ps1` checked; runs on main only |
 | project-sync.yml/live | `Test-ProjectSync.ps1`; runs `Test-ProjectSync.ps1 -Live` against GitHub on a private project; needs the `HYPERDOT_PROJECT_TOKEN` secret |
 | release.yml/release | `Test-ReleaseNotes.ps1`, `Test-SelectJobs.ps1`, `Test-WorkflowLint.ps1` |
-| self-test.yml/lint | itself (on every pull request, push to main and nightly run); runs `Test-Addons.ps1`, `Test-ArchitectureFixtures.ps1`, `Test-AssetManifest.ps1`, `Test-Changelog.ps1`, `Test-Context.ps1`, `Test-CoverageMap.ps1`, `Test-CrashRetry.ps1`, `Test-Data.ps1`, `Test-Detect.ps1`, `Test-DocLinks.ps1`, `Test-DoctorFixture.ps1`, `Test-DotnetTempDir.ps1`, `Test-DownloadFailed.ps1`, `Test-EvalGraders.ps1`, `Test-FailureDelta.ps1`, `Test-GameVersion.ps1`, `Test-GitLabTemplate.ps1`, `Test-Handoffs.ps1`, `Test-Help.ps1`, `Test-HyperdotLabel.ps1`, `Test-InitializeGame.ps1`, `Test-InputHash.ps1`, `Test-InstallAddon.ps1`, `Test-InstallLock.ps1`, `Test-JuiceLog.ps1`, `Test-KitPaths.ps1`, `Test-LibNames.ps1`, `Test-OldState.ps1`, `Test-Plan.ps1`, `Test-Platforms.ps1`, `Test-Playtest.ps1`, `Test-PowerShellPatterns.ps1`, `Test-PrComment.ps1`, `Test-ProcessTimeout.ps1`, `Test-ProjectSync.ps1`, `Test-ReleaseNotes.ps1`, `Test-RepoHygiene.ps1`, `Test-ReviewPairs.ps1`, `Test-SceneCount.ps1`, `Test-SelectJobs.ps1`, `Test-Sfx.ps1`, `Test-Site.ps1`, `Test-SkillFixtures.ps1`, `Test-Steam.ps1`, `Test-StopGate.ps1`, `Test-Store.ps1`, `Test-Telemetry.ps1`, `Test-TestDuration.ps1`, `Test-TestsNotRun.ps1`, `Test-TokenBenchmark.ps1`, `Test-UpdatePins.ps1`, `Test-Workflow.ps1`, `Test-WorkflowLint.ps1`, `Test-Skills.ps1`, 2 step(s) of its own |
+| self-test.yml/lint | itself (on every pull request, push to main and nightly run); runs `Test-Addons.ps1`, `Test-ArchitectureFixtures.ps1`, `Test-AssetManifest.ps1`, `Test-Calendar.ps1`, `Test-Changelog.ps1`, `Test-Context.ps1`, `Test-CoverageMap.ps1`, `Test-CrashRetry.ps1`, `Test-Data.ps1`, `Test-Detect.ps1`, `Test-DocLinks.ps1`, `Test-DoctorFixture.ps1`, `Test-DotnetTempDir.ps1`, `Test-DownloadFailed.ps1`, `Test-EvalGraders.ps1`, `Test-FailureDelta.ps1`, `Test-GameVersion.ps1`, `Test-GitLabTemplate.ps1`, `Test-Handoffs.ps1`, `Test-Help.ps1`, `Test-HyperdotLabel.ps1`, `Test-InitializeGame.ps1`, `Test-InputHash.ps1`, `Test-InstallAddon.ps1`, `Test-InstallLock.ps1`, `Test-JuiceLog.ps1`, `Test-KitPaths.ps1`, `Test-LibNames.ps1`, `Test-OldState.ps1`, `Test-Plan.ps1`, `Test-Platforms.ps1`, `Test-Playtest.ps1`, `Test-PowerShellPatterns.ps1`, `Test-PrComment.ps1`, `Test-ProcessTimeout.ps1`, `Test-ProjectSync.ps1`, `Test-ReleaseNotes.ps1`, `Test-RepoHygiene.ps1`, `Test-ReviewPairs.ps1`, `Test-SceneCount.ps1`, `Test-SelectJobs.ps1`, `Test-Sfx.ps1`, `Test-Site.ps1`, `Test-SkillFixtures.ps1`, `Test-Steam.ps1`, `Test-StopGate.ps1`, `Test-Store.ps1`, `Test-Telemetry.ps1`, `Test-TestDuration.ps1`, `Test-TestsNotRun.ps1`, `Test-TokenBenchmark.ps1`, `Test-UpdatePins.ps1`, `Test-Workflow.ps1`, `Test-WorkflowLint.ps1`, `Test-Skills.ps1`, 2 step(s) of its own |
 | self-test.yml/zero-config | itself (on a pull request when the files it exercises change; always on pushes to main and in the nightly run) |
 | self-test.yml/csharp | itself (on a pull request when the files it exercises change; always on pushes to main and in the nightly run) |
 | self-test.yml/explicit-runners | itself (on a pull request when the files it exercises change; always on pushes to main and in the nightly run) |

@@ -223,6 +223,7 @@ benchmark and evals that measure the kit. The sections after the tables are
 |---|---|---|
 | **Plan A to Z** | `plan -Json` | current phase, open gates, warnings |
 | **Track tasks** | `plan -Do add\|move\|remove`, `plan -Do sync` | tasks with a work-in-progress limit; optional GitHub Project mirror (experimental) |
+| **Plan the marketing dates** | `calendar`, `/calendar` | Steam's seasonal sales, Next Fests and themed fests, itch.io jams, Epic giveaways and comparable games' prices (LootRadar) against the release; the planned discounts checked against Steam's rules; `calendar.ics` for a calendar app |
 
 ### Improve the agent and the kit
 
