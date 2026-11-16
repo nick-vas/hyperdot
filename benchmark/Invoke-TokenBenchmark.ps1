@@ -779,7 +779,7 @@ if ($shardCount -gt 1) { $meta.partOfStandard = $meetsStandard } else { $meta.st
 # The field test's spec path names nothing of the game; its meta does not hold the game's folder.
 if ($fieldMode) { $meta.field = $true; $meta.standard = $false }
 if ($notReached.Count) { ConvertTo-Json -InputObject @($notReached.ToArray()) -Depth 4 | Set-Content -LiteralPath (Join-Path $runDir 'not-reached.json') -Encoding utf8 }
-$rows | Export-Csv -LiteralPath (Join-Path $runDir 'results.csv') -NoTypeInformation -Encoding utf8
+$rows | Export-Csv -LiteralPath (Join-Path $runDir 'results.csv') -Encoding utf8
 ConvertTo-Json -InputObject @($rows.ToArray()) -Depth 5 | Set-Content -LiteralPath (Join-Path $runDir 'results.json') -Encoding utf8
 $document = [ordered]@{ meta = $meta; profiles = $summary.profiles; cells = $summary.cells; folder = $runDir }
 if ($fieldMode) {

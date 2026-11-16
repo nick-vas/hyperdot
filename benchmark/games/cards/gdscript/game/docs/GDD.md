@@ -10,30 +10,36 @@ you; a duel decided in a few minutes.
 
 ### F1 The turn
 Priority: must
+Fun: challenge
 Done when:
 - a turn runs Draw, Main, Clash and End; Clash is skipped when the keeper has no wisp; a test covers each transition
 
 ### F2 Cards
 Priority: must
+Fun: challenge, discovery
 Done when:
 - eleven cards in data/cards.json, wisps that strike across their lane and rites that act once, checked by the data runner
 
 ### F3 Rivals
 Priority: must
+Fun: challenge
 Done when:
 - five rivals with their own decks and AI weights; a utility AI plays only legal cards, and the player's deck can beat each
 
 ### F4 Fairness
 Priority: must
+Fun: challenge
 Done when:
 - the shuffle follows the duel's seed alone; an empty deck costs light, so every duel ends
 
 ### F5 Menus, pause, settings, saves
-Priority: must
+Priority: could
+Fun: none
 Done when:
 - menu, rival select, pause, volume and language; wins and losses are saved, and Continue carries on a duel; old saves still load
 
 ### F6 Languages
-Priority: should
+Priority: could
+Fun: none
 Done when:
 - English, French and German, every visible text through tr()

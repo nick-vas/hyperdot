@@ -17,26 +17,31 @@ drowned tower.
 
 ### F1 The story as data
 Priority: must
+Fun: narrative
 Done when:
 - nodes, choices, flags and endings in data/*.json, checked by the data runner; the story check finds every node and
   ending reachable and every flag both set and read
 
 ### F2 Choices that matter
 Priority: must
+Fun: narrative, expression
 Done when:
 - choices need flags (the kit's criteria) and raise, set or clear them; the questions at the crossing are asked once
 
 ### F3 Three endings
 Priority: must
+Fun: narrative, discovery
 Done when:
 - the letter (trust and calm), the empty seat (turning back) and the drowned bell (the stranger's tale); a bot reaches each
 
 ### F4 Menus, pause, history, saves
-Priority: must
+Priority: could
+Fun: none
 Done when:
 - menu, pause, a history of the lines so far; the story is saved at every line and Continue carries on; old saves load
 
 ### F5 Languages
-Priority: should
+Priority: could
+Fun: none
 Done when:
 - English, French and German; every text in a box has a length limit the l10n runner checks

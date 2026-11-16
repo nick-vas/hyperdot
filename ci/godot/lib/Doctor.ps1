@@ -670,6 +670,16 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
         }
     }
 
+    # The GDD's feature grammar (Get-GddProblems): status reads it, so a malformed line fails here with its one fix, instead
+    # of a warning an agent can note and step past.
+    $gddPath = Get-GddPath $Info
+    if ($gddPath) {
+        $gdd = Read-Gdd $gddPath
+        $gddProblems = @(Get-GddProblems $gdd)
+        if ($gddProblems.Count -eq 0) { Add-Check OK "GDD: $(@($gdd.features).Count) feature(s), each with one Priority and one Fun line" }
+        foreach ($gddProblem in $gddProblems) { Add-Check FAIL "$gddPath line $($gddProblem.line): $($gddProblem.problem)" $gddProblem.fix }
+    }
+
     # --- Tests ------------------------------------------------------------------------------------
     $testRunners = @($Info.Runners | Where-Object { $_ -in $script:TestFrameworkRunners })
     if ($testRunners.Count -eq 0) {

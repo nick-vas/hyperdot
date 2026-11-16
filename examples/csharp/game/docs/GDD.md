@@ -47,6 +47,7 @@ Done when:
 
 ### F5 Title screen
 Priority: could
+Fun: none
 Done when:
 - The game starts on a title screen with Play and Quit.
 

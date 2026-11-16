@@ -5,7 +5,7 @@
 # A number that the history is too thin for is $null, never a guess (docs/json.md, telemetry).
 
 # The commands whose runs reach the history (hyperdot.ps1 starts a history line for each of them).
-$script:TelemetryCommands = @('build', 'test', 'export', 'bench', 'shot', 'audio', 'soak', 'credits', 'deck')
+$script:TelemetryCommands = @('build', 'test', 'export', 'bench', 'shot', 'audio', 'soak', 'credits', 'deck', 'doctor', 'calendar')
 # Fewer timed runs than this give no mean, median, p95 or trend: the numbers would say nothing. The trend also needs two
 # runs in each half.
 $script:TelemetryMinRuns = 3

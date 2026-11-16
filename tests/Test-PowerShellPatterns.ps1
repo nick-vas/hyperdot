@@ -28,6 +28,7 @@ $rules = [ordered]@{
     'start-process-arglist' = 'Start-Process -ArgumentList joins its elements with spaces and quotes none: wrap a path or any value that may hold a space in escaped quotes, or use -EncodedCommand'
     'replace-interpolated'  = 'a variable or interpolated string as the replacement of -replace reads $0, $1 and $& in the data as group references; double the dollars with .Replace(''$'', ''$$'') or use a script block'
     'pwsh-interactive'      = 'a child pwsh started with -File or -Command and no -NonInteractive hangs on a prompt instead of failing'
+    'csv-notypeinformation' = 'Export-Csv or ConvertTo-Csv -NoTypeInformation is obsolete from PowerShell 7.7: its warning reaches stdout of a child pwsh and breaks -Json; type information is off by default since 6.0, so drop the flag'
     'json-depth'            = 'ConvertTo-Json without -Depth stops at depth 2: nested data is cut to its type name and a warning reaches stdout; pass -Depth'
     'path-wildcard'         = 'a path cmdlet without -LiteralPath reads [ ] in a path from data as a wildcard and finds nothing, silently (a deliberate * or ? in the path is allowed)'
     'duplicate-parameter'   = 'a parameter given twice in one command fails to bind at run time, which no parse error shows'
@@ -127,6 +128,7 @@ function Get-PatternFindings([string]$File) {
             }
             $seen = @($n.CommandElements | Where-Object { $_ -is [System.Management.Automation.Language.CommandParameterAst] } | ForEach-Object { $_.ParameterName.ToLowerInvariant() })
             if ($name -cmatch '^[A-Z][A-Za-z]+-[A-Z]' -and @($seen | Group-Object | Where-Object Count -gt 1).Count) { & $add 'duplicate-parameter' $n $n.Extent.Text }
+            if ($name -in 'Export-Csv', 'epcsv', 'ConvertTo-Csv' -and @($n.CommandElements | Where-Object { $_ -is [System.Management.Automation.Language.CommandParameterAst] -and $_.ParameterName -match '^(NoType(I(n(f(o(r(m(a(t(i(o(n)?)?)?)?)?)?)?)?)?)?)?|NTI)$' }).Count) { & $add 'csv-notypeinformation' $n $n.Extent.Text }
             if ($name -eq 'ConvertTo-Json' -and @($n.CommandElements | Where-Object { $_ -is [System.Management.Automation.Language.CommandParameterAst] -and $_.ParameterName -match '^De(p(th?)?)?$' }).Count -eq 0) { & $add 'json-depth' $n $n.Extent.Text }
             if ($name -in $pathCmdlets -and ($File -notmatch '[\\/]tests[\\/]' -or $File -match 'patterns-fixture[\\/](path-wildcard|clean)\.ps1')) {
                 $literal = @($n.CommandElements | Where-Object { $_ -is [System.Management.Automation.Language.CommandParameterAst] -and $_.ParameterName -match '^(L|Li|Lit|Lite|Liter|Litera|Literal|LiteralP|LiteralPa|LiteralPat|LiteralPath|LP|PSPath)$' }).Count

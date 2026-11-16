@@ -10,36 +10,43 @@ server alone decides who was hit; a match is always four, bots filling the empty
 
 ### F1 Moving and shooting
 Priority: must
+Fun: sensation, challenge
 Done when:
 - eight-way movement, aim with the mouse or a stick, sparks on a cooldown and a dash, the same code on server and client
 
 ### F2 Rounds and the match
 Priority: must
+Fun: challenge, fellowship
 Done when:
 - five hits put a glimmer out; the last one standing wins the round; three rounds win the match; the courts alternate
 
 ### F3 Netcode
 Priority: must
+Fun: fellowship
 Done when:
 - an authoritative server; client prediction and reconciliation with no correction at 100 ms; hits decided on the server
 
 ### F4 Players and bots
 Priority: must
+Fun: fellowship, challenge
 Done when:
 - bots fill every empty slot; players join and leave in the middle of a match, and a round still ends when one is left
 
 ### F5 Dedicated server
 Priority: must
+Fun: fellowship
 Done when:
 - --server runs headless match after match; `soak` with three clients joining and leaving passes for minutes
 
 ### F6 Menus, pause, settings
-Priority: must
+Priority: could
+Fun: none
 Done when:
 - menu, host, join, pause, volume and language; settings and the record saved; old settings still load
 
 ### F7 Languages
-Priority: should
+Priority: could
+Fun: none
 Done when:
 - English, French and German, every visible text through tr()
 

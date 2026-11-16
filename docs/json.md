@@ -100,7 +100,10 @@ Branch on `error.code`; `message` can change.
 `presets[]` (`name`, `platform`).
 
 **doctor**: `checks[]` (`status` OK/INFO/WARN/FAIL, `message`, `fix`), `problems`, `warnings`. Checks are messages, not
-codes; the Steamworks, trailer, tag and privacy checks are described in [steam.md](steam.md#kit-checks) and
+codes. A GDD (`docs/GDD.md`) breaking the feature grammar is a FAIL per problem, `<path> line <n>: <feature>: <problem>`
+with its one `fix`: each feature has exactly one `Priority:` line (must, should, could, won't) and exactly one `Fun:` line
+holding only kinds of fun, comma-separated, or `none`, which only a could or won't feature may have; feature ids are
+unique; the Steamworks, trailer, tag and privacy checks are described in [steam.md](steam.md#kit-checks) and
 [store-and-legal.md](store-and-legal.md#kit-checks). `uncommittedKitFiles[]` (when the game is in a git repository)
 lists the files the kit wrote that git sees as new or changed: `path` (relative to the project), `status` (`untracked` or
 `modified`) and `machinePath` (the file names a drive or a home folder of this machine). With `-ReportIssue`, `issue`:
@@ -238,7 +241,7 @@ arrays when there is nothing to list; `retry` is the `-Retry` value):
   compared run and is flaky or quarantined now is not `fixed`. The policy is Rare's for Sea of Thieves
   ([gdc/sea-of-thieves-automated-testing.md](gdc/sea-of-thieves-automated-testing.md)).
 
-Each `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits`, `deck` and `doctor` run also appends one line to `.godot/hyperdot-history.jsonl` in the
+Each `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits`, `deck`, `doctor` and `calendar` run also appends one line to `.godot/hyperdot-history.jsonl` in the
 project: `time` (UTC), `command`, `ok`, `code`, `seconds`, and `failedRunners` for `test`. A `test` run that reached its
 runners also records `scope` (`runners`, sorted, and `filter`, `""` without `-Filter`), `failures` (up to 200 ids
 `<runner>|<test name>`, in ordinal order) and `failuresTruncated`; the next run of the same scope compares itself with them.
@@ -439,12 +442,13 @@ on another command fail with `invalid-arguments`, before anything is written. `.
 in `.gitignore`).
 
 **status** (read-only; it never fails on what it finds):
-- `gdd`: `path`, `draft`, `pitch`, `featureCount`, `firstSession[]`, or `null` when the project has no `docs/GDD.md`.
+- `gdd`: `path`, `draft`, `pitch`, `featureCount`, `firstSession[]`, `problems[]` (the GDD grammar problems `doctor` fails
+  on: `feature`, `line`, `problem`, `fix`), or `null` when the project has no `docs/GDD.md`.
   `firstSession[]` holds the numbered steps of its "First session, step by step" section: `id` (`S1`... from the step's
   number), `text`, `tests[]` (`file`, `line` of each `GDD:S<n>` tag in tests, flows, code and `playthrough.json`) and
   `stubs[]` (the same in `*.stub.json` files, flows or a `playthrough.json` not written yet, which no runner plays). A
   confirmed GDD (not a draft) warns about steps with neither; a `GDD:S<n>` tag for a step the GDD lacks also warns.
-- `features[]`: `id` (F1...), `title`, `priority`, `fun[]` (the kinds of fun on its `Fun:` line), `doneWhen[]`, `taggedTests[]` (`file`, `line` of each `GDD:F<n>` tag in
+- `features[]`: `id` (F1...), `title`, `priority`, `fun[]` (the valid kinds of fun on its `Fun:` line; empty for `Fun: none`), `doneWhen[]`, `taggedTests[]` (`file`, `line` of each `GDD:F<n>` tag in
   tests, flows, code and `playthrough.json`; stubs do not count), `tasks[]` (`id`, `column`), `testedAndPassing` (tagged tests exist and the latest full test run passed: every runner of the project, no `-Filter`).
 - `plan`: `path`, `board`, `currentPhase`, `openGates[]`, `wipLimit`, `columns`, `tasks[]` as for `plan`; `null` without a plan, or with one `plan` would refuse as `invalid-plan` (a warning says why).
 - `partial`: `null`, or, when `-TimeoutSec` (default 120) ran out before everything was read, `{ reason: "timeout", timeoutSec, skipped[], note }`: `skipped[]` holds `step` (`git activity`, `git repository`, `feature tags`, `project inventory`, `project files`, ...) and `waitingOn` (the git subcommand, the folder it was reading, or the time limit) of each step that was cut short or skipped; its fields in the result are `null` or empty. The same field is on `plan`'s result.
@@ -477,8 +481,8 @@ in `.gitignore`).
   later plan phase wait for it. Empty when nothing is due. Nothing is run.
 - `look`: `styleGuide` (path of `docs/STYLE.md`, or `null`), `resolutions[]` (from its `Resolutions:` line), `juiceRules` (rules
   in `juice.json`, 0 without one).
-- `warnings[]`: a draft GDD, must-have features with no tagged test, must and should features with no `Fun:` line or an
-  unknown kind of fun, features with no plan task, tags or tasks naming
+- `warnings[]`: a draft GDD, must-have features with no tagged test, each GDD grammar problem as `GDD line <n>: <problem>.
+  Fix: <fix>`, features with no plan task, tags or tasks naming
   features the GDD does not have, a failed or missing latest test run, a plan.json that cannot be read, plan overruns, repeatedly flaky tests, ended
   quarantines, placeholders past their due date and a latest failure whose error predates the current commit.
 
@@ -522,7 +526,7 @@ but writes no run log.
 **telemetry** (read-only; it never fails on what it finds, and writes nothing, not even a history line of its own): one view
 over `.godot/hyperdot-history.jsonl`, the data the kit already keeps. `telemetry [<command>] [-Last <n>]` reads the newest
 `-Last` runs (default 50, at least 1) of each command, or of the one command named (`build`, `test`, `export`, `bench`,
-`shot`, `audio`, `soak`, `credits` or `deck`, the commands that leave a history line; another is `invalid-arguments`, as is
+`shot`, `audio`, `soak`, `credits`, `deck`, `doctor` or `calendar`, the commands that leave a history line; another is `invalid-arguments`, as is
 `-Last` on another command). The result is `telemetry`:
 - `historyFile` (path), `last`, `command` (the one asked for, or `null`), `minRuns` (3).
 - `entries`: usable lines read. `skipped`: lines dropped, a line that is not JSON or not an object with a `command`; they are

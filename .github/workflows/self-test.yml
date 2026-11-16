@@ -101,6 +101,9 @@ jobs:
       - name: calendar reads Valve's, itch.io's, Epic's and LootRadar's snapshots, relates them to the release, checks the planned discounts against Steam's rules and writes calendar.ics, offline
         shell: pwsh
         run: ./tests/Test-Calendar.ps1
+      - name: The GDD's feature grammar (one Priority and one Fun line, Fun none only for could and won't) - every mistake in the broken fixture is named with its fix, doctor fails on it, the shipped GDDs pass
+        shell: pwsh
+        run: ./tests/Test-Gdd.ps1
       - name: status says which command is due and why - never run, failed, a file newer than the run, too old - and docs/workflow.md holds the table
         shell: pwsh
         run: ./tests/Test-Workflow.ps1
@@ -292,11 +295,11 @@ jobs:
           $d = pwsh -NoProfile -File $ci status -Json -Project $project 2>$null | ConvertFrom-Json
           if (($d.features | Where-Object id -eq 'F5').tasks[0].id -ne 't1') { throw "the task should show under F5: $($d | ConvertTo-Json -Depth 6)" }
           if (-not ($d.warnings -match 'F1 Paddle and ball has no plan task')) { throw "expected a missing-task warning: $($d.warnings)" }
-          # A must feature that names no kind of fun, and one that names an unknown kind, are both warned about.
+          # A must feature that names no kind of fun, and one that names an unknown kind, are both warned about, each with its fix (tests/Test-Gdd.ps1 holds the rest).
           $gdd = Join-Path $project 'docs/GDD.md'
           (Get-Content $gdd -Raw).Replace('Fun: challenge, sensation', 'Fun: greed').Replace("Fun: challenge`n", '') | Set-Content $gdd -NoNewline
           $d = pwsh -NoProfile -File $ci status -Json -Project $project 2>$null | ConvertFrom-Json
-          if (-not ($d.warnings -match "F3 Lives and game over does not say which kind of fun") -or -not ($d.warnings -match "'greed' is not a kind of fun")) { throw "expected Fun warnings: $($d.warnings)" }
+          if (-not ($d.warnings -match 'F3 Lives and game over: has no "Fun:" line\. Fix: ') -or -not ($d.warnings -match "'greed' is not a kind of fun\. Fix: ")) { throw "expected Fun warnings: $($d.warnings)" }
           # The deliberately invalid -Feature above set a non-zero exit code; GitHub's pwsh wrapper exits with $LASTEXITCODE.
           exit 0
       - name: Parse action manifests
