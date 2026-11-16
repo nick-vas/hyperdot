@@ -13,7 +13,10 @@
     "buildSubmitted": null,
     "nextFest": null,
     "demoSubmitted": null,
-    "pressPreview": false
+    "pressPreview": false,
+    "launchDiscount": null,
+    "discounts": [],
+    "comparables": []
   },
   "phases": [
     {

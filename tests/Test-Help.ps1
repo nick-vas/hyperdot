@@ -33,8 +33,18 @@ $unknown = @($grouped | Where-Object { $_ -notin $subjects.skill })
 $doubled = @($grouped | Group-Object | Where-Object Count -gt 1 | ForEach-Object Name)
 Assert-True ($groups.Count -gt 0 -and $ungrouped.Count -eq 0) "every skill is in a group of docs/help.md$(if ($ungrouped) { ": add $($ungrouped -join ', ') under ## Skill groups" })"
 Assert-True ($unknown.Count -eq 0 -and $doubled.Count -eq 0) "each group lists real skills, each once$(if ($unknown -or $doubled) { ": $(@($unknown) + @($doubled) -join ', ')" })"
-$twice = @($entries | ForEach-Object { $_.name } | Group-Object | Where-Object Count -gt 1 | ForEach-Object Name)
-Assert-True ($twice.Count -eq 0) "no name has two entries$(if ($twice) { ": $($twice -join ', ')" })"
+# A command and the skill built on it may share a name (calendar: the command and /calendar); help <name> then shows both,
+# the command as entry and the skill under also. Two entries of one kind are a mistake.
+$twice = @($entries | ForEach-Object { "$($_.kind) $($_.name)" } | Group-Object | Where-Object Count -gt 1 | ForEach-Object Name)
+Assert-True ($twice.Count -eq 0) "no name has two entries of one kind$(if ($twice) { ": $($twice -join ', ')" })"
+$shared = @($entries | Group-Object { $_.name } | Where-Object Count -gt 1 | ForEach-Object Name)
+foreach ($name in $shared) {
+    $kindsOf = @($entries | Where-Object { $_.name -eq $name } | ForEach-Object { $_.kind })
+    Assert-True (($kindsOf -join ',') -eq 'command,skill') "a shared name is a command and its skill, the command first: $name ($($kindsOf -join ', '))"
+    $out = & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') help $name -Json 2>$null | Out-String
+    $doc = $out | ConvertFrom-Json
+    Assert-True ($doc.ok -and $doc.entry.kind -eq 'command' -and @($doc.also).Count -eq 1 -and $doc.also[0].kind -eq 'skill') "help $name shows the command as entry and the skill under also"
+}
 $noSummary = @($entries | Where-Object { -not $_.summary -or $_.summary.Length -gt 200 } | ForEach-Object name)
 Assert-True ($noSummary.Count -eq 0) "each entry starts with a summary line of at most 200 characters$(if ($noSummary) { ": $($noSummary -join ', ')" })"
 

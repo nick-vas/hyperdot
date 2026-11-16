@@ -12,12 +12,16 @@ function Get-WorkflowStage($Table, [string]$PhaseId) {
 }
 
 # $Runs: command -> its newest history entry (Get-LastRuns). $Files: FileInfo list of the project. $Now is a parameter for the test.
-function Get-SuggestedCommands($Table, $Runs, [object[]]$Files, $Stage, [datetime]$Now = (Get-Date)) {
+# $PhaseId is the plan's current phase: a rule's optional exceptPhases (wildcards, e.g. "jam-*") skips it in those phases,
+# where the stage alone cannot tell a jam plan from a full one.
+function Get-SuggestedCommands($Table, $Runs, [object[]]$Files, $Stage, [datetime]$Now = (Get-Date), [string]$PhaseId = '') {
     $found = [ordered]@{}
     foreach ($rule in $Table.rules) {
         if ($found.Contains($rule.command)) { continue }
         $from = $rule.PSObject.Properties['fromStage'] ? [int]$rule.fromStage : $null
         if ($null -ne $from -and ($null -eq $Stage -or $Stage -lt $from)) { continue }
+        $except = @($rule.PSObject.Properties['exceptPhases'] ? $rule.exceptPhases : @())
+        if ($PhaseId -and @($except | Where-Object { $PhaseId -like $_ }).Count) { continue }
         $last = $Runs.Contains($rule.command) ? $Runs[$rule.command] : $null
         $patterns = @($rule.PSObject.Properties['files'] ? $rule.files : @())
         # A loop and compiled wildcards, not a pipeline per file and pattern: a game has thousands of files and a rule several patterns.

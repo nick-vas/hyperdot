@@ -26,7 +26,7 @@ in-process (`& ./hyperdot.ps1`) will not capture it in a variable.
 | Field | Type | |
 |---|---|---|
 | `schema` | string | `hyperdot/1`. Fields are only ever added within a schema version |
-| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest`, `help`, `deck`, `telemetry` |
+| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest`, `help`, `deck`, `telemetry`, `calendar` |
 | `ok` | bool | The verdict |
 | `error` | object, when `ok` is false | `{ "code": "<stable-code>", "message": "<for people>" }` |
 | `log` | string, for `setup`, `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits`, `deck` | Path of the full run log, `hyperdot.log` in the command's results folder: `-Results` (default `test-results`; `bench-results`, `soak-results`, `audio-results` and `deck-results` for those commands), or `-Output` for `shot` (default `screenshots`). Search it; don't read it whole |
@@ -90,6 +90,7 @@ Branch on `error.code`; `message` can change.
 | `download-failed` | Godot or its export templates could not be downloaded after four attempts (an HTTP error, no network): the network or the server, not the project; retry later | `error.message` (the URL and the last error) |
 | `checksum-mismatch` | A downloaded Godot editor or export-templates archive does not match the SHA-512 Godot publishes in `SHA512-SUMS.txt` beside the release; the file is deleted. Retry; if it repeats, the file is being altered on the way or the mirror is wrong. A release with no `SHA512-SUMS.txt`, or one that does not list the archive, is used with a note instead | `error.message` (the expected and actual sums) |
 | `install-busy` | Another run on the same machine has been installing the same Godot for longer than `HYPERDOT_TIMEOUT`; the two take turns, so this is a stuck or very slow install, not the project; stop it or wait, then retry | `error.message` (the lock file) |
+| `calendar-unavailable` | `calendar`: none of the sources asked for could be read: no network and no cached copy (with `-Offline`, nothing cached), every page failed, or only `lootradar` was asked for and there are no comparables. One source failing is a warning, not this | `calendar.sources[]` (`error` each) |
 | `unexpected-error` | An error the kit did not expect, such as a `-Project` folder that does not exist, a file it cannot read, or a bug in the kit | `error.message` |
 | `failed` | A failure with no code of its own: no `project.godot` in the project folder, a program not found (the .NET SDK, a tool on the `PATH`), an add-on or runner set-up that is missing or misnamed, a tool that exited non-zero | `error.message` |
 
@@ -416,6 +417,7 @@ and `noticesFile`.
 line) and `path`, the Markdown page it wrote (`.godot/kit-help.md` of the game given by `-Project` or run in, else
 `hyperdot-kit-help.md` in the temp folder); with one (`help shot`, `help /game`), `entry` with `name`, `kind`, `summary`, `page` (the rest of its text in
 [help.md](help.md)), and for a skill or subagent `when` (its description), `start` (how it starts) and `file`. A name
+that is both a command and the skill built on it (`calendar`) gives the command as `entry` and the skill in `also[]`. A name
 help does not know, or a name given to another command, fails with `invalid-arguments`.
 
 **flows** is a runner like the others: it appears in `runnerResults[]`; each failure's `name` is the flow file and `message` is `step N (<step>): <reason>`.
@@ -424,9 +426,9 @@ help does not know, or a name given to another command, fails with `invalid-argu
 (`id`, `text`, `auto`, `check`, `optional`: an open optional gate does not hold the phase back), `phases[]` (`id`, `name`, `complete`, `gatesDone`, `gatesTotal`), `board`
 (tasks per column), `tasks[]` (`id`, `title`, `column`, `phase`, `feature`, `itemId`, `boardColumn`), `projectBoard` (`<owner>/<number>` or `null`),
 `release` (`null` until plan.json's `release.date` is set: `date`, `daysLeft`, `businessDaysLeft`, `dateLocked`,
-`deadlines` with `steamFee`, `comingSoon`, `buildReview`, `dateLock`, and `storePageReview` and `demoReview` when
+`deadlines` with `steamFee`, `comingSoon`, `buildReview`, `dateLock`, `firstDiscount` (30 days after release: the first day a discount other than the launch discount can start), and `storePageReview` and `demoReview` when
 `release.comingSoon` and `release.nextFest` are set; all yyyy-MM-dd), `warnings[]` (release timeline warnings included;
-see [plan.md](plan.md#release-dates)).
+see [plan.md](plan.md#release-dates); the launch discount and the planned discounts are checked against Steam's discount rules there too).
 `plan -Do add`, `move`, `remove` and `link` also return `task` (as in `tasks[]`; for `remove`, the task removed, whose item the next sync archives; for `move` with several ids, the first); `plan -Do move` also returns `movedTasks[]` (every task moved, as in `tasks[]`); `plan -Do sync` (experimental) returns `sync` (`board` (`<owner>/<number>`), `created` (items made), `moved` (tasks moved to follow the board), `itemsMoved` (items moved to follow the plan), `imported` (tasks added for items a person added on the board), `archived` (items of removed tasks archived), `madeProject` (whether this call made the project), `warnings`).
 
 **status -Handoff** `<subagent>` **-Checked** `<what>` **-Verdict** `<answer>` records one subagent handoff instead of
@@ -479,6 +481,43 @@ in `.gitignore`).
   unknown kind of fun, features with no plan task, tags or tasks naming
   features the GDD does not have, a failed or missing latest test run, a plan.json that cannot be read, plan overruns, repeatedly flaky tests, ended
   quarantines, placeholders past their due date and a latest failure whose error predates the current commit.
+
+**calendar** (reads the network or its cache, writes `calendar.ics` and the cache, never the game; it never fails on what it
+finds, only with `calendar-unavailable` when no source could be read): `calendar [-Source steam,itch,epic,lootradar] [-Days 365]
+[-Comparable <slug>,...] [-Offline]`. `-Source` outside the four, `-Days` outside 1 to 1095, a `-Comparable` that is not a
+LootRadar slug, or any of the four flags on another command is `invalid-arguments`. The result is `calendar`:
+- `today`, `until` (yyyy-MM-dd, UTC), `days`, `offline`, `ics` (path of `calendar.ics`, in `-Results`, default `calendar-results`),
+  `attribution[]` (the sources used, to credit where their data is shown; LootRadar asks for "LootRadar (lootradar.gg)").
+- `sources[]`: `source`, `url`, `attribution`, `ok` (it was read), `cached` (from `.godot/hyperdot-calendar`), `stale` (the
+  cached copy is over 6 hours old: `-Offline`, or a failed fetch fell back to it), `fetchedAt`, `items` (events, or comparables
+  read), `error` (`null`, or why it was not read or only partly).
+- `events[]`, by `start`, the undated last: `source`, `kind` (`seasonal-sale`, `next-fest`, `themed-fest` and `discount-hub` from
+  Steam; `jam` from itch.io; `epic-free` and `epic-discounts` from Epic), `name`, `start`, `end` (yyyy-MM-dd, inclusive),
+  `tbd` (Valve lists it with no dates yet: `start` and `end` are `null`), `url`, `registration` (Valve's opt-in page, or `null`),
+  `notes` (Valve's eligibility text, a jam's entrants, the games of an Epic discount window); a jam also has `joined`. Only
+  events overlapping today to `until` are listed, at most 15 jams (the most joined).
+- `counts`: events per kind.
+- `release`: `null` without plan.json's `release.date`, else, from every event read (`-Days` narrows `events[]`, not this), `date`, `firstDiscount`, `seasonalSales[]` (each sale ending on
+  or after release: `name`, `start`, `end`, `joinable` (the first day a discount may start falls before the sale's last day,
+  when Valve ends it at 10 am), `partWay` (the 30 days after release end inside it), `joinFrom`),
+  `firstSeasonalSale` (name, or `null`), `nextFest` (`planned`, `edition` (the edition it matches), `suggested` (the last
+  edition before release whose demo deadline, 3 weeks before or 5 with `release.pressPreview`, has not passed, when none is
+  planned), `demoReviewBy`), `warnings[]` (a `release.nextFest` from today on that is not an edition Valve lists, and a
+  discount marked `seasonal` that falls in no seasonal sale Valve lists), `notes[]`
+  (release on a sale or Next Fest day, an Epic giveaway in launch week, the plan timeline's notes).
+- `timeline`: plan's release timeline (as `plan`'s `release`), or `null`.
+- `comparables[]`, one per LootRadar slug read: `slug`, `title`, `url`, `steamAppId`, `genres`, `releaseDate` (LootRadar's
+  text), `basePrice` (Steam's, else the highest official store's), `steamPrice`, `steamDiscountPercent`, `bestOfficialPrice`,
+  `bestOfficialStore`, `officialDiscountNowPercent` (the deepest discount at an official store now), all from official stores'
+  deals only; then LootRadar's own best price over every store, keyshops included, which it does not split by store:
+  `lowestSeenAllStores`, `lowestSeenAllStoresDate`, `deepestDiscountAllStoresPercent` (that price against `basePrice`),
+  `historyWeeks`, `historyLowAllStores`, `historyHighAllStores` (weekly, about 12 weeks); and `historySynthetic`, `historyThin`,
+  `honestyScore`, `verdict`, `nextDropHintDays`, `playersNow`, `fetchedAt`. Prices as LootRadar lists them.
+- `comparableSummary`: `null` without comparables, else `games`, `medianBasePrice`, `medianDeepestDiscountAllStoresPercent`,
+  `medianSteamDiscountNowPercent`, `medianOfficialDiscountNowPercent`.
+`warnings[]`: sources not read or read from an old copy, comparables skipped, the release timeline's and the discount rules'
+warnings, and a `release.nextFest` that is not an edition Valve lists. The run is recorded in the history (for `status`'s rules)
+but writes no run log.
 
 **telemetry** (read-only; it never fails on what it finds, and writes nothing, not even a history line of its own): one view
 over `.godot/hyperdot-history.jsonl`, the data the kit already keeps. `telemetry [<command>] [-Last <n>]` reads the newest

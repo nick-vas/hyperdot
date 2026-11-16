@@ -128,7 +128,8 @@ ideas come back years later (*Untold History*, `${CLAUDE_PLUGIN_ROOT}/docs/studi
 - **Beta:** placeholders are a small part of the content (one studio template allows at most a fifth); any analytics
   tested end to end (`game-telemetry`); a release plan with dates for builds, marketing beats, store review and the
   first patches. The marketing cadence and the release ladder (a free portal, a soft launch, then the main store) are
-  in `store-page`.
+  in `store-page`; the dates (Steam's sales and fests, Next Fest, jams), the launch and seasonal discounts and what
+  comparable games sell for are in `calendar`, which `plan` checks through `release.launchDiscount` and `release.discounts`.
 
 ## Jam mode (2 to 9 days)
 

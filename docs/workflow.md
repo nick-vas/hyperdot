@@ -17,6 +17,7 @@ Both read one table, [`ci/godot/workflow.json`](../ci/godot/workflow.json), and 
 | At the end of a milestone | `export -Run`, `bench`, `playtest` | A build that starts, frame times and draw calls, then heat maps from play sessions. |
 | Before an alpha or beta, and for a Steam Deck or server game | `deck`, `soak` | The Deck check at 1280x800, and memory over a long session. |
 | Before a release | `doctor`, `credits`, `export` | Store art and Steam files, the credits file, a versioned build. |
+| When the release date or a planned discount changes, and every two weeks from the vertical slice | `calendar` | Steam's sales and fests, Next Fest and jams against the release, and the discounts against Steam's rules. |
 | Once a week | `status`, `plan`, `telemetry` | Where the game stands, the next gates, and how the kit's own runs are going. |
 
 ## By phase
@@ -26,7 +27,7 @@ Each phase adds commands to the ones before it ([plan.md](plan.md) has the gates
 | Phase | Add |
 |---|---|
 | Concept, prototype | `plan`, `test`, `doctor` |
-| Vertical slice | `export -Run`, `shot` |
+| Vertical slice | `export -Run`, `shot`, `calendar` |
 | Production | `bench`, `audio`, `playtest` |
 | Alpha and beta | `deck`, `soak`, `shot -Locale`, `shot -ColorVision` |
 | Launch | `credits`, and the store and Steam checks in `doctor` |
@@ -38,6 +39,7 @@ A game jam plan has five phases (loop, build, ship, after); they map to the same
 - **`test` first.** A red `test` makes every other result noise; fix it, then run the rest.
 - **`doctor` before `export`.** It names a missing preset, template or icon in seconds; an export finds it after the build.
 - **`bench`, `shot` and `audio -Mix` need a display** (a headless Linux box needs Xvfb; see [usage.md](usage.md)). `test`, `doctor`, `plan`, `status` and `credits` do not.
+- **`calendar` reads the network** (Valve's, itch.io's, Epic's and LootRadar's pages, each cached 6 hours); `-Offline` reads only the cache.
 - **One change, two commands:** a scene edit is `test` then `shot`; a csproj or preset edit is `doctor` then `test`.
 - **A milestone is a bundle:** `test`, `doctor`, `export -Run`, `bench`, `status`. `status` last, so it reads the runs you just made.
 
@@ -46,6 +48,7 @@ A game jam plan has five phases (loop, build, ship, after); they map to the same
 A rule fires when a command's last run (`.godot/hyperdot-history.jsonl`) is missing, failed, older than the files it covers
 (for example a `.tscn` edited after the last `shot`), or older than a set number of days (`bench` after two weeks in alpha, `export` after 30 days at launch).
 Rules for a later phase wait until the plan reaches it; without a plan only the rules that apply to every phase run.
+A rule's `exceptPhases` (phase-id wildcards) skips it in those phases: `calendar` is not suggested to a jam plan (`jam-*`).
 Each command is suggested once, with the first reason that applies. It does not run anything.
 
 To change a rule, edit `ci/godot/workflow.json`; the shipped plans' phases must keep a stage in it.

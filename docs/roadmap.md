@@ -346,6 +346,11 @@ In the skills:
 
 Pasting a source, allowing a host or answering a question is enough for each.
 
+- `calendar`: Epic's sale calendar (the Epic Developer Portal, behind a sign-in) and GOG's (its partner portal); the feed
+  `calendar` reads shows only the windows of the games in it. An owner's sign-in could confirm the Epic windows. itch.io has
+  no sale calendar to read. LootRadar keeps about 12 weeks of prices, so "deepest discount" is recent, not all-time; its
+  `/sales` page shows sale dates but no endpoint in its documented API serves them (2026-11-16). Undocumented endpoints were
+  not tried.
 - Marc LeBlanc's eight kinds of fun (`www.8kindsoffun.com`): the site's TLS certificate has expired. Optional.
 - Bohemia's wiki (`community.bistudio.com`): a Cloudflare challenge. Optional: "DayZ:Central Economy Configuration" and
   "Arma Reforger:Multiplayer Scripting".

@@ -141,10 +141,29 @@ Steam's dates depend on each other, and a missed one moves the release. `plan.js
 | `nextFest` | The first day of the Steam Next Fest the game takes part in | on or after `date` (do the last Next Fest before launch) |
 | `demoSubmitted` | When the Next Fest demo went to review | after 3 weeks before `nextFest` (5 with `pressPreview`), or unset once that day has passed |
 | `pressPreview` | `true` when the demo is in the press preview | - |
+| `launchDiscount` | `{ "percent": 10, "days": 7 }`, the optional launch discount, or `null` | outside 10 to 40%, or 7 to 14 days |
+| `discounts` | The planned discounts: `{ "name", "start", "end", "percent", "seasonal" }` each, `seasonal` for a seasonal sale's own discount. A discount lasts `end` minus `start` days, as Valve counts them (its 7-day launch discount runs November 15 to 22): a 1-day discount ends the day after it starts | below; a bad entry (dates that do not parse, an `end` on or before `start`) is skipped with a warning and left out of `calendar.ics` |
+| `comparables` | LootRadar slugs of comparable games (`lootradar.gg/game/<slug>`), for `calendar` | - |
 
 Reviews take 3 to 5 business days, so the kit asks for 7; business days are Monday to Friday (public holidays are not
 known to it). From two weeks before `date` the release date is locked on Steam, which `plan` notes. `plan -Json` returns
 the timeline as `release` ([json.md](json.md)): days and business days left and each deadline.
+
+The discounts are checked against Steam's discounting rules (Steamworks "Discounting", read 2026-11-16): none in the 30 days
+after release but the launch discount; any other discount 10 to 95% and 1 to 14 days; 30 days from the end of one
+discount (the launch discount included) to the start of the next; no two at once. A seasonal sale's own discount is exempt
+from the 30 days between discounts, both ways, and runs as long as the sale, but not from the 30 days after release: a
+game still in them joins the sale part-way, once they end. `deadlines.firstDiscount` is that day.
+
+## Marketing calendar
+
+`calendar` (and the `/calendar` skill) puts the release against the events it is planned around: Steam's seasonal sales,
+Next Fest editions and themed fests (from Valve's [Upcoming Steam Events](https://partner.steamgames.com/doc/marketing/upcoming_events)
+at run time), the most-joined itch.io jams, Epic's giveaways and discount windows, and the prices of comparable games from
+[LootRadar](https://lootradar.gg)'s public API. It says which seasonal sales the game can join, whether `nextFest` is an
+edition Valve lists (or which is the last one before release), warns about a discount marked `seasonal` that falls in no
+seasonal sale Valve lists (only those four are exempt from the 30 days between discounts), and writes `calendar-results/calendar.ics` for a calendar
+app. `plan` itself stays offline: only `calendar` reads the network, and it caches each page for 6 hours.
 
 ## The GDD, `status` and `/game`
 

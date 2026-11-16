@@ -44,11 +44,12 @@ param(
     # playtest: per-level counts, medians and heat maps (PNG) from a folder of playtest telemetry sessions; no Godot needed.
     # help: a Markdown reference of every command, skill and subagent (.godot/kit-help.md of the game), or the page of one (help <name>); no project needed.
     # deck: the Steam Deck check at 1280x800: textsize, layout, shot and bench with a Deck budget, one verdict.
+    # calendar: Steam's sales and fests, itch.io jams, Epic giveaways and comparable games' prices (LootRadar), set against plan.json's release; writes calendar.ics. No Godot needed.
     # telemetry: one read-only view of the project's run history: per command the runs, pass rate and mean, median and p95 duration, and for test the slowest runners, failure hot spots and flaky tests; no Godot needed.
     # The sets of values (here and for -Retry, -Mcp, -Do and -Profile) are [ArgumentCompletions], which PowerShell does not
     # enforce while binding: Assert-KitArguments checks them in the script, so a wrong value still gives a JSON result.
     [Parameter(Position = 0)]
-    [ArgumentCompletions('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx', 'playtest', 'help', 'deck', 'telemetry')]
+    [ArgumentCompletions('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx', 'playtest', 'help', 'deck', 'telemetry', 'calendar')]
     [string]$Command = 'test',
     # help: the command, skill or subagent to show the page of, e.g. help shot. telemetry: the command to report on, e.g. telemetry test.
     [Parameter(Position = 1)]
@@ -236,6 +237,13 @@ param(
     [string]$Verdict,
     # telemetry: how many of each command's newest runs to read (default 50).
     [int]$Last = 50,
+    # calendar: which sources to read (steam, itch, epic, lootradar; default all), how many days ahead to list events
+    # (default 365), whether to read only the cache in .godot/hyperdot-calendar, and LootRadar slugs of comparable games
+    # (default plan.json's release.comparables).
+    [string[]]$Source,
+    [int]$Days = 365,
+    [switch]$Offline,
+    [string[]]$Comparable,
     # doctor: when kit files are not committed in the game's repository, show the issue for the kit's repository about it and, after
     # a yes, create it with gh. Without this flag doctor only warns; it never posts anything by itself.
     [switch]$ReportIssue,
@@ -252,7 +260,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons', 'Playtest', 'Palette', 'BuildSize', 'Help', 'Deck', 'Placement', 'Telemetry', 'Workflow', 'WorkingTree') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons', 'Playtest', 'Palette', 'BuildSize', 'Help', 'Deck', 'Placement', 'Telemetry', 'Workflow', 'WorkingTree', 'Calendar') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 Start-KitCoverage $Command
 if ($Json) {
     Enable-JsonMode $Command
@@ -271,6 +279,9 @@ foreach ($initOnly in 'CopySkills', 'PluginSource') {
     if ($PSBoundParameters.ContainsKey($initOnly) -and $Command -ne 'init') { Stop-GodotCi "-$initOnly is for init (how the skills reach the game)" 'invalid-arguments' }
 }
 if ($PSBoundParameters.ContainsKey('Last') -and $Command -ne 'telemetry') { Stop-GodotCi '-Last is for telemetry (how many runs of each command to read)' 'invalid-arguments' }
+foreach ($calendarFlag in 'Source', 'Days', 'Offline', 'Comparable') {
+    if ($PSBoundParameters.ContainsKey($calendarFlag) -and $Command -ne 'calendar') { Stop-GodotCi "-$calendarFlag is for calendar, not $Command" 'invalid-arguments' }
+}
 if ($Command -eq 'help') {
     Invoke-Help $Topic $Project
     Write-JsonResult
@@ -735,7 +746,7 @@ if ($Command -eq 'export') {
 }
 # Each command's results folder, which also holds its run log: -Results (test-results) for setup, build, test, export and
 # credits; bench, soak and audio default to their own folder, and shot writes to -Output (screenshots).
-$commandDefaults = @{ bench = 'bench-results'; soak = 'soak-results'; audio = 'audio-results'; deck = 'deck-results' }
+$commandDefaults = @{ bench = 'bench-results'; soak = 'soak-results'; audio = 'audio-results'; deck = 'deck-results'; calendar = 'calendar-results' }
 $commandResultsDir = [System.IO.Path]::GetFullPath($(
         if ($Command -eq 'shot') { if ($PSBoundParameters.ContainsKey('Output')) { $Output } else { 'screenshots' } }
         elseif ($commandDefaults.ContainsKey($Command) -and -not $PSBoundParameters.ContainsKey('Results')) { $commandDefaults[$Command] }
@@ -744,10 +755,10 @@ if ($Command -in 'setup', 'build', 'test', 'export', 'bench', 'shot', 'audio', '
     Start-RunLog (Join-Path $commandResultsDir 'hyperdot.log')
     if ($Command -ne 'setup') { Start-RunHistory $Command $info.ProjectDir }
 }
-# doctor writes no run log (its checks are its output) but is recorded, so status's doctor rules see when it last ran.
-if ($Command -eq 'doctor') { Start-RunHistory $Command $info.ProjectDir }
+# doctor and calendar write no run log (their findings are their output) but are recorded, so status's rules see when they last ran.
+if ($Command -in 'doctor', 'calendar') { Start-RunHistory $Command $info.ProjectDir }
 # Screenshots, recordings and measurements run from the game's folder land inside it.
-if ($Command -in 'bench', 'shot', 'audio', 'soak', 'deck') { Add-OutputGdignore $commandResultsDir $info.ProjectDir }
+if ($Command -in 'bench', 'shot', 'audio', 'soak', 'deck', 'calendar') { Add-OutputGdignore $commandResultsDir $info.ProjectDir }
 $script:ExportVersion = if ($Command -eq 'export' -and $GameVersion) { Resolve-ExportVersion } else { $null }
 # What a run that starts Godot on the game changes in the game's files (git), listed in the JSON as changedProjectFiles.
 if ($Command -in 'test', 'build', 'export', 'bench', 'shot', 'deck', 'soak', 'audio', 'playtest' -and $script:JsonMode) {
@@ -770,6 +781,7 @@ switch ($Command) {
     'plan' { Invoke-Plan $info $Do $Id $Game $Title $Column $Board $Feature $Item $PlanProfile }
     'status' { if ($Handoff) { Add-Handoff $info.ProjectDir $Handoff $Checked $Verdict } else { Invoke-Status $info } }
     'telemetry' { Invoke-Telemetry $info $Topic $Last }
+    'calendar' { Invoke-Calendar -Info $info -Source $Source -Days $Days -Offline ([bool]$Offline) -Comparable $Comparable -ResultsDir $commandResultsDir }
     'setup' { Invoke-Setup -WithTemplates:$Templates }
     'build' { Invoke-Setup; Invoke-Build }
     'test' { Invoke-Setup; Invoke-Build; Invoke-Tests }
