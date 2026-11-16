@@ -728,7 +728,7 @@ function Export-InvariantCsv([object[]]$Rows, [string]$Path, [switch]$Append) {
     $culture = [cultureinfo]::CurrentCulture
     try {
         [cultureinfo]::CurrentCulture = [cultureinfo]::InvariantCulture
-        $Rows | Export-Csv -LiteralPath $Path -Append:$Append -NoTypeInformation -Encoding utf8
+        $Rows | Export-Csv -LiteralPath $Path -Append:$Append -Encoding utf8
     } finally { [cultureinfo]::CurrentCulture = $culture }
 }
 

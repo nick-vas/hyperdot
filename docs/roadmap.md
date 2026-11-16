@@ -115,6 +115,7 @@ a removed task's card, which only the mock has seen.
 | Scope pushback | Feature not in the GDD, too much work in progress, a weekly review | Rules in `/game` and a scheduled review |
 | Skill quality | The skill validator, its fixtures and pressure tests ([skills-quality.md](skills-quality.md)) | Quoted commands, flags, codes and versions must exist |
 | Breakout Roguelike's GDD | None exists | `/game` drafts one from the code and asks the owner to confirm it |
+| A command and the skill built on it | May share a name (`calendar` and `/calendar`, 2026-11-16) | `help <name>` shows both, the command as `entry` and the skill under `also[]`; `Test-Help.ps1` still refuses two entries of one kind |
 
 ## Principles that keep it future-proof
 

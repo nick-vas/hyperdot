@@ -106,6 +106,15 @@ try {
     Assert-True ($r.Doc.telemetry.command -eq 'export' -and $r.Doc.telemetry.runs -eq 2 -and @($r.Doc.telemetry.commands).Count -eq 1 -and $null -eq $r.Doc.telemetry.test -and $r.Doc.telemetry.commands[0].insufficient) 'telemetry export -Last 2 reports export only; two runs are insufficient'
     $r = Invoke-Kit $dir @('telemetry', 'bench')
     Assert-True ($r.Code -eq 0 -and $r.Doc.ok -and $r.Doc.telemetry.runs -eq 0 -and @($r.Doc.telemetry.commands).Count -eq 0 -and $r.Doc.telemetry.insufficient) 'a command with no runs gives zero runs, ok'
+    # doctor and calendar leave history lines too (no run log), so telemetry reports them.
+    $recorded = New-TelemetryProject @((New-Line 'calendar' $true 4), (New-Line 'calendar' $false 1 @{ code = 'calendar-unavailable' }), (New-Line 'calendar' $true 5), (New-Line 'calendar' $true 6), (New-Line 'doctor' $true 2))
+    try {
+        $r = Invoke-Kit $recorded @('telemetry', 'calendar')
+        $rc = @($r.Doc.telemetry.commands)
+        Assert-True ($r.Code -eq 0 -and $rc.Count -eq 1 -and $rc[0].command -eq 'calendar' -and $rc[0].runs -eq 4 -and $rc[0].failed -eq 1 -and $rc[0].medianSeconds -eq 5) "telemetry calendar reports calendar's runs: $($rc | ConvertTo-Json -Compress -Depth 8)"
+        $r = Invoke-Kit $recorded @('telemetry', 'doctor')
+        Assert-True ($r.Code -eq 0 -and @($r.Doc.telemetry.commands)[0].runs -eq 1) 'telemetry doctor reports doctor runs'
+    } finally { Remove-Item -LiteralPath $recorded -Recurse -Force -ErrorAction SilentlyContinue }
 
     # Refusals.
     foreach ($case in @(

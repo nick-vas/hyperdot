@@ -22,7 +22,9 @@ The ten mistakes that cost the most here: each fails silently, or only on the Li
    line runs (E3).
 4. `Get-Content X | Set-Content X` on Linux truncates the file without an error (20,000 lines became 1,041) (S12).
 5. `ConvertTo-Json` without `-Depth` turns level 3 into the text `System.Collections.Hashtable`, and its warning lands on
-   stdout of a child `pwsh`, ahead of the JSON (J1, E7).
+   stdout of a child `pwsh`, ahead of the JSON (J1, E7). So does any obsolete parameter: PowerShell 7.7 marks
+   `Export-Csv -NoTypeInformation` obsolete, and `bench -Json` began with its warning until the flag was dropped (off by
+   default since 6.0; `Test-PowerShellPatterns.ps1` flags it as `csv-notypeinformation`).
 6. Under strict mode, `.Count` on a scalar or `$null`, and dot access to a missing key or property, throw (S1, S2).
 7. Preferences and strict mode do not reach `ForEach-Object -Parallel`, thread jobs, modules or a child `pwsh` (X1).
 8. On Linux, a variable passed to a native program is wildcard-expanded when it matches files: quote it (N3).

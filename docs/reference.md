@@ -46,7 +46,7 @@ this machine at the Deck's resolution, not a Deck's speed.
 | `-Days` | `365` | `calendar`: how many days ahead to list events, 1 to 1095 |
 | `-Offline` | | `calendar`: read only the cache in `.godot/hyperdot-calendar`, never the network |
 | `-Comparable` | plan.json's `release.comparables` | `calendar`: LootRadar slugs of comparable games (`lootradar.gg/game/<slug>`), at most 10 |
-| `-Last` | `50` | `telemetry`: how many of each command's newest runs to read; the command to report on is the word after it (`telemetry test`), one of `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits` or `deck` |
+| `-Last` | `50` | `telemetry`: how many of each command's newest runs to read; the command to report on is the word after it (`telemetry test`), one of `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits`, `deck`, `doctor` or `calendar` |
 | `-ReportIssue` | off | `doctor`: when files the kit wrote (`AGENTS.md`, `CLAUDE.md`, `docs/kit-help.md`, `.claude/settings.json` and the like) are not committed in the game's repository, shows the issue it would file in `nick-vas/hyperdot` (file names only, no contents, absolute paths or game name) and creates it with `gh` after a yes typed or piped in. Without the flag `doctor` only warns and posts nothing; with no `gh`, no login, an existing open issue or no yes, it prints the link or command instead |
 | `-Sessions` | `<project>/playtests/sessions` | `playtest`: the folder of session files to read: the telemetry batches playtest builds wrote or sent (`.json`, one batch or an array; `.jsonl`, one batch a line), searched recursively |
 | `-Resolution` | project setting | `bench`, `shot`: window size, e.g. `1920x1080` |

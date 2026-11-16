@@ -238,7 +238,7 @@ arrays when there is nothing to list; `retry` is the `-Retry` value):
   compared run and is flaky or quarantined now is not `fixed`. The policy is Rare's for Sea of Thieves
   ([gdc/sea-of-thieves-automated-testing.md](gdc/sea-of-thieves-automated-testing.md)).
 
-Each `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits`, `deck` and `doctor` run also appends one line to `.godot/hyperdot-history.jsonl` in the
+Each `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits`, `deck`, `doctor` and `calendar` run also appends one line to `.godot/hyperdot-history.jsonl` in the
 project: `time` (UTC), `command`, `ok`, `code`, `seconds`, and `failedRunners` for `test`. A `test` run that reached its
 runners also records `scope` (`runners`, sorted, and `filter`, `""` without `-Filter`), `failures` (up to 200 ids
 `<runner>|<test name>`, in ordinal order) and `failuresTruncated`; the next run of the same scope compares itself with them.
@@ -522,7 +522,7 @@ but writes no run log.
 **telemetry** (read-only; it never fails on what it finds, and writes nothing, not even a history line of its own): one view
 over `.godot/hyperdot-history.jsonl`, the data the kit already keeps. `telemetry [<command>] [-Last <n>]` reads the newest
 `-Last` runs (default 50, at least 1) of each command, or of the one command named (`build`, `test`, `export`, `bench`,
-`shot`, `audio`, `soak`, `credits` or `deck`, the commands that leave a history line; another is `invalid-arguments`, as is
+`shot`, `audio`, `soak`, `credits`, `deck`, `doctor` or `calendar`, the commands that leave a history line; another is `invalid-arguments`, as is
 `-Last` on another command). The result is `telemetry`:
 - `historyFile` (path), `last`, `command` (the one asked for, or `null`), `minRuns` (3).
 - `entries`: usable lines read. `skipped`: lines dropped, a line that is not JSON or not an object with a `command`; they are
