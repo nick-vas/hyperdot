@@ -26,7 +26,7 @@ in-process (`& ./hyperdot.ps1`) will not capture it in a variable.
 | Field | Type | |
 |---|---|---|
 | `schema` | string | `hyperdot/1`. Fields are only ever added within a schema version |
-| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest`, `help`, `deck`, `telemetry`, `calendar` |
+| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest`, `help`, `deck`, `telemetry`, `calendar`, `brief` |
 | `ok` | bool | The verdict |
 | `error` | object, when `ok` is false | `{ "code": "<stable-code>", "message": "<for people>" }` |
 | `log` | string, for `setup`, `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits`, `deck` | Path of the full run log, `hyperdot.log` in the command's results folder: `-Results` (default `test-results`; `bench-results`, `soak-results`, `audio-results` and `deck-results` for those commands), or `-Output` for `shot` (default `screenshots`). Search it; don't read it whole |
@@ -91,6 +91,11 @@ Branch on `error.code`; `message` can change.
 | `checksum-mismatch` | A downloaded Godot editor or export-templates archive does not match the SHA-512 Godot publishes in `SHA512-SUMS.txt` beside the release; the file is deleted. Retry; if it repeats, the file is being altered on the way or the mirror is wrong. A release with no `SHA512-SUMS.txt`, or one that does not list the archive, is used with a note instead | `error.message` (the expected and actual sums) |
 | `install-busy` | Another run on the same machine has been installing the same Godot for longer than `HYPERDOT_TIMEOUT`; the two take turns, so this is a stuck or very slow install, not the project; stop it or wait, then retry | `error.message` (the lock file) |
 | `calendar-unavailable` | `calendar`: none of the sources asked for could be read: no network and no cached copy (with `-Offline`, nothing cached), every page failed, or only `lootradar` was asked for and there are no comparables. One source failing is a warning, not this | `calendar.sources[]` (`error` each) |
+| `brief-missing` | `brief`: no `docs/brief.json` in the folder (start one with `brief -Do start -TextFile <file>`), or it is not a brief | `error.message` |
+| `brief-exists` | `brief -Do start`: the folder already has `docs/brief.json`; answer its questions, or delete it to start over | - |
+| `invalid-answer` | `brief -Do answer`: the value is not one of the question's options (or, for a genre, not a gameplay term of `genres-uw.json`), the `-Quote` is not in the description word for word, or the question does not apply with the answers so far | `error.message` |
+| `brief-incomplete` | `brief -Do gdd`: questions are still open, or answers break a rule (`brief.conflicts`) | `brief` |
+| `gdd-exists` | `brief -Do gdd`: the folder already has `docs/GDD.md`; `/game` confirms and edits it | - |
 | `unexpected-error` | An error the kit did not expect, such as a `-Project` folder that does not exist, a file it cannot read, or a bug in the kit | `error.message` |
 | `failed` | A failure with no code of its own: no `project.godot` in the project folder, a program not found (the .NET SDK, a tool on the `PATH`), an add-on or runner set-up that is missing or misnamed, a tool that exited non-zero | `error.message` |
 
@@ -522,6 +527,23 @@ LootRadar slug, or any of the four flags on another command is `invalid-argument
 `warnings[]`: sources not read or read from an old copy, comparables skipped, the release timeline's and the discount rules'
 warnings, and a `release.nextFest` that is not an edition Valve lists. The run is recorded in the history (for `status`'s rules)
 but writes no run log.
+
+**brief** (no Godot project needed; it writes only `docs/brief.json`, and with `-Do gdd` the draft `docs/GDD.md` and, when
+there is none, `docs/STYLE.md`): `brief [-Do status|start|answer|gdd] [-TextFile <file>] [-Id <question>] [-Value <answer>]
+[-Quote <sentence>] [-Project <folder>]`. The questions are `ci/godot/templates/brief-questions.json`, asked in its order;
+a question with `when` applies only once the answers it names hold one of its values. The result is `brief`:
+- `path` (of `docs/brief.json`), `text` (the user's description, as given to `-Do start`).
+- `applicable` (questions that apply), `answeredCount`, `open`, `complete` (none open and no conflict).
+- `answers[]`: `id`, `header`, `value[]` (the option labels as the bank spells them, or the user's words), `source`
+  (`text`: taken from the description with `quote`, the sentence that states it, found in it word for word; `asked`).
+- `next[]`: up to four open questions to ask as written: `id`, `header`, `question`, `kind` (`choice`, `multi`, `text`,
+  `term`: one to `max` gameplay genres from `genres-uw.json`), `multiSelect`, `optional` (`none` is an answer), `options[]`
+  (`label`, `description`), `max`.
+- `stale[]`: ids answered whose question no longer applies (left out of `answers`).
+- `conflicts[]`: `rule` (`fun-at-least-one`, `csharp-web`, `touch-needs-mobile`), `message`, `fix`.
+`-Do gdd` also returns `written[]` (paths), `nextSteps[]` (create the Godot project when there is none, the `plan -Do init`
+command with its profile, `/game`), `planProfile` (`jam` or `full`) and `weeklyHours` (or `null` for a jam). `-Value`,
+`-Quote` and `-TextFile` on another command, a `-Do` of `plan`'s on `brief` and `brief`'s on `plan` are `invalid-arguments`.
 
 **telemetry** (read-only; it never fails on what it finds, and writes nothing, not even a history line of its own): one view
 over `.godot/hyperdot-history.jsonl`, the data the kit already keeps. `telemetry [<command>] [-Last <n>]` reads the newest

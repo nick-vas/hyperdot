@@ -156,6 +156,15 @@ Reads .godot/hyperdot-history.jsonl and writes nothing. -Last is how many of eac
 command name narrows it. With fewer than 3 passing runs a duration is null and insufficient is true, never a guess. A
 test is flaky when it failed and passed at the same commit, or passed only on a -Retry. Needs no Godot.
 
+### brief
+The structured start of a new game: the user's own description, then the questions it leaves open from a fixed bank, then a draft GDD.
+
+    hyperdot.ps1 brief [-Do start|answer|gdd] [-TextFile <file>] [-Id <question>] [-Value <answer>] [-Quote <sentence>] -Json
+
+Needs no Godot project. An answer comes from the description only with -Quote, the sentence that states it, word for word;
+every other answer comes from asking the question as written. brief -Json lists the next questions in a fixed order;
+-Do gdd writes docs/GDD.md (draft) and docs/STYLE.md once all are answered. The /new-game skill runs it.
+
 ### calendar
 Steam's sales and fests, itch.io jams, Epic giveaways and comparable games' prices (LootRadar), set against plan.json's release and its discounts.
 
@@ -175,6 +184,9 @@ List every command, skill and subagent in one line each, or show the page of one
 Needs no project and no Godot. In Claude Code, /kit and /kit <name> print the same.
 
 ## Skills
+
+### new-game
+Start a new game from an idea: describe it, answer the kit's questions, get a draft GDD and style guide.
 
 ### game
 Where the game stands and what next: features marked with evidence, a short design and architecture review, the plan and its GitHub Project.
@@ -343,7 +355,7 @@ Console ports and certification, Steam Deck reviews and publisher quality checks
 How the page `help` writes sorts the skills. One bullet per group, in the order shown; every skill is in exactly one
 (`tests/Test-Help.ps1` checks). Not an entry: `help` takes no group name.
 
-- **Session and reviews**: `game`, `kit`, `look`, `retro`, `weekly-review`, `kit-review`
+- **Session and reviews**: `new-game`, `game`, `kit`, `look`, `retro`, `weekly-review`, `kit-review`
 - **Test and verify**: `godot-test-loop`, `verify-before-done`, `ui-flows`, `godot-diagnose`, `godot-pitfalls`, `automation-hooks`, `debug-tools`, `godot-editor-bridge`
 - **Plan and design**: `game-plan`, `game-design`, `game-playtest`, `progression`, `narrative`
 - **Code and systems**: `patterns`, `math`, `algorithms`, `procgen`, `game-ai`, `game-data`, `saves`, `input`, `xr`, `determinism`, `godot-addons`, `llm`

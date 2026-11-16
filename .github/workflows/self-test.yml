@@ -104,6 +104,9 @@ jobs:
       - name: The GDD's feature grammar (one Priority and one Fun line, Fun none only for could and won't) - every mistake in the broken fixture is named with its fix, doctor fails on it, the shipped GDDs pass
         shell: pwsh
         run: ./tests/Test-Gdd.ps1
+      - name: brief starts a new game from a description - answers only from a quoted sentence or a question asked as written, the refusals and rules, and a draft GDD that passes doctor
+        shell: pwsh
+        run: ./tests/Test-Brief.ps1
       - name: status says which command is due and why - never run, failed, a file newer than the run, too old - and docs/workflow.md holds the table
         shell: pwsh
         run: ./tests/Test-Workflow.ps1

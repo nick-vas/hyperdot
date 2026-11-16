@@ -409,6 +409,56 @@
         "Write-RunLog"
       ]
     },
+    "Test-Brief": {
+      "commands": [
+        "brief",
+        "plan"
+      ],
+      "errors": [
+        "brief-exists",
+        "brief-incomplete",
+        "brief-missing",
+        "gdd-exists",
+        "invalid-answer",
+        "invalid-arguments"
+      ],
+      "functions": [
+        "Add-RunHistory",
+        "Assert-KitArguments",
+        "ConvertTo-BriefComparable",
+        "ConvertTo-BriefSentence",
+        "ConvertTo-BriefValue",
+        "Enable-JsonMode",
+        "Format-KitCommand",
+        "Get-BriefAnswerValues",
+        "Get-BriefConflicts",
+        "Get-BriefGenreTerms",
+        "Get-BriefPath",
+        "Get-BriefQuestions",
+        "Get-BriefState",
+        "Get-ClosestName",
+        "Get-EditDistance",
+        "Get-GddProblems",
+        "Get-KitFlagName",
+        "Get-KitParameterSets",
+        "Invoke-Brief",
+        "Join-BriefResult",
+        "New-BriefGdd",
+        "Read-Brief",
+        "Read-Gdd",
+        "Save-Brief",
+        "Set-BriefSection",
+        "Set-DotnetRollForward",
+        "Set-JsonField",
+        "Stop-GodotCi",
+        "Test-BriefApplies",
+        "Test-BriefQuote",
+        "Write-CiLog",
+        "Write-Console",
+        "Write-JsonResult",
+        "Write-RunLog"
+      ]
+    },
     "Test-BuildSize": {
       "commands": [
         "export"
