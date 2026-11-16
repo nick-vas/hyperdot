@@ -10,30 +10,36 @@ see only what the light shows, and wind up before they strike); a run of a few m
 
 ### F1 The crypt
 Priority: must
+Fun: discovery
 Done when:
 - each floor is generated from the run's seed: rooms joined by corridors, every floor cell reachable from the start, the stairs in the farthest room; a test sweeps the seeds
 
 ### F2 Enemies
 Priority: must
+Fun: challenge
 Done when:
 - shades, cinder bats and tallow brutes wander until they see the wick, then hunt it down one shared distance field; walls block their sight and their steps
 
 ### F3 The run
 Priority: must
+Fun: challenge
 Done when:
 - four floors, each sealed until its last enemy is snuffed; the stairs relight one hp; dying ends the run
 
 ### F4 Meta progress
 Priority: must
+Fun: challenge, expression
 Done when:
 - embers banked across runs (half of them after a death), vigor bought at the shrine, the deepest floor kept; old saves still load
 
 ### F5 Menus, pause, settings, saves
-Priority: must
+Priority: could
+Fun: none
 Done when:
 - menu, shrine, pause, volume and language; the run in progress is kept at the start of each floor, and Continue carries it on
 
 ### F6 Languages
-Priority: should
+Priority: could
+Fun: none
 Done when:
 - English, French and German, every visible text through tr()

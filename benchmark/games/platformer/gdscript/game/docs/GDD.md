@@ -10,31 +10,37 @@ touch felt (a pop, a sound, a shake).
 
 ### F1 Running and jumping
 Priority: must
+Fun: sensation, challenge
 Done when:
 - the climber runs, jumps a designed height, hops short on an early release, and keeps the same arc at any tick rate
 
 ### F2 Forgiveness
 Priority: must
+Fun: sensation
 Done when:
 - a jump 0.1 s after leaving a ledge still counts, a press 0.2 s before landing jumps on landing, one press is one jump
 
 ### F3 Hearts, beetles and thorns
 Priority: must
+Fun: challenge
 Done when:
 - three hearts per level; thorns and a beetle's side cost one, then 1.5 s of safety; landing on a beetle stomps it; a fall
   costs one and returns the climber to the last checkpoint
 
 ### F4 Levels and glowmoss
 Priority: must
+Fun: challenge, discovery
 Done when:
 - five levels from data/levels.json, each a scene in levels/, every tuft of glowmoss within a jump of the ground
 
 ### F5 Menus, pause, settings, saves
-Priority: must
+Priority: could
+Fun: none
 Done when:
 - menu, continue, pause, volume and language settings; the furthest level and the best score are saved, old saves load
 
 ### F6 Languages
-Priority: should
+Priority: could
+Fun: none
 Done when:
 - English, French and German, every visible text through tr()
