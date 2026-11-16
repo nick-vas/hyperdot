@@ -40,7 +40,7 @@
     { "id": "bench.old", "command": "bench", "trigger": "older-than", "days": 14, "fromStage": 4, "reason": "The last frame-time measurement is over two weeks old" },
     { "id": "deck.never", "command": "deck", "trigger": "never-run", "fromStage": 4, "reason": "No Steam Deck check is recorded (skip it if the game will not ship on Steam)" },
     { "id": "credits.never", "command": "credits", "trigger": "never-run", "fromStage": 5, "reason": "No credits file has been generated for launch" },
-    { "id": "calendar.never", "command": "calendar", "trigger": "never-run", "fromStage": 2, "reason": "No marketing calendar is recorded: the store page, Next Fest and the release date are planned from the vertical slice" },
-    { "id": "calendar.old", "command": "calendar", "trigger": "older-than", "days": 14, "fromStage": 2, "reason": "Valve adds and moves sales and fests; the last calendar run is over two weeks old" }
+    { "id": "calendar.never", "command": "calendar", "trigger": "never-run", "fromStage": 2, "exceptPhases": ["jam-*"], "reason": "No marketing calendar is recorded: the store page, Next Fest and the release date are planned from the vertical slice" },
+    { "id": "calendar.old", "command": "calendar", "trigger": "older-than", "days": 14, "fromStage": 2, "exceptPhases": ["jam-*"], "reason": "Valve adds and moves sales and fests; the last calendar run is over two weeks old" }
   ]
 }

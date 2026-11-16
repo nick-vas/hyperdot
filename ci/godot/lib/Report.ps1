@@ -652,11 +652,11 @@ function Get-TestDuration([object[]]$History, [int]$Count = 10) {
     }
 }
 
-function Get-RunMedian([double[]]$Values) {
+function Get-RunMedian([double[]]$Values, [int]$Decimals = 1) {
     if ($Values.Count -eq 0) { return $null }
     $sorted = @($Values | Sort-Object)
     $mid = [int][math]::Floor($sorted.Count / 2)
-    return [math]::Round($(if ($sorted.Count % 2) { $sorted[$mid] } else { ($sorted[$mid - 1] + $sorted[$mid]) / 2 }), 1)
+    return [math]::Round($(if ($sorted.Count % 2) { $sorted[$mid] } else { ($sorted[$mid - 1] + $sorted[$mid]) / 2 }), $Decimals)
 }
 
 # Activision's error buckets for Call of Duty (docs/gdc/call-of-duty-error-keys.md): every run whose history line has

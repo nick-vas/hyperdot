@@ -161,7 +161,8 @@ game still in them joins the sale part-way, once they end. `deadlines.firstDisco
 Next Fest editions and themed fests (from Valve's [Upcoming Steam Events](https://partner.steamgames.com/doc/marketing/upcoming_events)
 at run time), the most-joined itch.io jams, Epic's giveaways and discount windows, and the prices of comparable games from
 [LootRadar](https://lootradar.gg)'s public API. It says which seasonal sales the game can join, whether `nextFest` is an
-edition Valve lists (or which is the last one before release), and writes `calendar-results/calendar.ics` for a calendar
+edition Valve lists (or which is the last one before release), warns about a discount marked `seasonal` that falls in no
+seasonal sale Valve lists (only those four are exempt from the 30 days between discounts), and writes `calendar-results/calendar.ics` for a calendar
 app. `plan` itself stays offline: only `calendar` reads the network, and it caches each page for 6 hours.
 
 ## The GDD, `status` and `/game`

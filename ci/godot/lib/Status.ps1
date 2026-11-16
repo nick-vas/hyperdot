@@ -362,7 +362,7 @@ function Invoke-Status($Info) {
     if (Test-Path -LiteralPath $addonsDir) {
         $projectFiles += @(Get-ChildItem -LiteralPath $addonsDir -Recurse -File | Where-Object { $_.Name -in 'plugin.cfg' -or $_.Name -like '*.gdextension' })
     }
-    $suggested = @(Get-SuggestedCommands $table $runs $projectFiles $stage)
+    $suggested = @(Get-SuggestedCommands $table $runs $projectFiles $stage -PhaseId $(if ($plan -and $plan.currentPhase) { $plan.currentPhase.id } else { '' }))
     $allHandoffs = @(Read-Handoffs $Info.ProjectDir)
     [array]::Reverse($allHandoffs)
     $handoffs = @($allHandoffs | Select-Object -First 20)

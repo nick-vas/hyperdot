@@ -254,13 +254,9 @@ function Get-ReleaseTimeline($Release, [datetime]$Today) {
     foreach ($name in $script:ReleaseDateFields) {
         $property = $Release.PSObject.Properties[$name]
         if (-not $property -or $null -eq $property.Value -or "$($property.Value)" -eq '') { continue }
-        if ($property.Value -is [datetime]) { $dates[$name] = $property.Value.Date; continue }
-        $parsed = [datetime]::MinValue
-        if ([datetime]::TryParseExact("$($property.Value)", 'yyyy-MM-dd', [cultureinfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::None, [ref]$parsed)) {
-            $dates[$name] = $parsed.Date
-        } else {
-            $warnings.Add("release.$name '$($property.Value)' is not a date (yyyy-MM-dd); it was ignored.")
-        }
+        $parsed = ConvertTo-PlanDate $property.Value
+        if ($null -ne $parsed) { $dates[$name] = $parsed }
+        else { $warnings.Add("release.$name '$($property.Value)' is not a date (yyyy-MM-dd); it was ignored.") }
     }
     if (-not $dates.ContainsKey('date')) {
         return [ordered]@{ timeline = $null; warnings = @($warnings); notes = @($notes) }

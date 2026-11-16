@@ -29,6 +29,10 @@ $got = Invoke-Rules ([ordered]@{}) $files 0
 Assert-True ((Get-Names $got) -join ',' -eq 'test,doctor') 'a project with no history is told to run test and doctor, nothing else at the concept stage'
 $got = Invoke-Rules ([ordered]@{}) $files 2
 Assert-True ((Get-Names $got) -join ',' -eq 'test,doctor,shot,export,calendar') 'at the vertical slice shot, export and calendar join (a scene exists)'
+$got = @(Get-SuggestedCommands $table ([ordered]@{}) $files 3 $now -PhaseId 'jam-build')
+Assert-True ('calendar' -notin (Get-Names $got) -and 'test' -in (Get-Names $got)) "a jam plan at the same stage is not told to plan a marketing calendar (exceptPhases jam-*): $((Get-Names $got) -join ',')"
+$got = @(Get-SuggestedCommands $table ([ordered]@{}) $files 3 $now -PhaseId 'production')
+Assert-True ('calendar' -in (Get-Names $got)) 'a full plan in production is'
 Assert-True (@($got | Where-Object { $_.command -eq 'export' })[0].args -eq '-Run') 'export is suggested with -Run'
 $got = Invoke-Rules ([ordered]@{}) $files $null
 Assert-True ((Get-Names $got) -join ',' -eq 'test,doctor') 'without a plan (no stage) only the stage-free rules apply'

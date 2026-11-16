@@ -48,6 +48,7 @@ A game jam plan has five phases (loop, build, ship, after); they map to the same
 A rule fires when a command's last run (`.godot/hyperdot-history.jsonl`) is missing, failed, older than the files it covers
 (for example a `.tscn` edited after the last `shot`), or older than a set number of days (`bench` after two weeks in alpha, `export` after 30 days at launch).
 Rules for a later phase wait until the plan reaches it; without a plan only the rules that apply to every phase run.
+A rule's `exceptPhases` (phase-id wildcards) skips it in those phases: `calendar` is not suggested to a jam plan (`jam-*`).
 Each command is suggested once, with the first reason that applies. It does not run anything.
 
 To change a rule, edit `ci/godot/workflow.json`; the shipped plans' phases must keep a stage in it.

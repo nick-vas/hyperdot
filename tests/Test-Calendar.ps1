@@ -144,6 +144,16 @@ Assert-True (@($planned.warnings | Where-Object { $_ -match 'release.nextFest \(
 $matched = Get-CalendarRelease ([pscustomobject]@{ date = '2027-04-20'; nextFest = '2027-02-22' }) $events (Get-Day '2026-11-16')
 Assert-True ($matched.warnings.Count -eq 0 -and $matched.nextFest.edition -eq 'Next Fest (February 2027)') 'a planned Next Fest Valve lists is matched'
 Assert-True ($null -eq (Get-CalendarRelease ([pscustomobject]@{ date = $null }) $events (Get-Day '2026-11-16'))) 'no release date, no relation'
+$past = Get-CalendarRelease ([pscustomobject]@{ date = '2027-04-20'; nextFest = '2026-02-23' }) $events (Get-Day '2026-11-16')
+Assert-True ($past.warnings.Count -eq 0 -and $past.nextFest.planned -eq '2026-02-23') "a Next Fest that already happened is not warned about: Valve lists only upcoming editions: $($past.warnings -join ' | ')"
+$press = Get-CalendarRelease ([pscustomobject]@{ date = '2027-04-20'; pressPreview = $true }) $events (Get-Day '2026-11-16')
+Assert-True ($press.nextFest.demoReviewBy -eq '2027-01-18' -and @($press.notes | Where-Object { $_ -match '5 weeks before, with the press preview' }).Count -eq 1) "with the press preview the suggested Next Fest's demo deadline is 5 weeks before: $($press.nextFest | ConvertTo-Json -Depth 5 -Compress)"
+$latePress = Get-CalendarRelease ([pscustomobject]@{ date = '2027-04-20'; pressPreview = $true }) $events (Get-Day '2027-01-20')
+Assert-True ($null -eq $latePress.nextFest.suggested) 'an edition whose press-preview deadline has passed is not suggested'
+$seasonalCheck = Get-CalendarRelease ([pscustomobject]@{ date = '2027-04-20'; discounts = @(
+            [pscustomobject]@{ name = 'Real'; start = '2027-06-24'; end = '2027-07-08'; percent = 20; seasonal = $true }
+            [pscustomobject]@{ name = 'Fake'; start = '2027-09-01'; end = '2027-09-07'; percent = 20; seasonal = $true }) }) $events (Get-Day '2026-11-16')
+Assert-True (@($seasonalCheck.warnings | Where-Object { $_ -match "'Fake' is marked seasonal, but 2027-09-01 to 2027-09-07 is in no Steam seasonal sale" }).Count -eq 1 -and @($seasonalCheck.warnings | Where-Object { $_ -match "'Real'" }).Count -eq 0) "a discount marked seasonal outside every seasonal sale Valve lists is warned about: $($seasonalCheck.warnings -join ' | ')"
 
 # --- the command, end to end and offline ---
 $today = [datetime]::UtcNow.Date
@@ -227,6 +237,13 @@ try {
     Assert-True ((Test-Path -LiteralPath $history) -and @(Get-Content -LiteralPath $history | Where-Object { $_ -match '"command":"calendar"' }).Count -ge 1) 'the run is recorded in the history, for status and its workflow rules'
     $narrow = Invoke-Kit $dir @('calendar', '-Offline', '-Source', 'steam', '-Days', '30', '-Results', $results)
     Assert-True ($narrow.Doc.ok -and @($narrow.Doc.calendar.sources).Count -eq 1 -and 'Steam Big Sale' -notin @($narrow.Doc.calendar.events | ForEach-Object name) -and 'Steam Test Fest' -in @($narrow.Doc.calendar.events | ForEach-Object name)) '-Source steam -Days 30 reads one source and lists the next 30 days'
+    Assert-True ($narrow.Doc.calendar.release.firstSeasonalSale -eq 'Steam Big Sale' -and $narrow.Doc.calendar.release.nextFest.suggested -match 'Next Fest') "-Days narrows the list, not the release analysis: the sale and the Next Fest past 30 days still count: $($narrow.Doc.calendar.release | ConvertTo-Json -Depth 5 -Compress)"
+    $twice = Get-Content -LiteralPath $planFile -Raw | ConvertFrom-Json -Depth 10
+    $twice.release.discounts += [pscustomobject]@{ name = 'Too soon'; start = $releaseDay.AddDays(120).ToString('yyyy-MM-dd', [cultureinfo]::InvariantCulture); end = $releaseDay.AddDays(127).ToString('yyyy-MM-dd', [cultureinfo]::InvariantCulture); percent = 25 }
+    Set-Content -LiteralPath $planFile ($twice | ConvertTo-Json -Depth 10)
+    $fourth = Invoke-Kit $dir @('calendar', '-Offline', '-Results', $results)
+    $uidsFourth = @([System.IO.File]::ReadAllLines($ics) | Where-Object { $_ -match '^UID:' })
+    Assert-True ($fourth.Doc.ok -and $uidsFourth.Count -eq $uids.Count + 1 -and @($uidsFourth | Select-Object -Unique).Count -eq $uidsFourth.Count) 'two planned discounts of one name get their own UIDs'
 } finally { Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue }
 
 # A source missing from the cache is a warning; none at all is calendar-unavailable.

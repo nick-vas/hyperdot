@@ -363,31 +363,40 @@ function Get-CalendarRelease($Release, [object[]]$Events, [datetime]$Today) {
         $notes.Add("$($item.name) runs $($item.start) to $($item.end), in launch week: check whether it is in the same genre.")
     }
 
+    # A discount marked seasonal is exempt from the 30 days between discounts only if it is a Steam seasonal sale: check
+    # it against the sales Valve lists (when the page was read; it lists only upcoming ones, so past discounts are skipped).
+    $sales = @($dated | Where-Object { $_.kind -eq 'seasonal-sale' })
+    if ($sales.Count) {
+        foreach ($discount in @((Get-PlannedDiscounts $Release $releaseDay).discounts | Where-Object { $_.seasonal -and $_.end -ge $Today })) {
+            $overlaps = @($sales | Where-Object { $discount.start -le (ConvertTo-PlanDate $_.end) -and $discount.end -ge (ConvertTo-PlanDate $_.start) })
+            if ($overlaps.Count -eq 0) {
+                $warnings.Add("The discount '$($discount.label)' is marked seasonal, but $(Format-CalendarDay $discount.start) to $(Format-CalendarDay $discount.end) is in no Steam seasonal sale Valve lists ($(@($sales | ForEach-Object { "$($_.name) $($_.start) to $($_.end)" }) -join '; ')); only those four sales are exempt from the 30 days between discounts.")
+            }
+        }
+    }
+
     $editions = @($dated | Where-Object { $_.kind -eq 'next-fest' } | Sort-Object { $_.start })
     $planned = ConvertTo-PlanDate (Get-CalendarField $Release 'nextFest')
+    # The demo goes to review 3 weeks before the festival, 5 with the press preview (as Plan.ps1's release timeline).
+    $press = (Get-CalendarField $Release 'pressPreview') -eq $true
+    $reviewDays = $press ? 35 : $script:CalendarDemoReviewDays
     $nextFest = [ordered]@{ planned = ($planned ? (Format-CalendarDay $planned) : $null); edition = $null; suggested = $null; demoReviewBy = $null }
     if ($planned) {
         $match = @($editions | Where-Object { $_.start -eq (Format-CalendarDay $planned) } | Select-Object -First 1)
         if ($match.Count) { $nextFest.edition = $match[0].name }
-        elseif ($editions.Count) { $warnings.Add("release.nextFest ($(Format-CalendarDay $planned)) is not the first day of a Next Fest Valve lists: $(@($editions | ForEach-Object { "$($_.name) starts $($_.start)" }) -join '; ').") }
+        # Valve lists only upcoming editions: one that has begun can no longer be matched, and is not wrong for that.
+        elseif ($editions.Count -and $planned -ge $Today) { $warnings.Add("release.nextFest ($(Format-CalendarDay $planned)) is not the first day of a Next Fest Valve lists: $(@($editions | ForEach-Object { "$($_.name) starts $($_.start)" }) -join '; ').") }
     } elseif ($releaseDay -gt $Today) {
-        $before = @($editions | Where-Object { (ConvertTo-PlanDate $_.end) -lt $releaseDay -and (ConvertTo-PlanDate $_.start).AddDays(-$script:CalendarDemoReviewDays) -ge $Today } | Select-Object -Last 1)
+        $before = @($editions | Where-Object { (ConvertTo-PlanDate $_.end) -lt $releaseDay -and (ConvertTo-PlanDate $_.start).AddDays(-$reviewDays) -ge $Today } | Select-Object -Last 1)
         if ($before.Count) {
-            $by = (ConvertTo-PlanDate $before[0].start).AddDays(-$script:CalendarDemoReviewDays)
+            $by = (ConvertTo-PlanDate $before[0].start).AddDays(-$reviewDays)
             $nextFest.suggested = $before[0].name; $nextFest.demoReviewBy = Format-CalendarDay $by
-            $notes.Add("The last Next Fest before release is $($before[0].name), $($before[0].start) to $($before[0].end): the demo goes to review by $(Format-CalendarDay $by) (5 weeks before with the press preview); set release.nextFest to $($before[0].start) to plan it.")
+            $notes.Add("The last Next Fest before release is $($before[0].name), $($before[0].start) to $($before[0].end): the demo goes to review by $(Format-CalendarDay $by) ($($press ? '5 weeks before, with the press preview' : '3 weeks before; 5 with the press preview')); set release.nextFest to $($before[0].start) to plan it.")
         }
     }
     return [ordered]@{ date = Format-CalendarDay $releaseDay; firstDiscount = Format-CalendarDay $firstDiscount
         seasonalSales = @($seasonal); firstSeasonalSale = ($first.Count ? $first[0].name : $null); nextFest = $nextFest
         warnings = @($warnings); notes = @($notes) }
-}
-
-function Get-CalendarMedian([double[]]$Values, [int]$Decimals) {
-    if ($Values.Count -eq 0) { return $null }
-    $sorted = @($Values | Sort-Object)
-    $mid = [int][math]::Floor($sorted.Count / 2)
-    return [math]::Round($(if ($sorted.Count % 2) { $sorted[$mid] } else { ($sorted[$mid - 1] + $sorted[$mid]) / 2 }), $Decimals)
 }
 
 # The comparables' medians: what similar games cost (to the cent) and how deep they have been cut (whole percent).
@@ -397,10 +406,10 @@ function Get-CalendarComparableSummary([object[]]$Games) {
     $now = [double[]]@($Games | ForEach-Object { $_['steamDiscountPercent'] } | Where-Object { $null -ne $_ })
     $official = [double[]]@($Games | ForEach-Object { $_['officialDiscountNowPercent'] } | Where-Object { $null -ne $_ })
     return [ordered]@{ games = @($Games).Count
-        medianBasePrice = Get-CalendarMedian $base 2
-        medianDeepestDiscountAllStoresPercent = Get-CalendarMedian $deepest 0
-        medianSteamDiscountNowPercent = Get-CalendarMedian $now 0
-        medianOfficialDiscountNowPercent = Get-CalendarMedian $official 0 }
+        medianBasePrice = Get-RunMedian $base 2
+        medianDeepestDiscountAllStoresPercent = Get-RunMedian $deepest 0
+        medianSteamDiscountNowPercent = Get-RunMedian $now 0
+        medianOfficialDiscountNowPercent = Get-RunMedian $official 0 }
 }
 
 function ConvertTo-IcsText([string]$Text) {
@@ -450,8 +459,10 @@ function Write-CalendarIcs([string]$Path, [string]$Game, [object[]]$Events, $Tim
     # Only the discounts the plan check could read: one it ignored (bad dates, an end before its start) is not drawn.
     $releaseDay = ConvertTo-PlanDate (Get-CalendarField $Release 'date')
     if ($releaseDay) {
+        $seen = @{}   # label -> how many so far, in start order: two discounts of one name get their own UIDs
         foreach ($discount in @((Get-PlannedDiscounts $Release $releaseDay).discounts)) {
-            $entries.Add([pscustomobject]@{ key = "plan|discount|$($discount.label)"; summary = "$($Game): $($discount.label) $($discount.percent)%"
+            $seen[$discount.label] = 1 + ($seen.ContainsKey($discount.label) ? $seen[$discount.label] : 0)
+            $entries.Add([pscustomobject]@{ key = "plan|discount|$($discount.label)|$($seen[$discount.label])"; summary = "$($Game): $($discount.label) $($discount.percent)%"
                     start = Format-CalendarDay $discount.start; end = Format-CalendarDay $discount.end; url = $null
                     description = $discount.launch ? 'release.launchDiscount in plan.json.' : 'release.discounts in plan.json.' })
         }
@@ -514,6 +525,8 @@ function Invoke-Calendar($Info, [string[]]$Source, [int]$Days, [bool]$Offline, [
     }
 
     $events = [System.Collections.Generic.List[object]]::new()
+    # Every event read, in the window or not: the release is related to all of them, so -Days only narrows the list.
+    $allEvents = [System.Collections.Generic.List[object]]::new()
     $status = [System.Collections.Generic.List[object]]::new()
     $comparables = [System.Collections.Generic.List[object]]::new()
     foreach ($name in $sources) {
@@ -552,6 +565,7 @@ function Invoke-Calendar($Info, [string[]]$Source, [int]$Days, [bool]$Offline, [
             if ($found.Count -eq 0 -and -not $entry.error) { $entry.error = 'the page held no events the kit could read: its layout may have changed' }
             $inWindow = @($found | Where-Object { $_.tbd -or ((ConvertTo-PlanDate $_.end) -ge $today -and (ConvertTo-PlanDate $_.start) -le $horizon) })
             foreach ($item in $inWindow) { $events.Add($item) }
+            foreach ($item in $found) { $allEvents.Add($item) }
             $entry.items = $inWindow.Count; $entry.ok = $found.Count -gt 0
         }
         $status.Add($entry)
@@ -573,7 +587,7 @@ function Invoke-Calendar($Info, [string[]]$Source, [int]$Days, [bool]$Offline, [
         $line = Get-ReleaseTimeline $release $today
         $timeline = $line.timeline
         foreach ($warning in $line.warnings) { $warnings.Add($warning) }
-        $relation = Get-CalendarRelease $release $sorted $today
+        $relation = Get-CalendarRelease $release @($allEvents) $today
         foreach ($warning in $relation.warnings) { $warnings.Add($warning) }
         $relation['notes'] = @(@($line.notes) + @($relation.notes))
     }

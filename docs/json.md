@@ -497,11 +497,13 @@ LootRadar slug, or any of the four flags on another command is `invalid-argument
   `notes` (Valve's eligibility text, a jam's entrants, the games of an Epic discount window); a jam also has `joined`. Only
   events overlapping today to `until` are listed, at most 15 jams (the most joined).
 - `counts`: events per kind.
-- `release`: `null` without plan.json's `release.date`, else `date`, `firstDiscount`, `seasonalSales[]` (each sale ending on
+- `release`: `null` without plan.json's `release.date`, else, from every event read (`-Days` narrows `events[]`, not this), `date`, `firstDiscount`, `seasonalSales[]` (each sale ending on
   or after release: `name`, `start`, `end`, `joinable` (the first day a discount may start falls before the sale's last day,
   when Valve ends it at 10 am), `partWay` (the 30 days after release end inside it), `joinFrom`),
   `firstSeasonalSale` (name, or `null`), `nextFest` (`planned`, `edition` (the edition it matches), `suggested` (the last
-  edition before release whose demo deadline has not passed, when none is planned), `demoReviewBy`), `warnings[]`, `notes[]`
+  edition before release whose demo deadline, 3 weeks before or 5 with `release.pressPreview`, has not passed, when none is
+  planned), `demoReviewBy`), `warnings[]` (a `release.nextFest` from today on that is not an edition Valve lists, and a
+  discount marked `seasonal` that falls in no seasonal sale Valve lists), `notes[]`
   (release on a sale or Next Fest day, an Epic giveaway in launch week, the plan timeline's notes).
 - `timeline`: plan's release timeline (as `plan`'s `release`), or `null`.
 - `comparables[]`, one per LootRadar slug read: `slug`, `title`, `url`, `steamAppId`, `genres`, `releaseDate` (LootRadar's
