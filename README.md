@@ -224,6 +224,7 @@ benchmark and evals that measure the kit. The sections after the tables are
 | **Start from an idea** | `/new-game`, `brief` | you describe the game; the kit asks what that leaves open from a fixed bank of questions, takes nothing from your text without quoting it, and writes a draft GDD and style guide |
 | **Plan A to Z** | `plan -Json` | current phase, open gates, warnings |
 | **Track tasks** | `plan -Do add\|move\|remove`, `plan -Do sync` | tasks with a work-in-progress limit; optional GitHub Project mirror (experimental) |
+| **Weekly marketing brief** | `init -Promo`, `promo` | every Monday an issue with the player-facing changes (from `Marketing:` trailers) that are in a build whose tests passed, a checklist (clips, Discord, Bluesky, Steam news) and drafts to paste; last week's open tasks carried over |
 | **Plan the marketing dates** | `calendar`, `/calendar` | Steam's seasonal sales, Next Fests and themed fests, itch.io jams, Epic giveaways and comparable games' prices (LootRadar) against the release; the planned discounts checked against Steam's rules; `calendar.ics` for a calendar app |
 
 ### Improve the agent and the kit

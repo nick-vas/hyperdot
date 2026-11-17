@@ -26,6 +26,14 @@ the last edit; it says nothing about whether the design or the code is good.
 4. **Check the release path** when you touched csproj, `project.godot`, export presets or autoloads:
    `doctor -Json` has no `FAIL`, and `export -Json -Quiet -Run` passes for each shipped preset (the `godot-verifier` subagent can run it).
 5. **Only then** say what you ran and what it showed, in numbers: "test -Json: ok, dotnet 8/8, gut 2/2, flows 1/1".
+6. **Commit** a change a player would notice with a trailer in the message, which the weekly marketing brief (`promo`) reads;
+   nothing else reaches it. One `Marketing:` line per change, in a player's words, and for a squash merge the same lines in the
+   pull request's description:
+   ```
+   Marketing: Meteor storms can now rain down on your base
+   Marketing-Priority: high        (high, normal or low; normal when left out)
+   Marketing-Visual: yes           (worth a clip)
+   ```
 
 ## Rationalizations
 

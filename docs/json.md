@@ -26,7 +26,7 @@ in-process (`& ./hyperdot.ps1`) will not capture it in a variable.
 | Field | Type | |
 |---|---|---|
 | `schema` | string | `hyperdot/1`. Fields are only ever added within a schema version |
-| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest`, `help`, `deck`, `telemetry`, `calendar`, `brief` |
+| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest`, `help`, `deck`, `telemetry`, `calendar`, `brief`, `promo` |
 | `ok` | bool | The verdict |
 | `error` | object, when `ok` is false | `{ "code": "<stable-code>", "message": "<for people>" }` |
 | `log` | string, for `setup`, `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits`, `deck` | Path of the full run log, `hyperdot.log` in the command's results folder: `-Results` (default `test-results`; `bench-results`, `soak-results`, `audio-results` and `deck-results` for those commands), or `-Output` for `shot` (default `screenshots`). Search it; don't read it whole |
@@ -91,6 +91,13 @@ Branch on `error.code`; `message` can change.
 | `checksum-mismatch` | A downloaded Godot editor or export-templates archive does not match the SHA-512 Godot publishes in `SHA512-SUMS.txt` beside the release; the file is deleted. Retry; if it repeats, the file is being altered on the way or the mirror is wrong. A release with no `SHA512-SUMS.txt`, or one that does not list the archive, is used with a note instead | `error.message` (the expected and actual sums) |
 | `install-busy` | Another run on the same machine has been installing the same Godot for longer than `HYPERDOT_TIMEOUT`; the two take turns, so this is a stuck or very slow install, not the project; stop it or wait, then retry | `error.message` (the lock file) |
 | `calendar-unavailable` | `calendar`: none of the sources asked for could be read: no network and no cached copy (with `-Offline`, nothing cached), every page failed, or only `lootradar` was asked for and there are no comparables. One source failing is a warning, not this | `calendar.sources[]` (`error` each) |
+| `promo-no-git` | `promo`: the project is not in a git repository, or `git log` failed; the brief reads the commits | `error.message` |
+| `promo-no-workflow` | `promo`: no workflow in `.github/workflows` calls the kit's `godot.yml` (run `init`), or none of its jobs has `uses: .../godot.yml` where it can be read, so there is no check name (`<job> / Test`) to gate the brief on | `error.message` |
+| `promo-no-repository` | `promo`: neither `GITHUB_REPOSITORY` nor a github.com `origin` remote names the repository | - |
+| `promo-no-token` | `promo` without `-DryRun`: no `GITHUB_TOKEN` (or `GH_TOKEN`) to open the issue and tag the commit; the workflow passes `github.token` | - |
+| `promo-settings` | `promo`: `docs/promo.json` is not valid JSON, has an unknown setting, a channel other than `discord`, `bluesky` and `steam`, a hashtag that is not `#word`, hashtags over 100 characters together, a non-boolean `ai` or an empty `model` | `error.message` |
+| `promo-tag-exists` | `promo`: the tag this brief would make (`mkt/N`) is already on GitHub but not in the clone, whose tags are stale (`git fetch --tags`); checked before anything is written | `error.message` |
+| `promo-api` | `promo`: a GitHub API call failed (reading checks, pull requests or the open briefs, opening the issue, or tagging after the issue was opened: the message then says to create `mkt/N` by hand). A failed close of last week's brief is a warning, not this | `error.message`, `promo` |
 | `brief-missing` | `brief`: no `docs/brief.json` in the folder (start one with `brief -Do start -TextFile <file>`), or it is not a brief | `error.message` |
 | `brief-exists` | `brief -Do start`: the folder already has `docs/brief.json`; answer its questions, or delete it to start over | - |
 | `invalid-answer` | `brief -Do answer`: the value is not one of the question's options (or, for a genre, not a gameplay term of `genres-uw.json`), or empty; a text answer is not one line of plain words or has the wrong number of parts; the `-Quote` is not a whole sentence of the description (or several in a row) word for word, contains a negation, or does not name the answer (its label or a cue); an answer without `-Quote` is for a question not among `brief.next` and not yet answered; or the question does not apply with the answers so far | `error.message` |
@@ -490,6 +497,29 @@ in `.gitignore`).
   Fix: <fix>`, features with no plan task, tags or tasks naming
   features the GDD does not have, a failed or missing latest test run, a plan.json that cannot be read, plan overruns, repeatedly flaky tests, ended
   quarantines, placeholders past their due date and a latest failure whose error predates the current commit.
+
+**promo** (reads git and the GitHub API; without `-DryRun` opens one issue, creates one tag and closes the previous briefs; never
+touches the game's files): `promo [-DryRun]`. Changes come from `Marketing:` trailers (with `Marketing-Priority: high|normal|low`
+and `Marketing-Visual: yes`) in commit messages, and in the description of the merged pull request of a main-line commit that
+has none. `-DryRun` on another command, or `-Promo` on any command but `init`, is `invalid-arguments`. The result is `promo`:
+- `repository`, `check` (the gating check run, `<job> / Test`, its job read from `workflow`, the file that calls `godot.yml`),
+  `game` (plan.json's `game`, else the project's name), `stage` (`development`, `store-page`, `demo` or `launched`, from
+  plan.json's `release`), `range` (`from`: the newest `mkt/N` tag or "the last 7 days"; `firstRun`; `commits` on the main line),
+  `number` (N of this brief), `dryRun`, `written` (the issue was opened and tagged).
+- `green`: `null` when no main-line commit in the range passed, else `sha`, `via` (`check`, or `pull-request` when the commit
+  had no run of the check and its merged pull request's head passed: then `pullRequest` and `head`).
+- `shipped[]` (in the green commit or older) and `waiting[]` (newer): `text` (as written; in the issue outside the drafts, `@` mentions
+  are broken with a zero-width space; trailers inside HTML comments or fenced code are not read),
+  `priority`, `visual`, `sha`, `source` (`commit` or the pull request, `#9`).
+- `nothingShipped`: why there is no brief this week (no trailer, nothing green, or every change newer than the green commit; on a
+  first run with changes waiting, that they leave the 7-day window next week unless a commit before them is tagged `mkt/0`); the
+  rest below is then absent or empty, and nothing is written.
+- `title`, `body` (the issue's Markdown), `carried[]` (unticked tasks of the open briefs, each ending `(from #N)`, less the ones
+  this week asks for anyway), `drafts` (`source`: `template` or `ai`; `model`; `fallbackReason`: why the AI drafts were not used;
+  `text`: `discord`, `bluesky`, `steam` as the channels and stage allow, Steam from `store-page` on; as they will be pasted, in
+  code blocks in the issue). Carried tasks are read from the `## Tasks` section only.
+- `issue` (`number`, `url`) and `tag` (`mkt/N`), `null` in a dry run; `previous[]` (`number`, `closed`).
+- `warnings[]`: a failed close, AI drafts not used, an unknown `Marketing-Priority`, a plan.json that cannot be read.
 
 **calendar** (reads the network or its cache, writes `calendar.ics` and the cache, never the game; it never fails on what it
 finds, only with `calendar-unavailable` when no source could be read): `calendar [-Source steam,itch,epic,lootradar] [-Days 365]

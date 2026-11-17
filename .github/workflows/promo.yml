@@ -1,0 +1,55 @@
+# The weekly marketing brief: runs hyperdot.ps1 promo on a Linux runner. It reads the API and git only and never runs Godot.
+# init -Promo writes the caller, .github/workflows/hyperdot-promo.yml:
+#
+#   jobs:
+#     promo:
+#       permissions: { contents: write, issues: write, checks: read, pull-requests: read, models: read }
+#       uses: nick-vas/hyperdot/.github/workflows/promo.yml@v1
+#
+# The calling job grants the permissions; a reusable workflow cannot raise them. See docs/usage.md.
+name: Marketing brief
+
+on:
+  workflow_call:
+    inputs:
+      project:
+        description: Folder with project.godot (default - detected)
+        type: string
+        default: ""
+      dry-run:
+        description: Write the brief to the job summary only (no issue, no tag, nothing closed)
+        type: boolean
+        default: false
+
+jobs:
+  promo:
+    name: Brief
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # The whole history and the mkt/N tags: the brief starts after the newest tag.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      # This workflow's own repository at the exact commit the caller pinned.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: ${{ job.workflow_repository || 'nick-vas/hyperdot' }}
+          ref: ${{ job.workflow_sha || 'main' }}
+          path: .godot-pipelines
+
+      - run: New-Item -Force .godot-pipelines/.gdignore | Out-Null
+        shell: pwsh
+
+      - name: Write the brief
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PROJECT: ${{ inputs.project }}
+          DRY_RUN: ${{ inputs.dry-run }}
+        run: |
+          $arguments = @('promo')
+          if ($env:PROJECT) { $arguments += @('-Project', $env:PROJECT) }
+          if ($env:DRY_RUN -eq 'true') { $arguments += '-DryRun' }
+          ./.godot-pipelines/ci/godot/hyperdot.ps1 @arguments

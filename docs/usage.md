@@ -243,3 +243,40 @@ underscores: `HYPERDOT_PROJECT`, `HYPERDOT_GODOT_VERSION`, `HYPERDOT_RUNNERS`, `
   `GIT_DEPTH: "0"` lets `HYPERDOT_GAME_VERSION: auto` read the tags. Git LFS files are fetched by GitLab's runner before the job.
 - **Not covered:** the GitHub workflow's PR comment, the import cache, and the Android Gradle cache. A smaller image with
   Godot already in it is on the roadmap.
+
+### 12. A weekly marketing brief
+
+```powershell
+pwsh ci/godot/hyperdot.ps1 init -Promo
+```
+
+adds `.github/workflows/hyperdot-promo.yml` and `docs/promo.json`. Every Monday at 08:17 UTC the workflow runs `promo` on
+`ubuntu-latest` (it reads git and the API and never runs Godot: about a minute of Actions time) and opens an issue labelled
+`marketing-brief`: the player-facing changes that are in a build whose tests passed, a checklist (a clip for each change marked
+visual, a post for each channel, Steam news once plan.json's `release` has a store page) and drafts to paste. Changes reach it
+only through trailers, in the commit message or, for a squash merge, in the pull request's description:
+
+```
+Marketing: Meteor storms can now rain down on your base
+Marketing-Priority: high        (high, normal or low; normal when left out)
+Marketing-Visual: yes           (worth a clip)
+```
+
+- **What counts as shipped:** walking back the main line from the newest commit, the first whose kit check (`godot / Test`,
+  the job named in the workflow `init` wrote) passed, or, for a merge or squash commit with no run of it, whose pull request's
+  head passed. That commit and everything older shipped; newer changes are listed as waiting and come next week.
+- **Weeks:** the brief covers the changes since the newest `mkt/N` tag (the first one, the last 7 days). It opens the issue,
+  tags `mkt/N` at the green commit, then closes last week's brief, whose unticked tasks it carries over. A week with nothing
+  shipped writes nothing.
+- **Mentions:** an `@name` in a commit gets a zero-width space after the `@` in the issue, so the brief notifies no one; the
+  drafts keep it as written, in code blocks, ready to paste. Trailers inside HTML comments (a pull request template's hints)
+  or fenced code are not read.
+- **First run:** with no `mkt/N` tag the brief covers the last 7 days. Changes that are still waiting for a green build that
+  week leave the window the next: tag the commit before them `mkt/0` to start there instead.
+- **By hand:** a real (not dry) run by hand runs only from the default branch, and two runs never overlap.
+- **Dry run:** *Actions > Marketing brief > Run workflow* is ticked as a dry run: the brief goes to the run's summary only.
+- **Settings** (`docs/promo.json`): `channels` (`discord`, `bluesky`, `steam`), `hashtags`, `ai` and `model`. With
+  `"ai": true` the drafts are reworded by GitHub Models (the workflow's `models: read`, no key; free and rate-limited), marked
+  "check every claim"; on any error, or a Bluesky post over 300 graphemes, the brief keeps the template drafts. Off by default.
+- **Permissions:** the caller grants `contents: write` (the tag), `issues: write`, `checks: read`, `pull-requests: read` and
+  `models: read`; a reusable workflow cannot raise them itself.

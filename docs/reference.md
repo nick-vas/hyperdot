@@ -1,7 +1,7 @@
 # Reference
 
 **Script** (`ci/godot/hyperdot.ps1`): commands `test` (default), `build`, `export`, `setup`, `detect`,
-`doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest`, `help`, `deck`, `telemetry`, `calendar` and `brief`
+`doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest`, `help`, `deck`, `telemetry`, `calendar`, `brief` and `promo`
 (`help [name]`: a Markdown page of every command, skill and subagent, or the page of one, from [help.md](help.md)).
 
 **`deck`** is the Steam Deck check in one run, at 1280x800: the `textsize` runner (its resolutions forced to 1280x800),
@@ -46,6 +46,8 @@ this machine at the Deck's resolution, not a Deck's speed.
 | `-Days` | `365` | `calendar`: how many days ahead to list events, 1 to 1095 |
 | `-Offline` | | `calendar`: read only the cache in `.godot/hyperdot-calendar`, never the network |
 | `-Comparable` | plan.json's `release.comparables` | `calendar`: LootRadar slugs of comparable games (`lootradar.gg/game/<slug>`), at most 10 |
+| `-DryRun` | off | `promo`: write the brief to the job summary (`GITHUB_STEP_SUMMARY`) and the console only: no issue, no tag, nothing closed |
+| `-Promo` | off | `init`: also add `.github/workflows/hyperdot-promo.yml` (the weekly marketing brief, `promo`) and `docs/promo.json` (AI drafts off) |
 | `-TextFile` | | `brief -Do start`: a file holding the game described in the user's own words |
 | `-Value` | | `brief -Do answer`: the answer: an option's label (several comma-separated for a multi question), a genre term, or the user's words for a text question |
 | `-Quote` | | `brief -Do answer`: the sentence of the description that states the answer, word for word; without it the answer counts as asked |
