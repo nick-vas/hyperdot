@@ -1,0 +1,435 @@
+# `promo`: the weekly marketing brief. Reads the player-facing changes since the last brief from "Marketing:" trailers (in
+# commit messages, or in the description of the pull request a commit on the main line came from), keeps the ones in a build
+# whose kit check passed, and opens an issue labelled marketing-brief with a checklist and drafts to paste. Nothing is
+# inferred from diffs: a change with no trailer is not in the brief.
+#
+#   Marketing: Meteor storms can now rain down on your base
+#   Marketing-Priority: high            (high, normal or low; normal when left out)
+#   Marketing-Visual: yes               (worth a clip)
+#
+# Range: since the newest mkt/N tag, or the last 7 days on the first run. Gate: walking back the main line from HEAD, the
+# newest commit whose kit check ("<job> / Test", the job read from the workflow that calls the kit) passed, or, for a commit
+# with no run of that check (a merge or squash commit, a change paths-ignore skipped), the head of the merged pull request
+# it came from. That commit and its ancestors shipped; newer ones wait for next week. The issue is created, then mkt/N is
+# tagged at the green commit, then last week's brief is closed: a close that fails never makes the next brief count the
+# same commits twice. A week with nothing shipped writes nothing. -DryRun writes the brief to the job summary only.
+#
+# Settings: game name and stage from plan/plan.json (game, release), channels, hashtags and the optional GitHub Models
+# drafts (off by default) from docs/promo.json. The API is GITHUB_API_URL (default https://api.github.com) with
+# GITHUB_TOKEN; the models endpoint is HYPERDOT_MODELS_URL (default GitHub Models). Both are overridable for the self-test.
+
+$script:PromoLabel = 'marketing-brief'
+$script:PromoFirstRunDays = 7
+$script:PromoMaxWalk = 50
+$script:PromoBlueskyLimit = 300
+$script:PromoChannels = @('discord', 'bluesky', 'steam')
+$script:PromoDefaultModel = 'openai/gpt-4.1-mini'
+$script:PromoZeroWidthSpace = [string][char]0x200B
+
+function Get-PromoSettingsPath($Info) { return Join-Path $Info.ProjectDir 'docs/promo.json' }
+
+# The settings init -Promo writes. AI drafts are off until the owner turns them on.
+function New-PromoSettings {
+    return [ordered]@{
+        schema   = 'hyperdot-promo/1'
+        channels = @($script:PromoChannels)
+        hashtags = @('#indiedev', '#godotengine')
+        ai       = $false
+        model    = $script:PromoDefaultModel
+    }
+}
+
+function Read-PromoSettings([string]$Path) {
+    $settings = New-PromoSettings
+    if (-not (Test-Path -LiteralPath $Path)) { return $settings }
+    try { $data = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json -AsHashtable -Depth 5 }
+    catch { Stop-GodotCi "$Path is not valid JSON: $($_.Exception.Message)" 'promo-settings' }
+    if ($data -isnot [System.Collections.IDictionary]) { Stop-GodotCi "$Path is not a JSON object" 'promo-settings' }
+    $known = @('schema', 'channels', 'hashtags', 'ai', 'model')
+    $unknown = @($data.Keys | Where-Object { $_ -notin $known })
+    if ($unknown.Count) { Stop-GodotCi "${Path}: unknown setting(s) $($unknown -join ', '); the settings are $($known -join ', ')" 'promo-settings' }
+    if ($data.ContainsKey('channels')) {
+        $channels = @($data['channels'])
+        $bad = @($channels | Where-Object { $_ -isnot [string] -or $_ -notin $script:PromoChannels })
+        if ($bad.Count) { Stop-GodotCi "${Path}: channels may hold only $($script:PromoChannels -join ', '), not $($bad -join ', ')" 'promo-settings' }
+        $settings.channels = @($channels)
+    }
+    if ($data.ContainsKey('hashtags')) {
+        $tags = @($data['hashtags'])
+        if (@($tags | Where-Object { $_ -isnot [string] -or $_ -notmatch '^#\w+$' }).Count) { Stop-GodotCi "${Path}: hashtags is a list of words starting with #, like ""#indiedev""" 'promo-settings' }
+        $settings.hashtags = @($tags)
+    }
+    if ($data.ContainsKey('ai')) {
+        if ($data['ai'] -isnot [bool]) { Stop-GodotCi "${Path}: ai is true or false" 'promo-settings' }
+        $settings.ai = $data['ai']
+    }
+    if ($data.ContainsKey('model')) {
+        if ($data['model'] -isnot [string] -or -not $data['model']) { Stop-GodotCi "${Path}: model is a GitHub Models model id, like ""$($script:PromoDefaultModel)""" 'promo-settings' }
+        $settings.model = $data['model']
+    }
+    return $settings
+}
+
+# Where the game is, from plan.json's release block: launched once release.date has passed, demo once one is submitted or a
+# Next Fest is planned, store-page once the page is submitted or Coming Soon, development before that. Steam tasks start at store-page.
+function Get-PromoStage($Release, [datetime]$Today) {
+    if ($null -eq $Release) { return 'development' }
+    $field = { param($Name) $p = $Release.PSObject.Properties[$Name]; if ($p) { $p.Value } else { $null } }
+    $date = ConvertTo-PlanDate (& $field 'date')
+    if ($null -ne $date -and $date -le $Today) { return 'launched' }
+    if ((& $field 'demoSubmitted') -or (& $field 'nextFest')) { return 'demo' }
+    if ((& $field 'comingSoon') -or (& $field 'storePageSubmitted')) { return 'store-page' }
+    return 'development'
+}
+
+# "@name" in commit text would notify that account every week the brief repeats it: a zero-width space after the @ breaks the mention.
+function Protect-PromoMentions([string]$Text) {
+    return [regex]::Replace($Text, '@(?=[A-Za-z0-9_-])', { param($m) "@$($script:PromoZeroWidthSpace)" })
+}
+
+function Get-PromoGraphemeCount([string]$Text) { return [System.Globalization.StringInfo]::new($Text).LengthInTextElements }
+
+# The Marketing trailers of one message: an item per "Marketing:" line, each with the message's priority and visual flag.
+function Get-PromoTrailers([string]$Message, [string]$Sha, [string]$Source) {
+    $lines = @($Message -split '\r?\n')
+    $priority = 'normal'; $visual = $false; $badPriority = $null
+    foreach ($line in $lines) {
+        if ($line -match '^\s*Marketing-Priority:\s*(?<p>\S.*?)\s*$') {
+            $value = $Matches.p.ToLowerInvariant()
+            if ($value -in 'high', 'normal', 'low') { $priority = $value } else { $badPriority = $Matches.p }
+        } elseif ($line -match '^\s*Marketing-Visual:\s*(?<v>\S.*?)\s*$') {
+            $visual = $Matches.v.ToLowerInvariant() -in 'yes', 'true'
+        }
+    }
+    return @(foreach ($line in $lines) {
+            if ($line -match '^\s*Marketing:\s*(?<t>\S.*?)\s*$') {
+                [ordered]@{ text = Protect-PromoMentions $Matches.t; priority = $priority; visual = $visual; sha = $Sha; source = $Source; badPriority = $badPriority }
+            }
+        })
+}
+
+function Invoke-PromoGit([string]$Dir, [string[]]$GitArgs) {
+    $out = @(& git -C $Dir @GitArgs 2>$null)
+    return [ordered]@{ code = $LASTEXITCODE; lines = $out }
+}
+
+function Invoke-PromoApi([string]$Method, [string]$Path, $Body = $null) {
+    $headers = @{ Accept = 'application/vnd.github+json'; 'X-GitHub-Api-Version' = '2022-11-28'; 'User-Agent' = 'hyperdot-promo' }
+    if ($script:PromoToken) { $headers['Authorization'] = "Bearer $($script:PromoToken)" }
+    $request = @{ Method = $Method; Uri = "$($script:PromoApiUrl)$Path"; Headers = $headers; TimeoutSec = 30; SkipHttpErrorCheck = $true; StatusCodeVariable = 'statusCode' }
+    if ($null -ne $Body) {
+        $request['Body'] = [System.Text.Encoding]::UTF8.GetBytes(($Body | ConvertTo-Json -Depth 10))
+        $request['ContentType'] = 'application/json; charset=utf-8'
+    }
+    $statusCode = 0
+    try { $response = Invoke-RestMethod @request }
+    catch { return [ordered]@{ status = 0; body = $null; error = "$($_.Exception.Message)" } }
+    $failed = $statusCode -lt 200 -or $statusCode -ge 300
+    $message = if ($failed) { "HTTP $statusCode$(if ($response -and $response.PSObject.Properties['message']) { ": $($response.message)" })" } else { $null }
+    return [ordered]@{ status = [int]$statusCode; body = $response; error = $message }
+}
+
+function Assert-PromoApi($Response, [string]$What) {
+    if ($Response.error) { Stop-GodotCi "GitHub API: $What failed ($($Response.error))" 'promo-api' }
+    return $Response.body
+}
+
+# The check run that gates the brief: "<job> / Test", the job of the workflow that calls the kit's godot.yml (its name: when it has one).
+function Get-PromoCheckName([string]$Root) {
+    $files = @(Get-KitWorkflowFiles $Root)
+    if ($files.Count -eq 0) { Stop-GodotCi "No workflow in $Root/.github/workflows calls the kit's godot.yml, so there is no check to gate the brief on. Run: $(Format-KitCommand 'init')" 'promo-no-workflow' }
+    $job = $null; $jobName = $null; $inJobs = $false
+    foreach ($line in @(Get-Content -LiteralPath $files[0].FullName)) {
+        if ($line -match '^jobs:\s*$') { $inJobs = $true; continue }
+        if ($line -match '^\S') { $inJobs = $false }
+        if (-not $inJobs) { continue }
+        if ($line -match '^  (?<k>[A-Za-z_][\w-]*):\s*$') { $job = $Matches.k; $jobName = $null; continue }
+        if ($line -match '^    name:\s*(?<n>.+?)\s*$') { $jobName = $Matches.n.Trim('"', "'") ; continue }
+        if ($line -match '^    uses:.*(hyperdot|Godot_TestSuite)/\.github/workflows/godot\.yml') {
+            return [ordered]@{ name = "$(if ($jobName) { $jobName } else { $job }) / Test"; workflow = $files[0].Name }
+        }
+    }
+    Stop-GodotCi "$($files[0].Name) calls the kit, but no job in it has 'uses: .../godot.yml' at the usual indentation, so the check name is unknown" 'promo-no-workflow'
+}
+
+# The verdict of the gate check on one commit: passed, failed (or still running), or none (no run of it).
+function Get-PromoCheckState([string]$Repo, [string]$Sha, [string]$Check) {
+    $runs = Assert-PromoApi (Invoke-PromoApi GET "/repos/$Repo/commits/$Sha/check-runs?check_name=$([uri]::EscapeDataString($Check))&filter=latest&per_page=100") "reading the checks of $Sha"
+    $list = @(if ($runs -and $runs.PSObject.Properties['check_runs']) { $runs.check_runs })
+    if ($list.Count -eq 0) { return 'none' }
+    if (@($list | Where-Object { $_.status -eq 'completed' -and $_.conclusion -eq 'success' }).Count) { return 'passed' }
+    return 'failed'
+}
+
+function Get-PromoMergedPull([string]$Repo, [string]$Sha) {
+    $pulls = @(Assert-PromoApi (Invoke-PromoApi GET "/repos/$Repo/commits/$Sha/pulls") "finding the pull request of $Sha")
+    return @($pulls | Where-Object { $_ -and $_.PSObject.Properties['merged_at'] -and $_.merged_at } | Select-Object -First 1)
+}
+
+# Walks the main line back from HEAD to the newest green commit. Returns the commit, how it was judged, and every commit walked.
+function Find-PromoGreenCommit([string]$Repo, [string[]]$MainLine, [string]$Check) {
+    $walked = 0
+    foreach ($sha in $MainLine) {
+        if ($walked -ge $script:PromoMaxWalk) { break }
+        $walked++
+        $state = Get-PromoCheckState $Repo $sha $Check
+        if ($state -eq 'passed') { return [ordered]@{ sha = $sha; via = 'check'; pullRequest = $null } }
+        if ($state -eq 'failed') { continue }
+        foreach ($pull in @(Get-PromoMergedPull $Repo $sha)) {
+            if ((Get-PromoCheckState $Repo $pull.head.sha $Check) -eq 'passed') { return [ordered]@{ sha = $sha; via = 'pull-request'; pullRequest = [int]$pull.number; head = $pull.head.sha } }
+        }
+    }
+    return $null
+}
+
+# The unticked boxes of the open briefs, to carry into this week's, each once, naming the brief it first came from.
+function Get-PromoCarriedTasks($Issues) {
+    $tasks = [System.Collections.Generic.List[string]]::new()
+    foreach ($issue in $Issues) {
+        $body = if ($issue.PSObject.Properties['body'] -and $issue.body) { "$($issue.body)" } else { '' }
+        foreach ($line in @($body -split '\r?\n')) {
+            if ($line -notmatch '^\s*- \[ \] (?<t>\S.*?)\s*$') { continue }
+            $text = Protect-PromoMentions $Matches.t
+            if ($text -notmatch '\(from #\d+\)$') { $text = "$text (from #$($issue.number))" }
+            if (-not $tasks.Contains($text)) { $tasks.Add($text) }
+        }
+    }
+    return @($tasks)
+}
+
+function Get-PromoSortedItems($Items) {
+    $rank = @{ high = 0; normal = 1; low = 2 }
+    return @($Items | Sort-Object { $rank[$_.priority] })
+}
+
+# The fill-in drafts, with no model involved: they never claim more than the trailers say.
+function New-PromoTemplateDrafts([string]$Game, $Items, [string[]]$Channels, [string[]]$Hashtags) {
+    $sorted = @(Get-PromoSortedItems $Items)
+    $drafts = [ordered]@{}
+    if ('discord' -in $Channels) {
+        $drafts.discord = (@("**$Game - what's new**", '') + @($sorted | ForEach-Object { "- $($_.text)" })) -join "`n"
+    }
+    if ('bluesky' -in $Channels) {
+        $tags = if ($Hashtags.Count) { ' ' + ($Hashtags -join ' ') } else { '' }
+        $text = "${Game}: $($sorted[0].text)"
+        $budget = $script:PromoBlueskyLimit - (Get-PromoGraphemeCount $tags)
+        if ((Get-PromoGraphemeCount $text) -gt $budget) {
+            $info = [System.Globalization.StringInfo]::new($text)
+            $text = $info.SubstringByTextElements(0, [Math]::Max(1, $budget - 1)) + [char]0x2026
+        }
+        foreach ($item in @($sorted | Select-Object -Skip 1)) {
+            $longer = "$text. Also: $($item.text)"
+            if ((Get-PromoGraphemeCount $longer) -le $budget) { $text = $longer } else { break }
+        }
+        $drafts.bluesky = "$text$tags"
+    }
+    if ('steam' -in $Channels) {
+        $drafts.steam = (@("[h2]$Game update[/h2]", '[list]') + @($sorted | ForEach-Object { "[*]$($_.text)" }) + @('[/list]')) -join "`n"
+    }
+    return $drafts
+}
+
+# The same drafts reworded by GitHub Models. Any failure, a missing channel or a Bluesky post over 300 graphemes gives back
+# the reason instead, and the brief keeps the templates.
+function Get-PromoAiDrafts([string]$Game, [string]$Stage, $Items, [string[]]$Channels, [string[]]$Hashtags, [string]$Model) {
+    $facts = @(Get-PromoSortedItems $Items | ForEach-Object { [ordered]@{ change = $_.text; priority = $_.priority } })
+    $prompt = [ordered]@{ game = $Game; stage = $Stage; hashtags = @($Hashtags); channels = @($Channels); changes = $facts } | ConvertTo-Json -Depth 5
+    $system = 'You write short posts about an indie game update. Use only the changes given; never invent features, dates, prices or platforms. ' +
+        'Reply with one JSON object whose keys are the channels asked for: "discord" (Markdown, a short intro and a bullet list), ' +
+        '"bluesky" (plain text, at most 280 characters, ending with the hashtags), "steam" (Steam news BBCode: [h2], [list], [*]). No other text.'
+    $body = [ordered]@{ model = $Model; temperature = 0.4; messages = @([ordered]@{ role = 'system'; content = $system }, [ordered]@{ role = 'user'; content = $prompt }) }
+    $headers = @{ Accept = 'application/json'; 'User-Agent' = 'hyperdot-promo' }
+    if ($script:PromoToken) { $headers['Authorization'] = "Bearer $($script:PromoToken)" }
+    $statusCode = 0
+    try {
+        $response = Invoke-RestMethod -Method POST -Uri $script:PromoModelsUrl -Headers $headers -TimeoutSec 60 -SkipHttpErrorCheck -StatusCodeVariable statusCode `
+            -ContentType 'application/json; charset=utf-8' -Body ([System.Text.Encoding]::UTF8.GetBytes(($body | ConvertTo-Json -Depth 6)))
+    } catch { return [ordered]@{ drafts = $null; reason = "the model could not be reached: $($_.Exception.Message)" } }
+    if ($statusCode -lt 200 -or $statusCode -ge 300) { return [ordered]@{ drafts = $null; reason = "the model answered HTTP $statusCode" } }
+    try {
+        $content = "$($response.choices[0].message.content)".Trim()
+        $content = $content -replace '^```(?:json)?\s*', '' -replace '\s*```$', ''
+        $parsed = $content | ConvertFrom-Json -AsHashtable -Depth 5
+    } catch { return [ordered]@{ drafts = $null; reason = 'the model did not answer with a JSON object of drafts' } }
+    if ($parsed -isnot [System.Collections.IDictionary]) { return [ordered]@{ drafts = $null; reason = 'the model did not answer with a JSON object of drafts' } }
+    $drafts = [ordered]@{}
+    foreach ($channel in $Channels) {
+        $text = if ($parsed.ContainsKey($channel)) { $parsed[$channel] } else { $null }
+        if ($text -isnot [string] -or -not $text.Trim()) { return [ordered]@{ drafts = $null; reason = "the model gave no $channel draft" } }
+        $drafts[$channel] = Protect-PromoMentions $text.Trim()
+    }
+    if ($drafts.Contains('bluesky')) {
+        $length = Get-PromoGraphemeCount $drafts.bluesky
+        if ($length -gt $script:PromoBlueskyLimit) { return [ordered]@{ drafts = $null; reason = "the model's Bluesky post is $length graphemes, over Bluesky's $($script:PromoBlueskyLimit)" } }
+    }
+    return [ordered]@{ drafts = $drafts; reason = $null }
+}
+
+function Format-PromoItem($Item) {
+    $extra = @("``$($Item.sha.Substring(0, 7))``")
+    if ($Item.source -ne 'commit') { $extra += $Item.source }
+    if ($Item.visual) { $extra += 'visual' }
+    return "- **$($Item.priority)** $($Item.text) ($($extra -join ', '))"
+}
+
+function New-PromoBody($Brief) {
+    $titles = @{ discord = 'Discord'; bluesky = 'Bluesky'; steam = 'Steam news' }
+    $lines = [System.Collections.Generic.List[string]]::new()
+    $lines.Add("<!-- hyperdot-promo $($Brief.tag) -->")
+    $green = $Brief.green
+    $via = if ($green.via -eq 'pull-request') { "the head of #$($green.pullRequest) passed $($Brief.check)" } else { "$($Brief.check) passed" }
+    $lines.Add("Stage: **$($Brief.stage)**. Shipped up to ``$($green.sha.Substring(0, 7))`` ($via). Changes since $($Brief.range.from).")
+    $lines.Add(''); $lines.Add('## Shipped'); $lines.Add('')
+    foreach ($item in $Brief.shipped) { $lines.Add((Format-PromoItem $item)) }
+    if ($Brief.waiting.Count) {
+        $lines.Add(''); $lines.Add('## Waiting for a green build (next week)'); $lines.Add('')
+        foreach ($item in $Brief.waiting) { $lines.Add((Format-PromoItem $item)) }
+    }
+    $lines.Add(''); $lines.Add('## Tasks'); $lines.Add('')
+    foreach ($task in $Brief.tasks) { $lines.Add("- [ ] $task") }
+    $lines.Add(''); $lines.Add('## Drafts'); $lines.Add('')
+    if ($Brief.drafts.source -eq 'ai') { $lines.Add("> AI drafts ($($Brief.drafts.model)): check every claim against the Shipped list before posting."); $lines.Add('') }
+    elseif ($Brief.drafts.fallbackReason) { $lines.Add("> Template drafts: the AI drafts were not used ($($Brief.drafts.fallbackReason))."); $lines.Add('') }
+    foreach ($channel in $Brief.drafts.text.Keys) {
+        $lines.Add("### $($titles[$channel])"); $lines.Add('')
+        $lines.Add('````text'); $lines.Add($Brief.drafts.text[$channel]); $lines.Add('````'); $lines.Add('')
+    }
+    return ($lines -join "`n").TrimEnd() + "`n"
+}
+
+function Get-PromoRepository([string]$Root) {
+    if ($env:GITHUB_REPOSITORY) { return $env:GITHUB_REPOSITORY }
+    $remote = Invoke-PromoGit $Root @('remote', 'get-url', 'origin')
+    if ($remote.code -eq 0 -and $remote.lines.Count -and "$($remote.lines[0])" -match 'github\.com[:/](?<r>[^/]+/[^/]+?)(\.git)?/?$') { return $Matches.r }
+    Stop-GodotCi 'No GitHub repository: set GITHUB_REPOSITORY (owner/name) or give the repository a github.com origin remote' 'promo-no-repository'
+}
+
+function Invoke-Promo($Info, [bool]$DryRun, [datetime]$Today = [datetime]::UtcNow.Date) {
+    $root = Get-GitRoot $Info.ProjectDir
+    if (-not $root) { Stop-GodotCi "$($Info.ProjectDir) is not in a git repository; promo reads the commits" 'promo-no-git' }
+    $settings = Read-PromoSettings (Get-PromoSettingsPath $Info)
+    $check = Get-PromoCheckName $root
+    $script:PromoApiUrl = ($env:GITHUB_API_URL ? $env:GITHUB_API_URL : 'https://api.github.com').TrimEnd('/')
+    $script:PromoModelsUrl = $env:HYPERDOT_MODELS_URL ? $env:HYPERDOT_MODELS_URL : 'https://models.github.ai/inference/chat/completions'
+    $script:PromoToken = $env:GITHUB_TOKEN ? $env:GITHUB_TOKEN : $env:GH_TOKEN
+    if (-not $script:PromoToken -and -not $DryRun) { Stop-GodotCi 'No GITHUB_TOKEN: promo needs one to open the issue and tag the commit (the workflow passes github.token); -DryRun reads without one' 'promo-no-token' }
+    $repo = Get-PromoRepository $root
+    $warnings = [System.Collections.Generic.List[string]]::new()
+
+    # Game and stage from the plan; a plan that is missing or broken leaves the project's name and "development".
+    $game = $Info.DisplayName; $release = $null
+    $planPath = Get-PlanPath $Info
+    if (Test-Path -LiteralPath $planPath) {
+        try {
+            $plan = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json -Depth 10
+            if ($plan.PSObject.Properties['game'] -and "$($plan.game)".Trim()) { $game = "$($plan.game)".Trim() }
+            if ($plan.PSObject.Properties['release']) { $release = $plan.release }
+        } catch { $warnings.Add("$planPath is not valid JSON, so the stage is development: $($_.Exception.Message)") }
+    }
+    $stage = Get-PromoStage $release $Today
+    $channels = @($settings.channels | Where-Object { $_ -ne 'steam' -or $stage -ne 'development' })
+
+    # The range: since the newest mkt/N tag, else the last 7 days.
+    $tags = @((Invoke-PromoGit $root @('tag', '--list', 'mkt/*')).lines | Where-Object { $_ -match '^mkt/\d+$' } |
+            Sort-Object { [int]($_ -replace '^mkt/', '') })
+    $last = if ($tags.Count) { $tags[-1] } else { $null }
+    $number = if ($last) { [int]($last -replace '^mkt/', '') + 1 } else { 1 }
+    $rangeArgs = if ($last) { @("$last..HEAD") } else { @("--since=$($script:PromoFirstRunDays) days ago", 'HEAD') }
+    $mainLine = @((Invoke-PromoGit $root (@('rev-list', '--first-parent') + $rangeArgs)).lines | Where-Object { $_ })
+    $log = Invoke-PromoGit $root (@('log', '--format=%H%x1f%B%x1e') + $rangeArgs)
+    if ($log.code -ne 0) { Stop-GodotCi "git log failed in $root" 'promo-no-git' }
+
+    $items = [System.Collections.Generic.List[object]]::new()
+    $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    $withTrailers = [System.Collections.Generic.HashSet[string]]::new()
+    foreach ($record in @(($log.lines -join "`n") -split [char]0x1e)) {
+        $parts = $record.Trim("`n") -split [char]0x1f, 2
+        if ($parts.Count -lt 2 -or $parts[0] -notmatch '^[0-9a-f]{40}$') { continue }
+        foreach ($item in @(Get-PromoTrailers $parts[1] $parts[0] 'commit')) {
+            $null = $withTrailers.Add($parts[0])
+            if ($seen.Add($item.text)) { $items.Add($item) }
+        }
+    }
+    $range = [ordered]@{ from = $(if ($last) { $last } else { "the last $($script:PromoFirstRunDays) days" }); firstRun = -not $last; commits = $mainLine.Count }
+    # A squash merge often keeps the trailers only in the pull request's description.
+    foreach ($sha in $mainLine) {
+        if ($withTrailers.Contains($sha)) { continue }
+        foreach ($pull in @(Get-PromoMergedPull $repo $sha)) {
+            $description = if ($pull.PSObject.Properties['body'] -and $pull.body) { "$($pull.body)" } else { '' }
+            foreach ($item in @(Get-PromoTrailers $description $sha "#$($pull.number)")) { if ($seen.Add($item.text)) { $items.Add($item) } }
+        }
+    }
+    foreach ($item in $items) { if ($item.badPriority) { $warnings.Add("Marketing-Priority '$($item.badPriority)' on $($item.sha.Substring(0, 7)) is not high, normal or low; read as normal") } }
+
+    $green = if ($mainLine.Count) { Find-PromoGreenCommit $repo $mainLine $check.name } else { $null }
+    $shipped = @(); $waiting = @($items)
+    if ($green) {
+        $shipped = @($items | Where-Object { (Invoke-PromoGit $root @('merge-base', '--is-ancestor', $_.sha, $green.sha)).code -eq 0 })
+        $waiting = @($items | Where-Object { $_ -notin $shipped })
+    }
+    $publicItem = { param($i) [ordered]@{ text = $i.text; priority = $i.priority; visual = $i.visual; sha = $i.sha; source = $i.source } }
+    $result = [ordered]@{
+        repository = $repo; check = $check.name; workflow = $check.workflow; game = $game; stage = $stage; range = $range
+        green = $green; shipped = @($shipped | ForEach-Object { & $publicItem $_ }); waiting = @($waiting | ForEach-Object { & $publicItem $_ })
+        number = $number; tag = $null; issue = $null; previous = @(); carried = @(); drafts = $null; dryRun = $DryRun; written = $false
+    }
+    if ($shipped.Count -eq 0) {
+        $why = if ($items.Count -eq 0) { "no commit since $($range.from) has a Marketing: trailer" } elseif (-not $green) { "no commit since $($range.from) passed $($check.name)" } else { 'every change with a trailer is newer than the last green build' }
+        Write-CiLog "Nothing shipped: $why. No brief this week."
+        $result['nothingShipped'] = $why
+        Set-JsonField promo $result
+        Set-JsonField warnings @($warnings)
+        return
+    }
+
+    $openBriefs = @(Assert-PromoApi (Invoke-PromoApi GET "/repos/$repo/issues?labels=$($script:PromoLabel)&state=open&per_page=100") 'listing the open briefs' |
+            Where-Object { $_ -and -not $_.PSObject.Properties['pull_request'] } | Sort-Object { [int]$_.number })
+    $tasks = [System.Collections.Generic.List[string]]::new()
+    foreach ($item in @(Get-PromoSortedItems $shipped | Where-Object { $_.visual })) { $tasks.Add("Record a clip: $($item.text)") }
+    foreach ($channel in $channels) { $tasks.Add(@{ discord = 'Post on Discord'; bluesky = 'Post on Bluesky'; steam = 'Post Steam news' }[$channel]) }
+    # A task this week's brief asks for anyway ("Post on Discord") is not carried as well.
+    $carried = @(Get-PromoCarriedTasks $openBriefs | Where-Object { -not $tasks.Contains(($_ -replace '\s*\(from #\d+\)$', '')) })
+    foreach ($task in $carried) { $tasks.Add($task) }
+
+    $text = New-PromoTemplateDrafts $game $shipped $channels @($settings.hashtags)
+    $drafts = [ordered]@{ source = 'template'; model = $null; fallbackReason = $null; text = $text }
+    if ($settings.ai -and $channels.Count) {
+        $ai = Get-PromoAiDrafts $game $stage $shipped $channels @($settings.hashtags) $settings.model
+        if ($ai.drafts) { $drafts = [ordered]@{ source = 'ai'; model = $settings.model; fallbackReason = $null; text = $ai.drafts } }
+        else { $drafts.fallbackReason = $ai.reason; $warnings.Add("AI drafts not used: $($ai.reason); the brief has the template drafts") }
+    }
+    $tag = "mkt/$number"
+    $brief = [ordered]@{ tag = $tag; stage = $stage; check = $check.name; green = $green; range = $range; shipped = $shipped; waiting = $waiting; tasks = @($tasks); drafts = $drafts }
+    $title = "Marketing brief ${number}: $game, $($Today.ToString('yyyy-MM-dd', [cultureinfo]::InvariantCulture))"
+    $body = New-PromoBody $brief
+    $result.carried = @($carried); $result.drafts = $drafts; $result['title'] = $title; $result['body'] = $body
+    $result.previous = @($openBriefs | ForEach-Object { [ordered]@{ number = [int]$_.number; closed = $false } })
+
+    if ($env:GITHUB_STEP_SUMMARY) { Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Value "# $title$(if ($DryRun) { ' (dry run)' })`n`n$body" }
+    if ($DryRun) {
+        Write-CiLog "Dry run: brief $number with $($shipped.Count) shipped change(s); no issue, tag or close"
+        Write-Console $body
+        Set-JsonField promo $result
+        Set-JsonField warnings @($warnings)
+        return
+    }
+    # Issue, then tag, then close: once the tag is there the next brief starts after it, and a close that fails only leaves an old issue open.
+    $issue = Assert-PromoApi (Invoke-PromoApi POST "/repos/$repo/issues" ([ordered]@{ title = $title; body = $body; labels = @($script:PromoLabel) })) 'opening the brief issue'
+    $result.issue = [ordered]@{ number = [int]$issue.number; url = "$($issue.html_url)" }
+    $tagResponse = Invoke-PromoApi POST "/repos/$repo/git/refs" ([ordered]@{ ref = "refs/tags/$tag"; sha = $green.sha })
+    if ($tagResponse.error) {
+        Set-JsonField promo $result
+        Stop-GodotCi "Brief #$($issue.number) is open, but tagging $tag at $($green.sha.Substring(0, 7)) failed ($($tagResponse.error)); create the tag by hand (git tag $tag $($green.sha) and push it) before the next run, or it repeats these changes" 'promo-api'
+    }
+    $result.tag = $tag
+    foreach ($previous in $result.previous) {
+        $closed = Invoke-PromoApi PATCH "/repos/$repo/issues/$($previous.number)" ([ordered]@{ state = 'closed'; state_reason = 'completed' })
+        if ($closed.error) { $warnings.Add("Brief #$($previous.number) could not be closed ($($closed.error)); its open tasks are in #$($issue.number), close it by hand") }
+        else { $previous.closed = $true }
+    }
+    $result.written = $true
+    Write-CiLog "Opened brief #$($issue.number) ($($shipped.Count) shipped, $($waiting.Count) waiting), tagged $tag at $($green.sha.Substring(0, 7))"
+    foreach ($warning in $warnings) { Write-CiLog "WARNING: $warning" }
+    Set-JsonField promo $result
+    Set-JsonField warnings @($warnings)
+}

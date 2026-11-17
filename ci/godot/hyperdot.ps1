@@ -46,11 +46,12 @@ param(
     # deck: the Steam Deck check at 1280x800: textsize, layout, shot and bench with a Deck budget, one verdict.
     # brief: the structured start of a new game: the user's own description, then the questions it leaves open from a fixed bank, then a draft GDD; no Godot project needed.
     # calendar: Steam's sales and fests, itch.io jams, Epic giveaways and comparable games' prices (LootRadar), set against plan.json's release; writes calendar.ics. No Godot needed.
+    # promo: the weekly marketing brief (an issue with a checklist and drafts) from the Marketing: trailers of changes in a build whose kit check passed; no Godot needed.
     # telemetry: one read-only view of the project's run history: per command the runs, pass rate and mean, median and p95 duration, and for test the slowest runners, failure hot spots and flaky tests; no Godot needed.
     # The sets of values (here and for -Retry, -Mcp, -Do and -Profile) are [ArgumentCompletions], which PowerShell does not
     # enforce while binding: Assert-KitArguments checks them in the script, so a wrong value still gives a JSON result.
     [Parameter(Position = 0)]
-    [ArgumentCompletions('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx', 'playtest', 'help', 'deck', 'telemetry', 'calendar', 'brief')]
+    [ArgumentCompletions('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx', 'playtest', 'help', 'deck', 'telemetry', 'calendar', 'brief', 'promo')]
     [string]$Command = 'test',
     # help: the command, skill or subagent to show the page of, e.g. help shot. telemetry: the command to report on, e.g. telemetry test.
     [Parameter(Position = 1)]
@@ -198,6 +199,8 @@ param(
     # init: also add AGENTS.md, CLAUDE.md and docs/kit-notes.md, and enable this kit as a Claude Code plugin in .claude/settings.json, which
     # supplies the skills, the subagents and the hooks. Nothing is copied into the game, so nothing goes stale there.
     [switch]$Agents,
+    # init: also add .github/workflows/hyperdot-promo.yml, the weekly marketing brief (promo), and docs/promo.json, its settings. Off by default.
+    [switch]$Promo,
     # init: the same as -Agents (kept for scripts written before -Agents enabled the plugin).
     [switch]$Plugin,
     # init: with -Agents, copy the skills and subagents into the game instead of enabling the plugin, for an agent host that loads no plugins.
@@ -252,6 +255,8 @@ param(
     [string]$Quote,
     # brief -Do start: a file holding the game described in the user's own words.
     [string]$TextFile,
+    # promo: write the brief to the job summary (and the console) only: no issue, no tag, nothing closed.
+    [switch]$DryRun,
     # doctor: when kit files are not committed in the game's repository, show the issue for the kit's repository about it and, after
     # a yes, create it with gh. Without this flag doctor only warns; it never posts anything by itself.
     [switch]$ReportIssue,
@@ -268,7 +273,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons', 'Playtest', 'Palette', 'BuildSize', 'Help', 'Deck', 'Placement', 'Telemetry', 'Workflow', 'WorkingTree', 'Calendar', 'Brief') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons', 'Playtest', 'Palette', 'BuildSize', 'Help', 'Deck', 'Placement', 'Telemetry', 'Workflow', 'WorkingTree', 'Calendar', 'Brief', 'Promo') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 Start-KitCoverage $Command
 if ($Json) {
     Enable-JsonMode $Command
@@ -286,6 +291,8 @@ if ($PSBoundParameters.ContainsKey('ReportIssue') -and $Command -ne 'doctor') { 
 foreach ($initOnly in 'CopySkills', 'PluginSource') {
     if ($PSBoundParameters.ContainsKey($initOnly) -and $Command -ne 'init') { Stop-GodotCi "-$initOnly is for init (how the skills reach the game)" 'invalid-arguments' }
 }
+if ($PSBoundParameters.ContainsKey('Promo') -and $Command -ne 'init') { Stop-GodotCi '-Promo is for init (it adds the weekly marketing brief workflow); the brief itself is the promo command' 'invalid-arguments' }
+if ($PSBoundParameters.ContainsKey('DryRun') -and $Command -ne 'promo') { Stop-GodotCi "-DryRun is for promo, not $Command" 'invalid-arguments' }
 if ($PSBoundParameters.ContainsKey('Last') -and $Command -ne 'telemetry') { Stop-GodotCi '-Last is for telemetry (how many runs of each command to read)' 'invalid-arguments' }
 foreach ($calendarFlag in 'Source', 'Days', 'Offline', 'Comparable') {
     if ($PSBoundParameters.ContainsKey($calendarFlag) -and $Command -ne 'calendar') { Stop-GodotCi "-$calendarFlag is for calendar, not $Command" 'invalid-arguments' }
@@ -796,11 +803,13 @@ switch ($Command) {
         Initialize-Project $info
         if ($Agents -or $Plugin -or $CopySkills) { Add-AgentFiles $info $PSCommandPath ([bool]$CopySkills) $PluginSource $PSBoundParameters.ContainsKey('PluginSource') }
         if ($Mcp -ne 'none' -or $McpDiagnostics -or $McpAseprite) { Add-McpConfig $info $Mcp ([bool]$McpDiagnostics) $McpAseprite }
+        if ($Promo) { New-PromoWorkflow $info }
         Write-CiLog "Done. Next: $(Format-KitCommand 'doctor'), then $(Format-KitCommand 'test')"
     }
     'plan' { Invoke-Plan $info $Do $Id $Game $Title $Column $Board $Feature $Item $PlanProfile }
     'status' { if ($Handoff) { Add-Handoff $info.ProjectDir $Handoff $Checked $Verdict } else { Invoke-Status $info } }
     'telemetry' { Invoke-Telemetry $info $Topic $Last }
+    'promo' { Invoke-Promo $info ([bool]$DryRun) }
     'calendar' { Invoke-Calendar -Info $info -Source $Source -Days $Days -Offline ([bool]$Offline) -Comparable $Comparable -ResultsDir $commandResultsDir }
     'setup' { Invoke-Setup -WithTemplates:$Templates }
     'build' { Invoke-Setup; Invoke-Build }

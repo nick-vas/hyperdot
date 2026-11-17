@@ -59,9 +59,10 @@ repository about them and creates it with gh only after a yes.
 ### init
 Wire the kit into a game: a starter test, a CI workflow pinned at @v1, .gitignore lines and export exclusions.
 
-    hyperdot.ps1 init [-Agents [-CopySkills] [-PluginSource github|local]] [-Mcp godot-mcp] [-McpDiagnostics] [-McpAseprite <path>]
+    hyperdot.ps1 init [-Agents [-CopySkills] [-PluginSource github|local]] [-Mcp godot-mcp] [-McpDiagnostics] [-McpAseprite <path>] [-Promo]
 
 -Agents adds AGENTS.md, CLAUDE.md and docs/kit-notes.md, and enables the kit as a Claude Code plugin in .claude/settings.json, which supplies the skills, the subagents and the hooks: nothing is copied into the game. The plugin comes from GitHub by default; -PluginSource local registers this kit's folder instead. -CopySkills copies the skills and subagents instead, for a host that loads no plugins, and refuses a game that already enables the plugin. -Plugin is the same as -Agents.
+-Promo adds .github/workflows/hyperdot-promo.yml, the weekly marketing brief (see promo), and docs/promo.json with AI drafts off; it is off by default.
 It never overwrites a file and is safe to run again.
 
 ### plan
@@ -175,6 +176,17 @@ With release.date in plan.json it says which seasonal sales the game can join (r
 checks release.nextFest against the editions Valve lists and the planned discounts against Steam's rules, and names the
 last Next Fest before release. Writes calendar-results/calendar.ics. A source that fails is a warning; all of them
 failing is calendar-unavailable. Needs no Godot; the /calendar skill reads the result.
+
+### promo
+The weekly marketing brief: an issue with the player-facing changes in a build whose tests passed, a checklist and drafts to post.
+
+    hyperdot.ps1 promo [-DryRun] -Json
+
+Reads Marketing: trailers (Marketing-Priority, Marketing-Visual) since the last mkt/N tag, or the last 7 days, from commits and
+squash-merged pull requests' descriptions. Ships what is in the newest main-line commit whose kit check passed (or its pull
+request's head did); newer changes wait. Opens an issue labelled marketing-brief carrying last week's unticked tasks, tags
+mkt/N at the green commit, then closes last week's. Nothing shipped: nothing written. -DryRun writes the job summary only.
+Settings in docs/promo.json ("ai": true rewords the drafts with GitHub Models). Runs weekly from the workflow init -Promo adds.
 
 ### help
 List every command, skill and subagent in one line each, or show the page of one.

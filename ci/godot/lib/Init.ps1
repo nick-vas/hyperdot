@@ -99,6 +99,62 @@ jobs:
     Write-InitStep added ".github/workflows/hyperdot.yml (tests on pull requests and pushes to main, except changes to documents or the plan alone)"
 }
 
+# init -Promo: the weekly marketing brief. The caller of the kit's promo.yml, which must grant the permissions itself (a reusable
+# workflow cannot raise them), and docs/promo.json, the brief's own settings (AI drafts off). Adds only, like the rest of init.
+function New-PromoWorkflow($Info) {
+    $settingsPath = Get-PromoSettingsPath $Info
+    if (Test-Path -LiteralPath $settingsPath) { Write-InitStep skipped 'docs/promo.json exists' }
+    else {
+        New-Item -ItemType Directory -Force (Split-Path $settingsPath) | Out-Null
+        Set-Content -LiteralPath $settingsPath -Encoding utf8 -Value ((New-PromoSettings) | ConvertTo-Json -Depth 5)
+        Write-InitStep added 'docs/promo.json (the brief''s channels and hashtags; "ai": true rewords the drafts with GitHub Models)'
+    }
+    $root = Get-GitRoot $Info.ProjectDir
+    if (-not $root) { Write-InitStep skipped 'promo workflow: not a git repository'; return }
+    $workflows = Join-Path $root '.github/workflows'
+    $existing = @(Get-ChildItem -LiteralPath $workflows -File -ErrorAction SilentlyContinue | Where-Object { $_.Extension -in '.yml', '.yaml' } |
+            Where-Object { (Get-Content -LiteralPath $_.FullName -Raw) -match 'hyperdot/\.github/workflows/promo\.yml' })
+    if ($existing.Count) { Write-InitStep skipped "promo workflow: $($existing[0].Name) already calls it"; return }
+    $file = Join-Path $workflows 'hyperdot-promo.yml'
+    if (Test-Path -LiteralPath $file) { Write-InitStep skipped 'promo workflow: .github/workflows/hyperdot-promo.yml exists'; return }
+    $relative = [System.IO.Path]::GetRelativePath($root, $Info.ProjectDir) -replace '\\', '/'
+    $projectInput = if ($relative -ne '.') { "`n      project: $relative" } else { '' }
+    New-Item -ItemType Directory -Force $workflows | Out-Null
+    Set-Content -LiteralPath $file -Encoding utf8 -Value @"
+# The weekly marketing brief (Hyperdot's promo): an issue labelled marketing-brief with the player-facing changes that are in a
+# build whose tests passed, a checklist and drafts to post. Changes reach it through a trailer in the commit message, or in the
+# pull request's description for a squash merge:
+#   Marketing: Meteor storms can now rain down on your base
+#   Marketing-Priority: high          (optional: high, normal or low)
+#   Marketing-Visual: yes             (optional: worth a clip)
+# Settings: docs/promo.json. It never runs Godot: about a minute of Actions time a week. https://github.com/nick-vas/hyperdot
+name: Marketing brief
+
+on:
+  schedule:
+    - cron: '17 8 * * 1'   # Mondays 08:17 UTC
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Write the brief to the run summary only (no issue, no tag)
+        type: boolean
+        default: true
+
+jobs:
+  promo:
+    permissions:
+      contents: write        # the mkt/N tag that marks where the next brief starts
+      issues: write          # the brief, and closing last week's
+      checks: read           # the gate: which commits passed the tests
+      pull-requests: read    # trailers in squash-merge descriptions, and the gate for merge commits
+      models: read           # only used when docs/promo.json has "ai": true
+    uses: nick-vas/hyperdot/.github/workflows/promo.yml@v1
+    with:$projectInput
+      dry-run: `${{ github.event_name == 'workflow_dispatch' && inputs.dry-run }}
+"@
+    Write-InitStep added '.github/workflows/hyperdot-promo.yml (the weekly marketing brief, Mondays; run it by hand for a dry run)'
+}
+
 function Add-CSharpTestSetup([string]$ProjectDir, $Info) {
     $csproj = (Get-ChildItem -LiteralPath $ProjectDir -File -Filter '*.csproj' | Select-Object -First 1).FullName
     $content = Get-Content -LiteralPath $csproj -Raw

@@ -1,0 +1,222 @@
+#!/usr/bin/env pwsh
+# Self-test of promo, the weekly marketing brief, and init -Promo. A fixture repository (a copy of examples/gdscript with a
+# workflow calling the kit) and a mocked GitHub API and GitHub Models (tests/promo-fixture/MockGitHub.ps1, an HttpListener on
+# 127.0.0.1) cover: the gate on a red-then-green history and through a merged pull request's head; trailers in a pull
+# request's description; carrying over last week's unticked tasks; the issue, then the mkt/N tag, then the close, with a
+# close that fails; @ mentions broken; AI drafts falling back on an error and on a Bluesky post that is too long; a dry run
+# writing nothing but the job summary; a week with nothing shipped; and the error codes. No Godot is needed.
+Set-StrictMode -Version 3.0
+$ErrorActionPreference = 'Stop'
+$root = Split-Path $PSScriptRoot
+$ci = Join-Path $root 'ci/godot/hyperdot.ps1'
+$failures = @()
+function Assert-True([bool]$Condition, [string]$Name) {
+    if ($Condition) { Write-Host "ok     $Name" } else { Write-Host "FAIL   $Name"; $script:failures += $Name }
+}
+foreach ($lib in 'Common', 'Plan', 'Init', 'Promo') { . (Join-Path $root "ci/godot/lib/$lib.ps1") }
+$zwsp = [string][char]0x200B
+
+# --- Pure parts ---
+$today = [datetime]'2026-11-16'
+$stageOf = { param($r) Get-PromoStage ([pscustomobject]$r) $today }
+Assert-True ((Get-PromoStage $null $today) -eq 'development' -and (& $stageOf @{ date = $null; comingSoon = $null }) -eq 'development') 'no release block, or nothing set, is development'
+Assert-True ((& $stageOf @{ comingSoon = '2026-10-01' }) -eq 'store-page' -and (& $stageOf @{ storePageSubmitted = '2026-10-01' }) -eq 'store-page') 'comingSoon or storePageSubmitted is store-page'
+Assert-True ((& $stageOf @{ comingSoon = '2026-10-01'; nextFest = '2027-02-22' }) -eq 'demo' -and (& $stageOf @{ demoSubmitted = '2026-11-01' }) -eq 'demo') 'demoSubmitted or nextFest is demo'
+Assert-True ((& $stageOf @{ date = '2026-11-16'; nextFest = '2026-10-01' }) -eq 'launched' -and (& $stageOf @{ date = '2026-12-01'; demoSubmitted = '2026-11-01' }) -eq 'demo') 'a release date reached is launched; one ahead is not'
+Assert-True ((Protect-PromoMentions 'thanks @alice and @bob-2, not @ alone') -eq "thanks @${zwsp}alice and @${zwsp}bob-2, not @ alone") 'an @name gets a zero-width space after the @'
+$trailers = @(Get-PromoTrailers "Title`n`nMarketing: One`nmarketing: Two`nMarketing-Priority: HIGH`nMarketing-Visual: yes" ('a' * 40) 'commit')
+Assert-True ($trailers.Count -eq 2 -and $trailers[0].priority -eq 'high' -and $trailers[1].visual -and $trailers[0].text -eq 'One') 'every Marketing line is an item, with the message''s priority and visual flag (any case)'
+$long = @([ordered]@{ text = ('Storms ' * 80).Trim(); priority = 'high'; visual = $false; sha = ('a' * 40); source = 'commit' }, [ordered]@{ text = 'Second'; priority = 'low'; visual = $false; sha = ('b' * 40); source = 'commit' })
+$templates = New-PromoTemplateDrafts 'Game' $long @('discord', 'bluesky', 'steam') @('#indiedev')
+Assert-True ((Get-PromoGraphemeCount $templates.bluesky) -le 300 -and $templates.bluesky.EndsWith(' #indiedev') -and $templates.bluesky.Contains([string][char]0x2026)) "the Bluesky template stays within 300 graphemes, the item cut with an ellipsis: $(Get-PromoGraphemeCount $templates.bluesky)"
+Assert-True ($templates.steam.Contains('[list]') -and $templates.discord.StartsWith('**Game')) 'the Steam template is BBCode, the Discord one Markdown'
+
+# --- A fixture repository and the mocked API ---
+$work = Join-Path ([System.IO.Path]::GetTempPath()) "promo-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
+$repo = Join-Path $work 'game'
+Copy-Item -LiteralPath (Join-Path $root 'examples/gdscript') -Destination $repo -Recurse
+New-Item -ItemType Directory -Force (Join-Path $repo '.github/workflows') | Out-Null
+Set-Content -LiteralPath (Join-Path $repo '.github/workflows/hyperdot.yml') -Value "name: Godot`non: [push]`njobs:`n  godot:`n    uses: nick-vas/hyperdot/.github/workflows/godot.yml@v1`n"
+function Invoke-Git { $null = & git -C $repo -c user.name=Test -c user.email=test@example.com @args; if ($LASTEXITCODE) { throw "git $args failed" } }
+function New-Commit([string]$Message) {
+    Add-Content -LiteralPath (Join-Path $repo 'changes.txt') -Value $Message
+    Invoke-Git add -A; Invoke-Git commit -q -m $Message
+    return (& git -C $repo rev-parse HEAD).Trim()
+}
+Invoke-Git init -q -b main
+$null = New-Commit 'Base'
+$c2 = New-Commit "Add meteor storms`n`nMarketing: Meteor storms can now rain down on @someone's base`nMarketing-Priority: high`nMarketing-Visual: yes"
+$c3 = New-Commit "Faster menus`n`nMarketing: Menus open twice as fast`nMarketing-Priority: low"
+$c4 = New-Commit "Night mode`n`nMarketing: A night mode for late sessions"
+
+$port = & { $l = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0); $l.Start(); $p = $l.LocalEndpoint.Port; $l.Stop(); $p }
+$routesFile = Join-Path $work 'routes.json'; $logFile = Join-Path $work 'requests.jsonl'; $summary = Join-Path $work 'summary.md'
+$api = "http://127.0.0.1:$port"
+function Set-Routes([hashtable]$Table) { Set-Content -LiteralPath $routesFile -Value ($Table | ConvertTo-Json -Depth 20) -Encoding utf8; Set-Content -LiteralPath $logFile -Value $null; Set-Content -LiteralPath $summary -Value $null }
+function Get-Requests { return @(Get-Content -LiteralPath $logFile | Where-Object { $_ } | ForEach-Object { $_ | ConvertFrom-Json -Depth 5 }) }
+function New-Checks([string]$Conclusion) { return @{ status = 200; body = @{ total_count = 1; check_runs = @(@{ name = 'godot / Test'; status = 'completed'; conclusion = $Conclusion }) } } }
+$lastBrief = "<!-- hyperdot-promo mkt/0 -->`n## Tasks`n`n- [ ] Record a clip: The old harbour`n- [x] Post on Discord`n- [ ] Post on Bluesky (from #2)`n- [ ] Answer the comments on @carol's thread"
+$openBriefs = @{ status = 200; body = @(@{ number = 3; title = 'Marketing brief 0'; body = $lastBrief; labels = @(@{ name = 'marketing-brief' }) }) }
+$redThenGreen = @{
+    "GET /repos/o/r/commits/$c3/check-runs" = New-Checks 'failure'
+    "GET /repos/o/r/commits/$c2/check-runs" = New-Checks 'success'
+    'GET /repos/o/r/issues' = $openBriefs
+    'POST /repos/o/r/issues' = @{ status = 201; body = @{ number = 4; html_url = 'https://github.com/o/r/issues/4' } }
+    'POST /repos/o/r/git/refs' = @{ status = 201; body = @{ ref = 'refs/tags/mkt/1' } }
+    'PATCH /repos/o/r/issues/3' = @{ status = 200; body = @{ number = 3; state = 'closed' } }
+}
+Set-Routes $redThenGreen
+$server = Start-Process pwsh -PassThru -ArgumentList @('-NoProfile', '-NonInteractive', '-File', "`"$(Join-Path $PSScriptRoot 'promo-fixture/MockGitHub.ps1')`"", '-Port', "$port", '-Routes', "`"$routesFile`"", '-Log', "`"$logFile`"")
+$saved = @{}
+foreach ($name in 'GITHUB_API_URL', 'HYPERDOT_MODELS_URL', 'GITHUB_TOKEN', 'GH_TOKEN', 'GITHUB_REPOSITORY', 'GITHUB_STEP_SUMMARY') { $saved[$name] = [Environment]::GetEnvironmentVariable($name) }
+$env:GITHUB_API_URL = $api; $env:HYPERDOT_MODELS_URL = "$api/models"; $env:GITHUB_TOKEN = 'test-token'; $env:GH_TOKEN = $null
+$env:GITHUB_REPOSITORY = 'o/r'; $env:GITHUB_STEP_SUMMARY = $summary
+function Invoke-PromoCli([string[]]$Extra = @()) {
+    $out = & pwsh -NoProfile -NonInteractive -File $ci promo -Json -Project $repo @Extra 2>$null | Out-String
+    $code = $LASTEXITCODE
+    try { $doc = $out | ConvertFrom-Json -Depth 30 } catch { $doc = $null; Write-Host $out }
+    return @{ code = $code; doc = $doc }
+}
+try {
+    for ($i = 0; $i -lt 50; $i++) {
+        try { $null = Invoke-WebRequest -Uri "$api/ping" -SkipHttpErrorCheck -TimeoutSec 2; break } catch { Start-Sleep -Milliseconds 200 }
+    }
+    Set-Routes $redThenGreen
+
+    # --- Dry run: the gate walks past a commit with no run and a red one to the green one; nothing is written ---
+    $run = Invoke-PromoCli @('-DryRun')
+    $p = $run.doc.promo
+    Assert-True ($run.code -eq 0 -and $run.doc.ok -and $p.check -eq 'godot / Test' -and $p.green.sha -eq $c2 -and $p.green.via -eq 'check') "the gate is the newest green commit, past a commit with no run and a failed one: $($p.green.sha)"
+    Assert-True (@($p.shipped).Count -eq 1 -and $p.shipped[0].text -eq "Meteor storms can now rain down on @${zwsp}someone's base" -and @($p.waiting).Count -eq 2) 'the green commit''s change shipped, with the @ broken; the two newer ones wait'
+    Assert-True ($p.range.firstRun -and $p.number -eq 1 -and $p.dryRun -and -not $p.written -and $null -eq $p.issue -and $null -eq $p.tag) 'with no mkt tag it is the first run, brief 1, and a dry run writes nothing'
+    $requests = @(Get-Requests)
+    Assert-True (@($requests | Where-Object { $_.method -ne 'GET' }).Count -eq 0) "a dry run only reads the API: $(@($requests | ForEach-Object { "$($_.method) $($_.path)" }) -join ', ')"
+    $summaryText = Get-Content -LiteralPath $summary -Raw
+    Assert-True ($summaryText -match '\(dry run\)' -and $summaryText.Contains('Meteor storms') -and $summaryText.Contains('## Waiting for a green build')) 'a dry run writes the brief to the job summary'
+    $body = "$($p.body)"
+    Assert-True ($body.Contains('- [ ] Record a clip: Meteor storms') -and $body.Contains('- [ ] Post on Discord') -and $body.Contains('- [ ] Post on Bluesky') -and -not $body.Contains('Steam news')) 'tasks: a clip for the visual change, a post per channel, no Steam before a store page'
+    Assert-True ($body.Contains('- [ ] Record a clip: The old harbour (from #3)') -and $body.Contains("- [ ] Answer the comments on @${zwsp}carol's thread (from #3)") -and -not $body.Contains('Post on Bluesky (from #2)') -and -not $body.Contains('Post on Discord (from')) 'unticked tasks carry over naming their brief; ticked ones and ones asked for again do not'
+    Assert-True ($p.drafts.source -eq 'template' -and -not @($requests | Where-Object { $_.path -eq '/models' }).Count) 'AI is off by default: template drafts, the model never called'
+
+    # --- Real run: the issue, then the tag at the green commit, then last week's brief closed ---
+    Set-Routes $redThenGreen
+    $run = Invoke-PromoCli
+    $p = $run.doc.promo
+    $writes = @(Get-Requests | Where-Object { $_.method -ne 'GET' })
+    $order = @($writes | ForEach-Object { "$($_.method) $($_.path)" }) -join ', '
+    Assert-True ($run.code -eq 0 -and $order -eq 'POST /repos/o/r/issues, POST /repos/o/r/git/refs, PATCH /repos/o/r/issues/3') "issue, tag, close, in that order: $order"
+    $tagBody = $writes[1].body | ConvertFrom-Json
+    $issueBody = $writes[0].body | ConvertFrom-Json
+    Assert-True ($tagBody.ref -eq 'refs/tags/mkt/1' -and $tagBody.sha -eq $c2 -and @($issueBody.labels) -contains 'marketing-brief') 'mkt/1 is tagged at the green commit; the issue is labelled marketing-brief'
+    Assert-True ($p.written -and $p.issue.number -eq 4 -and $p.tag -eq 'mkt/1' -and $p.previous[0].closed) 'the result names the issue, the tag and the closed brief'
+    Assert-True ($issueBody.body.Contains("@${zwsp}someone") -and -not $issueBody.body.Contains('@someone') -and -not $issueBody.body.Contains('@carol')) 'no @name reaches the issue unbroken'
+
+    # --- A close that fails: the tag is already there, the run still succeeds and says so ---
+    $failingClose = $redThenGreen.Clone(); $failingClose['PATCH /repos/o/r/issues/3'] = @{ status = 500; body = @{ message = 'Server Error' } }
+    Set-Routes $failingClose
+    $run = Invoke-PromoCli
+    $writes = @(Get-Requests | Where-Object { $_.method -ne 'GET' })
+    Assert-True ($run.code -eq 0 -and $run.doc.promo.tag -eq 'mkt/1' -and -not $run.doc.promo.previous[0].closed -and @($run.doc.warnings | Where-Object { $_ -match '#3 could not be closed' }).Count -eq 1 -and $writes[1].path -eq '/repos/o/r/git/refs') 'a failed close leaves the tag made and a warning'
+
+    # --- A failed tag after the issue is an error naming the fix ---
+    $failingTag = $redThenGreen.Clone(); $failingTag['POST /repos/o/r/git/refs'] = @{ status = 422; body = @{ message = 'Reference already exists' } }
+    Set-Routes $failingTag
+    $run = Invoke-PromoCli
+    Assert-True ($run.code -ne 0 -and $run.doc.error.code -eq 'promo-api' -and $run.doc.error.message -match 'git tag mkt/1' -and -not @(Get-Requests | Where-Object { $_.method -eq 'PATCH' }).Count) 'a failed tag stops with promo-api before anything is closed'
+
+    # --- Next week: from mkt/1; a squash commit's trailer is in its pull request, and its gate is that pull request's head ---
+    Invoke-Git tag mkt/1 $c2
+    $c5 = New-Commit 'Co-op (#9)'
+    $head = 'f' * 40
+    Set-Routes @{
+        "GET /repos/o/r/commits/$c5/pulls" = @{ status = 200; body = @(@{ number = 9; merged_at = '2026-11-15T10:00:00Z'; body = "Adds co-op.`r`n`r`nMarketing: Two-player co-op`r`nMarketing-Priority: high"; head = @{ sha = $head } }) }
+        "GET /repos/o/r/commits/$head/check-runs" = New-Checks 'success'
+        'GET /repos/o/r/issues' = @{ status = 200; body = @() }
+        'POST /repos/o/r/issues' = @{ status = 201; body = @{ number = 5; html_url = 'https://github.com/o/r/issues/5' } }
+        'POST /repos/o/r/git/refs' = @{ status = 201; body = @{ ref = 'refs/tags/mkt/2' } }
+    }
+    $run = Invoke-PromoCli
+    $p = $run.doc.promo
+    $texts = @($p.shipped | ForEach-Object { $_.text })
+    Assert-True ($run.code -eq 0 -and $p.green.sha -eq $c5 -and $p.green.via -eq 'pull-request' -and $p.green.pullRequest -eq 9) "a merge or squash commit with no run passes through its pull request's head: $($p.green.via)"
+    Assert-True ($p.range.from -eq 'mkt/1' -and $p.number -eq 2 -and $p.tag -eq 'mkt/2' -and $texts.Count -eq 3 -and $texts -contains 'Two-player co-op' -and $texts -notcontains "Meteor storms can now rain down on @${zwsp}someone's base") "the range starts after mkt/1, and the pull request's trailer counts: $($texts -join ' | ')"
+    Assert-True (@($p.shipped | Where-Object { $_.source -eq '#9' -and $_.priority -eq 'high' }).Count -eq 1 -and @($p.previous).Count -eq 0) 'the item names its pull request and priority; with no open brief nothing is closed'
+
+    # --- Nothing green: no issue, no tag ---
+    Set-Routes @{ "GET /repos/o/r/commits/$c5/check-runs" = New-Checks 'failure'; "GET /repos/o/r/commits/$c4/check-runs" = New-Checks 'failure'; "GET /repos/o/r/commits/$c3/check-runs" = New-Checks 'failure' }
+    $run = Invoke-PromoCli
+    Assert-True ($run.code -eq 0 -and $run.doc.promo.nothingShipped -match 'passed godot / Test' -and -not @(Get-Requests | Where-Object { $_.method -ne 'GET' }).Count) "a week with nothing green writes nothing: $($run.doc.promo.nothingShipped)"
+
+    # --- AI drafts: on only by setting; an error and a long Bluesky post fall back to the templates ---
+    New-Item -ItemType Directory -Force (Join-Path $repo 'docs') | Out-Null
+    Set-Content -LiteralPath (Join-Path $repo 'docs/promo.json') -Value '{ "ai": true, "channels": ["discord", "bluesky"], "hashtags": ["#coop"] }'
+    $green5 = @{
+        "GET /repos/o/r/commits/$c5/pulls" = @{ status = 200; body = @(@{ number = 9; merged_at = '2026-11-15T10:00:00Z'; body = 'Marketing: Two-player co-op'; head = @{ sha = $head } }) }
+        "GET /repos/o/r/commits/$head/check-runs" = New-Checks 'success'
+        'GET /repos/o/r/issues' = @{ status = 200; body = @() }
+    }
+    $ai = { param($Status, $Content) $t = $green5.Clone(); $t['POST /models'] = @{ status = $Status; body = @{ choices = @(@{ message = @{ content = $Content } }) } }; $t }
+    Set-Routes (& $ai 500 '')
+    $run = Invoke-PromoCli @('-DryRun')
+    Assert-True ($run.code -eq 0 -and $run.doc.promo.drafts.source -eq 'template' -and $run.doc.promo.drafts.fallbackReason -match 'HTTP 500' -and "$($run.doc.promo.body)".Contains('AI drafts were not used')) 'an error from the model falls back to the templates, and says so'
+    Set-Routes (& $ai 200 (@{ discord = 'Co-op is here'; bluesky = ('co-op ' * 60) } | ConvertTo-Json -Depth 3))
+    $run = Invoke-PromoCli @('-DryRun')
+    Assert-True ($run.doc.promo.drafts.source -eq 'template' -and $run.doc.promo.drafts.fallbackReason -match 'over Bluesky''s 300') "a Bluesky post over 300 graphemes falls back to the templates: $($run.doc.promo.drafts.fallbackReason)"
+    Set-Routes (& $ai 200 ("``````json`n" + (@{ discord = 'Co-op is here, thanks @dave'; bluesky = 'Two-player co-op is in! #coop' } | ConvertTo-Json -Depth 3) + "`n``````"))
+    $run = Invoke-PromoCli @('-DryRun')
+    $p = $run.doc.promo
+    $call = @(Get-Requests | Where-Object { $_.path -eq '/models' })
+    Assert-True ($p.drafts.source -eq 'ai' -and $p.drafts.text.discord -eq "Co-op is here, thanks @${zwsp}dave" -and "$($p.body)".Contains('check every claim') -and $call.Count -eq 1 -and ($call[0].body | ConvertFrom-Json).model -eq 'openai/gpt-4.1-mini') 'good AI drafts are used, @ broken, labelled "check every claim"'
+
+    # --- Errors ---
+    Set-Content -LiteralPath (Join-Path $repo 'docs/promo.json') -Value '{ "channels": ["tiktok"] }'
+    $run = Invoke-PromoCli @('-DryRun')
+    Assert-True ($run.code -ne 0 -and $run.doc.error.code -eq 'promo-settings') 'an unknown channel is promo-settings'
+    Remove-Item -LiteralPath (Join-Path $repo 'docs/promo.json')
+    $env:GITHUB_TOKEN = $null
+    $run = Invoke-PromoCli
+    Assert-True ($run.code -ne 0 -and $run.doc.error.code -eq 'promo-no-token') 'a real run without a token is promo-no-token'
+    $env:GITHUB_TOKEN = 'test-token'
+    $env:GITHUB_REPOSITORY = $null
+    $run = Invoke-PromoCli @('-DryRun')
+    Assert-True ($run.code -ne 0 -and $run.doc.error.code -eq 'promo-no-repository') 'no GITHUB_REPOSITORY and no github.com origin is promo-no-repository'
+    $env:GITHUB_REPOSITORY = 'o/r'
+    $loose = Join-Path $work 'not-a-repository'
+    Copy-Item -LiteralPath (Join-Path $root 'examples/gdscript') -Destination $loose -Recurse
+    $out = & pwsh -NoProfile -NonInteractive -File $ci promo -DryRun -Json -Project $loose 2>$null | Out-String
+    Assert-True (($out | ConvertFrom-Json).error.code -eq 'promo-no-git') 'a project outside git is promo-no-git'
+    Remove-Item -LiteralPath (Join-Path $repo '.github/workflows/hyperdot.yml')
+    $run = Invoke-PromoCli @('-DryRun')
+    Assert-True ($run.code -ne 0 -and $run.doc.error.code -eq 'promo-no-workflow') 'no workflow calling the kit is promo-no-workflow'
+    $named = "jobs:`n  ci:`n    name: Checks`n    permissions:`n      contents: read`n    uses: nick-vas/hyperdot/.github/workflows/godot.yml@v1`n"
+    Set-Content -LiteralPath (Join-Path $repo '.github/workflows/ci.yml') -Value $named
+    Assert-True ((Get-PromoCheckName $repo).name -eq 'Checks / Test') 'a job with a name: gives "<name> / Test"'
+    $out = & pwsh -NoProfile -NonInteractive -File $ci test -DryRun -Json -Project $repo 2>$null | Out-String
+    Assert-True (($out | ConvertFrom-Json).error.code -eq 'invalid-arguments') '-DryRun on another command is invalid-arguments'
+    $out = & pwsh -NoProfile -NonInteractive -File $ci doctor -Promo -Json -Project $repo 2>$null | Out-String
+    Assert-True (($out | ConvertFrom-Json).error.code -eq 'invalid-arguments') '-Promo on another command is invalid-arguments'
+
+    # --- init -Promo: adds the caller and the settings, never overwrites, safe to run again ---
+    Remove-Item -LiteralPath (Join-Path $repo '.github/workflows/ci.yml')
+    $out = & pwsh -NoProfile -NonInteractive -File $ci init -Promo -Json -Project $repo 2>$null | Out-String
+    $doc = $out | ConvertFrom-Json -Depth 10
+    $caller = Join-Path $repo '.github/workflows/hyperdot-promo.yml'
+    $callerText = Get-Content -LiteralPath $caller -Raw
+    Assert-True ($doc.ok -and $callerText -match 'nick-vas/hyperdot/\.github/workflows/promo\.yml@v1' -and $callerText -match 'models: read' -and $callerText -match 'checks: read' -and $callerText -match 'pull-requests: read' -and $callerText -match 'issues: write' -and $callerText -match 'contents: write') 'init -Promo writes the caller, pinned @v1, granting the five permissions'
+    $settings = Get-Content -LiteralPath (Join-Path $repo 'docs/promo.json') -Raw | ConvertFrom-Json
+    Assert-True ($settings.ai -eq $false -and @($settings.channels).Count -eq 3) 'init -Promo writes docs/promo.json with AI off'
+    Assert-True (Test-Path -LiteralPath (Join-Path $repo '.github/workflows/hyperdot.yml')) 'init still writes the CI workflow the gate reads'
+    Set-Content -LiteralPath (Join-Path $repo 'docs/promo.json') -Value '{ "ai": true }'
+    $out = & pwsh -NoProfile -NonInteractive -File $ci init -Promo -Json -Project $repo 2>$null | Out-String
+    $doc = $out | ConvertFrom-Json -Depth 10
+    Assert-True ($doc.ok -and (Get-Content -LiteralPath (Join-Path $repo 'docs/promo.json') -Raw).Trim() -eq '{ "ai": true }' -and (Get-Content -LiteralPath $caller -Raw) -eq $callerText -and @($doc.steps | Where-Object { $_.status -eq 'skipped' -and $_.message -match 'promo' }).Count -eq 2) 'a second init -Promo skips both and overwrites nothing'
+} finally {
+    try { $null = Invoke-WebRequest -Uri "$api/__stop" -SkipHttpErrorCheck -TimeoutSec 2 } catch { $null = $_ }
+    if (-not $server.WaitForExit(3000)) { $server.Kill() }
+    foreach ($name in $saved.Keys) { [Environment]::SetEnvironmentVariable($name, $saved[$name]) }
+    Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+if ($failures.Count) { Write-Host "`n$($failures.Count) failed"; exit 1 }
+Write-Host "`npromo self-test passed"
+exit 0

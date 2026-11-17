@@ -144,6 +144,8 @@ social-platform advice and wishlist conversion figures are dated and left out: s
 - **Sales:** plan around Steam's seasonal sales and themed fests from its own calendar
   ([Upcoming Steam Events](https://partner.steamgames.com/doc/marketing/upcoming_events)); never hard-code their dates.
   The `calendar` skill reads that page, checks the planned discounts against Steam's rules and writes a `.ics` file.
+- **Weekly posts:** `init -Promo` adds a workflow that opens an issue every Monday with what shipped (from `Marketing:` commit
+  trailers, gated on the kit's tests passing), a checklist and drafts for Discord, Bluesky and Steam news; `promo -DryRun` previews it.
 - **Reviews:** Valve's rule is not to ask customers to review the game from inside it (no credits-screen or end-screen prompt,
   no pop-up), and not to reward reviews; free copies to press are the exception (store/reviews). Asking in a devlog or on social
   media is outside that rule. Keep the
