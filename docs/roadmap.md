@@ -251,8 +251,8 @@ Each needs the owner: paste the text, save the pages and attach them, or allow t
 ### Kit features not built
 
 - **`promo` follow-ups (#270).** The brief does not yet list the next `calendar` events (Next Fest registration, seasonal
-  sales), has no GitLab counterpart (`ci/gitlab/`), and does not record a clip of `Marketing-Visual: yes` changes with `shot`
-  under Xvfb to attach. Its self-test runs against a mocked API: the first real run on a game is the check of GitHub's
+  sales), and does not record a clip of `Marketing-Visual: yes` changes with `shot` under Xvfb to attach. No GitLab
+  counterpart is planned: it would be a rewrite against GitLab's API, and the GitLab template has no known users. Its self-test runs against a mocked API: the first real run on a game is the check of GitHub's
   check-run names for a reusable workflow's job and of GitHub Models' answer format.
 - **Add-on `archived` flags.** Godot Jolt's, PerfBullets' and py4godot's `archived` in `ci/godot/addons-status.json` are
   still `null`: on 2026-10-29 GitHub's API and repository pages answered 403 in the sandbox that checked the release zips
