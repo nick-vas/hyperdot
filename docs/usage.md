@@ -268,7 +268,12 @@ Marketing-Visual: yes           (worth a clip)
 - **Weeks:** the brief covers the changes since the newest `mkt/N` tag (the first one, the last 7 days). It opens the issue,
   tags `mkt/N` at the green commit, then closes last week's brief, whose unticked tasks it carries over. A week with nothing
   shipped writes nothing.
-- **Mentions:** an `@name` in a commit gets a zero-width space after the `@`, so the brief notifies no one.
+- **Mentions:** an `@name` in a commit gets a zero-width space after the `@` in the issue, so the brief notifies no one; the
+  drafts keep it as written, in code blocks, ready to paste. Trailers inside HTML comments (a pull request template's hints)
+  or fenced code are not read.
+- **First run:** with no `mkt/N` tag the brief covers the last 7 days. Changes that are still waiting for a green build that
+  week leave the window the next: tag the commit before them `mkt/0` to start there instead.
+- **By hand:** a real (not dry) run by hand runs only from the default branch, and two runs never overlap.
 - **Dry run:** *Actions > Marketing brief > Run workflow* is ticked as a dry run: the brief goes to the run's summary only.
 - **Settings** (`docs/promo.json`): `channels` (`discord`, `bluesky`, `steam`), `hashtags`, `ai` and `model`. With
   `"ai": true` the drafts are reworded by GitHub Models (the workflow's `models: read`, no key; free and rate-limited), marked

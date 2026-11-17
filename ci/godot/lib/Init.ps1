@@ -140,8 +140,15 @@ on:
         type: boolean
         default: true
 
+# One brief at a time: two overlapping runs would both open brief N.
+concurrency:
+  group: hyperdot-promo
+  cancel-in-progress: false
+
 jobs:
   promo:
+    # A real run by hand only from the default branch: from another branch it would ship and tag that branch's commits.
+    if: github.event_name == 'schedule' || inputs.dry-run || github.ref_name == github.event.repository.default_branch
     permissions:
       contents: write        # the mkt/N tag that marks where the next brief starts
       issues: write          # the brief, and closing last week's

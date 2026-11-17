@@ -24,6 +24,12 @@ while ($listener.IsListening) {
     elseif ($table.ContainsKey($key)) { $status = [int]$table[$key]['status']; $answer = $table[$key]['body'] }
     elseif ($request.HttpMethod -eq 'GET' -and $path -match '/check-runs$') { $status = 200; $answer = [ordered]@{ total_count = 0; check_runs = @() } }
     elseif ($request.HttpMethod -eq 'GET' -and $path -match '/commits/[0-9a-f]+/pulls$') { $status = 200; $answer = @() }
+    # As GitHub does, check_name narrows the runs to that name: a wrong name finds none.
+    $wanted = $request.QueryString['check_name']
+    if ($wanted -and $answer -is [System.Collections.IDictionary] -and $answer.Contains('check_runs')) {
+        $runs = @($answer['check_runs'] | Where-Object { $_['name'] -eq $wanted })
+        $answer = [ordered]@{ total_count = $runs.Count; check_runs = $runs }
+    }
     $text = ConvertTo-Json -InputObject $answer -Depth 20 -Compress
     $bytes = [System.Text.Encoding]::UTF8.GetBytes($text)
     $context.Response.StatusCode = $status

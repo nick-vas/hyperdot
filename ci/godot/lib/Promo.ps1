@@ -20,7 +20,7 @@
 
 $script:PromoLabel = 'marketing-brief'
 $script:PromoFirstRunDays = 7
-$script:PromoMaxWalk = 50
+$script:PromoMaxHashtagGraphemes = 100
 $script:PromoBlueskyLimit = 300
 $script:PromoChannels = @('discord', 'bluesky', 'steam')
 $script:PromoDefaultModel = 'openai/gpt-4.1-mini'
@@ -57,6 +57,8 @@ function Read-PromoSettings([string]$Path) {
     if ($data.ContainsKey('hashtags')) {
         $tags = @($data['hashtags'])
         if (@($tags | Where-Object { $_ -isnot [string] -or $_ -notmatch '^#\w+$' }).Count) { Stop-GodotCi "${Path}: hashtags is a list of words starting with #, like ""#indiedev""" 'promo-settings' }
+        $length = Get-PromoGraphemeCount ($tags -join ' ')
+        if ($length -gt $script:PromoMaxHashtagGraphemes) { Stop-GodotCi "${Path}: the hashtags take $length characters; at most $($script:PromoMaxHashtagGraphemes), so a Bluesky post keeps room for the news" 'promo-settings' }
         $settings.hashtags = @($tags)
     }
     if ($data.ContainsKey('ai')) {
@@ -82,7 +84,8 @@ function Get-PromoStage($Release, [datetime]$Today) {
     return 'development'
 }
 
-# "@name" in commit text would notify that account every week the brief repeats it: a zero-width space after the @ breaks the mention.
+# "@name" in commit text would notify that account every week the brief repeats it: a zero-width space after the @ breaks the
+# mention. Applied where the issue shows text, not to the drafts in their code blocks, which are pasted as they are.
 function Protect-PromoMentions([string]$Text) {
     return [regex]::Replace($Text, '@(?=[A-Za-z0-9_-])', { param($m) "@$($script:PromoZeroWidthSpace)" })
 }
@@ -90,8 +93,12 @@ function Protect-PromoMentions([string]$Text) {
 function Get-PromoGraphemeCount([string]$Text) { return [System.Globalization.StringInfo]::new($Text).LengthInTextElements }
 
 # The Marketing trailers of one message: an item per "Marketing:" line, each with the message's priority and visual flag.
+# What a reader never sees is not read: HTML comments (a pull request template's hints, or text hidden in a description) and
+# fenced code are removed first.
 function Get-PromoTrailers([string]$Message, [string]$Sha, [string]$Source) {
-    $lines = @($Message -split '\r?\n')
+    $visible = [regex]::Replace($Message, '(?s)<!--.*?(-->|$)', '')
+    $visible = [regex]::Replace($visible, '(?ms)^\s*(`{3,}|~{3,}).*?(^\s*\1\s*$|\z)', '')
+    $lines = @($visible -split '\r?\n')
     $priority = 'normal'; $visual = $false; $badPriority = $null
     foreach ($line in $lines) {
         if ($line -match '^\s*Marketing-Priority:\s*(?<p>\S.*?)\s*$') {
@@ -103,7 +110,7 @@ function Get-PromoTrailers([string]$Message, [string]$Sha, [string]$Source) {
     }
     return @(foreach ($line in $lines) {
             if ($line -match '^\s*Marketing:\s*(?<t>\S.*?)\s*$') {
-                [ordered]@{ text = Protect-PromoMentions $Matches.t; priority = $priority; visual = $visual; sha = $Sha; source = $Source; badPriority = $badPriority }
+                [ordered]@{ text = $Matches.t; priority = $priority; visual = $visual; sha = $Sha; source = $Source; badPriority = $badPriority }
             }
         })
 }
@@ -134,19 +141,27 @@ function Assert-PromoApi($Response, [string]$What) {
     return $Response.body
 }
 
-# The check run that gates the brief: "<job> / Test", the job of the workflow that calls the kit's godot.yml (its name: when it has one).
+# The check run that gates the brief: "<job> / Test", the job of the workflow that calls the kit's godot.yml (its name: when it
+# has one, before or after uses:). With several such workflows, hyperdot.yml (the one init writes), else one that runs on push.
 function Get-PromoCheckName([string]$Root) {
     $files = @(Get-KitWorkflowFiles $Root)
     if ($files.Count -eq 0) { Stop-GodotCi "No workflow in $Root/.github/workflows calls the kit's godot.yml, so there is no check to gate the brief on. Run: $(Format-KitCommand 'init')" 'promo-no-workflow' }
-    $job = $null; $jobName = $null; $inJobs = $false
-    foreach ($line in @(Get-Content -LiteralPath $files[0].FullName)) {
-        if ($line -match '^jobs:\s*$') { $inJobs = $true; continue }
-        if ($line -match '^\S') { $inJobs = $false }
-        if (-not $inJobs) { continue }
-        if ($line -match '^  (?<k>[A-Za-z_][\w-]*):\s*$') { $job = $Matches.k; $jobName = $null; continue }
-        if ($line -match '^    name:\s*(?<n>.+?)\s*$') { $jobName = $Matches.n.Trim('"', "'") ; continue }
-        if ($line -match '^    uses:.*(hyperdot|Godot_TestSuite)/\.github/workflows/godot\.yml') {
-            return [ordered]@{ name = "$(if ($jobName) { $jobName } else { $job }) / Test"; workflow = $files[0].Name }
+    $onPush = @($files | Where-Object { $_.Name -ne 'hyperdot.yml' -and (Get-Content -LiteralPath $_.FullName -Raw) -match '(?m)^\s*push\s*:|^on:.*\bpush\b' })
+    $ordered = @(@($files | Where-Object { $_.Name -eq 'hyperdot.yml' }) + $onPush + @($files | Where-Object { $_.Name -ne 'hyperdot.yml' -and $_ -notin $onPush }))
+    foreach ($file in $ordered) {
+        $jobs = [System.Collections.Generic.List[object]]::new(); $inJobs = $false
+        foreach ($line in @(Get-Content -LiteralPath $file.FullName)) {
+            if ($line -match '^\s*(#.*)?$') { continue }
+            if ($line -match '^jobs:\s*(#.*)?$') { $inJobs = $true; continue }
+            if ($line -match '^\S') { $inJobs = $false; continue }
+            if (-not $inJobs) { continue }
+            if ($line -match '^  (?<k>[A-Za-z_][\w-]*):\s*(#.*)?$') { $jobs.Add([ordered]@{ key = $Matches.k; name = $null; kit = $false }); continue }
+            if ($jobs.Count -eq 0) { continue }
+            if ($line -match '^    name:\s*(?<n>[^#]+?)\s*(#.*)?$') { $jobs[$jobs.Count - 1].name = $Matches.n.Trim('"', "'") }
+            elseif ($line -match '^    uses:.*(hyperdot|Godot_TestSuite)/\.github/workflows/godot\.yml') { $jobs[$jobs.Count - 1].kit = $true }
+        }
+        foreach ($job in $jobs) {
+            if ($job.kit) { return [ordered]@{ name = "$(if ($job.name) { $job.name } else { $job.key }) / Test"; workflow = $file.Name } }
         }
     }
     Stop-GodotCi "$($files[0].Name) calls the kit, but no job in it has 'uses: .../godot.yml' at the usual indentation, so the check name is unknown" 'promo-no-workflow'
@@ -166,12 +181,9 @@ function Get-PromoMergedPull([string]$Repo, [string]$Sha) {
     return @($pulls | Where-Object { $_ -and $_.PSObject.Properties['merged_at'] -and $_.merged_at } | Select-Object -First 1)
 }
 
-# Walks the main line back from HEAD to the newest green commit. Returns the commit, how it was judged, and every commit walked.
+# Walks the main line back from HEAD to the newest green commit (the range bounds the walk). Returns the commit and how it was judged.
 function Find-PromoGreenCommit([string]$Repo, [string[]]$MainLine, [string]$Check) {
-    $walked = 0
     foreach ($sha in $MainLine) {
-        if ($walked -ge $script:PromoMaxWalk) { break }
-        $walked++
         $state = Get-PromoCheckState $Repo $sha $Check
         if ($state -eq 'passed') { return [ordered]@{ sha = $sha; via = 'check'; pullRequest = $null } }
         if ($state -eq 'failed') { continue }
@@ -187,9 +199,12 @@ function Get-PromoCarriedTasks($Issues) {
     $tasks = [System.Collections.Generic.List[string]]::new()
     foreach ($issue in $Issues) {
         $body = if ($issue.PSObject.Properties['body'] -and $issue.body) { "$($issue.body)" } else { '' }
+        $inTasks = $false
         foreach ($line in @($body -split '\r?\n')) {
-            if ($line -notmatch '^\s*- \[ \] (?<t>\S.*?)\s*$') { continue }
-            $text = Protect-PromoMentions $Matches.t
+            # Only the Tasks section: a box inside a draft is not a task.
+            if ($line -match '^##\s') { $inTasks = $line -match '^##\s+Tasks\s*$'; continue }
+            if (-not $inTasks -or $line -notmatch '^\s*- \[ \] (?<t>\S.*?)\s*$') { continue }
+            $text = $Matches.t.Replace($script:PromoZeroWidthSpace, '')
             if ($text -notmatch '\(from #\d+\)$') { $text = "$text (from #$($issue.number))" }
             if (-not $tasks.Contains($text)) { $tasks.Add($text) }
         }
@@ -256,7 +271,7 @@ function Get-PromoAiDrafts([string]$Game, [string]$Stage, $Items, [string[]]$Cha
     foreach ($channel in $Channels) {
         $text = if ($parsed.ContainsKey($channel)) { $parsed[$channel] } else { $null }
         if ($text -isnot [string] -or -not $text.Trim()) { return [ordered]@{ drafts = $null; reason = "the model gave no $channel draft" } }
-        $drafts[$channel] = Protect-PromoMentions $text.Trim()
+        $drafts[$channel] = $text.Trim()
     }
     if ($drafts.Contains('bluesky')) {
         $length = Get-PromoGraphemeCount $drafts.bluesky
@@ -269,7 +284,7 @@ function Format-PromoItem($Item) {
     $extra = @("``$($Item.sha.Substring(0, 7))``")
     if ($Item.source -ne 'commit') { $extra += $Item.source }
     if ($Item.visual) { $extra += 'visual' }
-    return "- **$($Item.priority)** $($Item.text) ($($extra -join ', '))"
+    return "- **$($Item.priority)** $(Protect-PromoMentions $Item.text) ($($extra -join ', '))"
 }
 
 function New-PromoBody($Brief) {
@@ -286,13 +301,17 @@ function New-PromoBody($Brief) {
         foreach ($item in $Brief.waiting) { $lines.Add((Format-PromoItem $item)) }
     }
     $lines.Add(''); $lines.Add('## Tasks'); $lines.Add('')
-    foreach ($task in $Brief.tasks) { $lines.Add("- [ ] $task") }
+    foreach ($task in $Brief.tasks) { $lines.Add("- [ ] $(Protect-PromoMentions $task)") }
     $lines.Add(''); $lines.Add('## Drafts'); $lines.Add('')
     if ($Brief.drafts.source -eq 'ai') { $lines.Add("> AI drafts ($($Brief.drafts.model)): check every claim against the Shipped list before posting."); $lines.Add('') }
     elseif ($Brief.drafts.fallbackReason) { $lines.Add("> Template drafts: the AI drafts were not used ($($Brief.drafts.fallbackReason))."); $lines.Add('') }
     foreach ($channel in $Brief.drafts.text.Keys) {
         $lines.Add("### $($titles[$channel])"); $lines.Add('')
-        $lines.Add('````text'); $lines.Add($Brief.drafts.text[$channel]); $lines.Add('````'); $lines.Add('')
+        # The drafts stay as they will be pasted (GitHub notifies no one from inside a code block), in a fence longer than any backtick run in them.
+        $draft = $Brief.drafts.text[$channel]
+        $run = @([regex]::Matches($draft, '`+') | ForEach-Object { $_.Length } | Sort-Object -Descending | Select-Object -First 1)
+        $fence = '`' * [Math]::Max(3, $(if ($run.Count) { $run[0] + 1 } else { 0 }))
+        $lines.Add("${fence}text"); $lines.Add($draft); $lines.Add($fence); $lines.Add('')
     }
     return ($lines -join "`n").TrimEnd() + "`n"
 }
@@ -375,12 +394,19 @@ function Invoke-Promo($Info, [bool]$DryRun, [datetime]$Today = [datetime]::UtcNo
     }
     if ($shipped.Count -eq 0) {
         $why = if ($items.Count -eq 0) { "no commit since $($range.from) has a Marketing: trailer" } elseif (-not $green) { "no commit since $($range.from) passed $($check.name)" } else { 'every change with a trailer is newer than the last green build' }
+        if (-not $last -and $items.Count) { $why += "; on the first run these fall out of the 7-day window next week: tag the commit before them mkt/0 to keep them" }
         Write-CiLog "Nothing shipped: $why. No brief this week."
         $result['nothingShipped'] = $why
         Set-JsonField promo $result
         Set-JsonField warnings @($warnings)
         return
     }
+
+    # The tags are made through the API, so a clone that has not fetched them would count these changes again as brief N.
+    $tag = "mkt/$number"
+    $existing = Invoke-PromoApi GET "/repos/$repo/git/ref/tags/$tag"
+    if ($existing.status -eq 200) { Stop-GodotCi "$tag already exists on GitHub but not in this clone: run git fetch --tags and try again (nothing was written)" 'promo-tag-exists' }
+    if ($existing.status -ne 404) { $null = Assert-PromoApi $existing "checking for $tag" }
 
     $openBriefs = @(Assert-PromoApi (Invoke-PromoApi GET "/repos/$repo/issues?labels=$($script:PromoLabel)&state=open&per_page=100") 'listing the open briefs' |
             Where-Object { $_ -and -not $_.PSObject.Properties['pull_request'] } | Sort-Object { [int]$_.number })
@@ -398,9 +424,8 @@ function Invoke-Promo($Info, [bool]$DryRun, [datetime]$Today = [datetime]::UtcNo
         if ($ai.drafts) { $drafts = [ordered]@{ source = 'ai'; model = $settings.model; fallbackReason = $null; text = $ai.drafts } }
         else { $drafts.fallbackReason = $ai.reason; $warnings.Add("AI drafts not used: $($ai.reason); the brief has the template drafts") }
     }
-    $tag = "mkt/$number"
     $brief = [ordered]@{ tag = $tag; stage = $stage; check = $check.name; green = $green; range = $range; shipped = $shipped; waiting = $waiting; tasks = @($tasks); drafts = $drafts }
-    $title = "Marketing brief ${number}: $game, $($Today.ToString('yyyy-MM-dd', [cultureinfo]::InvariantCulture))"
+    $title = "Marketing brief ${number}: $(Protect-PromoMentions $game), $($Today.ToString('yyyy-MM-dd', [cultureinfo]::InvariantCulture))"
     $body = New-PromoBody $brief
     $result.carried = @($carried); $result.drafts = $drafts; $result['title'] = $title; $result['body'] = $body
     $result.previous = @($openBriefs | ForEach-Object { [ordered]@{ number = [int]$_.number; closed = $false } })
@@ -419,6 +444,7 @@ function Invoke-Promo($Info, [bool]$DryRun, [datetime]$Today = [datetime]::UtcNo
     $tagResponse = Invoke-PromoApi POST "/repos/$repo/git/refs" ([ordered]@{ ref = "refs/tags/$tag"; sha = $green.sha })
     if ($tagResponse.error) {
         Set-JsonField promo $result
+        Set-JsonField warnings @($warnings)
         Stop-GodotCi "Brief #$($issue.number) is open, but tagging $tag at $($green.sha.Substring(0, 7)) failed ($($tagResponse.error)); create the tag by hand (git tag $tag $($green.sha) and push it) before the next run, or it repeats these changes" 'promo-api'
     }
     $result.tag = $tag

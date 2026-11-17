@@ -10,7 +10,7 @@ gives the percentages and the floors CI holds them to.
 | Part | Items | Covered |
 |---|---|---|
 | [Commands](#commands) | 22 | 22 |
-| [Error codes](#error-codes) | 76 | 73 |
+| [Error codes](#error-codes) | 77 | 74 |
 | [Library files](#library-files) | 41 | 41 |
 | [Tools](#tools) | 23 | 23 |
 | [Skills](#skills) | 55 | 55 |
@@ -120,6 +120,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `promo-no-repository` | `Test-Promo.ps1` |
 | `promo-no-token` | `Test-Promo.ps1` |
 | `promo-settings` | `Test-Promo.ps1` |
+| `promo-tag-exists` | `Test-Promo.ps1` |
 | `promo-api` | `Test-Promo.ps1` |
 | `brief-missing` | `Test-Brief.ps1` |
 | `brief-exists` | `Test-Brief.ps1` |

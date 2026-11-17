@@ -2898,7 +2898,8 @@
         "promo-no-repository",
         "promo-no-token",
         "promo-no-workflow",
-        "promo-settings"
+        "promo-settings",
+        "promo-tag-exists"
       ],
       "functions": [
         "Add-ExportExcludes",
