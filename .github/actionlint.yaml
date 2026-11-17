@@ -3,3 +3,6 @@ paths:
   .github/workflows/godot.yml:
     ignore:
       - 'property "workflow_(repository|sha)" is not defined'
+  .github/workflows/promo.yml:
+    ignore:
+      - 'property "workflow_(repository|sha)" is not defined'
