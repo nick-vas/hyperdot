@@ -253,8 +253,7 @@ Each needs the owner: paste the text, save the pages and attach them, or allow t
 - **`promo` on a real game (#270, #273, #274).** The weekly brief, its Coming up dates and the clips job have run only against
   a mocked GitHub API and GitHub Models. The first real run on a game, a dry run by hand after `init -Promo` (with `clips:
   true` for the clips), is the check of what the mock cannot show: the check-run name of a reusable workflow's job, GitHub
-  Models' answer format, the kit's action setting Godot up in the clips job, and the artifact link in the comment. No GitLab
-  counterpart is planned: it would be a rewrite against GitLab's API, and the GitLab template has no known users.
+  Models' answer format, the kit's action setting Godot up in the clips job, and the artifact link in the comment.
 - **Add-on `archived` flags.** Godot Jolt's, PerfBullets' and py4godot's `archived` in `ci/godot/addons-status.json` are
   still `null`: on 2026-10-29 GitHub's API and repository pages answered 403 in the sandbox that checked the release zips
   (the folders inside them are confirmed, `docs/addons.md`). The canary's first run with API access fills them in; or run
@@ -270,14 +269,6 @@ Each needs the owner: paste the text, save the pages and attach them, or allow t
 - **`-GpuValidation` beyond Vulkan on Linux.** Tested with Mesa's lavapipe under Xvfb only. Not run: a real GPU, Windows
   (Vulkan SDK layer), D3D12 (Godot's debug-layer messages are read by the same pattern as Vulkan's debug-utils ones, from
   the source, never seen in a log) and Metal; on D3D12 and Metal `layerLoaded` is `null` because their logs do not say.
-
-- **CI:** the GitLab template (`ci/gitlab/hyperdot.gitlab-ci.yml`) has never run on GitLab: no GitLab project or runner
-  was reachable from the sandbox that wrote it. Run it once on a GitLab project (a copy of `examples/gdscript` and of
-  `examples/csharp`) and fix what breaks. A container image with Godot and its templates already in it was not built: the
-  .NET 8 SDK image GitLab jobs use already has git and .NET, PowerShell 7.6 and Godot are cached downloads, and an image with
-  the .NET build's templates would weigh about 2.1 GB more (1.9 GB of templates and 222 MB of Godot unpacked, 4.7.2) and need a
-  registry and a canary job to keep it current.
-  `init` writes `@v1`; the tag itself is created at the 0.1.0 release (step 7 above).
 
 In the example game (the C# example):
 

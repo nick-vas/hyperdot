@@ -105,6 +105,26 @@ fixtures (`Test-Skills.ps1`, `Test-SkillFixtures.ps1`) are the free checks; they
 first run (one repetition, Haiku) showed a session is mostly cache reads: 168,562 tokens for one explanation question,
 of which input and output were 1,947. Comparisons need the medians of repeated runs.
 
+### `test -FixedFps` on the C# example
+
+Godot 4.7.2 mono, .NET 8.0.428, a 4-core Linux container, November 2026. A warm `test` on a copy of `examples/csharp`
+took 59 s. Most of it was the `dotnet` runner (39 s): its gdUnit4 tests ran 37 s, against 12 s for the 595 plain .NET tests
+alongside. Of gdUnit4's 37 s, 12 s went to its rebuild of the project in the editor before the first test, and 21 of
+the tests' 24 s to seven tests that wait for physics ticks, which in real time come at 60 a second.
+
+| Run | Without `-FixedFps` | With `-FixedFps 60` |
+|---|---|---|
+| gdUnit4 tests (`dotnet test`, 2 runs) | 36.2 s, 36.9 s; tests 23.8 s | 13.0 s, 13.5 s; tests 0.7 s |
+| Whole `test` (2 runs) | 58.7 s, 58.9 s | 35.9 s, 35.6 s |
+| Whole `test -Coverage` (1 run) | 88.8 s | 86.8 s |
+
+- **Same results.** The same 33 gdUnit4 tests passed with and without the flag, and the other runners agreed.
+- **Planted bugs still caught.** Two bugs were planted in `Example.Core` on the copy, and each failed the same single test with and without the flag:
+  - fall gravity replaced by rise gravity after the apex, caught by `A_heavier_fall_follows_the_designed_pieces_tick_by_tick`;
+  - the input buffer keeping a press for 0 ticks, caught by `A_press_just_before_landing_jumps_once_on_the_landing_tick`.
+- **Little gain with coverage.** Coverage collection (coverlet) slows the plain .NET tests from 12 s to about 61 s, so they become the slowest part, and the flag saves only 2 s.
+- **Not measured:** Windows, GUT and GoDotTest with the flag, and tests that use audio, the network or .NET timers. Those follow the wall clock and so would see much less time pass.
+
 ## Published evidence
 
 | Finding | Source | What the kit does with it |

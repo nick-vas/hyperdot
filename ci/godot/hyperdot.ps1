@@ -98,8 +98,10 @@ param(
     [string]$Output = 'build',
     # Frames the smoke runner plays, launched exports play, and shot waits before each screenshot.
     [int]$Frames = 120,
-    # smoke: run at this fixed rate of game time (--fixed-fps), so -Frames is game time and a bot's run is the same on
-    # every machine and as fast as the CPU allows. 0 (default): real time, as before.
+    # test: run smoke and the Godot that gdUnit4 starts (the dotnet and gdunit4 runners) at this fixed rate of game time
+    # (--fixed-fps): each frame is 1/FixedFps s of game time, as fast as the CPU allows and the same on every machine, so
+    # -Frames is game time and tests that wait for physics ticks no longer wait for the wall clock. Use the game's physics
+    # tick rate. Audio, the network and .NET timers still follow the wall clock. 0 (default): real time, as before.
     [int]$FixedFps = 0,
     # Your game's own flags, passed after "--" to smoke runs, export -Run, bench and shot (read them with
     # OS.GetCmdlineUserArgs()). Release exports ignore scene paths, so debug entry points belong here, e.g. '--autoplay','--seed=3'.
@@ -297,6 +299,10 @@ foreach ($initOnly in 'CopySkills', 'PluginSource') {
 }
 if ($PSBoundParameters.ContainsKey('Promo') -and $Command -ne 'init') { Stop-GodotCi '-Promo is for init (it adds the weekly marketing brief workflow); the brief itself is the promo command' 'invalid-arguments' }
 if ($PSBoundParameters.ContainsKey('DryRun') -and $Command -ne 'promo') { Stop-GodotCi "-DryRun is for promo, not $Command" 'invalid-arguments' }
+if ($PSBoundParameters.ContainsKey('FixedFps')) {
+    if ($Command -ne 'test') { Stop-GodotCi "-FixedFps is for test (smoke and the Godot gdUnit4 starts), not $Command" 'invalid-arguments' }
+    if ($FixedFps -lt 0) { Stop-GodotCi "-FixedFps is a rate of game frames per second (the game's physics tick rate), or 0 for real time, not $FixedFps" 'invalid-arguments' }
+}
 if ($PSBoundParameters.ContainsKey('Last') -and $Command -ne 'telemetry') { Stop-GodotCi '-Last is for telemetry (how many runs of each command to read)' 'invalid-arguments' }
 foreach ($calendarFlag in 'Source', 'Days', 'Offline', 'Comparable') {
     if ($PSBoundParameters.ContainsKey($calendarFlag) -and $Command -ne 'calendar') { Stop-GodotCi "-$calendarFlag is for calendar, not $Command" 'invalid-arguments' }
@@ -510,7 +516,7 @@ function Invoke-Tests {
     })
     $percent = if ($collect) { Merge-Coverage $resultsDir } else { $null }
     Write-RunSummary $resultsDir $info $runs $percent $MinCoverage
-    # The same results as JUnit only, in one folder, for CI systems such as GitLab (ci/gitlab/hyperdot.gitlab-ci.yml).
+    # The same results as JUnit only, in one folder, for CI systems that read JUnit only.
     $junitDir = Export-JUnitReports $resultsDir @($runs | ForEach-Object Runner)
     if ($junitDir) { Set-JsonField junitDir $junitDir }
     # Which failures this run added, kept or fixed, against the last run with the same runners and -Filter.
@@ -741,6 +747,14 @@ if (($Handoff -or $Checked -or $Verdict) -and ($Command -ne 'status' -or -not $H
 }
 # Before any slow setup: refuse a -Results folder that wiping would hurt.
 if ($Command -eq 'test') { Assert-SafeToClear $Results }
+if ($Command -eq 'test' -and $FixedFps -gt 0) {
+    # Only these runners start a Godot that takes the flag; GUT, GoDotTest and flows run in real time either way.
+    $fixedFpsRunners = @($info.Runners | Where-Object { $_ -in 'smoke', 'dotnet', 'gdunit4' })
+    $fixedFpsWarning = Get-FixedFpsWarning $info.ProjectDir $FixedFps
+    if ($fixedFpsRunners.Count -eq 0) { $fixedFpsWarning = "-FixedFps reaches only smoke and the gdUnit4 tests (dotnet, gdunit4), and none of them runs here ($(@($info.Runners) -join ', ')): it changes nothing" }
+    if ($fixedFpsWarning) { Write-CiLog "WARNING: $fixedFpsWarning" }
+    Set-JsonField fixedFps ([ordered]@{ fps = $FixedFps; physicsTicksPerSecond = (Get-PhysicsTickRate $info.ProjectDir); runners = $fixedFpsRunners; warning = $fixedFpsWarning })
+}
 # bench and audio -Mix run one scene. -Scene a,b arrives as one "a,b" string with pwsh -File: split it as shot does, and
 # refuse several scenes rather than quietly measure the first.
 $scenes = @($Scene | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })

@@ -72,7 +72,7 @@ seed gives a different run on every launch. Never use the global `GD.Randf()` fo
   by `--bot-skill`. Around 0.5, it should lose the way a decent player does.
 - Log **game time**, not wall-clock, and run many seeds in parallel faster than real time:
   `godot --headless --path . --fixed-fps 60 -- --autoplay --seed=N` (an engine flag, so it goes before `--`); the kit's
-  `smoke -FixedFps 60` does the same.
+  `test -Runners smoke -FixedFps 60` does the same.
 - **Prove the bot finishes.** The bot prints a line per milestone (`[Run] act 1 done`, `[Run] ending reached`) and
   `playthrough.json` lists them; the `playthrough` runner fails when one is missing, which `smoke` does not notice. It also
   meets the plan gate `production.playthrough`.

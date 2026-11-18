@@ -114,8 +114,6 @@ $jobs = [System.Collections.Generic.List[string]]::new()
 foreach ($wf in $workflows.Keys) { foreach ($job in $workflows[$wf].Keys) { $jobs.Add("$wf/$job") } }
 foreach ($action in Get-ChildItem -LiteralPath (Join-Path $root '.github/actions') -Directory | Sort-Object Name) { $jobs.Add("actions/$($action.Name)") }
 foreach ($hook in Get-ChildItem -LiteralPath (Join-Path $root 'hooks') -Filter '*.ps1' -File | Sort-Object Name) { $jobs.Add("hooks/$($hook.Name)") }
-$gitlab = Join-Path $root 'ci/gitlab'
-if (Test-Path -LiteralPath $gitlab) { foreach ($file in Get-ChildItem -LiteralPath $gitlab -File | Sort-Object Name) { $jobs.Add("gitlab/$($file.Name)") } }
 
 # --- The probes: self-tests and the self-test workflow's own steps ---------------------------------------------------------
 $probes = [System.Collections.Generic.List[object]]::new()
@@ -322,9 +320,6 @@ foreach ($item in $jobs) {
     } elseif ($item -like 'hooks/*') {
         $name = $item.Substring(6)
         if ($scriptTests.ContainsKey($name)) { foreach ($t in $scriptTests[$name]) { Add-Cover jobs $item $t } }
-    } elseif ($item -like 'gitlab/*') {
-        $name = $item.Substring(7)
-        foreach ($probe in $probes) { if ($probe.Text.Contains($name)) { Add-Cover jobs $item $probe.Name } }
     }
 }
 
@@ -364,7 +359,7 @@ $sections = [ordered]@{
     tools     = @{ Title = 'Tools'; Head = 'Tool'; Items = $tools; Intro = '`ci/godot/tools/`: the tests that name the tool, or whose kit runs entered a function that starts it.' }
     skills    = @{ Title = 'Skills'; Head = 'Skill'; Items = $skills; Intro = '`.agents/skills/`: every skill is checked by the skill validator and needs an entry in `docs/help.md`; other tests listed run something the skill quotes.' }
     subagents = @{ Title = 'Subagents'; Head = 'Subagent'; Items = $subagents; Intro = '`agents/`: the Claude Code plugin''s subagents.' }
-    jobs      = @{ Title = 'Workflow jobs, actions, hooks and the GitLab template'; Head = 'Job'; Items = @($jobs); Intro = 'A job of `self-test.yml` is a test itself (it lists what it runs); another workflow''s job is covered by the self-test jobs that call it and the tests of the scripts it runs.' }
+    jobs      = @{ Title = 'Workflow jobs, actions and hooks'; Head = 'Job'; Items = @($jobs); Intro = 'A job of `self-test.yml` is a test itself (it lists what it runs); another workflow''s job is covered by the self-test jobs that call it and the tests of the scripts it runs.' }
 }
 $gaps = [ordered]@{}
 $summary = [ordered]@{}

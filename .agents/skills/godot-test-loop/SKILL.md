@@ -137,4 +137,9 @@ Full contract: `docs/json.md`. Logs are on stderr; never parse them when the JSO
   condition with a time-out, set up its own state, fake the service.
 - Wait for a result by polling a condition with a generous time-out, never a fixed number of frames or seconds: a fixed
   wait breaks when work moves a frame and wastes time on every run. GUT: `assert_true(await wait_until(func(): return door.is_open, 5))`.
+- gdUnit4 tests that wait for physics ticks (`await ToSignal(tree, SceneTree.SignalName.PhysicsFrame)`, `SimulateFrames`)
+  run on the wall clock, 1/60 s a tick. `test -FixedFps 60` (the game's tick rate) runs them as fast as the CPU allows,
+  with the same tick length. Do not use it when a test depends on audio, the network or .NET timers, which still follow the wall clock.
+  It reaches only `smoke` and the gdUnit4 tests, not GUT or GoDotTest, and with `-Coverage` it gains little (on the C# example
+  2 s of 89: coverage makes the plain .NET tests the slowest part).
 - Never add a test to `quarantine.json` to get green on your own: it needs the user's agreement, an owner and an end date.

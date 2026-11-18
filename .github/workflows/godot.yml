@@ -33,6 +33,10 @@ on:
         description: Run a failed test runner again up to this many times (0-5); tests that pass only on a retry are listed as flaky, never hidden
         type: number
         default: 0
+      fixed-fps:
+        description: "Run smoke and the gdUnit4 tests at this fixed rate of game time (the game's physics tick rate, e.g. 60), as fast as the CPU allows; 0 = real time. Audio, the network and .NET timers still follow the wall clock"
+        type: number
+        default: 0
       coverage:
         description: Collect coverage and add it to the job summary
         type: boolean
@@ -150,6 +154,10 @@ on:
         description: Run a failed test runner again up to this many times (0-5); tests that pass only on a retry are listed as flaky, never hidden
         type: number
         default: 0
+      fixed-fps:
+        description: "Run smoke and the gdUnit4 tests at this fixed rate of game time (the game's physics tick rate, e.g. 60), as fast as the CPU allows; 0 = real time. Audio, the network and .NET timers still follow the wall clock"
+        type: number
+        default: 0
       coverage:
         description: Collect coverage and add it to the job summary
         type: boolean
@@ -258,6 +266,7 @@ jobs:
           runners: ${{ inputs.runners }}
           filter: ${{ inputs.filter }}
           retry: ${{ inputs.retry }}
+          fixed-fps: ${{ inputs.fixed-fps }}
           coverage: ${{ inputs.coverage }}
           min-coverage: ${{ inputs.min-coverage }}
           retention-days: ${{ inputs.retention-days }}

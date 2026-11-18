@@ -1505,6 +1505,29 @@
         "Write-TestSummary"
       ]
     },
+    "Test-FixedFps": {
+      "commands": [
+        "detect",
+        "doctor",
+        "help",
+        "test"
+      ],
+      "errors": [
+        "invalid-arguments"
+      ],
+      "functions": [
+        "Add-RunHistory",
+        "Assert-KitArguments",
+        "Enable-JsonMode",
+        "Get-KitFlagName",
+        "Get-KitParameterSets",
+        "Set-DotnetRollForward",
+        "Stop-GodotCi",
+        "Write-Console",
+        "Write-JsonResult",
+        "Write-RunLog"
+      ]
+    },
     "Test-Flaky": {
       "commands": [
         "doctor",
@@ -2654,6 +2677,7 @@
         "Get-ExportPresets",
         "Get-FlakyOffenders",
         "Get-GddPath",
+        "Get-GddProblems",
         "Get-GdextensionHostProblems",
         "Get-GdextensionProblems",
         "Get-GitActivity",

@@ -15,7 +15,7 @@ gives the percentages and the floors CI holds them to.
 | [Tools](#tools) | 23 | 23 |
 | [Skills](#skills) | 55 | 55 |
 | [Subagents](#subagents) | 2 | 2 |
-| [Workflow jobs, actions, hooks and the GitLab template](#workflow-jobs-actions-hooks-and-the-gitlab-template) | 37 | 32 |
+| [Workflow jobs, actions and hooks](#workflow-jobs-actions-and-hooks) | 35 | 30 |
 
 ## Commands
 
@@ -23,12 +23,12 @@ The values of `hyperdot.ps1`'s `-Command`, and the self-tests and workflow steps
 
 | Command | Covered by |
 |---|---|
-| `test` | `Test-DotnetTempDir.ps1`, `Test-EditCheck.ps1`, `Test-ErrorCodes.ps1`, `Test-ErrorKeys.ps1`, `Test-EvalGraders.ps1`, `Test-Flaky.ps1`, `Test-Flows.ps1`, `Test-Handoffs.ps1` and 23 more |
+| `test` | `Test-DotnetTempDir.ps1`, `Test-EditCheck.ps1`, `Test-ErrorCodes.ps1`, `Test-ErrorKeys.ps1`, `Test-EvalGraders.ps1`, `Test-FixedFps.ps1`, `Test-Flaky.ps1`, `Test-Flows.ps1` and 24 more |
 | `build` | `Test-BuildSize.ps1`, `Test-CrashRetry.ps1`, `Test-ErrorCodes.ps1` |
 | `export` | `Test-BuildSize.ps1`, `Test-CrashRetry.ps1`, `Test-ErrorCodes.ps1`, `Test-GameVersion.ps1`, `Test-GpuValidation.ps1`, `Test-Web.ps1`, self-test.yml local-windows: Export the Windows build and launch it |
 | `setup` | `Test-BenchmarkIsolation.ps1`, `Test-DownloadFailed.ps1`, `Test-FieldTest.ps1`, `Test-GameBenchmark.ps1`, `Test-GameProgramme.ps1`, `Test-InstallLock.ps1`, self-test.yml field-test: Godot, self-test.yml game-benchmark: Godot and 1 more |
-| `detect` | `Test-Detect.ps1`, `Test-ErrorCodes.ps1`, `Test-Localization.ps1`, `Test-OldState.ps1`, `Test-Playthrough.ps1`, `Test-StopGate.ps1`, `Test-Telemetry.ps1`, self-test.yml init: The juice runner passes timely feedback and fails late feedback and 2 more |
-| `doctor` | `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-EvalGraders.ps1`, `Test-Flaky.ps1` and 11 more |
+| `detect` | `Test-Detect.ps1`, `Test-ErrorCodes.ps1`, `Test-FixedFps.ps1`, `Test-Localization.ps1`, `Test-OldState.ps1`, `Test-Playthrough.ps1`, `Test-StopGate.ps1`, `Test-Telemetry.ps1` and 3 more |
+| `doctor` | `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-EvalGraders.ps1`, `Test-FixedFps.ps1` and 12 more |
 | `init` | `Test-ErrorCodes.ps1`, `Test-ErrorKeys.ps1`, `Test-InitializeGame.ps1`, `Test-OldState.ps1`, `Test-Plan.ps1`, `Test-Promo.ps1`, `Test-UpdatePins.ps1`, self-test.yml init: Agent efficiency and 2 more |
 | `plan` | `Test-Brief.ps1`, `Test-Calendar.ps1`, `Test-ErrorCodes.ps1`, `Test-Plan.ps1`, `Test-ProjectSync.ps1`, `Test-Promo.ps1`, self-test.yml lint: status reads the GDD, self-test.yml local-windows: Plan |
 | `bench` | `Test-BenchHotspots.ps1`, `Test-BenchSweep.ps1`, `Test-ErrorCodes.ps1`, `Test-GpuValidation.ps1`, `Test-SceneCount.ps1`, self-test.yml measure: bench |
@@ -39,7 +39,7 @@ The values of `hyperdot.ps1`'s `-Command`, and the self-tests and workflow steps
 | `credits` | `Test-Credits.ps1`, `Test-ErrorCodes.ps1` |
 | `sfx` | `Test-Sfx.ps1` |
 | `playtest` | `Test-Playtest.ps1` |
-| `help` | `Test-ErrorCodes.ps1`, `Test-Help.ps1` |
+| `help` | `Test-ErrorCodes.ps1`, `Test-FixedFps.ps1`, `Test-Help.ps1` |
 | `deck` | `Test-Deck.ps1` |
 | `telemetry` | `Test-Telemetry.ps1` |
 | `calendar` | `Test-Calendar.ps1` |
@@ -68,7 +68,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `export-template-missing` | **none** |
 | `unsafe-results-dir` | `Test-ResultsDir.ps1` |
 | `doctor-problems` | `Test-ErrorCodes.ps1`, `Test-Gdd.ps1`, `Test-Steam.ps1`, `Test-Workflow.ps1` |
-| `invalid-arguments` | `Test-BenchHotspots.ps1`, `Test-BenchSweep.ps1`, `Test-Brief.ps1`, `Test-BuildSize.ps1`, `Test-Calendar.ps1`, `Test-Clip.ps1`, `Test-ColorVision.ps1`, `Test-Deck.ps1` and 17 more |
+| `invalid-arguments` | `Test-BenchHotspots.ps1`, `Test-BenchSweep.ps1`, `Test-Brief.ps1`, `Test-BuildSize.ps1`, `Test-Calendar.ps1`, `Test-Clip.ps1`, `Test-ColorVision.ps1`, `Test-Deck.ps1` and 18 more |
 | `no-plan` | `Test-ErrorCodes.ps1` |
 | `invalid-plan` | `Test-ErrorCodes.ps1`, `Test-Plan.ps1`, `Test-ProjectSync.ps1` |
 | `unknown-gate` | `Test-ErrorCodes.ps1`, `Test-Plan.ps1` |
@@ -166,12 +166,12 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Playtest.ps1` | 8/8 | `Test-Playtest.ps1` |
 | `Playthrough.ps1` | 3/3 | `Test-Playthrough.ps1` |
 | `Promo.ps1` | 27/27 | `Test-Promo.ps1` |
-| `Report.ps1` | 29/34 | `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Flows.ps1`, `Test-Localization.ps1`, `Test-Telemetry.ps1`, `Test-Calendar.ps1`, `Test-ArchitectureFixtures.ps1`, `Test-Data.ps1` and 28 more |
-| `Runners.ps1` | 7/10 | `Test-Flaky.ps1`, `Test-Flows.ps1`, `Test-StaleTres.ps1`, `Test-Detect.ps1`, `Test-SelectJobs.ps1`, `Test-TestsNotRun.ps1`, `Test-ErrorCodes.ps1`, `Test-DotnetTempDir.ps1` and 10 more |
+| `Report.ps1` | 29/34 | `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Flows.ps1`, `Test-Localization.ps1`, `Test-Telemetry.ps1`, `Test-Calendar.ps1`, `Test-ArchitectureFixtures.ps1`, `Test-Data.ps1` and 27 more |
+| `Runners.ps1` | 7/13 | `Test-Flaky.ps1`, `Test-Flows.ps1`, `Test-StaleTres.ps1`, `Test-Detect.ps1`, `Test-FixedFps.ps1`, `Test-SelectJobs.ps1`, `Test-TestsNotRun.ps1`, `Test-ErrorCodes.ps1` and 11 more |
 | `Setup.ps1` | 11/16 | `Test-DownloadFailed.ps1`, `Test-BenchSweep.ps1`, `Test-Flows.ps1`, `Test-InstallLock.ps1`, `Test-GameVersion.ps1`, `Test-InstallAddon.ps1`, `Test-ReportPins.ps1`, `Test-SelectJobs.ps1` and 37 more |
 | `Sfx.ps1` | 5/6 | `Test-SelectJobs.ps1`, `Test-Sfx.ps1` |
 | `Soak.ps1` | 6/10 | `Test-Soak.ps1` |
-| `Status.ps1` | 17/17 | `Test-Gdd.ps1`, `Test-Brief.ps1`, `Test-ArchitectureFixtures.ps1`, `Test-Data.ps1`, `Test-Localization.ps1`, `Test-Telemetry.ps1`, `Test-TestDuration.ps1`, `Test-ErrorKeys.ps1` and 13 more |
+| `Status.ps1` | 17/17 | `Test-Gdd.ps1`, `Test-Brief.ps1`, `Test-ArchitectureFixtures.ps1`, `Test-Data.ps1`, `Test-Localization.ps1`, `Test-Telemetry.ps1`, `Test-TestDuration.ps1`, `Test-Plan.ps1` and 13 more |
 | `Steam.ps1` | 9/10 | `Test-Steam.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1` and 6 more |
 | `Store.ps1` | 8/12 | `Test-Store.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1` and 6 more |
 | `Telemetry.ps1` | 11/11 | `Test-Telemetry.ps1` |
@@ -282,7 +282,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `godot-architect` | `Test-Handoffs.ps1`, `Test-Help.ps1` |
 | `godot-verifier` | `Test-Context.ps1`, `Test-Handoffs.ps1`, `Test-Help.ps1`, `Test-Plan.ps1`, `Test-SelectJobs.ps1`, self-test.yml init: Agent efficiency |
 
-## Workflow jobs, actions, hooks and the GitLab template
+## Workflow jobs, actions and hooks
 
 A job of `self-test.yml` is a test itself (it lists what it runs); another workflow's job is covered by the self-test jobs that call it and the tests of the scripts it runs.
 
@@ -300,7 +300,7 @@ A job of `self-test.yml` is a test itself (it lists what it runs); another workf
 | promo.yml/promo | **none** |
 | promo.yml/clips | **none** |
 | release.yml/release | `Test-ReleaseNotes.ps1`, `Test-SelectJobs.ps1`, `Test-WorkflowLint.ps1` |
-| self-test.yml/lint | itself (on every pull request, push to main and nightly run); runs `Test-Addons.ps1`, `Test-ArchitectureFixtures.ps1`, `Test-AssetManifest.ps1`, `Test-Brief.ps1`, `Test-Calendar.ps1`, `Test-Changelog.ps1`, `Test-Context.ps1`, `Test-CoverageMap.ps1`, `Test-CrashRetry.ps1`, `Test-Data.ps1`, `Test-Detect.ps1`, `Test-DocLinks.ps1`, `Test-DoctorFixture.ps1`, `Test-DotnetTempDir.ps1`, `Test-DownloadFailed.ps1`, `Test-EvalGraders.ps1`, `Test-FailureDelta.ps1`, `Test-GameVersion.ps1`, `Test-Gdd.ps1`, `Test-GitLabTemplate.ps1`, `Test-Handoffs.ps1`, `Test-Help.ps1`, `Test-HyperdotLabel.ps1`, `Test-InitializeGame.ps1`, `Test-InputHash.ps1`, `Test-InstallAddon.ps1`, `Test-InstallLock.ps1`, `Test-JuiceLog.ps1`, `Test-KitPaths.ps1`, `Test-LibNames.ps1`, `Test-OldState.ps1`, `Test-Plan.ps1`, `Test-Platforms.ps1`, `Test-Playtest.ps1`, `Test-PowerShellPatterns.ps1`, `Test-PrComment.ps1`, `Test-ProcessTimeout.ps1`, `Test-ProjectSync.ps1`, `Test-Promo.ps1`, `Test-ReleaseNotes.ps1`, `Test-RepoHygiene.ps1`, `Test-ReviewPairs.ps1`, `Test-SceneCount.ps1`, `Test-SelectJobs.ps1`, `Test-Sfx.ps1`, `Test-Site.ps1`, `Test-SkillFixtures.ps1`, `Test-Steam.ps1`, `Test-StopGate.ps1`, `Test-Store.ps1`, `Test-Telemetry.ps1`, `Test-TestDuration.ps1`, `Test-TestsNotRun.ps1`, `Test-TokenBenchmark.ps1`, `Test-UpdatePins.ps1`, `Test-Workflow.ps1`, `Test-WorkflowLint.ps1`, `Test-Skills.ps1`, 2 step(s) of its own |
+| self-test.yml/lint | itself (on every pull request, push to main and nightly run); runs `Test-Addons.ps1`, `Test-ArchitectureFixtures.ps1`, `Test-AssetManifest.ps1`, `Test-Brief.ps1`, `Test-Calendar.ps1`, `Test-Changelog.ps1`, `Test-Context.ps1`, `Test-CoverageMap.ps1`, `Test-CrashRetry.ps1`, `Test-Data.ps1`, `Test-Detect.ps1`, `Test-DocLinks.ps1`, `Test-DoctorFixture.ps1`, `Test-DotnetTempDir.ps1`, `Test-DownloadFailed.ps1`, `Test-EvalGraders.ps1`, `Test-FailureDelta.ps1`, `Test-FixedFps.ps1`, `Test-GameVersion.ps1`, `Test-Gdd.ps1`, `Test-Handoffs.ps1`, `Test-Help.ps1`, `Test-HyperdotLabel.ps1`, `Test-InitializeGame.ps1`, `Test-InputHash.ps1`, `Test-InstallAddon.ps1`, `Test-InstallLock.ps1`, `Test-JuiceLog.ps1`, `Test-KitPaths.ps1`, `Test-LibNames.ps1`, `Test-OldState.ps1`, `Test-Plan.ps1`, `Test-Platforms.ps1`, `Test-Playtest.ps1`, `Test-PowerShellPatterns.ps1`, `Test-PrComment.ps1`, `Test-ProcessTimeout.ps1`, `Test-ProjectSync.ps1`, `Test-Promo.ps1`, `Test-ReleaseNotes.ps1`, `Test-RepoHygiene.ps1`, `Test-ReviewPairs.ps1`, `Test-SceneCount.ps1`, `Test-SelectJobs.ps1`, `Test-Sfx.ps1`, `Test-Site.ps1`, `Test-SkillFixtures.ps1`, `Test-Steam.ps1`, `Test-StopGate.ps1`, `Test-Store.ps1`, `Test-Telemetry.ps1`, `Test-TestDuration.ps1`, `Test-TestsNotRun.ps1`, `Test-TokenBenchmark.ps1`, `Test-UpdatePins.ps1`, `Test-Workflow.ps1`, `Test-WorkflowLint.ps1`, `Test-Skills.ps1`, 2 step(s) of its own |
 | self-test.yml/zero-config | itself (on a pull request when the files it exercises change; always on pushes to main and in the nightly run) |
 | self-test.yml/csharp | itself (on a pull request when the files it exercises change; always on pushes to main and in the nightly run) |
 | self-test.yml/explicit-runners | itself (on a pull request when the files it exercises change; always on pushes to main and in the nightly run) |
@@ -323,8 +323,6 @@ A job of `self-test.yml` is a test itself (it lists what it runs); another workf
 | hooks/edit-check.ps1 | `Test-EditCheck.ps1`, `Test-SelectJobs.ps1` |
 | hooks/project-sync.ps1 | `Test-ProjectSync.ps1` |
 | hooks/stop-gate.ps1 | `Test-SelectJobs.ps1`, `Test-StopGate.ps1`, self-test.yml init: Agent efficiency |
-| gitlab/hyperdot.gitlab-ci.yml | `Test-GitLabTemplate.ps1`, `Test-Plan.ps1` |
-| gitlab/Invoke-Hyperdot.ps1 | `Test-GitLabTemplate.ps1` |
 
 ## Gaps
 

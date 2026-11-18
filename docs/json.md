@@ -128,8 +128,9 @@ or `engineErrors[]`: `message`, `file` (`res://...` when Godot named one, on the
 under it), `line`, `key` (the error key, see the run history below).
 
 **test**: `resultsDir`, `junitDir` (every runner's results as JUnit, `<results>/junit/<runner>-<file>.junit.xml`: JUnit
-copied, TRX converted, failed `-Retry` attempts left out; for CI systems such as GitLab; absent when no runner wrote a
-report), `coverage` (`linePercent`, `minimum`), `runnerResults[]` (`reason` says why a runner failed with no failing test: it reported no test results, or exited non-zero and recorded no failure; null otherwise, and the `tests-failed` message names it):
+copied, TRX converted, failed `-Retry` attempts left out; for CI systems that read JUnit only; absent when no runner wrote a
+report), `coverage` (`linePercent`, `minimum`), `fixedFps` (with `-FixedFps` above 0 only: `fps`, `physicsTicksPerSecond` from
+project.godot, `runners`, the selected runners it reaches (smoke, dotnet, gdunit4; empty with a warning when none runs), `warning` when the two differ, else `null`), `runnerResults[]` (`reason` says why a runner failed with no failing test: it reported no test results, or exited non-zero and recorded no failure; null otherwise, and the `tests-failed` message names it):
 
 ```json
 { "runner": "gut", "ok": false, "total": 3, "passed": 2, "failed": 1, "skipped": 0,

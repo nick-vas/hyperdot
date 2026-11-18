@@ -24,8 +24,7 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
   `Get-HyperdotLabel.ps1` and `label-scale.json` rate a version from its runs, like the EU energy label, one class per programme ([docs/label.md](docs/label.md)).
   Nothing outside `benchmark/`, `docs/token-benchmark.md`, `docs/label*` and their tests may name a benchmark task or profile:
   the sessions must not be able to recognise the test.
-- `.github/actions/godot`, `.github/workflows/godot.yml` composite action and reusable workflow; `.github/workflows/self-test.yml` and `.github/scripts/Select-Jobs.ps1` decide what runs for a change ([docs/ci.md](docs/ci.md)); `ci/gitlab/` the GitLab CI
-  template (`hyperdot.gitlab-ci.yml`, untested on GitLab) and `Invoke-Hyperdot.ps1`, its run step.
+- `.github/actions/godot`, `.github/workflows/godot.yml` composite action and reusable workflow; `.github/workflows/self-test.yml` and `.github/scripts/Select-Jobs.ps1` decide what runs for a change ([docs/ci.md](docs/ci.md)).
 - `.github/workflows/promo.yml` the reusable weekly marketing brief (`promo`); `init -Promo` writes its caller into a game.
 - `.github/workflows/release.yml` (run by hand) tags a release and publishes it, with `.github/scripts/Get-ChangelogSection.ps1` for the notes ([docs/ci.md](docs/ci.md)).
 - `examples/csharp` (C#, every framework) and `examples/gdscript` (GUT): the integration fixtures.
