@@ -95,7 +95,7 @@ Branch on `error.code`; `message` can change.
 | `promo-no-workflow` | `promo`: no workflow in `.github/workflows` calls the kit's `godot.yml` (run `init`), or none of its jobs has `uses: .../godot.yml` where it can be read, so there is no check name (`<job> / Test`) to gate the brief on | `error.message` |
 | `promo-no-repository` | `promo`: neither `GITHUB_REPOSITORY` nor a github.com `origin` remote names the repository | - |
 | `promo-no-token` | `promo` without `-DryRun`: no `GITHUB_TOKEN` (or `GH_TOKEN`) to open the issue and tag the commit; the workflow passes `github.token` | - |
-| `promo-settings` | `promo`: `docs/promo.json` is not valid JSON, has an unknown setting, a channel other than `discord`, `bluesky` and `steam`, a hashtag that is not `#word`, hashtags over 100 characters together, a non-boolean `ai` or an empty `model` | `error.message` |
+| `promo-settings` | `promo`: `docs/promo.json` is not valid JSON, has an unknown setting, a channel other than `discord`, `bluesky` and `steam`, a hashtag that is not `#word`, hashtags over 100 characters together, a non-boolean `ai` or `calendar`, or an empty `model` | `error.message` |
 | `promo-tag-exists` | `promo`: the tag this brief would make (`mkt/N`) is already on GitHub but not in the clone, whose tags are stale (`git fetch --tags`); checked before anything is written | `error.message` |
 | `promo-api` | `promo`: a GitHub API call failed (reading checks, pull requests or the open briefs, opening the issue, or tagging after the issue was opened: the message then says to create `mkt/N` by hand). A failed close of last week's brief is a warning, not this | `error.message`, `promo` |
 | `brief-missing` | `brief`: no `docs/brief.json` in the folder (start one with `brief -Do start -TextFile <file>`), or it is not a brief | `error.message` |
@@ -511,15 +511,25 @@ has none. `-DryRun` on another command, or `-Promo` on any command but `init`, i
 - `shipped[]` (in the green commit or older) and `waiting[]` (newer): `text` (as written; in the issue outside the drafts, `@` mentions
   are broken with a zero-width space; trailers inside HTML comments or fenced code are not read),
   `priority`, `visual`, `sha`, `source` (`commit` or the pull request, `#9`).
+- `upcoming[]`: the dates of the next 28 days, by date (empty with `"calendar": false`): `date` (yyyy-MM-dd), `what`, `kind`
+  (`seasonal-sale`, `next-fest` and `themed-fest` from Steam's event page, read as `calendar` reads it, from the `store-page`
+  stage on; `deadline` for plan.json's release deadlines not yet done (app fee, store page review, Coming Soon, build review,
+  Next Fest demo review, and the demo review of the last Next Fest before release when none is planned); `release`;
+  `discount`, the first allowed), `url`, `task` (the checklist line, or `null` for a date with nothing to do: an event with no
+  opt-in page, release day, the first discount).
+- `deadlineOnly`: nothing shipped, but a date with a task falls within 7 days: the brief holds the dates, the tasks and the
+  changes still waiting, with no posts or drafts, its title is `Marketing dates: <game>, <day>`, and no tag is made, so next
+  week's brief still covers the changes since the last one.
 - `nothingShipped`: why there is no brief this week (no trailer, nothing green, or every change newer than the green commit; on a
-  first run with changes waiting, that they leave the 7-day window next week unless a commit before them is tagged `mkt/0`); the
-  rest below is then absent or empty, and nothing is written.
+  first run with changes waiting, that they leave the 7-day window next week unless a commit before them is tagged `mkt/0`) when
+  no date is due within 7 days either; the rest below is then absent or empty, and nothing is written.
 - `title`, `body` (the issue's Markdown), `carried[]` (unticked tasks of the open briefs, each ending `(from #N)`, less the ones
   this week asks for anyway), `drafts` (`source`: `template` or `ai`; `model`; `fallbackReason`: why the AI drafts were not used;
   `text`: `discord`, `bluesky`, `steam` as the channels and stage allow, Steam from `store-page` on; as they will be pasted, in
   code blocks in the issue). Carried tasks are read from the `## Tasks` section only.
-- `issue` (`number`, `url`) and `tag` (`mkt/N`), `null` in a dry run; `previous[]` (`number`, `closed`).
-- `warnings[]`: a failed close, AI drafts not used, an unknown `Marketing-Priority`, a plan.json that cannot be read.
+- `issue` (`number`, `url`) and `tag` (`mkt/N`), `null` in a dry run and `tag` `null` in a dates-only brief; `previous[]` (`number`, `closed`).
+- `warnings[]`: a failed close, AI drafts not used, an unknown `Marketing-Priority`, a plan.json that cannot be read, Steam's event
+  page not read (`Coming up: ...`; the plan's deadlines are still listed).
 
 **calendar** (reads the network or its cache, writes `calendar.ics` and the cache, never the game; it never fails on what it
 finds, only with `calendar-unavailable` when no source could be read): `calendar [-Source steam,itch,epic,lootradar] [-Days 365]

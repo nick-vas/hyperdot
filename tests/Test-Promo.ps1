@@ -13,7 +13,7 @@ $failures = @()
 function Assert-True([bool]$Condition, [string]$Name) {
     if ($Condition) { Write-Host "ok     $Name" } else { Write-Host "FAIL   $Name"; $script:failures += $Name }
 }
-foreach ($lib in 'Common', 'Plan', 'Init', 'Promo') { . (Join-Path $root "ci/godot/lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Plan', 'Calendar', 'Init', 'Promo') { . (Join-Path $root "ci/godot/lib/$lib.ps1") }
 $zwsp = [string][char]0x200B
 
 # --- Pure parts ---
@@ -189,7 +189,74 @@ try {
     $call = @(Get-Requests | Where-Object { $_.path -eq '/models' })
     Assert-True ($p.drafts.source -eq 'ai' -and $p.drafts.text.discord -eq 'Co-op is here, thanks @dave ``````' -and "$($p.body)".Contains("````````text`nCo-op is here") -and "$($p.body)".Contains('check every claim') -and $call.Count -eq 1 -and ($call[0].body | ConvertFrom-Json).model -eq 'openai/gpt-4.1-mini') 'good AI drafts are used as written, in a fence longer than their backticks, labelled "check every claim"'
 
+    # --- Coming up: Steam's dates (a page made relative to today, in the calendar cache) and plan.json's deadlines ---
+    $now = [datetime]::UtcNow.Date
+    $dayOf = { param([int]$Offset) $now.AddDays($Offset).ToString('yyyy-MM-dd', [cultureinfo]::InvariantCulture) }
+    $fest = { param([int]$From, [int]$To, [string]$Name, [string]$OptIn)
+        $a = $now.AddDays($From); $b = $now.AddDays($To); $inv = [cultureinfo]::InvariantCulture
+        $link = if ($OptIn) { '<a href="' + $OptIn + '">Registration details</a>' } else { '' }
+        "<h2 class=""bb_subsection""><strong>$($a.Year) Fests</strong></h2><table><tr><th>Event Dates</th><th>Theme</th><th>Registration</th><th>Notes</th></tr>" +
+        "<tr><td>$($a.ToString('MMM d', $inv))<br>$($b.ToString('MMM d', $inv))</td><td>$Name</td><td>$link</td><td>Games. <a href=""https://partner.steamgames.com/doc/x"" class=""bb_doclink"">More info</a>.</td></tr></table>" }
+    $nf = { param([int]$From, [int]$To) $inv = [cultureinfo]::InvariantCulture
+        "<h2 class=""bb_subsection"">Next Fest | $($now.AddDays($From).ToString('MMMM d', $inv)) - $($now.AddDays($To).ToString('MMMM d, yyyy', $inv))</h2><strong>Registration</strong>: <a href=""https://partner.steamgames.com/optin/sale/nextfest_test"">View registration details</a>" }
+    $steamPage = "<div class=""documentation_bbcode""><h2 class=""bb_section"">Themed Sale Events</h2>" + (& $fest 3 10 'Soon Fest' 'https://partner.steamgames.com/optin/sale/soon') +
+        (& $fest 20 25 'Later Fest' '') + (& $fest 60 65 'Far Fest' 'https://partner.steamgames.com/optin/sale/far') + "<h2 class=""bb_section"">Next Fest</h2>" + (& $nf 25 32) + '</div>'
+    $cache = Join-Path $repo '.godot/hyperdot-calendar'
+    New-Item -ItemType Directory -Force $cache | Out-Null
+    Set-Content -LiteralPath (Join-Path $cache 'steam.html') -Value $steamPage -Encoding utf8
+    New-Item -ItemType Directory -Force (Join-Path $repo 'plan') | Out-Null
+    # Release in 40 days with the Coming Soon page set (store-page stage): the app fee is due in 19 days, the rest is past or later.
+    Set-Content -LiteralPath (Join-Path $repo 'plan/plan.json') -Value (@{ game = 'Storm Keep'; release = @{ date = (& $dayOf 40); comingSoon = (& $dayOf 5) } } | ConvertTo-Json -Depth 3)
+    Set-Content -LiteralPath (Join-Path $repo 'docs/promo.json') -Value '{ "channels": ["discord"] }'
+    Set-Routes $green5
+    $run = Invoke-PromoCli @('-DryRun')
+    $p = $run.doc.promo
+    $what = @($p.upcoming | ForEach-Object { "$($_.date) $($_.what)" })
+    Assert-True ($run.code -eq 0 -and $p.stage -eq 'store-page' -and -not $p.deadlineOnly -and $p.green) "a normal brief, store-page stage: $($p.stage)"
+    Assert-True (@($what | Where-Object { $_ -like "$(& $dayOf 3) Steam Soon Fest*" }).Count -eq 1 -and @($what | Where-Object { $_ -like "$(& $dayOf 20) Steam Later Fest*" }).Count -eq 1 -and -not @($what | Where-Object { $_ -match 'Far Fest' }).Count) "Steam's fests of the next 4 weeks are listed, a later one is not: $($what -join ' | ')"
+    Assert-True (@($what | Where-Object { $_ -like "$(& $dayOf 19) Pay Steam's app fee*" }).Count -eq 1 -and -not @($what | Where-Object { $_ -match 'Coming Soon page live|Release day' }).Count) 'an open plan deadline is listed; a done one (comingSoon set) and a date beyond 4 weeks are not'
+    Assert-True (@($what | Where-Object { $_ -like "$(& $dayOf 4) The demo for Steam Next Fest*" }).Count -eq 1) 'the last Next Fest before release gives its demo review date'
+    $body = "$($p.body)"
+    Assert-True ($body.Contains('## Coming up (next 28 days)') -and $body.Contains("- [ ] Opt in to Steam Soon Fest before it starts on $(& $dayOf 3): https://partner.steamgames.com/optin/sale/soon") -and $body.Contains("Pay Steam's app fee (21 days before release): by $(& $dayOf 19)") -and -not $body.Contains('Opt in to Steam Later Fest')) 'a date with an opt-in page or a deadline is a task; one without is only listed'
+    Assert-True ($body.Contains('- [ ] Post on Discord') -and $body.Contains('## Drafts') -and $body.IndexOf('## Coming up') -lt $body.IndexOf('## Tasks')) 'the normal brief keeps its posts and drafts, with Coming up before the tasks'
+
+    # Nothing green, a date within a week: a dates-only brief, no tag, last week's brief closed and its open tasks carried.
+    Set-Routes @{
+        "GET /repos/o/r/commits/$c5/check-runs" = New-Checks 'failure'; "GET /repos/o/r/commits/$c4/check-runs" = New-Checks 'failure'; "GET /repos/o/r/commits/$c3/check-runs" = New-Checks 'failure'
+        'GET /repos/o/r/issues' = @{ status = 200; body = @(@{ number = 5; title = 'Marketing brief 1'; body = "## Tasks`n`n- [ ] Post on Discord`n- [ ] Reply to the press" }) }
+        'POST /repos/o/r/issues' = @{ status = 201; body = @{ number = 6; html_url = 'https://github.com/o/r/issues/6' } }
+        'PATCH /repos/o/r/issues/5' = @{ status = 200; body = @{ number = 5; state = 'closed' } }
+    }
+    $run = Invoke-PromoCli
+    $p = $run.doc.promo
+    $writes = @(Get-Requests | Where-Object { $_.method -ne 'GET' })
+    $order = @($writes | ForEach-Object { "$($_.method) $($_.path)" }) -join ', '
+    Assert-True ($run.code -eq 0 -and $p.deadlineOnly -and $null -eq $p.green -and $p.written -and $null -eq $p.tag -and $order -eq 'POST /repos/o/r/issues, PATCH /repos/o/r/issues/5') "nothing shipped but a date within a week: the issue and the close, no tag: $order"
+    Assert-True (-not @(Get-Requests | Where-Object { $_.path -match '/git/ref' }).Count) 'a dates-only brief never looks for or makes a tag'
+    $issueBody = $writes[0].body | ConvertFrom-Json
+    Assert-True ($issueBody.title -like 'Marketing dates: Storm Keep, *' -and $issueBody.body.Contains('Nothing shipped since mkt/1') -and $issueBody.body.Contains('Opt in to Steam Soon Fest') -and $issueBody.body.Contains('- [ ] Reply to the press (from #5)')) "the dates-only brief has its own title, the dates and the carried tasks: $($issueBody.title)"
+    Assert-True (-not $issueBody.body.Contains('## Drafts') -and -not $issueBody.body.Contains('## Shipped') -and -not ($issueBody.body -match '(?m)^- \[ \] Post on Discord$') -and $issueBody.body.Contains('- [ ] Post on Discord (from #5)') -and $issueBody.body.Contains('## Waiting for a green build')) 'and no drafts, no shipped list and no new posts (an open one carries over), but the changes still waiting'
+
+    # The same week with the calendar off: nothing to act on, nothing written.
+    Set-Content -LiteralPath (Join-Path $repo 'docs/promo.json') -Value '{ "calendar": false }'
+    Set-Routes (Get-Content -LiteralPath $routesFile -Raw | ConvertFrom-Json -AsHashtable)
+    $run = Invoke-PromoCli
+    Assert-True ($run.code -eq 0 -and @($run.doc.promo.upcoming).Count -eq 0 -and -not $run.doc.promo.deadlineOnly -and $run.doc.promo.nothingShipped -and -not @(Get-Requests | Where-Object { $_.method -ne 'GET' }).Count) '"calendar": false lists no dates, and a quiet week stays quiet'
+
+    # A Steam page that cannot be read: a warning, and the plan's deadlines and the brief still come.
+    Set-Content -LiteralPath (Join-Path $repo 'docs/promo.json') -Value '{ "channels": ["discord"] }'
+    Set-Content -LiteralPath (Join-Path $cache 'steam.html') -Value '<html><body>A page with another layout</body></html>' -Encoding utf8
+    Set-Routes $green5
+    $run = Invoke-PromoCli @('-DryRun')
+    $p = $run.doc.promo
+    Assert-True ($run.code -eq 0 -and $p.green -and @($run.doc.warnings | Where-Object { $_ -match "^Coming up: Steam's event page could not be read" }).Count -eq 1 -and @($p.upcoming | Where-Object { $_.what -like "Pay Steam's app fee*" }).Count -eq 1 -and -not @($p.upcoming | Where-Object { $_.kind -ne 'deadline' }).Count) "an unreadable Steam page is a warning; the plan's deadlines and the brief still come: $(@($run.doc.warnings) -join ' | ')"
+    Remove-Item -LiteralPath (Join-Path $repo 'plan') -Recurse
+    Remove-Item -LiteralPath $cache -Recurse
+
     # --- Errors ---
+    Set-Content -LiteralPath (Join-Path $repo 'docs/promo.json') -Value '{ "calendar": "yes" }'
+    $run = Invoke-PromoCli @('-DryRun')
+    Assert-True ($run.code -ne 0 -and $run.doc.error.code -eq 'promo-settings' -and $run.doc.error.message -match 'calendar is true or false') 'calendar that is not true or false is promo-settings'
     Set-Content -LiteralPath (Join-Path $repo 'docs/promo.json') -Value '{ "channels": ["tiktok"] }'
     $run = Invoke-PromoCli @('-DryRun')
     Assert-True ($run.code -ne 0 -and $run.doc.error.code -eq 'promo-settings') 'an unknown channel is promo-settings'
@@ -238,7 +305,7 @@ try {
     Assert-True ($doc.ok -and $callerText -match 'nick-vas/hyperdot/\.github/workflows/promo\.yml@v1' -and $callerText -match 'models: read' -and $callerText -match 'checks: read' -and $callerText -match 'pull-requests: read' -and $callerText -match 'issues: write' -and $callerText -match 'contents: write') 'init -Promo writes the caller, pinned @v1, granting the five permissions'
     Assert-True ($callerText -match 'group: hyperdot-promo' -and $callerText -match 'cancel-in-progress: false' -and $callerText.Contains("if: github.event_name == 'schedule' || inputs.dry-run || github.ref_name == github.event.repository.default_branch")) 'runs never overlap, and a real run by hand only runs from the default branch'
     $settings = Get-Content -LiteralPath (Join-Path $repo 'docs/promo.json') -Raw | ConvertFrom-Json
-    Assert-True ($settings.ai -eq $false -and @($settings.channels).Count -eq 3) 'init -Promo writes docs/promo.json with AI off'
+    Assert-True ($settings.ai -eq $false -and $settings.calendar -eq $true -and @($settings.channels).Count -eq 3) 'init -Promo writes docs/promo.json with AI off and the calendar on'
     Assert-True (Test-Path -LiteralPath (Join-Path $repo '.github/workflows/hyperdot.yml')) 'init still writes the CI workflow the gate reads'
     Set-Content -LiteralPath (Join-Path $repo 'docs/promo.json') -Value '{ "ai": true }'
     $out = & pwsh -NoProfile -NonInteractive -File $ci init -Promo -Json -Project $repo 2>$null | Out-String
