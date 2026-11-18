@@ -26,7 +26,7 @@ in-process (`& ./hyperdot.ps1`) will not capture it in a variable.
 | Field | Type | |
 |---|---|---|
 | `schema` | string | `hyperdot/1`. Fields are only ever added within a schema version |
-| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest`, `help`, `deck`, `telemetry`, `calendar`, `brief`, `promo` |
+| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest`, `help`, `deck`, `telemetry`, `calendar`, `brief`, `promo`, `clip` |
 | `ok` | bool | The verdict |
 | `error` | object, when `ok` is false | `{ "code": "<stable-code>", "message": "<for people>" }` |
 | `log` | string, for `setup`, `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits`, `deck` | Path of the full run log, `hyperdot.log` in the command's results folder: `-Results` (default `test-results`; `bench-results`, `soak-results`, `audio-results` and `deck-results` for those commands), or `-Output` for `shot` (default `screenshots`). Search it; don't read it whole |
@@ -75,8 +75,9 @@ Branch on `error.code`; `message` can change.
 | `shot-text` | `shot -Locale`/`-Pseudo` found text that is cut off, off screen or missing glyphs | `shots[].text` |
 | `shot-off-palette` | `shot -MaxOffPalettePercent <n>`: more than n% of a picture is in colours off the palette in `docs/STYLE.md` | `shots[].palette` |
 | `no-palette` | `shot -MaxOffPalettePercent`: the project has no `docs/STYLE.md`, or its `## Palette` table has no `#RRGGBB` colours; checked before Godot starts | `palette.problem` |
-| `no-display` | `bench` (without `-Headless`), `shot` or `audio -Mix` on Linux with no display server; start a virtual one (`Xvfb :99 &`, `export DISPLAY=:99`), not `xvfb-run`, which mixes stderr into stdout and breaks `-Json` | - |
-| `no-ffmpeg` | `audio` needs ffmpeg on the `PATH` | - |
+| `no-display` | `bench` (without `-Headless`), `shot`, `audio -Mix` or `clip` on Linux with no display server; start a virtual one (`Xvfb :99 &`, `export DISPLAY=:99`), not `xvfb-run`, which mixes stderr into stdout and breaks `-Json` | - |
+| `no-ffmpeg` | `audio` and `clip` need ffmpeg on the `PATH` | - |
+| `clip-failed` | `clip`: Godot exited non-zero while recording (a scene that does not exist, a crash), or ffmpeg could not encode the recording | `error.message` |
 | `audio-failed` | `audio`: ffmpeg could not read a sound file, or Godot exited non-zero while recording the mix | `error.message` |
 | `audio-silent` | `audio -Mix`: the recording is silent (nothing played) | `audio.mix` |
 | `audio-clipping` | `audio -Mix`: the mix's true peak is above -1 dBTP | `audio.mix` |
@@ -499,18 +500,21 @@ in `.gitignore`).
   quarantines, placeholders past their due date and a latest failure whose error predates the current commit.
 
 **promo** (reads git and the GitHub API; without `-DryRun` opens one issue, creates one tag and closes the previous briefs; never
-touches the game's files): `promo [-DryRun]`. Changes come from `Marketing:` trailers (with `Marketing-Priority: high|normal|low`
-and `Marketing-Visual: yes`) in commit messages, and in the description of the merged pull request of a main-line commit that
-has none. `-DryRun` on another command, or `-Promo` on any command but `init`, is `invalid-arguments`. The result is `promo`:
+touches the game's files): `promo [-DryRun] [-GitHubOutput]`. Changes come from `Marketing:` trailers (with `Marketing-Priority: high|normal|low`,
+`Marketing-Visual: yes`, and for a clip `Marketing-Scene: res://...tscn`, `Marketing-Args: --flag --other` (no comma and no bare `--`,
+which cannot reach the game: no clip then) and `Marketing-Seconds: 1-30`, default 5; a scene makes the change visual) in commit messages, and in the description of the merged pull request of a main-line commit that
+has none. `-GitHubOutput` writes `clips` (the `clips[]` below, as JSON), `issue` and `green` (the commit's sha) to `$GITHUB_OUTPUT`
+for the workflow's clip job. `-DryRun` on another command, or `-Promo` on any command but `init`, is `invalid-arguments`. The result is `promo`:
 - `repository`, `check` (the gating check run, `<job> / Test`, its job read from `workflow`, the file that calls `godot.yml`),
   `game` (plan.json's `game`, else the project's name), `stage` (`development`, `store-page`, `demo` or `launched`, from
   plan.json's `release`), `range` (`from`: the newest `mkt/N` tag or "the last 7 days"; `firstRun`; `commits` on the main line),
   `number` (N of this brief), `dryRun`, `written` (the issue was opened and tagged).
 - `green`: `null` when no main-line commit in the range passed, else `sha`, `via` (`check`, or `pull-request` when the commit
   had no run of the check and its merged pull request's head passed: then `pullRequest` and `head`).
-- `shipped[]` (in the green commit or older) and `waiting[]` (newer): `text` (as written; in the issue outside the drafts, `@` mentions
+- `shipped[]` (in the green commit or older) and `waiting[]` (newer): `text` (as written, with control characters and runs of spaces made
+  one space and cut to 280 characters, a warning saying so; in the issue outside the drafts, `@` mentions
   are broken with a zero-width space; trailers inside HTML comments or fenced code are not read),
-  `priority`, `visual`, `sha`, `source` (`commit` or the pull request, `#9`).
+  `priority`, `visual`, `sha`, `source` (`commit` or the pull request, `#9`), `scene` (its `Marketing-Scene`, or `null`).
 - `upcoming[]`: the dates of the next 28 days (today and the 27 after), by date (empty with `"calendar": false`): `date`
   (yyyy-MM-dd), `what`, `kind` (`seasonal-sale`, `next-fest` and `themed-fest` from Steam's event page, read as `calendar` reads
   it, from the `store-page` stage on; `deadline` for plan.json's release deadlines not yet done (app fee, store page review,
@@ -531,8 +535,28 @@ has none. `-DryRun` on another command, or `-Promo` on any command but `init`, i
   `text`: `discord`, `bluesky`, `steam` as the channels and stage allow, Steam from `store-page` on; as they will be pasted, in
   code blocks in the issue). Carried tasks are read from the `## Tasks` section only.
 - `issue` (`number`, `url`) and `tag` (`mkt/N`), `null` in a dry run and `tag` `null` in a dates-only brief; `previous[]` (`number`, `closed`).
-- `warnings[]`: a failed close, AI drafts not used, an unknown `Marketing-Priority`, a plan.json that cannot be read, Steam's event
+- `clips[]`: each shipped change that names a `Marketing-Scene` (one per scene, flags and length), highest priority first: `name` (the clip's folder and file name,
+  `<N>-<i>-<text>`), `text`, `scene`, `gameArgs[]`, `seconds`, `sha`. Empty when none does.
+- `warnings[]`: a failed close, AI drafts not used, an unknown `Marketing-Priority`, a `Marketing-Scene` that is not a res:// scene or
+  `Marketing-Seconds` out of 1 to 30 (no clip, 5 s), a plan.json that cannot be read, Steam's event
   page not read (`Coming up: ...`; the plan's deadlines are still listed).
+
+**promo -Do clips** (after the workflow's clip job; posts one comment, never touches the game): `promo -Do clips [-Id <issue>]
+[-Results clips] [-DryRun]`. Reads `<Results>/<name>/clip.json` for each clip in `HYPERDOT_CLIPS` (the brief job's `clips` output;
+without it, each folder in `-Results`) and comments on brief `-Id` with what was recorded, linking `HYPERDOT_CLIPS_URL` (the artifact),
+and what was not. Without `-Id`, or with `-DryRun`, the comment goes to the job summary only. An `-Id` that is not a number, or
+`-Do` other than `status` and `clips`, or `-GitHubOutput` with `-Do clips`, is `invalid-arguments`. The result is `promo.clipComment`: `issue`, `posted`, `url`, `recorded[]`
+(`name`, `text`, `mp4`, `gif`, `seconds`), `failed[]` (`name`, `text`, `scene`), `comment`.
+
+**clip** (records a scene; writes `<name>.mp4`, `<name>.gif`, `<name>.log` and `clip.json` in `-Output`, default `clips`; needs a display
+and ffmpeg): `clip [-Scene res://...] [-Seconds 5] [-Resolution 1280x720] [-GameArgs ...] [-Label <name>]`. Godot's Movie Maker plays the
+scene at a fixed 30 fps, so a slow machine records the same clip; ffmpeg encodes an MP4 (H.264, AAC) and a 480-wide 15 fps GIF.
+Movie Maker records at the project's viewport size: the MP4 is scaled to `-Resolution` when given, else a viewport under 720 lines
+is scaled up to 720 (nearest neighbour), and always to even sides. On Linux it draws with OpenGL (the Compatibility renderer), which
+a virtual display can run; elsewhere with the project's renderer.
+`-Seconds` outside 1 to 30 or more than one `-Scene` is `invalid-arguments`. The result is `clip`: `name` (`-Label`, else the scene's
+file name, else `main`), `scene`, `seconds`, `fps`, `gameArgs[]`, `mp4`, `gif`, `log`, `width`, `height`, `mp4Bytes`, `gifBytes`; errors the
+game printed while recorded are a warning, not a failure.
 
 **calendar** (reads the network or its cache, writes `calendar.ics` and the cache, never the game; it never fails on what it
 finds, only with `calendar-unavailable` when no source could be read): `calendar [-Source steam,itch,epic,lootradar] [-Days 365]

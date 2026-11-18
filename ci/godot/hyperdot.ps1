@@ -47,11 +47,12 @@ param(
     # brief: the structured start of a new game: the user's own description, then the questions it leaves open from a fixed bank, then a draft GDD; no Godot project needed.
     # calendar: Steam's sales and fests, itch.io jams, Epic giveaways and comparable games' prices (LootRadar), set against plan.json's release; writes calendar.ics. No Godot needed.
     # promo: the weekly marketing brief (an issue with a checklist and drafts) from the Marketing: trailers of changes in a build whose kit check passed; no Godot needed.
+    # clip: a short recording of a scene (Godot's Movie Maker at 30 fps) as an MP4 and a GIF; needs a display and ffmpeg.
     # telemetry: one read-only view of the project's run history: per command the runs, pass rate and mean, median and p95 duration, and for test the slowest runners, failure hot spots and flaky tests; no Godot needed.
     # The sets of values (here and for -Retry, -Mcp, -Do and -Profile) are [ArgumentCompletions], which PowerShell does not
     # enforce while binding: Assert-KitArguments checks them in the script, so a wrong value still gives a JSON result.
     [Parameter(Position = 0)]
-    [ArgumentCompletions('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx', 'playtest', 'help', 'deck', 'telemetry', 'calendar', 'brief', 'promo')]
+    [ArgumentCompletions('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx', 'playtest', 'help', 'deck', 'telemetry', 'calendar', 'brief', 'promo', 'clip')]
     [string]$Command = 'test',
     # help: the command, skill or subagent to show the page of, e.g. help shot. telemetry: the command to report on, e.g. telemetry test.
     [Parameter(Position = 1)]
@@ -103,9 +104,10 @@ param(
     # Your game's own flags, passed after "--" to smoke runs, export -Run, bench and shot (read them with
     # OS.GetCmdlineUserArgs()). Release exports ignore scene paths, so debug entry points belong here, e.g. '--autoplay','--seed=3'.
     [string[]]$GameArgs,
-    # bench, shot, audio -Mix: the scenes (res:// paths). Default: the main scene. bench and audio use the first.
+    # bench, shot, audio -Mix, clip: the scenes (res:// paths). Default: the main scene. bench, audio and clip use the first.
     [string[]]$Scene,
     # bench: seconds to measure, after -Warmup seconds that are not counted. audio -Mix: seconds to record (default 60).
+    # clip: seconds to record, 1 to 30 (default 5).
     [double]$Seconds = 10,
     [double]$Warmup = 3,
     # bench: fail when the 99th-percentile frame time is above this many milliseconds (16.7 for 60 fps). 0: no budget.
@@ -188,6 +190,7 @@ param(
     # setup: also install export templates.
     [switch]$Templates,
     # detect: also write the values to $GITHUB_OUTPUT. export: also write version and android-version-code there.
+    # promo: also write clips (the clips to record, JSON), issue and green there, for the workflow's clip job.
     [switch]$GitHubOutput,
     # init: also register an editor-bridge MCP server for the project.
     [ArgumentCompletions('none', 'godot-mcp', 'godot-ai')]
@@ -213,7 +216,8 @@ param(
     # move (a task to -Column: -Id), remove (delete a task: -Id), sync (mirror the tasks to a GitHub Project: -Board), link (a task to a GDD
     # -Feature or a project -Item: -Id).
     # brief: status (default: the answers and the next questions), start (from -TextFile), answer (-Id, -Value, -Quote), gdd (write the draft GDD).
-    [ArgumentCompletions('status', 'init', 'done', 'reopen', 'add', 'move', 'remove', 'sync', 'link', 'start', 'answer', 'gdd')]
+    # promo: status (default: the weekly brief), clips (comment on brief -Id with the clips recorded in -Results, default clips).
+    [ArgumentCompletions('status', 'init', 'done', 'reopen', 'add', 'move', 'remove', 'sync', 'link', 'start', 'answer', 'gdd', 'clips')]
     [string]$Do = 'status',
     # plan -Do done|reopen: the gate, e.g. prototype.loop. plan -Do move|remove|link: the task id (move: several as t1,t2,t3).
     [string]$Id,
@@ -273,7 +277,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons', 'Playtest', 'Palette', 'BuildSize', 'Help', 'Deck', 'Placement', 'Telemetry', 'Workflow', 'WorkingTree', 'Calendar', 'Brief', 'Promo') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons', 'Playtest', 'Palette', 'BuildSize', 'Help', 'Deck', 'Placement', 'Telemetry', 'Workflow', 'WorkingTree', 'Calendar', 'Brief', 'Promo', 'Clip') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 Start-KitCoverage $Command
 if ($Json) {
     Enable-JsonMode $Command
@@ -302,7 +306,9 @@ foreach ($briefFlag in 'Value', 'Quote', 'TextFile') {
 }
 $briefActions = @('status', 'start', 'answer', 'gdd')
 if ($Command -eq 'brief' -and $Do -notin $briefActions) { Stop-GodotCi "brief -Do $Do is not one of: $($briefActions -join ', ')" 'invalid-arguments' }
-if ($Command -eq 'plan' -and $Do -in 'start', 'answer', 'gdd') { Stop-GodotCi "-Do $Do is for brief, not plan" 'invalid-arguments' }
+if ($Command -eq 'promo' -and $Do -notin 'status', 'clips') { Stop-GodotCi "promo -Do $Do is not one of: status (the brief), clips (comment on it with the recorded clips)" 'invalid-arguments' }
+if ($Command -eq 'promo' -and $Do -eq 'clips' -and $GitHubOutput) { Stop-GodotCi '-GitHubOutput is for the brief (promo), not promo -Do clips' 'invalid-arguments' }
+if ($Command -eq 'plan' -and $Do -in 'start', 'answer', 'gdd', 'clips') { Stop-GodotCi "-Do $Do is for brief, not plan" 'invalid-arguments' }
 if ($Command -eq 'help') {
     Invoke-Help $Topic $Project
     Write-JsonResult
@@ -738,7 +744,7 @@ if ($Command -eq 'test') { Assert-SafeToClear $Results }
 # bench and audio -Mix run one scene. -Scene a,b arrives as one "a,b" string with pwsh -File: split it as shot does, and
 # refuse several scenes rather than quietly measure the first.
 $scenes = @($Scene | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
-if ($Command -in 'bench', 'audio' -and $scenes.Count -gt 1) {
+if ($Command -in 'bench', 'audio', 'clip' -and $scenes.Count -gt 1) {
     Stop-GodotCi "$Command runs one scene, but -Scene names $($scenes.Count): $($scenes -join ', '). Run $Command once per scene" 'invalid-arguments'
 }
 if ($NameBySize -and $Command -ne 'shot') { Stop-GodotCi "-NameBySize is for shot, not $Command" 'invalid-arguments' }
@@ -776,19 +782,20 @@ if ($Command -eq 'export') {
 $commandDefaults = @{ bench = 'bench-results'; soak = 'soak-results'; audio = 'audio-results'; deck = 'deck-results'; calendar = 'calendar-results' }
 $commandResultsDir = [System.IO.Path]::GetFullPath($(
         if ($Command -eq 'shot') { if ($PSBoundParameters.ContainsKey('Output')) { $Output } else { 'screenshots' } }
+        elseif ($Command -eq 'clip') { if ($PSBoundParameters.ContainsKey('Output')) { $Output } else { 'clips' } }
         elseif ($commandDefaults.ContainsKey($Command) -and -not $PSBoundParameters.ContainsKey('Results')) { $commandDefaults[$Command] }
         else { $Results }))
-if ($Command -in 'setup', 'build', 'test', 'export', 'bench', 'shot', 'audio', 'soak', 'credits', 'deck') {
+if ($Command -in 'setup', 'build', 'test', 'export', 'bench', 'shot', 'audio', 'soak', 'credits', 'deck', 'clip') {
     Start-RunLog (Join-Path $commandResultsDir 'hyperdot.log')
     if ($Command -ne 'setup') { Start-RunHistory $Command $info.ProjectDir }
 }
 # doctor and calendar write no run log (their findings are their output) but are recorded, so status's rules see when they last ran.
 if ($Command -in 'doctor', 'calendar') { Start-RunHistory $Command $info.ProjectDir }
 # Screenshots, recordings and measurements run from the game's folder land inside it.
-if ($Command -in 'bench', 'shot', 'audio', 'soak', 'deck', 'calendar') { Add-OutputGdignore $commandResultsDir $info.ProjectDir }
+if ($Command -in 'bench', 'shot', 'audio', 'soak', 'deck', 'calendar', 'clip') { Add-OutputGdignore $commandResultsDir $info.ProjectDir }
 $script:ExportVersion = if ($Command -eq 'export' -and $GameVersion) { Resolve-ExportVersion } else { $null }
 # What a run that starts Godot on the game changes in the game's files (git), listed in the JSON as changedProjectFiles.
-if ($Command -in 'test', 'build', 'export', 'bench', 'shot', 'deck', 'soak', 'audio', 'playtest' -and $script:JsonMode) {
+if ($Command -in 'test', 'build', 'export', 'bench', 'shot', 'deck', 'soak', 'audio', 'playtest', 'clip' -and $script:JsonMode) {
     $changesBefore = Get-ProjectChangeSet $info.ProjectDir
     if ($null -ne $changesBefore) {
         $script:ChangeProbe = {
@@ -809,7 +816,15 @@ switch ($Command) {
     'plan' { Invoke-Plan $info $Do $Id $Game $Title $Column $Board $Feature $Item $PlanProfile }
     'status' { if ($Handoff) { Add-Handoff $info.ProjectDir $Handoff $Checked $Verdict } else { Invoke-Status $info } }
     'telemetry' { Invoke-Telemetry $info $Topic $Last }
-    'promo' { Invoke-Promo $info ([bool]$DryRun) }
+    'promo' {
+        if ($Do -eq 'clips') { Invoke-PromoClips -Info $info -Issue $Id -Dir $(if ($PSBoundParameters.ContainsKey('Results')) { $Results } else { 'clips' }) -DryRun ([bool]$DryRun) }
+        else { Invoke-Promo $info ([bool]$DryRun) ([bool]$GitHubOutput) }
+    }
+    'clip' {
+        Invoke-Setup; Invoke-Build
+        Invoke-Clip -Info $info -Scene ($scenes -join ',') -Seconds $(if ($PSBoundParameters.ContainsKey('Seconds')) { $Seconds } else { 5 }) -Resolution $Resolution `
+            -GameArgs $GameArgs -Label $Label -OutputDir $commandResultsDir
+    }
     'calendar' { Invoke-Calendar -Info $info -Source $Source -Days $Days -Offline ([bool]$Offline) -Comparable $Comparable -ResultsDir $commandResultsDir }
     'setup' { Invoke-Setup -WithTemplates:$Templates }
     'build' { Invoke-Setup; Invoke-Build }

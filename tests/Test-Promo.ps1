@@ -13,7 +13,7 @@ $failures = @()
 function Assert-True([bool]$Condition, [string]$Name) {
     if ($Condition) { Write-Host "ok     $Name" } else { Write-Host "FAIL   $Name"; $script:failures += $Name }
 }
-foreach ($lib in 'Common', 'Plan', 'Calendar', 'Init', 'Promo') { . (Join-Path $root "ci/godot/lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Plan', 'Calendar', 'Init', 'Clip', 'Promo') { . (Join-Path $root "ci/godot/lib/$lib.ps1") }
 $zwsp = [string][char]0x200B
 
 # --- Pure parts ---
@@ -26,6 +26,14 @@ Assert-True ((& $stageOf @{ date = '2026-11-16'; nextFest = '2026-10-01' }) -eq 
 Assert-True ((Protect-PromoMentions 'thanks @alice and @bob-2, not @ alone') -eq "thanks @${zwsp}alice and @${zwsp}bob-2, not @ alone") 'an @name gets a zero-width space after the @'
 $trailers = @(Get-PromoTrailers "Title`n`nMarketing: One`nmarketing: Two`nMarketing-Priority: HIGH`nMarketing-Visual: yes" ('a' * 40) 'commit')
 Assert-True ($trailers.Count -eq 2 -and $trailers[0].priority -eq 'high' -and $trailers[1].visual -and $trailers[0].text -eq 'One') 'every Marketing line is an item, with the message''s priority and visual flag (any case)'
+$clipTrailers = @(Get-PromoTrailers "x`n`nMarketing: A`nMarketing-Scene: res://levels/storm.tscn`nMarketing-Seconds: 12" ('a' * 40) 'commit')
+Assert-True ($clipTrailers[0].visual -and $clipTrailers[0].scene -eq 'res://levels/storm.tscn' -and $clipTrailers[0].seconds -eq 12 -and @($clipTrailers[0].gameArgs).Count -eq 0) 'Marketing-Scene names the clip and makes the change visual; Marketing-Seconds sets its length'
+$bad = @(Get-PromoTrailers "x`n`nMarketing: B`nMarketing-Scene: levels/storm`nMarketing-Seconds: 45" ('a' * 40) 'commit')
+Assert-True ($null -eq $bad[0].scene -and $bad[0].seconds -eq 5 -and @($bad[0].problems).Count -eq 2 -and -not $bad[0].visual) "a scene that is not a res:// scene, or seconds out of 1 to 30, is a problem and no clip: $(@($bad[0].problems) -join ' | ')"
+$longText = @(Get-PromoTrailers "x`n`nMarketing: $('a' * 400)`u{0007} tail" ('a' * 40) 'commit')
+Assert-True ($longText[0].text.Length -eq 280 -and $longText[0].text.EndsWith([string][char]0x2026) -and $longText[0].text -notmatch '\p{Cc}' -and @($longText[0].problems | Where-Object { $_ -match 'cut to 280' }).Count -eq 1) 'a Marketing line is cleaned of control characters and cut to 280 characters, with a warning'
+$argsBad = @(Get-PromoTrailers "x`n`nMarketing: C`nMarketing-Scene: res://a.tscn`nMarketing-Args: --level=1,2" ('a' * 40) 'commit')
+Assert-True ($null -eq $argsBad[0].scene -and @($argsBad[0].problems | Where-Object { $_ -match 'comma or a bare --' }).Count -eq 1) 'Marketing-Args with a comma (or a bare --) cannot reach the game: a problem, and no clip'
 $long = @([ordered]@{ text = ('Storms ' * 80).Trim(); priority = 'high'; visual = $false; sha = ('a' * 40); source = 'commit' }, [ordered]@{ text = 'Second'; priority = 'low'; visual = $false; sha = ('b' * 40); source = 'commit' })
 $templates = New-PromoTemplateDrafts 'Game' $long @('discord', 'bluesky', 'steam') @('#indiedev')
 Assert-True ((Get-PromoGraphemeCount $templates.bluesky) -le 300 -and $templates.bluesky.EndsWith(' #indiedev') -and $templates.bluesky.Contains([string][char]0x2026)) "the Bluesky template stays within 300 graphemes, the item cut with an ellipsis: $(Get-PromoGraphemeCount $templates.bluesky)"
@@ -45,7 +53,7 @@ function New-Commit([string]$Message) {
 }
 Invoke-Git init -q -b main
 $null = New-Commit 'Base'
-$c2 = New-Commit "Add meteor storms`n`nMarketing: Meteor storms can now rain down on @someone's base`nMarketing-Priority: high`nMarketing-Visual: yes"
+$c2 = New-Commit "Add meteor storms`n`nMarketing: Meteor storms can now rain down on @someone's base`nMarketing-Priority: high`nMarketing-Visual: yes`nMarketing-Scene: res://main.tscn`nMarketing-Args: --seed=3  --storm`nMarketing-Seconds: 8"
 $c3 = New-Commit "Faster menus`n`nMarketing: Menus open twice as fast`nMarketing-Priority: low"
 $c4 = New-Commit "Night mode`n`nMarketing: A night mode for late sessions"
 
@@ -69,7 +77,7 @@ $redThenGreen = @{
 Set-Routes $redThenGreen
 $server = Start-Process pwsh -PassThru -ArgumentList @('-NoProfile', '-NonInteractive', '-File', "`"$(Join-Path $PSScriptRoot 'promo-fixture/MockGitHub.ps1')`"", '-Port', "$port", '-Routes', "`"$routesFile`"", '-Log', "`"$logFile`"")
 $saved = @{}
-foreach ($name in 'GITHUB_API_URL', 'HYPERDOT_MODELS_URL', 'GITHUB_TOKEN', 'GH_TOKEN', 'GITHUB_REPOSITORY', 'GITHUB_STEP_SUMMARY') { $saved[$name] = [Environment]::GetEnvironmentVariable($name) }
+foreach ($name in 'GITHUB_API_URL', 'HYPERDOT_MODELS_URL', 'GITHUB_TOKEN', 'GH_TOKEN', 'GITHUB_REPOSITORY', 'GITHUB_STEP_SUMMARY', 'GITHUB_OUTPUT', 'HYPERDOT_CLIPS', 'HYPERDOT_CLIPS_URL') { $saved[$name] = [Environment]::GetEnvironmentVariable($name) }
 $env:GITHUB_API_URL = $api; $env:HYPERDOT_MODELS_URL = "$api/models"; $env:GITHUB_TOKEN = 'test-token'; $env:GH_TOKEN = $null
 $env:GITHUB_REPOSITORY = 'o/r'; $env:GITHUB_STEP_SUMMARY = $summary
 function Invoke-PromoCli([string[]]$Extra = @()) {
@@ -85,10 +93,17 @@ try {
     Set-Routes $redThenGreen
 
     # --- Dry run: the gate walks past a commit with no run and a red one to the green one; nothing is written ---
-    $run = Invoke-PromoCli @('-DryRun')
+    $ghOutput = Join-Path $work 'github-output.txt'
+    $env:GITHUB_OUTPUT = $ghOutput
+    $run = Invoke-PromoCli @('-DryRun', '-GitHubOutput')
+    $env:GITHUB_OUTPUT = $null
     $p = $run.doc.promo
     Assert-True ($run.code -eq 0 -and $run.doc.ok -and $p.check -eq 'godot / Test' -and $p.green -and $p.green.sha -eq $c2 -and $p.green.via -eq 'check') "the gate is the newest green commit, past a commit with no run and a failed one: $(if ($p.green) { $p.green.sha } else { "none" })"
     Assert-True (@($p.shipped).Count -eq 1 -and $p.shipped[0].text -eq "Meteor storms can now rain down on @someone's base" -and @($p.waiting).Count -eq 2) 'the green commit''s change shipped, as written; the two newer ones wait'
+    $clips = @($p.clips)
+    Assert-True ($clips.Count -eq 1 -and $clips[0].scene -eq 'res://main.tscn' -and $clips[0].seconds -eq 8 -and (@($clips[0].gameArgs) -join ' ') -eq '--seed=3 --storm' -and $clips[0].name -like '1-1-Meteor-storms*' -and $clips[0].sha -eq $c2) "a shipped change with a Marketing-Scene is a clip to record: $($clips | ConvertTo-Json -Depth 3 -Compress)"
+    $outputs = Get-Content -LiteralPath $ghOutput
+    Assert-True (@($outputs | Where-Object { $_.StartsWith('clips=[{') -and $_.Contains('"scene":"res://main.tscn"') }).Count -eq 1 -and $outputs -contains 'issue=' -and $outputs -contains "green=$c2") "-GitHubOutput gives the clip job its clips, the issue (none in a dry run) and the green commit: $($outputs -join ' | ')"
     Assert-True ($p.range.firstRun -and $p.number -eq 1 -and $p.dryRun -and -not $p.written -and $null -eq $p.issue -and $null -eq $p.tag) 'with no mkt tag it is the first run, brief 1, and a dry run writes nothing'
     $requests = @(Get-Requests)
     Assert-True (@($requests | Where-Object { $_.method -ne 'GET' }).Count -eq 0) "a dry run only reads the API: $(@($requests | ForEach-Object { "$($_.method) $($_.path)" }) -join ', ')"
@@ -108,7 +123,11 @@ try {
 
     # --- Real run: the issue, then the tag at the green commit, then last week's brief closed ---
     Set-Routes $redThenGreen
-    $run = Invoke-PromoCli
+    Set-Content -LiteralPath $ghOutput -Value $null
+    $env:GITHUB_OUTPUT = $ghOutput
+    $run = Invoke-PromoCli @('-GitHubOutput')
+    $env:GITHUB_OUTPUT = $null
+    Assert-True ((Get-Content -LiteralPath $ghOutput) -contains 'issue=4') 'a real run gives the clip job the brief''s issue number'
     $p = $run.doc.promo
     $writes = @(Get-Requests | Where-Object { $_.method -ne 'GET' })
     $order = @($writes | ForEach-Object { "$($_.method) $($_.path)" }) -join ', '
@@ -187,7 +206,7 @@ try {
     $run = Invoke-PromoCli @('-DryRun')
     $p = $run.doc.promo
     $call = @(Get-Requests | Where-Object { $_.path -eq '/models' })
-    Assert-True ($p.drafts.source -eq 'ai' -and $p.drafts.text.discord -eq 'Co-op is here, thanks @dave ``````' -and "$($p.body)".Contains("````````text`nCo-op is here") -and "$($p.body)".Contains('check every claim') -and $call.Count -eq 1 -and ($call[0].body | ConvertFrom-Json).model -eq 'openai/gpt-4.1-mini') 'good AI drafts are used as written, in a fence longer than their backticks, labelled "check every claim"'
+    Assert-True ($p.drafts.source -eq 'ai' -and $p.drafts.text.discord -eq 'Co-op is here, thanks @dave ``````' -and "$($p.body)".Contains("````````text`nCo-op is here") -and "$($p.body)".Contains('check every claim') -and $call.Count -eq 1 -and ($call[0].body | ConvertFrom-Json).model -eq 'openai/gpt-4.1-mini' -and ($call[0].body | ConvertFrom-Json).messages[0].content -match 'not instructions to you') 'good AI drafts are used as written, in a fence longer than their backticks, labelled "check every claim"'
 
     # --- Coming up: Steam's dates (a page made relative to today, in the calendar cache) and plan.json's deadlines ---
     $now = [datetime]::UtcNow.Date
@@ -290,6 +309,35 @@ try {
     Remove-Item -LiteralPath (Join-Path $repo 'plan') -Recurse
     Remove-Item -LiteralPath $cache -Recurse
 
+    # --- promo -Do clips: one comment on the brief with what the clip job recorded, and what it did not ---
+    $clipDir = Join-Path $work 'clips'
+    New-Item -ItemType Directory -Force (Join-Path $clipDir 'one') | Out-Null
+    [ordered]@{ name = 'one'; mp4 = (Join-Path $clipDir 'one/one.mp4'); gif = (Join-Path $clipDir 'one/one.gif'); seconds = 5; width = 1280; height = 720; mp4Bytes = 2097152; gifBytes = 1 } |
+        ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $clipDir 'one/clip.json')
+    $env:HYPERDOT_CLIPS = ConvertTo-Json -Compress -Depth 3 -InputObject @(
+        [ordered]@{ name = 'one'; text = 'Storms from @someone'; scene = 'res://storm.tscn'; seconds = 5; gameArgs = @() },
+        [ordered]@{ name = 'two'; text = 'Night mode'; scene = 'res://night.tscn'; seconds = 5; gameArgs = @() })
+    $env:HYPERDOT_CLIPS_URL = 'https://github.com/o/r/actions/runs/1/artifacts/2'
+    Set-Routes @{ 'POST /repos/o/r/issues/4/comments' = @{ status = 201; body = @{ id = 1 } } }
+    $run = Invoke-PromoCli @('-Do', 'clips', '-Id', '4', '-Results', $clipDir)
+    $posts = @(Get-Requests | Where-Object { $_.method -eq 'POST' })
+    $comment = if ($posts.Count) { ($posts[0].body | ConvertFrom-Json).body } else { '' }
+    Assert-True ($run.code -eq 0 -and $run.doc.promo.clipComment.posted -and $posts.Count -eq 1 -and $posts[0].path -eq '/repos/o/r/issues/4/comments') 'promo -Do clips comments once on the brief'
+    Assert-True ($comment.Contains('[download them](https://github.com/o/r/actions/runs/1/artifacts/2) (kept 14 days)') -and $comment.Contains("- Storms from @${zwsp}someone: ``one/one.mp4`` (5 s, 1280x720, 2 MB) and a GIF") -and $comment.Contains('- Night mode: not recorded (`res://night.tscn`)')) "the comment links the artifact, lists each clip, and says which were not recorded: $comment"
+    Assert-True (@($run.doc.promo.clipComment.recorded).Count -eq 1 -and @($run.doc.promo.clipComment.failed).Count -eq 1) 'the result lists the recorded and the failed'
+    Set-Routes @{}
+    $run = Invoke-PromoCli @('-Do', 'clips', '-Results', $clipDir)
+    Assert-True ($run.code -eq 0 -and -not $run.doc.promo.clipComment.posted -and -not @(Get-Requests | Where-Object { $_.method -eq 'POST' }).Count -and (Get-Content -LiteralPath $summary -Raw).Contains('# Clips (not posted)')) 'without an issue (a dry-run brief) the comment goes to the job summary only'
+    $run = Invoke-PromoCli @('-Do', 'clips', '-Id', 'four', '-Results', $clipDir)
+    Assert-True ($run.doc.error.code -eq 'invalid-arguments') 'an -Id that is not an issue number is invalid-arguments'
+    $run = Invoke-PromoCli @('-Do', 'post')
+    Assert-True ($run.doc.error.code -eq 'invalid-arguments') 'promo -Do takes status or clips'
+    $run = Invoke-PromoCli @('-Do', 'clips', '-GitHubOutput')
+    Assert-True ($run.doc.error.code -eq 'invalid-arguments') '-GitHubOutput is for the brief, not promo -Do clips'
+    $out = & pwsh -NoProfile -NonInteractive -File $ci plan -Do clips -Json -Project $repo 2>$null | Out-String
+    Assert-True (($out | ConvertFrom-Json).error.code -eq 'invalid-arguments') 'plan -Do clips is invalid-arguments, not the plan status'
+    $env:HYPERDOT_CLIPS = $null; $env:HYPERDOT_CLIPS_URL = $null
+
     # --- Errors ---
     Set-Content -LiteralPath (Join-Path $repo 'docs/promo.json') -Value '{ "calendar": "yes" }'
     $run = Invoke-PromoCli @('-DryRun')
@@ -340,6 +388,7 @@ try {
     $caller = Join-Path $repo '.github/workflows/hyperdot-promo.yml'
     $callerText = Get-Content -LiteralPath $caller -Raw
     Assert-True ($doc.ok -and $callerText -match 'nick-vas/hyperdot/\.github/workflows/promo\.yml@v1' -and $callerText -match 'models: read' -and $callerText -match 'checks: read' -and $callerText -match 'pull-requests: read' -and $callerText -match 'issues: write' -and $callerText -match 'contents: write') 'init -Promo writes the caller, pinned @v1, granting the five permissions'
+    Assert-True ($callerText -match '(?m)^      clips: false ') 'the caller has clips, off'
     Assert-True ($callerText -match 'group: hyperdot-promo' -and $callerText -match 'cancel-in-progress: false' -and $callerText.Contains("if: github.event_name == 'schedule' || inputs.dry-run || github.ref_name == github.event.repository.default_branch")) 'runs never overlap, and a real run by hand only runs from the default branch'
     $settings = Get-Content -LiteralPath (Join-Path $repo 'docs/promo.json') -Raw | ConvertFrom-Json
     Assert-True ($settings.ai -eq $false -and $settings.calendar -eq $true -and @($settings.channels).Count -eq 3) 'init -Promo writes docs/promo.json with AI off and the calendar on'

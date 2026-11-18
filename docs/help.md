@@ -115,6 +115,14 @@ Loudness and true peak of the game's sound files by category; -Mix also records 
 
 Needs ffmpeg; -Mix needs a display. -24 LUFS for PC and console, -18 for phones and handhelds.
 
+### clip
+Record a scene as a short MP4 and GIF, for a post, a trailer or the weekly marketing brief.
+
+    hyperdot.ps1 clip [-Scene res://levels/storm.tscn] [-Seconds 5] [-GameArgs '--seed=3'] [-Label storm] -Json
+
+Godot's Movie Maker plays the scene at a fixed 30 fps, so every machine records the same clip; ffmpeg makes an H.264 MP4 and a
+480-wide GIF in clips/. Needs a display (Xvfb on Linux) and ffmpeg; -Seconds is 1 to 30.
+
 ### soak
 Run one headless server and several headless clients together; fails on crashes, errors and memory leaks.
 
@@ -181,6 +189,7 @@ failing is calendar-unavailable. Needs no Godot; the /calendar skill reads the r
 The weekly marketing brief: an issue with the player-facing changes in a build whose tests passed, a checklist and drafts to post.
 
     hyperdot.ps1 promo [-DryRun] -Json
+    hyperdot.ps1 promo -Do clips -Id <issue> -Results clips -Json
 
 Reads Marketing: trailers (Marketing-Priority, Marketing-Visual) since the last mkt/N tag, or the last 7 days, from commits and
 squash-merged pull requests' descriptions. Ships what is in the newest main-line commit whose kit check passed (or its pull
@@ -188,7 +197,9 @@ request's head did); newer changes wait. Opens an issue labelled marketing-brief
 mkt/N at the green commit, then closes last week's. Lists the next 4 weeks' Steam fests and plan.json release deadlines,
 with a task for each one to act on. Nothing shipped: nothing written, unless a date is due within 7 days, which opens a short
 dates-only brief with no tag. -DryRun writes the job summary only.
-Settings in docs/promo.json ("ai": true rewords the drafts with GitHub Models). Runs weekly from the workflow init -Promo adds.
+Settings in docs/promo.json ("ai": true rewords the drafts with GitHub Models). Runs weekly from the workflow init -Promo adds;
+with its clips input on, a change with a Marketing-Scene: trailer is recorded with clip and promo -Do clips comments on the
+brief with the clips (a 14-day artifact).
 
 ### help
 List every command, skill and subagent in one line each, or show the page of one.

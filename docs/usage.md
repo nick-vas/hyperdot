@@ -285,5 +285,10 @@ Marketing-Visual: yes           (worth a clip)
   by default), `ai` and `model`. With
   `"ai": true` the drafts are reworded by GitHub Models (the workflow's `models: read`, no key; free and rate-limited), marked
   "check every claim"; on any error, or a Bluesky post over 300 graphemes, the brief keeps the template drafts. Off by default.
+- **Clips:** set `clips: true` in the caller to record a first take of each shipped change that names its scene in a
+  `Marketing-Scene: res://levels/storm.tscn` trailer (`Marketing-Args: --seed=3` for the game's flags, with no comma, `Marketing-Seconds: 8` for
+  the length, 5 by default). Clips are drawn with the Compatibility renderer, what the runner's virtual display can draw. A second job sets Godot up at the commit the brief shipped, records each scene with `clip` under Xvfb
+  (Movie Maker at 30 fps, an MP4 and a GIF), keeps them as the `marketing-clips` artifact for 14 days, and comments on the brief
+  with the link and any scene it could not record. It adds several minutes of Actions time a week; off by default.
 - **Permissions:** the caller grants `contents: write` (the tag), `issues: write`, `checks: read`, `pull-requests: read` and
   `models: read`; a reusable workflow cannot raise them itself.

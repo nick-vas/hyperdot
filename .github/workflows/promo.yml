@@ -20,17 +20,26 @@ on:
         description: Write the brief to the job summary only (no issue, no tag, nothing closed)
         type: boolean
         default: false
+      clips:
+        description: Record a clip of each shipped change that names a Marketing-Scene, and comment on the brief with them (sets Godot up, several minutes)
+        type: boolean
+        default: false
 
 jobs:
   promo:
     name: Brief
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      clips: ${{ steps.brief.outputs.clips }}
+      issue: ${{ steps.brief.outputs.issue }}
+      green: ${{ steps.brief.outputs.green }}
     steps:
       # The whole history and the mkt/N tags: the brief starts after the newest tag.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       # This workflow's own repository at the exact commit the caller pinned.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -43,13 +52,92 @@ jobs:
         shell: pwsh
 
       - name: Write the brief
+        id: brief
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ github.token }}
           PROJECT: ${{ inputs.project }}
           DRY_RUN: ${{ inputs.dry-run }}
         run: |
-          $arguments = @('promo')
+          $arguments = @('promo', '-GitHubOutput')
           if ($env:PROJECT) { $arguments += @('-Project', $env:PROJECT) }
           if ($env:DRY_RUN -eq 'true') { $arguments += '-DryRun' }
+          ./.godot-pipelines/ci/godot/hyperdot.ps1 @arguments
+
+  # First takes of the week's visual changes, recorded at the commit the brief shipped, kept as an artifact for 14 days.
+  clips:
+    name: Clips
+    needs: promo
+    if: inputs.clips && needs.promo.outputs.clips != '' && needs.promo.outputs.clips != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # No git credentials left on disk: this job builds and runs the game, and needs none (the comment uses the API).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ needs.promo.outputs.green }}
+          persist-credentials: false
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: ${{ job.workflow_repository || 'nick-vas/hyperdot' }}
+          ref: ${{ job.workflow_sha || 'main' }}
+          path: .godot-pipelines
+          persist-credentials: false
+
+      - run: New-Item -Force .godot-pipelines/.gdignore | Out-Null
+        shell: pwsh
+
+      # Godot, the build and the import, from the same caches as the test job.
+      - uses: ./.godot-pipelines/.github/actions/godot
+        with:
+          command: build
+          project: ${{ inputs.project }}
+
+      - name: Virtual display and ffmpeg
+        shell: bash
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q ffmpeg xvfb
+          # Xvfb directly: xvfb-run merges stderr into stdout, which would break -Json.
+          Xvfb :99 -screen 0 1920x1080x24 &
+          echo "DISPLAY=:99" >> "$GITHUB_ENV"
+
+      - name: Record the clips
+        shell: pwsh
+        env:
+          CLIPS: ${{ needs.promo.outputs.clips }}
+          PROJECT: ${{ inputs.project }}
+        run: |
+          foreach ($clip in @($env:CLIPS | ConvertFrom-Json)) {
+            $arguments = @('clip', '-Scene', $clip.scene, '-Seconds', "$($clip.seconds)", '-Label', $clip.name, '-Output', "clips/$($clip.name)")
+            if ($env:PROJECT) { $arguments += @('-Project', $env:PROJECT) }
+            if (@($clip.gameArgs).Count) { $arguments += @('-GameArgs', (@($clip.gameArgs) -join ',')) }
+            # One clip that fails is a line in the comment, not a failed job.
+            & pwsh -NoProfile -NonInteractive -File ./.godot-pipelines/ci/godot/hyperdot.ps1 @arguments
+            if ($LASTEXITCODE -ne 0) { Write-Host "::warning::The clip of $($clip.text) was not recorded" }
+          }
+          exit 0
+
+      - id: upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: marketing-clips
+          path: |
+            clips/**/*.mp4
+            clips/**/*.gif
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Comment on the brief
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          HYPERDOT_CLIPS: ${{ needs.promo.outputs.clips }}
+          HYPERDOT_CLIPS_URL: ${{ steps.upload.outputs.artifact-url }}
+          ISSUE: ${{ needs.promo.outputs.issue }}
+          PROJECT: ${{ inputs.project }}
+        run: |
+          $arguments = @('promo', '-Do', 'clips', '-Results', 'clips')
+          if ($env:ISSUE) { $arguments += @('-Id', $env:ISSUE) }
+          if ($env:PROJECT) { $arguments += @('-Project', $env:PROJECT) }
           ./.godot-pipelines/ci/godot/hyperdot.ps1 @arguments

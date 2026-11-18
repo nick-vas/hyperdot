@@ -1,7 +1,7 @@
 # Reference
 
 **Script** (`ci/godot/hyperdot.ps1`): commands `test` (default), `build`, `export`, `setup`, `detect`,
-`doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest`, `help`, `deck`, `telemetry`, `calendar`, `brief` and `promo`
+`doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest`, `help`, `deck`, `telemetry`, `calendar`, `brief`, `promo` and `clip`
 (`help [name]`: a Markdown page of every command, skill and subagent, or the page of one, from [help.md](help.md)).
 
 **`deck`** is the Steam Deck check in one run, at 1280x800: the `textsize` runner (its resolutions forced to 1280x800),
@@ -28,18 +28,18 @@ this machine at the Deck's resolution, not a Deck's speed.
 | `-DebugBuild` | off | `export`: a debug build (`--export-debug`) in place of a release build, marked `debug: true` in `exports[]`. Android signs it with the debug keystore, so a first run on a phone needs no release keystore; with `-Run`, a Web preset's browser run uses this build instead of making a second one |
 | `-Browser` | `chromium` | `export -Run` of a Web preset: `chromium`, `firefox`, `webkit` (Playwright's browsers: `npx playwright install --with-deps <name>`), `chrome`, `msedge` (the installed browsers); comma-separated. Needs Node.js; the playwright package comes from `HYPERDOT_PLAYWRIGHT`, the global npm folder, or is installed into the kit's tools folder. `HYPERDOT_WEB_HEADED=1` opens a browser window instead of running headless |
 | `-GameVersion` | | `export`: the game's version, e.g. the tag `v1.2.3-rc.1`: its numbers go into `config/version` for this export only (Windows file version, macOS and Android versions), all of it into the C# assembly's InformationalVersion, and Android presets get `version/code` major\*1,000,000 + minor\*1,000 + patch. `auto` reads it from git: the nearest `v*` tag and the commits since (`1.2.3.4`, `1.2.3+4.gabc1234`; without a tag `0.0.0.<commits>`); a shallow clone fails with `shallow-checkout` ([json.md](json.md)) |
-| `-GitHubOutput` | off | `detect`: also write what it found to `$GITHUB_OUTPUT`; `export`: write `version` and `android-version-code` there |
+| `-GitHubOutput` | off | `detect`: also write what it found to `$GITHUB_OUTPUT`; `export`: write `version` and `android-version-code` there; `promo`: write `clips`, `issue` and `green` there |
 | `-Results`, `-Output` | `test-results`, `build` | Where results and exports go (`bench` defaults to `bench-results`, `soak` to `soak-results`, `audio` to `audio-results`, `deck` to `deck-results`, `shot` to `screenshots`, `credits` to the project folder, `sfx` to `<project>/sounds/sfx`, `playtest` to `playtest-results`). The run log, `hyperdot.log`, goes in the command's results folder (`-Output` for `shot`). An `export`, `bench`, `shot`, `audio` or `soak` folder inside the project gets an empty `.gdignore`, so Godot neither imports nor exports it |
 | `-Frames` | `120` | How long smoke runs and launched exports play; how long `shot` waits before each picture. 1 or more: `0` would make Godot's `--quit-after` never quit, so it is refused as `invalid-arguments` |
 | `-FixedFps` | `0` | `smoke`: run at this fixed rate of game time (`--fixed-fps`), so `-Frames` is game time, as fast as the CPU allows and the same on every machine; `0` is real time |
 | `-GameArgs` | | Your game's flags, passed after `--` to smoke runs, the `juice` and `playthrough` runners (after their own `args`), `export -Run`, `bench`, `shot`, `soak` (every server and client) and `audio -Mix`; comma-separated |
-| `-Scene` | main scene | `bench` and `audio -Mix` (first scene), `shot` (every scene), `deck` (every part; `bench` the first): `res://` paths |
-| `-Seconds`, `-Warmup` | `10`, `3` | `bench`: how long to measure, after a warm-up that is not counted; `audio -Mix`: how long to record (default 60); `soak`: how long to run after the warm-up |
+| `-Scene` | main scene | `bench`, `audio -Mix` and `clip` (first scene), `shot` (every scene), `deck` (every part; `bench` the first): `res://` paths |
+| `-Seconds`, `-Warmup` | `10`, `3` | `bench`: how long to measure, after a warm-up that is not counted; `audio -Mix`: how long to record (default 60); `clip`: how long to record, 1 to 30 (default 5); `soak`: how long to run after the warm-up |
 | `-BudgetMs` | `0` (off) | `bench`: fail when the p99 frame time is above this; `deck`: the Deck's budget, default `33.3` |
 | `-MaxDrawCalls` | `0` (off) | `bench`: fail (`bench-over-draw-calls`) when the scene averages more draw calls a frame than this |
 | `-MaxLoadMs` | `0` (off) | `bench`: fail (`bench-over-load-time`) when the scene takes longer than this from `load()` to its first frame drawn (`loadMs`) |
 | `-GpuValidation` | off | `bench`, `shot`, `export -Run`: run with the graphics API's validation layers (`--gpu-validation`, `--accurate-breadcrumbs`) and fail on their errors (`gpu-validation-errors`, `gpuValidation`). Needs Vulkan (Forward+ or Mobile) and its validation layer (Linux: `vulkan-validationlayers`, and `mesa-vulkan-drivers` without a GPU; Windows, macOS: the Vulkan SDK); a run that was not validated fails with `no-gpu-validation`. `export -Run` then launches the build with a window, so it needs a display |
-| `-Label` | | `bench`: the run's name in `bench.csv` |
+| `-Label` | | `bench`: the run's name in `bench.csv`; `clip`: the clip's file name |
 | `-Sweep` | | `bench`: `<name>=<v1,v2,...>`, one run per value with `--<name>=<value>` after `-GameArgs` (the game reads it like any of its flags), each a `bench.csv` row labelled `<-Label> <name>=<value>` and its own `bench.<name>-<value>.json` and `.log`; `sweep` in `-Json` holds p99 and the rest against the value. A value over `-BudgetMs`, `-MaxDrawCalls` or `-MaxLoadMs` is marked, not a failure; a run that cannot be measured fails the sweep (`bench-sweep-failed`) after every value ran |
 | `-HotspotCell` | `0` (10 m in 3D, 512 px in 2D) | `bench`: the grid cell that frame times are grouped into by camera position, for `hotspots` (where it is slow). `playtest`: the heat maps' cell, over `playtest.json`'s (default 2 m on the `xz` plane, 64 px on `xy`); given to `playtest`, it must be above 0 (`invalid-arguments`) |
 | `-Source` | all four | `calendar`: the sources to read, `steam`, `itch`, `epic` and `lootradar` (comma-separated or a list) |
@@ -81,7 +81,7 @@ this machine at the Deck's resolution, not a Deck's speed.
 | `-Topic` | | `help`: the command, skill or subagent whose page to show; also the second word, `help shot` |
 | `-Json` | off | One JSON document on stdout, logs on stderr ([json.md](json.md)) |
 | `-Quiet` | off | Godot and dotnet output only in `hyperdot.log` in the results folder (`-Results`, or `-Output` for `shot`), not on the console. Use with `-Json` for agents |
-| `-Do`, `-Id`, `-Game` | `status` | `plan`: `init`, `status`, `done -Id <gate>`, `reopen -Id <gate>`, `add`, `move -Id <task> -Column`, `remove -Id <task>`, `sync`, `link` |
+| `-Do`, `-Id`, `-Game` | `status` | `plan`: `init`, `status`, `done -Id <gate>`, `reopen -Id <gate>`, `add`, `move -Id <task> -Column`, `remove -Id <task>`, `sync`, `link`; `promo`: `status` (the brief) or `clips -Id <issue>` (comment on the brief with the clips in `-Results`, default `clips`) |
 | `-Title`, `-Column`, `-Board` | | `plan add` title; `add`/`move` column (an id or the board list it maps to, such as "To Do"); `sync` GitHub Project (experimental; `<owner>/<number>`, its URL, or just an owner such as `@me` to make a new project); `link -Column` the item's column, `link -Board` the plan's project |
 | `-Profile` | `full` | `plan -Do init`: `jam` writes a plan for a game jam of 2 to 9 days, sized in days (`ci/godot/templates/plan-jam.json`) instead of the seven phases |
 | `-Handoff`, `-Checked`, `-Verdict` | | `status`: record one subagent handoff (the subagent's name, what it checked, its verdict) in `.godot/hyperdot-handoffs.jsonl` instead of reporting; the newest 200 are kept and `status` returns them as `handoffs[]` ([json.md](json.md)) |
