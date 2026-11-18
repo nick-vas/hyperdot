@@ -44,10 +44,11 @@ function Get-MissingAudioBuses([string[]]$BusNames) {
     })
 }
 
-function Assert-Ffmpeg {
+# Shared with clip: $Why says what the command needs ffmpeg for.
+function Assert-Ffmpeg([string]$Why = 'audio measures loudness') {
     if (-not (Get-Command ffmpeg -CommandType Application -ErrorAction SilentlyContinue)) {
         $how = if ($IsWindows) { 'winget install Gyan.FFmpeg' } elseif ($IsMacOS) { 'brew install ffmpeg' } else { 'sudo apt-get install ffmpeg' }
-        Stop-GodotCi "audio measures loudness with ffmpeg, which is not installed. Install it ($how) and run again" 'no-ffmpeg'
+        Stop-GodotCi "$Why with ffmpeg, which is not installed. Install it ($how) and run again" 'no-ffmpeg'
     }
 }
 

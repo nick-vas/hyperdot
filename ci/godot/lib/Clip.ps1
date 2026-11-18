@@ -13,13 +13,6 @@ $script:ClipGifWidth = 480
 $script:ClipGifFps = 15
 $script:ClipMinHeight = 720
 
-function Assert-Ffmpeg([string]$What) {
-    if (-not (Get-Command ffmpeg -CommandType Application -ErrorAction SilentlyContinue)) {
-        $how = if ($IsWindows) { 'winget install Gyan.FFmpeg' } elseif ($IsMacOS) { 'brew install ffmpeg' } else { 'sudo apt-get install ffmpeg' }
-        Stop-GodotCi "$What encodes video with ffmpeg, which is not installed. Install it ($how) and run again" 'no-ffmpeg'
-    }
-}
-
 # The clip's file name: -Label, else the scene's file name, else "main"; letters, digits, dots, hyphens and underscores.
 function Get-ClipName([string]$Label, [string]$Scene) {
     $base = if ($Label) { $Label } elseif ($Scene) { [System.IO.Path]::GetFileNameWithoutExtension($Scene) } else { 'main' }
@@ -38,7 +31,7 @@ function Invoke-Clip($Info, [string]$Scene, [double]$Seconds, [string]$Resolutio
     if ($Seconds -lt 1 -or $Seconds -gt $script:ClipMaxSeconds) { Stop-GodotCi "-Seconds for clip is 1 to $($script:ClipMaxSeconds), not $Seconds" 'invalid-arguments' }
     if ($Resolution -and $Resolution -notmatch '^\d+x\d+$') { Stop-GodotCi "-Resolution is WIDTHxHEIGHT, like 1280x720, not $Resolution" 'invalid-arguments' }
     Assert-Display 'clip'
-    Assert-Ffmpeg 'clip'
+    Assert-Ffmpeg 'clip encodes video'
     New-Item -ItemType Directory -Force $OutputDir | Out-Null
     $name = Get-ClipName $Label $Scene
     $movie = Join-Path $OutputDir "$name.avi"
