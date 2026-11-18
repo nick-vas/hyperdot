@@ -511,13 +511,16 @@ has none. `-DryRun` on another command, or `-Promo` on any command but `init`, i
 - `shipped[]` (in the green commit or older) and `waiting[]` (newer): `text` (as written; in the issue outside the drafts, `@` mentions
   are broken with a zero-width space; trailers inside HTML comments or fenced code are not read),
   `priority`, `visual`, `sha`, `source` (`commit` or the pull request, `#9`).
-- `upcoming[]`: the dates of the next 28 days, by date (empty with `"calendar": false`): `date` (yyyy-MM-dd), `what`, `kind`
-  (`seasonal-sale`, `next-fest` and `themed-fest` from Steam's event page, read as `calendar` reads it, from the `store-page`
-  stage on; `deadline` for plan.json's release deadlines not yet done (app fee, store page review, Coming Soon, build review,
-  Next Fest demo review, and the demo review of the last Next Fest before release when none is planned); `release`;
-  `discount`, the first allowed), `url`, `task` (the checklist line, or `null` for a date with nothing to do: an event with no
-  opt-in page, release day, the first discount).
-- `deadlineOnly`: nothing shipped, but a date with a task falls within 7 days: the brief holds the dates, the tasks and the
+- `upcoming[]`: the dates of the next 28 days (today and the 27 after), by date (empty with `"calendar": false`): `date`
+  (yyyy-MM-dd), `what`, `kind` (`seasonal-sale`, `next-fest` and `themed-fest` from Steam's event page, read as `calendar` reads
+  it, from the `store-page` stage on; `deadline` for plan.json's release deadlines not yet done (app fee, store page review,
+  Coming Soon, build review, Next Fest demo review, and the demo review of the last Next Fest before release when none is
+  planned), with those missed in the last 7 days marked `(overdue)`; `release`; `discount`, the first allowed), `url`, `task`
+  (the checklist line, or `null` for a date with nothing to do). Tasks: a themed fest with an opt-in page and a seasonal sale
+  the game can join (`calendar`'s rule) are looked for 56 days ahead, as registration closes before the start; a Next Fest
+  gets one only while the game is unreleased at its start, dated at its demo review (21 days before, 35 with
+  `release.pressPreview`). A task ticked in an open brief is not asked again: the new brief keeps it ticked.
+- `deadlineOnly`: nothing shipped, but an unticked date task falls within 7 days (today and the 6 after, or overdue): the brief holds the dates, the tasks and the
   changes still waiting, with no posts or drafts, its title is `Marketing dates: <game>, <day>`, and no tag is made, so next
   week's brief still covers the changes since the last one.
 - `nothingShipped`: why there is no brief this week (no trailer, nothing green, or every change newer than the green commit; on a

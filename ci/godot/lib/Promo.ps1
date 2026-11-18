@@ -292,27 +292,60 @@ function Get-PromoAiDrafts([string]$Game, [string]$Stage, $Items, [string[]]$Cha
 }
 
 # The dates of the next 4 weeks, by day: Steam's seasonal sales, Next Fests and themed fests (once the game has a store page),
-# and plan.json's release deadlines that are not done yet. A date to act on carries a task. Steam's page is read the way
-# calendar reads it (cached 6 hours in .godot/hyperdot-calendar); a page that cannot be read is a warning, never a failure.
+# and plan.json's release deadlines that are not done yet (overdue ones of the last week too). A date to act on carries a task:
+# a themed fest's opt-in, a seasonal sale the game can join, a Next Fest it can still enter (dated at its demo review, 3 weeks
+# before, 5 with the press preview), and each deadline. Opt-ins are looked for 8 weeks ahead, as registration closes before
+# the start. Steam's page is read the way calendar reads it (cached 6 hours in .godot/hyperdot-calendar); a page that cannot
+# be read is a warning, never a failure.
 function Get-PromoUpcoming($Info, $Release, [string]$Stage, [datetime]$Today, [System.Collections.Generic.List[string]]$Warnings) {
     $until = $Today.AddDays($script:PromoUpcomingDays)
+    $optInUntil = $Today.AddDays(2 * $script:PromoUpcomingDays)
     $items = [System.Collections.Generic.List[object]]::new()
-    $add = { param($Day, $What, $Kind, $Url, $Task)
-        if ($null -ne $Day -and $Day -ge $Today -and $Day -le $until) { $items.Add([ordered]@{ date = (Format-CalendarDay $Day); what = $What; kind = $Kind; url = $Url; task = $Task }) } }
+    $add = { param($Day, $What, $Kind, $Url, $Task, [datetime]$From = $Today, [datetime]$To = $until)
+        if ($null -ne $Day -and $Day -ge $From -and $Day -lt $To) { $items.Add([ordered]@{ date = (Format-CalendarDay $Day); what = $What; kind = $Kind; url = $Url; task = $Task }) } }
+    $releaseDay = ConvertTo-PlanDate (Get-CalendarField $Release 'date')
     $events = @()
     if ($Stage -ne 'development') {
-        $read = Read-CalendarSource $Info.ProjectDir 'steam' $Today $until $false
+        $read = Read-CalendarSource $Info.ProjectDir 'steam' $Today $optInUntil $false
         if ($read.status.error) { $Warnings.Add("Coming up: Steam's event page $(if ($read.status.ok) { 'was read, but ' } else { 'could not be read: ' })$($read.status.error)") }
         elseif ($read.status.stale) { $Warnings.Add("Coming up: Steam's event page is a cached copy of $($read.status.fetchedAt), over $($script:CalendarCacheHours) hours old") }
         $events = @($read.events)
-        foreach ($item in @($events | Where-Object { $_.kind -in $script:PromoEventKinds -and $_.start })) {
-            $task = if ($item.registration) { "Opt in to $($item.name) before it starts on $($item.start): $($item.registration)" } else { $null }
-            & $add (ConvertTo-PlanDate $item.start) "$($item.name), $($item.start) to $($item.end)" $item.kind $item.url $task
+    }
+    $relation = if ($releaseDay -and $events.Count) { Get-CalendarRelease $Release $events $Today } else { $null }
+    $press = (Get-CalendarField $Release 'pressPreview') -eq $true
+    $reviewDays = $press ? 35 : $script:CalendarDemoReviewDays
+    $listedFest = $null
+    foreach ($item in @($events | Where-Object { $_.kind -in $script:PromoEventKinds -and $_.start })) {
+        $start = ConvertTo-PlanDate $item.start
+        $what = "$($item.name), $($item.start) to $($item.end)"
+        switch ($item.kind) {
+            'next-fest' {
+                # For unreleased games only, and entered with a demo in review 3 (5) weeks before: dated at that review.
+                $canEnter = $Stage -ne 'launched' -and ($null -eq $releaseDay -or $releaseDay -gt $start)
+                $by = $start.AddDays(-$reviewDays)
+                if ($canEnter -and $by -ge $Today) {
+                    $task = "Enter $($item.name): register$(if ($item.registration) { " ($($item.registration))" }) and send the demo to review by $(Format-CalendarDay $by)"
+                    & $add $by "$what; its demo goes to review by $(Format-CalendarDay $by)" 'next-fest' $item.url $task $Today $optInUntil
+                    $listedFest = $item.name
+                } else { & $add $start $what 'next-fest' $item.url $null }
+            }
+            'seasonal-sale' {
+                # Only a sale the game can join gets a task: released, and out of its first 30 days in time (calendar's rule).
+                $sale = @(if ($relation) { $relation.seasonalSales | Where-Object { $_.name -eq $item.name -and $_.joinable } })
+                $task = if ($sale.Count -and $item.registration) { "Opt in to $($item.name) (it starts on $($item.start)): $($item.registration)" }
+                    elseif ($sale.Count) { "Set a discount for $($item.name) (from $($sale[0].joinFrom))" } else { $null }
+                if ($task) { & $add $start $what 'seasonal-sale' $item.url $task $Today $optInUntil } else { & $add $start $what 'seasonal-sale' $item.url $null }
+            }
+            default {
+                if ($item.registration) { & $add $start $what $item.kind $item.url "Opt in to $($item.name) (it starts on $($item.start)): $($item.registration)" $Today $optInUntil }
+                else { & $add $start $what $item.kind $item.url $null }
+            }
         }
     }
-    $releaseDay = ConvertTo-PlanDate (Get-CalendarField $Release 'date')
     if ($releaseDay) {
-        $deadlines = (Get-ReleaseTimeline $Release $Today).timeline.deadlines
+        $line = Get-ReleaseTimeline $Release $Today
+        foreach ($warning in @($line.warnings | Where-Object { $_ -match 'is not a date' })) { $Warnings.Add("Coming up: $warning") }
+        $deadlines = $line.timeline.deadlines
         $done = { param($Field) [bool](ConvertTo-PlanDate (Get-CalendarField $Release $Field)) }
         $steps = @(
             @('steamFee', 'steamFeePaid', "Pay Steam's app fee (21 days before release)"),
@@ -322,19 +355,34 @@ function Get-PromoUpcoming($Info, $Release, [string]$Stage, [datetime]$Today, [S
             @('demoReview', 'demoSubmitted', 'Submit the Next Fest demo for review'))
         foreach ($step in $steps) {
             if (-not $deadlines.Contains($step[0]) -or (& $done $step[1])) { continue }
-            & $add (ConvertTo-PlanDate $deadlines[$step[0]]) $step[2] 'deadline' $null "$($step[2]): by $($deadlines[$step[0]])"
+            $day = ConvertTo-PlanDate $deadlines[$step[0]]
+            # A deadline missed in the last week stays, marked overdue: it is the most urgent line of the brief.
+            $what = if ($day -lt $Today) { "$($step[2]) (overdue)" } else { $step[2] }
+            & $add $day $what 'deadline' $null "$($step[2]): by $($deadlines[$step[0]])" $Today.AddDays(-$script:PromoSoonDays) $until
         }
         & $add $releaseDay 'Release day' 'release' $null $null
         & $add (ConvertTo-PlanDate $deadlines['firstDiscount']) 'The first discount is allowed (30 days after release)' 'discount' $null $null
-        if ($events.Count) {
-            $relation = Get-CalendarRelease $Release $events $Today
-            if ($relation -and $relation.nextFest.suggested) {
-                & $add (ConvertTo-PlanDate $relation.nextFest.demoReviewBy) "The demo for $($relation.nextFest.suggested), the last Next Fest before release, goes to review" 'deadline' $null `
-                    "Decide on $($relation.nextFest.suggested): its demo goes to review by $($relation.nextFest.demoReviewBy) (set release.nextFest to plan it)"
-            }
+        if ($relation -and $relation.nextFest.suggested -and $relation.nextFest.suggested -ne $listedFest) {
+            & $add (ConvertTo-PlanDate $relation.nextFest.demoReviewBy) "The demo for $($relation.nextFest.suggested), the last Next Fest before release, goes to review" 'deadline' $null `
+                "Decide on $($relation.nextFest.suggested): its demo goes to review by $($relation.nextFest.demoReviewBy) (set release.nextFest to plan it)"
         }
     }
     return @($items | Sort-Object { $_.date }, { $_.what })
+}
+
+# The ticked boxes of the open briefs' Tasks sections, without "(from #N)": a date's task the owner ticked is not asked again
+# while the date is still coming up (each brief keeps it, ticked, so the next one knows).
+function Get-PromoTickedTasks($Issues) {
+    $ticked = [System.Collections.Generic.HashSet[string]]::new()
+    foreach ($issue in $Issues) {
+        $body = if ($issue.PSObject.Properties['body'] -and $issue.body) { "$($issue.body)" } else { '' }
+        $inTasks = $false
+        foreach ($line in @($body -split '\r?\n')) {
+            if ($line -match '^##\s') { $inTasks = $line -match '^##\s+Tasks\s*$'; continue }
+            if ($inTasks -and $line -match '^\s*- \[[xX]\] (?<t>\S.*?)\s*$') { $null = $ticked.Add(($Matches.t.Replace($script:PromoZeroWidthSpace, '') -replace '\s*\(from #\d+\)$', '')) }
+        }
+    }
+    return , $ticked
 }
 
 function Format-PromoItem($Item) {
@@ -367,6 +415,7 @@ function New-PromoBody($Brief) {
     }
     $lines.Add(''); $lines.Add('## Tasks'); $lines.Add('')
     foreach ($task in $Brief.tasks) { $lines.Add("- [ ] $(Protect-PromoMentions $task)") }
+    foreach ($task in $Brief.doneTasks) { $lines.Add("- [x] $(Protect-PromoMentions $task)") }
     if ($null -eq $Brief.drafts) { return ($lines -join "`n").TrimEnd() + "`n" }
     $lines.Add(''); $lines.Add('## Drafts'); $lines.Add('')
     if ($Brief.drafts.source -eq 'ai') { $lines.Add("> AI drafts ($($Brief.drafts.model)): check every claim against the Shipped list before posting."); $lines.Add('') }
@@ -460,7 +509,14 @@ function Invoke-Promo($Info, [bool]$DryRun, [datetime]$Today = [datetime]::UtcNo
     }
     $upcoming = @(if ($settings.calendar) { Get-PromoUpcoming $Info $release $stage $Today $warnings })
     $result['upcoming'] = $upcoming
-    $soon = @($upcoming | Where-Object { $_.task -and (ConvertTo-PlanDate $_.date) -le $Today.AddDays($script:PromoSoonDays) })
+    # The open briefs are read only when there is a brief to write or a date's task to check against them.
+    $openBriefs = @(if ($shipped.Count -or @($upcoming | Where-Object { $_.task }).Count) {
+            Assert-PromoApi (Invoke-PromoApi GET "/repos/$repo/issues?labels=$($script:PromoLabel)&state=open&per_page=100") 'listing the open briefs' |
+                Where-Object { $_ -and -not $_.PSObject.Properties['pull_request'] } | Sort-Object { [int]$_.number }
+        })
+    $ticked = Get-PromoTickedTasks $openBriefs
+    $doneTasks = @($upcoming | Where-Object { $_.task -and $ticked.Contains($_.task) } | ForEach-Object { $_.task })
+    $soon = @($upcoming | Where-Object { $_.task -and -not $ticked.Contains($_.task) -and (ConvertTo-PlanDate $_.date) -lt $Today.AddDays($script:PromoSoonDays) })
     # Nothing shipped but a date to act on within a week: a short brief with the dates and tasks, and no tag, so next week's
     # brief still covers the changes since the last one.
     $deadlineOnly = $shipped.Count -eq 0 -and $soon.Count -gt 0
@@ -483,12 +539,10 @@ function Invoke-Promo($Info, [bool]$DryRun, [datetime]$Today = [datetime]::UtcNo
         if ($existing.status -ne 404) { $null = Assert-PromoApi $existing "checking for $tag" }
     }
 
-    $openBriefs = @(Assert-PromoApi (Invoke-PromoApi GET "/repos/$repo/issues?labels=$($script:PromoLabel)&state=open&per_page=100") 'listing the open briefs' |
-            Where-Object { $_ -and -not $_.PSObject.Properties['pull_request'] } | Sort-Object { [int]$_.number })
     $tasks = [System.Collections.Generic.List[string]]::new()
     foreach ($item in @(Get-PromoSortedItems $shipped | Where-Object { $_.visual })) { $tasks.Add("Record a clip: $($item.text)") }
     if (-not $deadlineOnly) { foreach ($channel in $channels) { $tasks.Add(@{ discord = 'Post on Discord'; bluesky = 'Post on Bluesky'; steam = 'Post Steam news' }[$channel]) } }
-    foreach ($date in @($upcoming | Where-Object { $_.task })) { if (-not $tasks.Contains($date.task)) { $tasks.Add($date.task) } }
+    foreach ($date in @($upcoming | Where-Object { $_.task -and -not $ticked.Contains($_.task) })) { if (-not $tasks.Contains($date.task)) { $tasks.Add($date.task) } }
     # A task this week's brief asks for anyway ("Post on Discord") is not carried as well.
     $carried = @(Get-PromoCarriedTasks $openBriefs | Where-Object { -not $tasks.Contains(($_ -replace '\s*\(from #\d+\)$', '')) })
     foreach ($task in $carried) { $tasks.Add($task) }
@@ -503,7 +557,7 @@ function Invoke-Promo($Info, [bool]$DryRun, [datetime]$Today = [datetime]::UtcNo
         else { $drafts.fallbackReason = $ai.reason; $warnings.Add("AI drafts not used: $($ai.reason); the brief has the template drafts") }
     }
     $brief = [ordered]@{ tag = $tag; stage = $stage; check = $check.name; green = $green; range = $range; shipped = $shipped; waiting = $waiting; tasks = @($tasks); drafts = $drafts
-        upcoming = $upcoming; deadlineOnly = $deadlineOnly }
+        upcoming = $upcoming; deadlineOnly = $deadlineOnly; doneTasks = $doneTasks }
     $day = $Today.ToString('yyyy-MM-dd', [cultureinfo]::InvariantCulture)
     $title = if ($deadlineOnly) { "Marketing dates: $(Protect-PromoMentions $game), $day" } else { "Marketing brief ${number}: $(Protect-PromoMentions $game), $day" }
     $body = New-PromoBody $brief

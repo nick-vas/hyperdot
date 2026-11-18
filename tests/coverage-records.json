@@ -2953,6 +2953,7 @@
         "Get-PromoSettingsPath",
         "Get-PromoSortedItems",
         "Get-PromoStage",
+        "Get-PromoTickedTasks",
         "Get-PromoTrailers",
         "Get-PromoUpcoming",
         "Get-ReleaseTimeline",

@@ -269,7 +269,9 @@ Marketing-Visual: yes           (worth a clip)
   tags `mkt/N` at the green commit, then closes last week's brief, whose unticked tasks it carries over.
 - **Coming up:** the dates of the next 4 weeks: Steam's seasonal sales, Next Fests and themed fests once the game has a store
   page (Steam's event page, read like `calendar`), and the release deadlines in plan.json not done yet (app fee, store page and
-  build reviews, Coming Soon, the Next Fest demo). A fest with an opt-in page and each deadline is a task.
+  build reviews, Coming Soon, the Next Fest demo), a missed one marked overdue for a week. Each deadline is a task, and so is
+  an opt-in: a themed fest's or a seasonal sale the game can join (looked for 8 weeks ahead, since registration closes before
+  the start), and a Next Fest while the game is unreleased, dated at its demo review. Tick a task and it is not asked again.
 - **Quiet weeks:** nothing shipped and no date to act on within 7 days: nothing is written. A date to act on within 7 days
   opens a short "Marketing dates" brief instead, with the dates, the tasks and the changes still waiting, and no tag.
 - **Mentions:** an `@name` in a commit gets a zero-width space after the `@` in the issue, so the brief notifies no one; the

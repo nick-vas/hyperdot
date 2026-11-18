@@ -325,9 +325,6 @@ function Get-CalendarDocument([string]$Url, [string]$CacheFile, [bool]$Offline) 
     return $result
 }
 
-# The release against the events: which seasonal sales the game can join (released at least 30 days before the start,
-# or part-way once the 30 days after release end), what falls on release day, whether release.nextFest is an edition
-# Valve lists, the last Next Fest before release when none is planned, and Epic giveaways in launch week.
 # One of steam, itch and epic, from the network or the cache: every event read, the ones overlapping $Today to $Horizon (or
 # undated), and how the read went (cached, stale, fetchedAt, error, items in the window, ok). promo reads Steam's this way too.
 function Read-CalendarSource([string]$ProjectDir, [string]$Name, [datetime]$Today, [datetime]$Horizon, [bool]$Offline) {
@@ -351,6 +348,9 @@ function Read-CalendarSource([string]$ProjectDir, [string]$Name, [datetime]$Toda
     return [ordered]@{ status = $status; events = $found; inWindow = $inWindow }
 }
 
+# The release against the events: which seasonal sales the game can join (released at least 30 days before the start,
+# or part-way once the 30 days after release end), what falls on release day, whether release.nextFest is an edition
+# Valve lists, the last Next Fest before release when none is planned, and Epic giveaways in launch week.
 function Get-CalendarRelease($Release, [object[]]$Events, [datetime]$Today) {
     $releaseDay = ConvertTo-PlanDate (Get-CalendarField $Release 'date')
     if ($null -eq $releaseDay) { return $null }
