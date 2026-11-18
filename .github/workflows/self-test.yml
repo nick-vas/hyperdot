@@ -641,6 +641,9 @@ jobs:
       - name: audio measures sound files and doctor names missing buses; -Mix records the game's mix and judges its loudness
         shell: pwsh
         run: ./tests/Test-Audio.ps1 -Mix
+      - name: clip records a scene with Movie Maker as an MP4 and a GIF of the right length and colour, and refuses bad -Seconds, a missing scene and no display
+        shell: pwsh
+        run: ./tests/Test-Clip.ps1
       - name: -GameArgs reach the game
         shell: pwsh
         run: |

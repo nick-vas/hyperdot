@@ -51,7 +51,7 @@ $core = ('^\.github/(workflows/self-test\.yml|actions/|scripts/(?!' + $ownScript
     '^ci/godot/lib/(Common|Runners|Setup|Detect|Report)\.ps1$', '^ci/godot/tools/(validate|validate_logger|flows)\.gd$',
     '^examples/', '^\.gdignore$', '^ci/godot/\.gdignore$'
 function Get-LibPattern([string[]]$Names) { return '^ci/godot/lib/(' + ($Names -join '|') + ')\.ps1$' }
-$measureLibs = Get-LibPattern 'Measure', 'Audio', 'TextSize', 'Layout', 'Deck', 'Palette', 'Playthrough', 'Soak', 'Credits', 'Localization'
+$measureLibs = Get-LibPattern 'Measure', 'Audio', 'TextSize', 'Layout', 'Deck', 'Palette', 'Playthrough', 'Soak', 'Credits', 'Localization', 'Clip'
 # What a game's own checks and doctor reach: every lib except the ones for sounds, trailers, plans, the web and help.
 $gameLibs = Get-LibPattern 'Doctor', 'Context', 'Addons', 'Architecture', 'Assets', 'Juice', 'Playthrough', 'Placement', 'Soak', 'Platforms', 'Steam', 'Store', 'Audio', 'Localization', 'Data', 'Measure', 'Version'
 $patterns = @{

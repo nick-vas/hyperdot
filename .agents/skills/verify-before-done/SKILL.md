@@ -33,6 +33,7 @@ the last edit; it says nothing about whether the design or the code is good.
    Marketing: Meteor storms can now rain down on your base
    Marketing-Priority: high        (high, normal or low; normal when left out)
    Marketing-Visual: yes           (worth a clip)
+   Marketing-Scene: res://levels/storm.tscn   (optional: the scene a clip records; Marketing-Args, Marketing-Seconds)
    ```
 
 ## Rationalizations

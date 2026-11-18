@@ -5,8 +5,8 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 
 ## Layout
 
-- `ci/godot/hyperdot.ps1` entry point: `test build export setup detect doctor init plan bench shot status audio soak credits sfx playtest help deck telemetry calendar brief promo`, all with `-Json`.
-- `ci/godot/lib/*.ps1` one concern per file: Common, Setup, Detect, Report, Runners, Doctor, Init, Plan, Measure, Status, Architecture, Juice, Audio, Assets, Localization, Soak, Data, TextSize, Layout, Credits, Store, Web, Platforms, Sfx, Playthrough, Version, Steam, Context, Addons, Playtest, Palette, BuildSize, Help, Deck, Placement, Telemetry, Workflow, WorkingTree, Calendar, Brief, Promo.
+- `ci/godot/hyperdot.ps1` entry point: `test build export setup detect doctor init plan bench shot status audio soak credits sfx playtest help deck telemetry calendar brief promo clip`, all with `-Json`.
+- `ci/godot/lib/*.ps1` one concern per file: Common, Setup, Detect, Report, Runners, Doctor, Init, Plan, Measure, Status, Architecture, Juice, Audio, Assets, Localization, Soak, Data, TextSize, Layout, Credits, Store, Web, Platforms, Sfx, Playthrough, Version, Steam, Context, Addons, Playtest, Palette, BuildSize, Help, Deck, Placement, Telemetry, Workflow, WorkingTree, Calendar, Brief, Promo, Clip.
 - `ci/godot/workflow.json` the rules behind `status`'s `suggestedCommands` and the table in `docs/workflow.md` (when to run which command).
 - `ci/godot/tools/` `validate.gd`, `flows.gd`, `bench.gd`, `shot.gd`, `textsize.gd`, `layout.gd`, `placement.gd`, `notices.gd`, `glyphs.gd` (run inside Godot), `web-smoke.mjs` (Node.js and Playwright, for `export -Run` of Web presets), `Sfxr.cs` (bfxr2's sound synth in C#, compiled by `sfx` with `Add-Type`; Apache-2.0 and MIT), `Heatmap.cs` (PNG heat maps for `playtest`, compiled with `Add-Type`), `Palette.cs` (PNG reader and CIEDE2000 palette check, compiled by `shot` with `Add-Type`), `Test-Skills.ps1` (skill validator),
   `Initialize-HyperdotGame.ps1` (sets the kit up for a game from local copies of the kit and Godot and makes a worktree for a parallel chat; [docs/usage.md](docs/usage.md)),

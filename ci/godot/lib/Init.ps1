@@ -127,7 +127,8 @@ function New-PromoWorkflow($Info) {
 #   Marketing: Meteor storms can now rain down on your base
 #   Marketing-Priority: high          (optional: high, normal or low)
 #   Marketing-Visual: yes             (optional: worth a clip)
-# Settings: docs/promo.json. It never runs Godot: about a minute of Actions time a week. https://github.com/nick-vas/hyperdot
+#   Marketing-Scene: res://levels/storm.tscn   (optional: with clips below, a first clip of it; Marketing-Args, Marketing-Seconds)
+# Settings: docs/promo.json. Without clips it never runs Godot: about a minute of Actions time a week. https://github.com/nick-vas/hyperdot
 name: Marketing brief
 
 on:
@@ -158,6 +159,7 @@ jobs:
     uses: nick-vas/hyperdot/.github/workflows/promo.yml@v1
     with:$projectInput
       dry-run: `${{ github.event_name == 'workflow_dispatch' && inputs.dry-run }}
+      clips: false   # true: also record a clip of each change with a Marketing-Scene: trailer (sets Godot up: several minutes a week)
 "@
     Write-InitStep added '.github/workflows/hyperdot-promo.yml (the weekly marketing brief, Mondays; run it by hand for a dry run)'
 }
