@@ -511,7 +511,8 @@ for the workflow's clip job. `-DryRun` on another command, or `-Promo` on any co
   `number` (N of this brief), `dryRun`, `written` (the issue was opened and tagged).
 - `green`: `null` when no main-line commit in the range passed, else `sha`, `via` (`check`, or `pull-request` when the commit
   had no run of the check and its merged pull request's head passed: then `pullRequest` and `head`).
-- `shipped[]` (in the green commit or older) and `waiting[]` (newer): `text` (as written; in the issue outside the drafts, `@` mentions
+- `shipped[]` (in the green commit or older) and `waiting[]` (newer): `text` (as written, with control characters and runs of spaces made
+  one space and cut to 280 characters, a warning saying so; in the issue outside the drafts, `@` mentions
   are broken with a zero-width space; trailers inside HTML comments or fenced code are not read),
   `priority`, `visual`, `sha`, `source` (`commit` or the pull request, `#9`), `scene` (its `Marketing-Scene`, or `null`).
 - `upcoming[]`: the dates of the next 28 days (today and the 27 after), by date (empty with `"calendar": false`): `date`

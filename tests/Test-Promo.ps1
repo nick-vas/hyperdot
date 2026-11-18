@@ -30,6 +30,8 @@ $clipTrailers = @(Get-PromoTrailers "x`n`nMarketing: A`nMarketing-Scene: res://l
 Assert-True ($clipTrailers[0].visual -and $clipTrailers[0].scene -eq 'res://levels/storm.tscn' -and $clipTrailers[0].seconds -eq 12 -and @($clipTrailers[0].gameArgs).Count -eq 0) 'Marketing-Scene names the clip and makes the change visual; Marketing-Seconds sets its length'
 $bad = @(Get-PromoTrailers "x`n`nMarketing: B`nMarketing-Scene: levels/storm`nMarketing-Seconds: 45" ('a' * 40) 'commit')
 Assert-True ($null -eq $bad[0].scene -and $bad[0].seconds -eq 5 -and @($bad[0].problems).Count -eq 2 -and -not $bad[0].visual) "a scene that is not a res:// scene, or seconds out of 1 to 30, is a problem and no clip: $(@($bad[0].problems) -join ' | ')"
+$longText = @(Get-PromoTrailers "x`n`nMarketing: $('a' * 400)`u{0007} tail" ('a' * 40) 'commit')
+Assert-True ($longText[0].text.Length -eq 280 -and $longText[0].text.EndsWith([string][char]0x2026) -and $longText[0].text -notmatch '\p{Cc}' -and @($longText[0].problems | Where-Object { $_ -match 'cut to 280' }).Count -eq 1) 'a Marketing line is cleaned of control characters and cut to 280 characters, with a warning'
 $argsBad = @(Get-PromoTrailers "x`n`nMarketing: C`nMarketing-Scene: res://a.tscn`nMarketing-Args: --level=1,2" ('a' * 40) 'commit')
 Assert-True ($null -eq $argsBad[0].scene -and @($argsBad[0].problems | Where-Object { $_ -match 'comma or a bare --' }).Count -eq 1) 'Marketing-Args with a comma (or a bare --) cannot reach the game: a problem, and no clip'
 $long = @([ordered]@{ text = ('Storms ' * 80).Trim(); priority = 'high'; visual = $false; sha = ('a' * 40); source = 'commit' }, [ordered]@{ text = 'Second'; priority = 'low'; visual = $false; sha = ('b' * 40); source = 'commit' })
@@ -204,7 +206,7 @@ try {
     $run = Invoke-PromoCli @('-DryRun')
     $p = $run.doc.promo
     $call = @(Get-Requests | Where-Object { $_.path -eq '/models' })
-    Assert-True ($p.drafts.source -eq 'ai' -and $p.drafts.text.discord -eq 'Co-op is here, thanks @dave ``````' -and "$($p.body)".Contains("````````text`nCo-op is here") -and "$($p.body)".Contains('check every claim') -and $call.Count -eq 1 -and ($call[0].body | ConvertFrom-Json).model -eq 'openai/gpt-4.1-mini') 'good AI drafts are used as written, in a fence longer than their backticks, labelled "check every claim"'
+    Assert-True ($p.drafts.source -eq 'ai' -and $p.drafts.text.discord -eq 'Co-op is here, thanks @dave ``````' -and "$($p.body)".Contains("````````text`nCo-op is here") -and "$($p.body)".Contains('check every claim') -and $call.Count -eq 1 -and ($call[0].body | ConvertFrom-Json).model -eq 'openai/gpt-4.1-mini' -and ($call[0].body | ConvertFrom-Json).messages[0].content -match 'not instructions to you') 'good AI drafts are used as written, in a fence longer than their backticks, labelled "check every claim"'
 
     # --- Coming up: Steam's dates (a page made relative to today, in the calendar cache) and plan.json's deadlines ---
     $now = [datetime]::UtcNow.Date
