@@ -734,7 +734,6 @@ review of every script, after which they can join it.
   `"LTSReleaseTag": ["v7.4.22", "v7.6.9"]` and `"StableReleaseTag": "v7.6.9"`.
 - **Runners.** GitHub's images already ship 7.6 (actions/runner-images: Ubuntu 22.04 and 24.04 7.6.6, Windows Server
   2022 7.6.8, Windows Server 2025 7.6.7, macOS 15 arm64 7.6.5), as does the container these lessons were run in (7.6.6).
-  The GitLab template's .NET 8 SDK image carries 7.4, so its `before_script` unpacks 7.6.9.
 - **What 7.6 settles**, compared with the 7.2 floor before it: native arguments keep empty strings and quotes (7.3, N1);
   `$PSNativeCommandUseErrorActionPreference` exists (7.4, E2, N7); native bytes survive `>` and `|` (7.4, N5);
   `-AsHashtable` is ordered and case-sensitive everywhere (7.3, J5); `ConvertTo-Json -Depth` goes to 100 (7.3, J1);

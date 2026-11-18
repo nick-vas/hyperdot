@@ -1507,7 +1507,9 @@
     },
     "Test-FixedFps": {
       "commands": [
+        "detect",
         "doctor",
+        "help",
         "test"
       ],
       "errors": [
@@ -1516,30 +1518,11 @@
       "functions": [
         "Add-RunHistory",
         "Assert-KitArguments",
-        "Assert-SafeToClear",
-        "ConvertTo-GodotVersion",
-        "ConvertTo-SafeName",
         "Enable-JsonMode",
-        "Find-GoDotTestScene",
-        "Find-ProjectFiles",
-        "Find-Solution",
-        "Get-DeadlineLeftMs",
-        "Get-ExportPresets",
-        "Get-GodotVersionFromProject",
-        "Get-GutTestFiles",
         "Get-KitFlagName",
         "Get-KitParameterSets",
-        "Get-ProjectInfo",
-        "Get-TranslationSources",
-        "Move-OldKitState",
-        "Set-CommandDeadline",
         "Set-DotnetRollForward",
-        "Split-GameArgs",
         "Stop-GodotCi",
-        "Test-ContainsText",
-        "Test-DeadlinePassed",
-        "Test-UsesSteam",
-        "Write-CiLog",
         "Write-Console",
         "Write-JsonResult",
         "Write-RunLog"
@@ -2694,6 +2677,7 @@
         "Get-ExportPresets",
         "Get-FlakyOffenders",
         "Get-GddPath",
+        "Get-GddProblems",
         "Get-GdextensionHostProblems",
         "Get-GdextensionProblems",
         "Get-GitActivity",

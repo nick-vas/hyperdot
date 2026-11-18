@@ -211,7 +211,7 @@ function Write-SingleCaseJUnit([string]$Path, [string]$Name, [bool]$Passed, [str
 }
 
 # Every runner's results as JUnit in one folder, <results>/junit/<runner>-<file>.junit.xml, for CI systems that read
-# JUnit only (GitLab's artifacts:reports:junit): the runners' own JUnit copied, and dotnet's and gdUnit4's TRX converted.
+# JUnit only: the runners' own JUnit copied, and dotnet's and gdUnit4's TRX converted.
 # Failed attempts kept for -Retry (<runner>.attemptN) and coverage folders are left out. Returns the folder, or $null.
 function Export-JUnitReports([string]$ResultsDir, [string[]]$Runners) {
     $target = Join-Path $ResultsDir 'junit'

@@ -211,47 +211,7 @@ jobs:
 Artifacts and PR comments are per game (named after `config/name`), so they don't collide. A test results artifact also
 names the `runners` input when it is set, so two jobs that test one game with different runners keep apart.
 
-### 11. GitLab CI
-
-Untested on GitLab: [`ci/gitlab/hyperdot.gitlab-ci.yml`](../ci/gitlab/hyperdot.gitlab-ci.yml) is written against GitLab's
-documented keywords and checked by `tests/Test-GitLabTemplate.ps1` (it parses the file, checks its keys, and matches its
-report paths against what the kit writes), but it has never run on a GitLab runner. Reports of a first run are welcome.
-
-```yaml
-include:
-  - remote: https://raw.githubusercontent.com/nick-vas/hyperdot/v1/ci/gitlab/hyperdot.gitlab-ci.yml
-variables:
-  HYPERDOT_PROJECT: game        # the folder with project.godot, if not found by itself
-  HYPERDOT_COVERAGE: "true"
-```
-
-It adds two jobs, the same steps as the GitHub action: `hyperdot-test` (stage `test`, every pipeline) sets up Godot and
-runs `test`; `hyperdot-export` (stage `deploy`, the default branch and tags) runs `export` and keeps `build/` as the job's
-artifact. Both run in `mcr.microsoft.com/dotnet/sdk:8.0`, which holds .NET 8 and git. Its PowerShell is the global tool
-that follows .NET 8 (7.4), older than the kit's 7.6, and PowerShell 7.6 is built on .NET 10, so `before_script` unpacks
-PowerShell's self-contained Linux build (`HYPERDOT_PWSH_VERSION`, 7.6.9; cached in `.hyperdot-cache/pwsh/`), puts it first on
-PATH and stops the job if `pwsh` is still older than 7.6; games still build with the image's .NET 8 SDK. The kit
-clones itself into `/tmp/hyperdot` at `HYPERDOT_REF` (set `HYPERDOT_KIT` to a folder that holds it, such as a submodule,
-to skip the clone) and downloads Godot like anywhere else. The GitHub action's inputs are variables, upper case with
-underscores: `HYPERDOT_PROJECT`, `HYPERDOT_GODOT_VERSION`, `HYPERDOT_RUNNERS`, `HYPERDOT_FILTER`, `HYPERDOT_RETRY`,
-`HYPERDOT_COVERAGE`, `HYPERDOT_MIN_COVERAGE`, `HYPERDOT_PRESET`, `HYPERDOT_RUN_EXPORTS`, `HYPERDOT_GAME_VERSION`
-(`ci/gitlab/Invoke-Hyperdot.ps1` turns them into `hyperdot.ps1`'s parameters).
-
-- **Tests in merge requests:** `test` also writes every runner's results as JUnit into `test-results/junit/` (JUnit runners
-  copied, the TRX of `dotnet` and `gdunit4` converted, failed `-Retry` attempts left out; `junitDir` in `-Json`), which the
-  job reports through `artifacts:reports:junit`. `test-results/` is kept as an artifact, also when the tests fail.
-- **Coverage:** with `HYPERDOT_COVERAGE` or `HYPERDOT_MIN_COVERAGE`, each runner's Cobertura file
-  (`test-results/<runner>/coverage/*.cobertura.xml`) goes to `artifacts:reports:coverage_report`, and the job's `coverage`
-  regex reads the kit's `Line coverage: 85.2%` line for the badge.
-- **Caches:** Godot and NuGet packages in `.hyperdot-cache/tools` and `.hyperdot-cache/nuget` (`GODOT_TOOLS_DIR`,
-  `NUGET_PACKAGES`), export templates in `.hyperdot-cache/data` (`XDG_DATA_HOME`): inside the checkout, the only place
-  GitLab caches, with a `.gdignore` so Godot skips it. The tools cache is saved even when the job fails.
-- **Exports:** one job for every preset by default; extend `.hyperdot` with `HYPERDOT_PRESET` for one job per platform.
-  `GIT_DEPTH: "0"` lets `HYPERDOT_GAME_VERSION: auto` read the tags. Git LFS files are fetched by GitLab's runner before the job.
-- **Not covered:** the GitHub workflow's PR comment, the import cache, and the Android Gradle cache. A smaller image with
-  Godot already in it is on the roadmap.
-
-### 12. A weekly marketing brief
+### 11. A weekly marketing brief
 
 ```powershell
 pwsh ci/godot/hyperdot.ps1 init -Promo

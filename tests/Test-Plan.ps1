@@ -113,7 +113,7 @@ Assert-True ($order.timeline.deadlines.demoReview -eq '2027-05-10') 'the press p
 $none = Get-ReleaseTimeline ([pscustomobject]@{ date = $null }) ([datetime]'2027-01-04')
 Assert-True ($null -eq $none.timeline -and $none.warnings.Count -eq 0) 'no release date, no timeline'
 
-# The automatic gates `ci` and `preset` (Test-PlanGate on a made-up project): a workflow or GitLab file that uses the kit
+# The automatic gates `ci` and `preset` (Test-PlanGate on a made-up project): a workflow that uses the kit
 # passes, one that only mentions godot.yml, or none, does not, and neither does a project with no export preset.
 $gateDir = Join-Path ([IO.Path]::GetTempPath()) "plan-gate-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
 try {
@@ -135,10 +135,6 @@ try {
     Set-CiFile '.github/workflows/hyperdot.yml' "jobs:`n  t:`n    uses: nick-vas/hyperdot/.github/workflows/godot.yml@v1`n"
     Assert-True ((Test-PlanGate $ciGate $gateInfo) -eq $true) 'the ci gate passes for a workflow calling the kit''s reusable workflow'
     Remove-Item -LiteralPath $workflowDir -Recurse -Force
-    Set-CiFile '.gitlab-ci.yml' "stages: [test]`nbuild:`n  script: [make]`n"
-    Assert-True ((Test-PlanGate $ciGate $gateInfo) -eq $false) 'the ci gate stays open for a GitLab file that does not use the kit'
-    Set-CiFile '.gitlab-ci.yml' "include:`n  - remote: https://raw.githubusercontent.com/nick-vas/hyperdot/v1/ci/gitlab/hyperdot.gitlab-ci.yml`n"
-    Assert-True ((Test-PlanGate $ciGate $gateInfo) -eq $true) 'the ci gate passes for a GitLab file including the kit''s template'
     $presetGate = [pscustomobject]@{ id = 'x.preset'; check = 'preset' }
     Assert-True ((Test-PlanGate $presetGate $gateInfo) -eq $false) 'the preset gate is open with no export preset'
     $gateInfo.Presets = @('Linux')
