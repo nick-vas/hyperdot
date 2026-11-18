@@ -98,8 +98,10 @@ param(
     [string]$Output = 'build',
     # Frames the smoke runner plays, launched exports play, and shot waits before each screenshot.
     [int]$Frames = 120,
-    # smoke: run at this fixed rate of game time (--fixed-fps), so -Frames is game time and a bot's run is the same on
-    # every machine and as fast as the CPU allows. 0 (default): real time, as before.
+    # test: run smoke and the Godot that gdUnit4 starts (the dotnet and gdunit4 runners) at this fixed rate of game time
+    # (--fixed-fps): each frame is 1/FixedFps s of game time, as fast as the CPU allows and the same on every machine, so
+    # -Frames is game time and tests that wait for physics ticks no longer wait for the wall clock. Use the game's physics
+    # tick rate. Audio, the network and .NET timers still follow the wall clock. 0 (default): real time, as before.
     [int]$FixedFps = 0,
     # Your game's own flags, passed after "--" to smoke runs, export -Run, bench and shot (read them with
     # OS.GetCmdlineUserArgs()). Release exports ignore scene paths, so debug entry points belong here, e.g. '--autoplay','--seed=3'.
@@ -741,6 +743,15 @@ if (($Handoff -or $Checked -or $Verdict) -and ($Command -ne 'status' -or -not $H
 }
 # Before any slow setup: refuse a -Results folder that wiping would hurt.
 if ($Command -eq 'test') { Assert-SafeToClear $Results }
+if ($PSBoundParameters.ContainsKey('FixedFps')) {
+    if ($Command -ne 'test') { Stop-GodotCi "-FixedFps is for test (smoke and the Godot gdUnit4 starts), not $Command" 'invalid-arguments' }
+    if ($FixedFps -lt 0) { Stop-GodotCi "-FixedFps is a rate of game frames per second (the game's physics tick rate), or 0 for real time, not $FixedFps" 'invalid-arguments' }
+}
+if ($Command -eq 'test' -and $FixedFps -gt 0) {
+    $fixedFpsWarning = Get-FixedFpsWarning $info.ProjectDir $FixedFps
+    if ($fixedFpsWarning) { Write-CiLog "WARNING: $fixedFpsWarning" }
+    Set-JsonField fixedFps ([ordered]@{ fps = $FixedFps; physicsTicksPerSecond = (Get-PhysicsTickRate $info.ProjectDir); runners = @('smoke', 'dotnet', 'gdunit4'); warning = $fixedFpsWarning })
+}
 # bench and audio -Mix run one scene. -Scene a,b arrives as one "a,b" string with pwsh -File: split it as shot does, and
 # refuse several scenes rather than quietly measure the first.
 $scenes = @($Scene | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })

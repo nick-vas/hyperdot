@@ -19,6 +19,9 @@ inputs:
   retry:
     description: "Run a failed test runner again up to this many times (0-5); tests that pass only on a retry are listed as flaky, never hidden"
     default: "0"
+  fixed-fps:
+    description: "test: run smoke and the gdUnit4 tests at this fixed rate of game time (--fixed-fps; the game's physics tick rate, e.g. 60), as fast as the CPU allows; 0 = real time. Audio, the network and .NET timers still follow the wall clock"
+    default: "0"
   coverage:
     description: Collect coverage into the results artifact and job summary
     default: "false"
@@ -192,6 +195,7 @@ runs:
         RUNNERS: ${{ inputs.runners }}
         FILTER: ${{ inputs.filter }}
         RETRY: ${{ inputs.retry }}
+        FIXED_FPS: ${{ inputs.fixed-fps }}
         COVERAGE: ${{ inputs.coverage }}
         MIN_COVERAGE: ${{ inputs.min-coverage }}
         PRESET: ${{ inputs.preset }}
@@ -216,6 +220,7 @@ runs:
         if ($env:RUNNERS) { $params.Runners = $env:RUNNERS }
         if ($env:FILTER) { $params.Filter = $env:FILTER }
         if ($env:COMMAND -eq 'test' -and [int]$env:RETRY -gt 0) { $params.Retry = [int]$env:RETRY }
+        if ($env:COMMAND -eq 'test' -and [int]$env:FIXED_FPS -gt 0) { $params.FixedFps = [int]$env:FIXED_FPS }
         if ($env:COVERAGE -eq 'true') { $params.Coverage = $true }
         if ($env:PRESET) { $params.Preset = $env:PRESET }
         if ([double]$env:MIN_COVERAGE -gt 0) { $params.MinCoverage = [double]$env:MIN_COVERAGE }

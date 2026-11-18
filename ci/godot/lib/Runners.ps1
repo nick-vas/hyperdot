@@ -27,7 +27,9 @@
 # Write-TestSummary already fails runs that report nothing. CompileProcessTimeout: gdUnit4Net rebuilds the project in
 # the editor before running, and its 20 s default runs out on a loaded machine or a cold Windows runner; the kit
 # then runs no Godot test and only the exit code says so. TempDir, when given, is the test host's TMPDIR (New-DotnetTempDir).
-function New-RunSettings([string]$ResultsDir, [string]$TempDir) {
+# FixedFps above 0 adds --fixed-fps to the Godot gdUnit4Net starts: each frame is then 1/FixedFps s of game time, run as fast
+# as the CPU allows, so a test that waits for physics ticks no longer waits for the wall clock (test -FixedFps).
+function New-RunSettings([string]$ResultsDir, [string]$TempDir, [int]$FixedFps = 0) {
     $path = Join-Path $ResultsDir 'godot.runsettings'
     Set-Content -LiteralPath $path -Encoding utf8 -Value @"
 <?xml version="1.0" encoding="utf-8"?>
@@ -40,7 +42,7 @@ function New-RunSettings([string]$ResultsDir, [string]$TempDir) {
     </EnvironmentVariables>
   </RunConfiguration>
   <GdUnit4>
-    <Parameters>--headless</Parameters>
+    <Parameters>--headless$(if ($FixedFps -gt 0) { " --fixed-fps $FixedFps" })</Parameters>
     <DisplayName>FullyQualifiedName</DisplayName>
     <CaptureStdOut>true</CaptureStdOut>
     <CompileProcessTimeout>180000</CompileProcessTimeout>
@@ -66,10 +68,10 @@ function New-DotnetTempDir {
     return $dir
 }
 
-function Invoke-DotnetTest([string]$Target, [string]$ResultsDir, [string]$Filter, [bool]$Coverage, [string]$Prefix) {
+function Invoke-DotnetTest([string]$Target, [string]$ResultsDir, [string]$Filter, [bool]$Coverage, [string]$Prefix, [int]$FixedFps = 0) {
     $temp = New-DotnetTempDir
     try {
-        $arguments = @('test', $Target, '--settings', (New-RunSettings $ResultsDir $temp), '--results-directory', $ResultsDir,
+        $arguments = @('test', $Target, '--settings', (New-RunSettings $ResultsDir $temp $FixedFps), '--results-directory', $ResultsDir,
             '--logger', "trx;LogFilePrefix=$Prefix")
         if ($Filter) { $arguments += '--filter', $Filter }
         if ($Coverage) { $arguments += '--collect', 'XPlat Code Coverage' }
@@ -211,6 +213,27 @@ function Get-GutLoadFailures([string]$LogFile, [string]$ProjectDir) {
     }
 }
 
+# The game's physics tick rate (project.godot physics/common/physics_ticks_per_second; Godot's default 60).
+function Get-PhysicsTickRate([string]$ProjectDir) {
+    $file = Join-Path $ProjectDir 'project.godot'
+    if (-not (Test-Path -LiteralPath $file)) { return 60 }
+    $section = ''
+    foreach ($line in @(Get-Content -LiteralPath $file)) {
+        if ($line -match '^\s*\[(?<s>[^\]]+)\]\s*$') { $section = $Matches.s; continue }
+        if ($section -eq 'physics' -and $line -match '^\s*common/physics_ticks_per_second\s*=\s*(?<n>\d+)\s*$') { return [int]$Matches.n }
+    }
+    return 60
+}
+
+# test -FixedFps against the game's tick rate: at another rate a rendered frame is not one physics tick, so tests that wait
+# for frames and tests that wait for ticks no longer see the same time. Returns a warning, or $null when they match.
+function Get-FixedFpsWarning([string]$ProjectDir, [int]$FixedFps) {
+    if ($FixedFps -le 0) { return $null }
+    $ticks = Get-PhysicsTickRate $ProjectDir
+    if ($ticks -eq $FixedFps) { return $null }
+    return "-FixedFps $FixedFps differs from the game's physics tick rate ($ticks per second, project.godot physics/common/physics_ticks_per_second): each frame runs $([math]::Round($ticks / $FixedFps, 2)) physics ticks, so tests that wait for frames and tests that wait for ticks see different times. Use -FixedFps $ticks"
+}
+
 function Invoke-TestRunner {
     param([string]$Runner, $Info, [string]$ResultsDir, [string]$Filter, [bool]$Coverage, [int]$Frames, [string[]]$GameArgs, [int]$FixedFps = 0)
 
@@ -223,7 +246,7 @@ function Invoke-TestRunner {
     switch ($Runner) {
         'dotnet' {
             if (-not $Info.Solution) { Stop-GodotCi "dotnet runner: no .sln/.csproj found (pass -Solution)" }
-            $code = Invoke-DotnetTest $Info.Solution $ResultsDir $Filter $Coverage 'dotnet'
+            $code = Invoke-DotnetTest $Info.Solution $ResultsDir $Filter $Coverage 'dotnet' $FixedFps
         }
         'gdunit4' {
             $csproj = if ($Info.Solution -like '*.csproj') { $Info.Solution } else {
@@ -232,7 +255,7 @@ function Invoke-TestRunner {
             if ((Get-Content -LiteralPath $csproj -Raw) -notmatch 'gdUnit4\.test\.adapter') {
                 Stop-GodotCi "gdunit4 runner: $csproj does not reference gdUnit4.test.adapter"
             }
-            $code = Invoke-DotnetTest $csproj $ResultsDir $Filter $Coverage 'gdunit4'
+            $code = Invoke-DotnetTest $csproj $ResultsDir $Filter $Coverage 'gdunit4' $FixedFps
         }
         'godottest' {
             $log = Join-Path $ResultsDir 'godottest.log'

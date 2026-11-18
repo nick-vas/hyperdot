@@ -185,6 +185,13 @@ can name the repeat offenders. A test that keeps failing can go into the project
 an owner: it still runs and is reported, but does not fail the run; after its date `doctor` fails until it is fixed or
 deleted. The policy is Rare's for Sea of Thieves ([gdc/sea-of-thieves-automated-testing.md](gdc/sea-of-thieves-automated-testing.md)).
 
+Tests that wait for physics ticks: `-FixedFps 60` (workflow input `fixed-fps: 60`; use the game's physics tick rate) runs
+`smoke` and the Godot that gdUnit4 starts at fixed game time, so each tick costs CPU time instead of 1/60 s of wall clock. On
+the C# example the gdUnit4 tests went from 36 s to 13 s and the whole run from 59 s to 36 s, with the same tests passing and
+planted bugs still caught ([research.md](research.md#test--fixedfps-on-the-c-example)). With `-Coverage` the gain was 2 s: coverage
+collection made the plain .NET tests the slowest part instead. Off by default, because audio, the network and .NET timers
+(`Task.Delay`, `Stopwatch`, `Time.GetTicksMsec`) still follow the wall clock: a test tied to them sees much less time pass.
+
 ### 10. Several games in one repository
 
 ```powershell

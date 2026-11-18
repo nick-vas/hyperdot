@@ -12,11 +12,13 @@ names one that does not exist. Every parameter: [reference.md](reference.md); ev
 ### test
 Build, then run every test runner the project has; fails on a failing test, zero tests or an engine error.
 
-    hyperdot.ps1 test -Json -Quiet [-Runners gut,flows] [-Filter <name>] [-Retry 1] [-MinCoverage 60]
+    hyperdot.ps1 test -Json -Quiet [-Runners gut,flows] [-Filter <name>] [-Retry 1] [-MinCoverage 60] [-FixedFps 60]
 
 The default command. Runners are detected (validate, architecture, dotnet, gdunit4, godottest, gut, flows, smoke, l10n,
 and juice, playthrough, data, textsize, layout when their .json file exists). Failures carry file, line and message;
 the full log is in test-results/hyperdot.log. Done means a fresh full run with "ok": true.
+-FixedFps 60 (the game's physics tick rate) runs smoke and the gdUnit4 tests at fixed game time, as fast as the CPU allows:
+tests that wait for physics ticks stop waiting for the wall clock. Audio, the network and .NET timers still run on real time.
 
 ### build
 Install Godot if needed, add GUT when there are GUT tests, compile the C# and import the project; no tests.
