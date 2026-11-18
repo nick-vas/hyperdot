@@ -39,6 +39,16 @@ try {
     $json = Get-Content -LiteralPath (Join-Path $out 'clip.json') -Raw | ConvertFrom-Json
     Assert-True ($json.mp4 -eq $mp4 -and $json.gif -eq $gif -and $json.width -gt 0 -and $json.mp4Bytes -gt 0 -and $json.scene -eq 'res://red.tscn') 'clip.json names the files, the size and the scene'
 
+    # A pixel-art viewport of odd size: H.264 needs even sides, and a small one is scaled up to 720 lines.
+    $settings = Get-Content -LiteralPath (Join-Path $game 'project.godot') -Raw
+    $display = "`n[display]`n`nwindow/size/viewport_width=427`nwindow/size/viewport_height=241`n"
+    Set-Content -LiteralPath (Join-Path $game 'project.godot') -Value ($settings -replace '(?m)^\[display\]\s*$', '[display_unused]') -NoNewline
+    Add-Content -LiteralPath (Join-Path $game 'project.godot') -Value $display
+    $run = Invoke-Kit @('-Scene', 'res://red.tscn', '-Seconds', '1', '-Label', 'small', '-Output', $out)
+    Assert-True ($run.code -eq 0 -and $run.doc.clip.height -eq 720 -and $run.doc.clip.width % 2 -eq 0) "an odd 427x241 viewport still gives an MP4, scaled up to 720 lines with even sides: $(if ($run.doc.PSObject.Properties['clip']) { "$($run.doc.clip.width)x$($run.doc.clip.height)" } else { $run.doc.error.message })"
+    $run = Invoke-Kit @('-Scene', 'res://red.tscn', '-Seconds', '1', '-Label', 'sized', '-Resolution', '641x361', '-Output', $out)
+    Assert-True ($run.code -eq 0 -and $run.doc.clip.width -eq 640 -and $run.doc.clip.height -eq 360) "-Resolution sets the MP4's size (rounded down to even sides): $(if ($run.doc.PSObject.Properties['clip']) { "$($run.doc.clip.width)x$($run.doc.clip.height)" })"
+
     foreach ($bad in '0', '31') {
         $run = Invoke-Kit @('-Seconds', $bad, '-Output', $out)
         Assert-True ($run.code -ne 0 -and $run.doc.error.code -eq 'invalid-arguments') "-Seconds $bad is invalid-arguments"

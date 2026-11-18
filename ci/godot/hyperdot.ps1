@@ -307,7 +307,8 @@ foreach ($briefFlag in 'Value', 'Quote', 'TextFile') {
 $briefActions = @('status', 'start', 'answer', 'gdd')
 if ($Command -eq 'brief' -and $Do -notin $briefActions) { Stop-GodotCi "brief -Do $Do is not one of: $($briefActions -join ', ')" 'invalid-arguments' }
 if ($Command -eq 'promo' -and $Do -notin 'status', 'clips') { Stop-GodotCi "promo -Do $Do is not one of: status (the brief), clips (comment on it with the recorded clips)" 'invalid-arguments' }
-if ($Command -eq 'plan' -and $Do -in 'start', 'answer', 'gdd') { Stop-GodotCi "-Do $Do is for brief, not plan" 'invalid-arguments' }
+if ($Command -eq 'promo' -and $Do -eq 'clips' -and $GitHubOutput) { Stop-GodotCi '-GitHubOutput is for the brief (promo), not promo -Do clips' 'invalid-arguments' }
+if ($Command -eq 'plan' -and $Do -in 'start', 'answer', 'gdd', 'clips') { Stop-GodotCi "-Do $Do is for brief, not plan" 'invalid-arguments' }
 if ($Command -eq 'help') {
     Invoke-Help $Topic $Project
     Write-JsonResult

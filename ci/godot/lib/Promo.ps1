@@ -112,7 +112,7 @@ function Get-PromoTrailers([string]$Message, [string]$Sha, [string]$Source) {
     $visible = [regex]::Replace($visible, '(?ms)^\s*(`{3,}|~{3,}).*?(^\s*\1\s*$|\z)', '')
     $lines = @($visible -split '\r?\n')
     $priority = 'normal'; $visual = $false; $badPriority = $null
-    $scene = $null; $gameArgs = @(); $seconds = $script:PromoClipSeconds; $problems = [System.Collections.Generic.List[string]]::new()
+    $scene = $null; $gameArgs = @(); $seconds = $script:PromoClipSeconds; $badArgs = $false; $problems = [System.Collections.Generic.List[string]]::new()
     foreach ($line in $lines) {
         if ($line -match '^\s*Marketing-Priority:\s*(?<p>\S.*?)\s*$') {
             $value = $Matches.p.ToLowerInvariant()
@@ -125,12 +125,15 @@ function Get-PromoTrailers([string]$Message, [string]$Sha, [string]$Source) {
             if ($value -match '^res://[^\s"]+\.t?scn$') { $scene = $value } else { $problems.Add("Marketing-Scene '$value' is not a res:// path to a .tscn or .scn; no clip") }
         } elseif ($line -match '^\s*Marketing-Args:\s*(?<a>\S.*?)\s*$') {
             $gameArgs = @($Matches.a -split '\s+' | Where-Object { $_ })
+            # The workflow passes them as one comma-separated -GameArgs, and a bare -- cannot be passed at all.
+            if (@($gameArgs | Where-Object { $_.Contains(',') -or $_ -eq '--' }).Count) { $problems.Add("Marketing-Args '$($Matches.a)' holds a comma or a bare --, which cannot reach the game; no clip"); $badArgs = $true }
         } elseif ($line -match '^\s*Marketing-Seconds:\s*(?<n>\S.*?)\s*$') {
             $n = 0; $value = $Matches.n
             if ([int]::TryParse($value, [System.Globalization.NumberStyles]::None, [cultureinfo]::InvariantCulture, [ref]$n) -and $n -ge 1 -and $n -le 30) { $seconds = $n }
             else { $problems.Add("Marketing-Seconds '$value' is not a whole number of seconds from 1 to 30; $($script:PromoClipSeconds) s") }
         }
     }
+    if ($badArgs) { $scene = $null }
     return @(foreach ($line in $lines) {
             if ($line -match '^\s*Marketing:\s*(?<t>\S.*?)\s*$') {
                 [ordered]@{ text = $Matches.t; priority = $priority; visual = ($visual -or [bool]$scene); sha = $Sha; source = $Source; badPriority = $badPriority
@@ -537,7 +540,10 @@ function Invoke-Promo($Info, [bool]$DryRun, [bool]$GitHubOutput = $false, [datet
     }
     # The clips the workflow records (with its clips input): each shipped change that names its scene, in brief order.
     $index = 0
+    $clipKeys = [System.Collections.Generic.HashSet[string]]::new()
+    # One recording per scene, flags and length: the Marketing lines of one message share its Marketing-Scene.
     $result['clips'] = @(foreach ($item in @(Get-PromoSortedItems $shipped | Where-Object { $_.scene })) {
+            if (-not $clipKeys.Add("$($item.scene)|$(@($item.gameArgs) -join ' ')|$($item.seconds)")) { continue }
             $index++
             [ordered]@{ name = (Get-ClipName "$number-$index-$($item.text.Substring(0, [Math]::Min(40, $item.text.Length)))" ''); text = $item.text
                 scene = $item.scene; gameArgs = @($item.gameArgs); seconds = $item.seconds; sha = $item.sha }
@@ -666,7 +672,7 @@ function Invoke-PromoClips($Info, [string]$Issue, [string]$Dir, [bool]$DryRun) {
             $lines.Add("- $text`: ``$($clip.name)/$(Split-Path $data.mp4 -Leaf)`` ($($data.seconds) s$size, $([math]::Round($data.mp4Bytes / 1MB, 1)) MB) and a GIF")
         } else {
             $failed.Add([ordered]@{ name = $clip.name; text = $clip.text; scene = $clip.scene })
-            $lines.Add("- $text`: not recorded$(if ($clip.scene) { " ($($clip.scene))" }); the clip job's log says why")
+            $lines.Add("- $text`: not recorded$(if ($clip.scene) { " (``$($clip.scene)``)" }); the clip job's log says why")
         }
     }
     if ($expected.Count -eq 0) { $lines.Add('- No clip was asked for: no shipped change names a `Marketing-Scene:`.') }
@@ -678,5 +684,5 @@ function Invoke-PromoClips($Info, [string]$Issue, [string]$Dir, [bool]$DryRun) {
         $result.posted = $true
     }
     Write-CiLog "Clips: $($recorded.Count) recorded, $($failed.Count) not$(if ($result.posted) { "; commented on #$Issue" } elseif ($post) { '' } else { ' (job summary only)' })"
-    Set-JsonField promo ([ordered]@{ clips = $result })
+    Set-JsonField promo ([ordered]@{ clipComment = $result })
 }

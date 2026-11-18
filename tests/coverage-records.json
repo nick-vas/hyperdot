@@ -2967,6 +2967,7 @@
       "commands": [
         "doctor",
         "init",
+        "plan",
         "promo",
         "test"
       ],

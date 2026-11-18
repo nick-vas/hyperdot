@@ -30,6 +30,8 @@ $clipTrailers = @(Get-PromoTrailers "x`n`nMarketing: A`nMarketing-Scene: res://l
 Assert-True ($clipTrailers[0].visual -and $clipTrailers[0].scene -eq 'res://levels/storm.tscn' -and $clipTrailers[0].seconds -eq 12 -and @($clipTrailers[0].gameArgs).Count -eq 0) 'Marketing-Scene names the clip and makes the change visual; Marketing-Seconds sets its length'
 $bad = @(Get-PromoTrailers "x`n`nMarketing: B`nMarketing-Scene: levels/storm`nMarketing-Seconds: 45" ('a' * 40) 'commit')
 Assert-True ($null -eq $bad[0].scene -and $bad[0].seconds -eq 5 -and @($bad[0].problems).Count -eq 2 -and -not $bad[0].visual) "a scene that is not a res:// scene, or seconds out of 1 to 30, is a problem and no clip: $(@($bad[0].problems) -join ' | ')"
+$argsBad = @(Get-PromoTrailers "x`n`nMarketing: C`nMarketing-Scene: res://a.tscn`nMarketing-Args: --level=1,2" ('a' * 40) 'commit')
+Assert-True ($null -eq $argsBad[0].scene -and @($argsBad[0].problems | Where-Object { $_ -match 'comma or a bare --' }).Count -eq 1) 'Marketing-Args with a comma (or a bare --) cannot reach the game: a problem, and no clip'
 $long = @([ordered]@{ text = ('Storms ' * 80).Trim(); priority = 'high'; visual = $false; sha = ('a' * 40); source = 'commit' }, [ordered]@{ text = 'Second'; priority = 'low'; visual = $false; sha = ('b' * 40); source = 'commit' })
 $templates = New-PromoTemplateDrafts 'Game' $long @('discord', 'bluesky', 'steam') @('#indiedev')
 Assert-True ((Get-PromoGraphemeCount $templates.bluesky) -le 300 -and $templates.bluesky.EndsWith(' #indiedev') -and $templates.bluesky.Contains([string][char]0x2026)) "the Bluesky template stays within 300 graphemes, the item cut with an ellipsis: $(Get-PromoGraphemeCount $templates.bluesky)"
@@ -119,7 +121,11 @@ try {
 
     # --- Real run: the issue, then the tag at the green commit, then last week's brief closed ---
     Set-Routes $redThenGreen
-    $run = Invoke-PromoCli
+    Set-Content -LiteralPath $ghOutput -Value $null
+    $env:GITHUB_OUTPUT = $ghOutput
+    $run = Invoke-PromoCli @('-GitHubOutput')
+    $env:GITHUB_OUTPUT = $null
+    Assert-True ((Get-Content -LiteralPath $ghOutput) -contains 'issue=4') 'a real run gives the clip job the brief''s issue number'
     $p = $run.doc.promo
     $writes = @(Get-Requests | Where-Object { $_.method -ne 'GET' })
     $order = @($writes | ForEach-Object { "$($_.method) $($_.path)" }) -join ', '
@@ -314,16 +320,20 @@ try {
     $run = Invoke-PromoCli @('-Do', 'clips', '-Id', '4', '-Results', $clipDir)
     $posts = @(Get-Requests | Where-Object { $_.method -eq 'POST' })
     $comment = if ($posts.Count) { ($posts[0].body | ConvertFrom-Json).body } else { '' }
-    Assert-True ($run.code -eq 0 -and $run.doc.promo.clips.posted -and $posts.Count -eq 1 -and $posts[0].path -eq '/repos/o/r/issues/4/comments') 'promo -Do clips comments once on the brief'
-    Assert-True ($comment.Contains('[download them](https://github.com/o/r/actions/runs/1/artifacts/2) (kept 14 days)') -and $comment.Contains("- Storms from @${zwsp}someone: ``one/one.mp4`` (5 s, 1280x720, 2 MB) and a GIF") -and $comment.Contains('- Night mode: not recorded (res://night.tscn)')) "the comment links the artifact, lists each clip, and says which were not recorded: $comment"
-    Assert-True (@($run.doc.promo.clips.recorded).Count -eq 1 -and @($run.doc.promo.clips.failed).Count -eq 1) 'the result lists the recorded and the failed'
+    Assert-True ($run.code -eq 0 -and $run.doc.promo.clipComment.posted -and $posts.Count -eq 1 -and $posts[0].path -eq '/repos/o/r/issues/4/comments') 'promo -Do clips comments once on the brief'
+    Assert-True ($comment.Contains('[download them](https://github.com/o/r/actions/runs/1/artifacts/2) (kept 14 days)') -and $comment.Contains("- Storms from @${zwsp}someone: ``one/one.mp4`` (5 s, 1280x720, 2 MB) and a GIF") -and $comment.Contains('- Night mode: not recorded (`res://night.tscn`)')) "the comment links the artifact, lists each clip, and says which were not recorded: $comment"
+    Assert-True (@($run.doc.promo.clipComment.recorded).Count -eq 1 -and @($run.doc.promo.clipComment.failed).Count -eq 1) 'the result lists the recorded and the failed'
     Set-Routes @{}
     $run = Invoke-PromoCli @('-Do', 'clips', '-Results', $clipDir)
-    Assert-True ($run.code -eq 0 -and -not $run.doc.promo.clips.posted -and -not @(Get-Requests | Where-Object { $_.method -eq 'POST' }).Count -and (Get-Content -LiteralPath $summary -Raw).Contains('# Clips (not posted)')) 'without an issue (a dry-run brief) the comment goes to the job summary only'
+    Assert-True ($run.code -eq 0 -and -not $run.doc.promo.clipComment.posted -and -not @(Get-Requests | Where-Object { $_.method -eq 'POST' }).Count -and (Get-Content -LiteralPath $summary -Raw).Contains('# Clips (not posted)')) 'without an issue (a dry-run brief) the comment goes to the job summary only'
     $run = Invoke-PromoCli @('-Do', 'clips', '-Id', 'four', '-Results', $clipDir)
     Assert-True ($run.doc.error.code -eq 'invalid-arguments') 'an -Id that is not an issue number is invalid-arguments'
     $run = Invoke-PromoCli @('-Do', 'post')
     Assert-True ($run.doc.error.code -eq 'invalid-arguments') 'promo -Do takes status or clips'
+    $run = Invoke-PromoCli @('-Do', 'clips', '-GitHubOutput')
+    Assert-True ($run.doc.error.code -eq 'invalid-arguments') '-GitHubOutput is for the brief, not promo -Do clips'
+    $out = & pwsh -NoProfile -NonInteractive -File $ci plan -Do clips -Json -Project $repo 2>$null | Out-String
+    Assert-True (($out | ConvertFrom-Json).error.code -eq 'invalid-arguments') 'plan -Do clips is invalid-arguments, not the plan status'
     $env:HYPERDOT_CLIPS = $null; $env:HYPERDOT_CLIPS_URL = $null
 
     # --- Errors ---

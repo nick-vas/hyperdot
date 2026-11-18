@@ -39,6 +39,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       # This workflow's own repository at the exact commit the caller pinned.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -71,15 +72,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      # No git credentials left on disk: this job builds and runs the game, and needs none (the comment uses the API).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ needs.promo.outputs.green }}
+          persist-credentials: false
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: ${{ job.workflow_repository || 'nick-vas/hyperdot' }}
           ref: ${{ job.workflow_sha || 'main' }}
           path: .godot-pipelines
+          persist-credentials: false
 
       - run: New-Item -Force .godot-pipelines/.gdignore | Out-Null
         shell: pwsh

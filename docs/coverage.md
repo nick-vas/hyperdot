@@ -30,7 +30,7 @@ The values of `hyperdot.ps1`'s `-Command`, and the self-tests and workflow steps
 | `detect` | `Test-Detect.ps1`, `Test-ErrorCodes.ps1`, `Test-Localization.ps1`, `Test-OldState.ps1`, `Test-Playthrough.ps1`, `Test-StopGate.ps1`, `Test-Telemetry.ps1`, self-test.yml init: The juice runner passes timely feedback and fails late feedback and 2 more |
 | `doctor` | `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-EvalGraders.ps1`, `Test-Flaky.ps1` and 11 more |
 | `init` | `Test-ErrorCodes.ps1`, `Test-ErrorKeys.ps1`, `Test-InitializeGame.ps1`, `Test-OldState.ps1`, `Test-Plan.ps1`, `Test-Promo.ps1`, `Test-UpdatePins.ps1`, self-test.yml init: Agent efficiency and 2 more |
-| `plan` | `Test-Brief.ps1`, `Test-Calendar.ps1`, `Test-ErrorCodes.ps1`, `Test-Plan.ps1`, `Test-ProjectSync.ps1`, self-test.yml lint: status reads the GDD, self-test.yml local-windows: Plan |
+| `plan` | `Test-Brief.ps1`, `Test-Calendar.ps1`, `Test-ErrorCodes.ps1`, `Test-Plan.ps1`, `Test-ProjectSync.ps1`, `Test-Promo.ps1`, self-test.yml lint: status reads the GDD, self-test.yml local-windows: Plan |
 | `bench` | `Test-BenchHotspots.ps1`, `Test-BenchSweep.ps1`, `Test-ErrorCodes.ps1`, `Test-GpuValidation.ps1`, `Test-SceneCount.ps1`, self-test.yml measure: bench |
 | `shot` | `Test-BenchSweep.ps1`, `Test-Capture.ps1`, `Test-ColorVision.ps1`, `Test-ErrorCodes.ps1`, `Test-GpuValidation.ps1`, `Test-Palette.ps1`, `Test-ShotChanged.ps1`, self-test.yml measure: shot and 1 more |
 | `status` | `Test-AssetManifest.ps1`, `Test-Calendar.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Gdd.ps1`, `Test-Handoffs.ps1`, `Test-InitializeGame.ps1`, `Test-Plan.ps1` and 3 more |
