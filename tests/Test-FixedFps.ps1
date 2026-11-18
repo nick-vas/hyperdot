@@ -1,6 +1,6 @@
 #!/usr/bin/env pwsh
 # Self-test of test -FixedFps beyond smoke: the run settings gdUnit4Net reads give its Godot --fixed-fps only when asked,
-# the game's physics tick rate is read from project.godot (60 when unset), a rate that differs from it is a warning, and
+# the game's physics tick rate is read from project.godot (60 when unset), a rate that differs from it (or runs more ticks a frame than the game allows) is a warning, and
 # -FixedFps is refused on other commands and below 0. No Godot is needed. The speed-up itself was measured on the C#
 # example (docs/research.md): gdUnit4 from 36 s to 13 s with the same 33 tests passing and planted bugs still caught.
 Set-StrictMode -Version 3.0
@@ -29,6 +29,14 @@ try {
     Assert-True ((Get-PhysicsTickRate $game) -eq 60) 'a project that does not set it: 60'
     Set-Content -LiteralPath (Join-Path $game 'project.godot') -Value "config_version=5`n`n[rendering]`n`ncommon/physics_ticks_per_second=30`n`n[physics]`n`ncommon/physics_ticks_per_second=120`n"
     Assert-True ((Get-PhysicsTickRate $game) -eq 120) 'the [physics] value is read, not a key of the same name in another section'
+    Set-Content -LiteralPath (Join-Path $game 'project.godot') -Value "config_version=5`nphysics/common/physics_ticks_per_second=90`n`n[application]`n`nconfig/name=`"T`"`n"
+    Assert-True ((Get-PhysicsTickRate $game) -eq 90) 'a top-level physics/common/... key is read too'
+    Set-Content -LiteralPath (Join-Path $game 'project.godot') -Value "config_version=5`n`n[physics]`n`ncommon/physics_ticks_per_second=99999999999`n"
+    Assert-True ((Get-PhysicsTickRate $game) -eq 60) 'a value that does not fit an int falls back to 60 instead of throwing'
+    Set-Content -LiteralPath (Join-Path $game 'project.godot') -Value "config_version=5`n`n[physics]`n`ncommon/physics_ticks_per_second=600`ncommon/max_physics_steps_per_frame=4`n"
+    $steps = Get-FixedFpsWarning $game 60
+    Assert-True ($steps -match 'each frame runs 10 physics ticks' -and $steps -match 'at most 4 a frame') "past max_physics_steps_per_frame the warning says game physics slows down too: $steps"
+    Set-Content -LiteralPath (Join-Path $game 'project.godot') -Value "config_version=5`n`n[physics]`n`ncommon/physics_ticks_per_second=120`n"
 
     # --- The warning ---
     Assert-True ($null -eq (Get-FixedFpsWarning $game 0)) '-FixedFps 0 (real time): no warning'
@@ -44,6 +52,11 @@ try {
     $out = & pwsh -NoProfile -NonInteractive -File $ci test -FixedFps -5 -Json -Project $gdscript -Results (Join-Path $work 'r') 2>$null | Out-String
     $doc = $out | ConvertFrom-Json
     Assert-True ($doc.error.code -eq 'invalid-arguments' -and $doc.error.message -match 'not -5') "a negative -FixedFps is invalid-arguments: $($doc.error.message)"
+    foreach ($command in 'help', 'detect') {
+        $out = & pwsh -NoProfile -NonInteractive -File $ci $command -FixedFps 60 -Json -Project $gdscript 2>$null | Out-String
+        $doc = $out | ConvertFrom-Json
+        Assert-True ($doc.error.code -eq 'invalid-arguments') "-FixedFps on $command is refused too, not ignored"
+    }
 } finally { Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue }
 
 if ($failures.Count) { Write-Host "`n$($failures.Count) failed"; exit 1 }

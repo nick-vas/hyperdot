@@ -213,17 +213,24 @@ function Get-GutLoadFailures([string]$LogFile, [string]$ProjectDir) {
     }
 }
 
-# The game's physics tick rate (project.godot physics/common/physics_ticks_per_second; Godot's default 60).
-function Get-PhysicsTickRate([string]$ProjectDir) {
+# A [physics] setting of project.godot (common/<name>; also as physics/common/<name> before any section), or $Default.
+function Get-PhysicsSetting([string]$ProjectDir, [string]$Name, [int]$Default) {
     $file = Join-Path $ProjectDir 'project.godot'
-    if (-not (Test-Path -LiteralPath $file)) { return 60 }
+    if (-not (Test-Path -LiteralPath $file)) { return $Default }
     $section = ''
     foreach ($line in @(Get-Content -LiteralPath $file)) {
         if ($line -match '^\s*\[(?<s>[^\]]+)\]\s*$') { $section = $Matches.s; continue }
-        if ($section -eq 'physics' -and $line -match '^\s*common/physics_ticks_per_second\s*=\s*(?<n>\d+)\s*$') { return [int]$Matches.n }
+        $key = if ($section -eq 'physics') { "common/$Name" } elseif ($section -eq '') { "physics/common/$Name" } else { $null }
+        if (-not $key -or $line -notmatch "^\s*$([regex]::Escape($key))\s*=\s*(?<n>\d+)\s*$") { continue }
+        $value = 0
+        if ([int]::TryParse($Matches.n, [System.Globalization.NumberStyles]::None, [cultureinfo]::InvariantCulture, [ref]$value) -and $value -gt 0) { return $value }
+        return $Default
     }
-    return 60
+    return $Default
 }
+
+# The game's physics tick rate (project.godot physics/common/physics_ticks_per_second; Godot's default 60).
+function Get-PhysicsTickRate([string]$ProjectDir) { return Get-PhysicsSetting $ProjectDir 'physics_ticks_per_second' 60 }
 
 # test -FixedFps against the game's tick rate: at another rate a rendered frame is not one physics tick, so tests that wait
 # for frames and tests that wait for ticks no longer see the same time. Returns a warning, or $null when they match.
@@ -231,7 +238,10 @@ function Get-FixedFpsWarning([string]$ProjectDir, [int]$FixedFps) {
     if ($FixedFps -le 0) { return $null }
     $ticks = Get-PhysicsTickRate $ProjectDir
     if ($ticks -eq $FixedFps) { return $null }
-    return "-FixedFps $FixedFps differs from the game's physics tick rate ($ticks per second, project.godot physics/common/physics_ticks_per_second): each frame runs $([math]::Round($ticks / $FixedFps, 2)) physics ticks, so tests that wait for frames and tests that wait for ticks see different times. Use -FixedFps $ticks"
+    $perFrame = [math]::Round($ticks / $FixedFps, 2)
+    $max = Get-PhysicsSetting $ProjectDir 'max_physics_steps_per_frame' 8
+    $capped = if ($perFrame -gt $max) { " (Godot runs at most $max a frame, physics/common/max_physics_steps_per_frame, so game physics also slows down)" } else { '' }
+    return "-FixedFps $FixedFps differs from the game's physics tick rate ($ticks per second, project.godot physics/common/physics_ticks_per_second): each frame runs $perFrame physics ticks$capped, so tests that wait for frames and tests that wait for ticks see different times. Use -FixedFps $ticks"
 }
 
 function Invoke-TestRunner {
