@@ -142,7 +142,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Audio.ps1` | 10/11 | `Test-Localization.ps1`, `Test-SelectJobs.ps1`, `Test-Audio.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-Addons.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1` and 8 more |
 | `Brief.ps1` | 16/18 | `Test-Brief.ps1` |
 | `BuildSize.ps1` | 4/4 | `Test-BuildSize.ps1`, `Test-SelectJobs.ps1`, `Test-ErrorCodes.ps1` |
-| `Calendar.ps1` | 21/21 | `Test-Calendar.ps1` |
+| `Calendar.ps1` | 22/22 | `Test-Calendar.ps1`, `Test-Promo.ps1` |
 | `Common.ps1` | 54/66 | `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Deck.ps1`, `Test-BenchSweep.ps1`, `Test-GpuValidation.ps1`, `Test-Localization.ps1`, `Test-Plan.ps1`, `Test-Flows.ps1` and 58 more |
 | `Context.ps1` | 10/10 | `Test-Context.ps1`, `Test-Help.ps1`, `Test-DoctorFixture.ps1`, `Test-Gdd.ps1`, `Test-Plan.ps1`, `Test-Workflow.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1` and 7 more |
 | `Credits.ps1` | 6/7 | `Test-Credits.ps1`, `Test-ErrorCodes.ps1` |
@@ -162,7 +162,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Platforms.ps1` | 1/1 | `Test-Platforms.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1` and 7 more |
 | `Playtest.ps1` | 8/8 | `Test-Playtest.ps1` |
 | `Playthrough.ps1` | 3/3 | `Test-Playthrough.ps1` |
-| `Promo.ps1` | 22/22 | `Test-Promo.ps1` |
+| `Promo.ps1` | 24/24 | `Test-Promo.ps1` |
 | `Report.ps1` | 29/34 | `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Flows.ps1`, `Test-Localization.ps1`, `Test-Telemetry.ps1`, `Test-Calendar.ps1`, `Test-ArchitectureFixtures.ps1`, `Test-Data.ps1` and 28 more |
 | `Runners.ps1` | 7/10 | `Test-Flaky.ps1`, `Test-Flows.ps1`, `Test-StaleTres.ps1`, `Test-Detect.ps1`, `Test-SelectJobs.ps1`, `Test-TestsNotRun.ps1`, `Test-ErrorCodes.ps1`, `Test-DotnetTempDir.ps1` and 10 more |
 | `Setup.ps1` | 11/16 | `Test-DownloadFailed.ps1`, `Test-BenchSweep.ps1`, `Test-Flows.ps1`, `Test-InstallLock.ps1`, `Test-GameVersion.ps1`, `Test-InstallAddon.ps1`, `Test-ReportPins.ps1`, `Test-SelectJobs.ps1` and 36 more |

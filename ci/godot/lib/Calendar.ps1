@@ -325,6 +325,29 @@ function Get-CalendarDocument([string]$Url, [string]$CacheFile, [bool]$Offline) 
     return $result
 }
 
+# One of steam, itch and epic, from the network or the cache: every event read, the ones overlapping $Today to $Horizon (or
+# undated), and how the read went (cached, stale, fetchedAt, error, items in the window, ok). promo reads Steam's this way too.
+function Read-CalendarSource([string]$ProjectDir, [string]$Name, [datetime]$Today, [datetime]$Horizon, [bool]$Offline) {
+    $status = [ordered]@{ ok = $false; cached = $false; stale = $false; fetchedAt = $null; items = 0; error = $null }
+    $doc = Get-CalendarDocument $script:CalendarUrls[$Name] (Get-CalendarCachePath $ProjectDir "$Name.$($Name -eq 'epic' ? 'json' : 'html')") $Offline
+    $status.cached = $doc.cached; $status.stale = $doc.stale; $status.fetchedAt = $doc.fetchedAt; $status.error = $doc.error
+    $found = @(); $inWindow = @()
+    if ($doc.body) {
+        $found = @(try {
+                switch ($Name) {
+                    'steam' { ConvertFrom-SteamEventsHtml $doc.body }
+                    'itch' { ConvertFrom-ItchJamsHtml $doc.body $Today $Horizon }
+                    'epic' { ConvertFrom-EpicFreeGamesJson $doc.body }
+                }
+            } catch { $status.error = "could not be read: $($_.Exception.Message)" })
+        $found = @($found | Where-Object { $_ -is [System.Collections.IDictionary] })
+        if ($found.Count -eq 0 -and -not $status.error) { $status.error = 'the page held no events the kit could read: its layout may have changed' }
+        $inWindow = @($found | Where-Object { $_.tbd -or ((ConvertTo-PlanDate $_.end) -ge $Today -and (ConvertTo-PlanDate $_.start) -le $Horizon) })
+        $status.items = $inWindow.Count; $status.ok = $found.Count -gt 0
+    }
+    return [ordered]@{ status = $status; events = $found; inWindow = $inWindow }
+}
+
 # The release against the events: which seasonal sales the game can join (released at least 30 days before the start,
 # or part-way once the 30 days after release end), what falls on release day, whether release.nextFest is an edition
 # Valve lists, the last Next Fest before release when none is planned, and Epic giveaways in launch week.
@@ -551,23 +574,10 @@ function Invoke-Calendar($Info, [string[]]$Source, [int]$Days, [bool]$Offline, [
             if ($errors.Count) { $entry.error = $errors -join '; ' }
             $status.Add($entry); continue
         }
-        $doc = Get-CalendarDocument $script:CalendarUrls[$name] (Get-CalendarCachePath $Info.ProjectDir "$name.$($name -eq 'epic' ? 'json' : 'html')") $Offline
-        $entry.cached = $doc.cached; $entry.stale = $doc.stale; $entry.fetchedAt = $doc.fetchedAt; $entry.error = $doc.error
-        if ($doc.body) {
-            $found = @(try {
-                    switch ($name) {
-                        'steam' { ConvertFrom-SteamEventsHtml $doc.body }
-                        'itch' { ConvertFrom-ItchJamsHtml $doc.body $today $horizon }
-                        'epic' { ConvertFrom-EpicFreeGamesJson $doc.body }
-                    }
-                } catch { $entry.error = "could not be read: $($_.Exception.Message)" })
-            $found = @($found | Where-Object { $_ -is [System.Collections.IDictionary] })
-            if ($found.Count -eq 0 -and -not $entry.error) { $entry.error = 'the page held no events the kit could read: its layout may have changed' }
-            $inWindow = @($found | Where-Object { $_.tbd -or ((ConvertTo-PlanDate $_.end) -ge $today -and (ConvertTo-PlanDate $_.start) -le $horizon) })
-            foreach ($item in $inWindow) { $events.Add($item) }
-            foreach ($item in $found) { $allEvents.Add($item) }
-            $entry.items = $inWindow.Count; $entry.ok = $found.Count -gt 0
-        }
+        $read = Read-CalendarSource $Info.ProjectDir $name $today $horizon $Offline
+        foreach ($key in 'cached', 'stale', 'fetchedAt', 'error', 'items', 'ok') { $entry[$key] = $read.status[$key] }
+        foreach ($item in $read.inWindow) { $events.Add($item) }
+        foreach ($item in $read.events) { $allEvents.Add($item) }
         $status.Add($entry)
     }
     foreach ($entry in $status) {

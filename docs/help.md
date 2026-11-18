@@ -185,7 +185,9 @@ The weekly marketing brief: an issue with the player-facing changes in a build w
 Reads Marketing: trailers (Marketing-Priority, Marketing-Visual) since the last mkt/N tag, or the last 7 days, from commits and
 squash-merged pull requests' descriptions. Ships what is in the newest main-line commit whose kit check passed (or its pull
 request's head did); newer changes wait. Opens an issue labelled marketing-brief carrying last week's unticked tasks, tags
-mkt/N at the green commit, then closes last week's. Nothing shipped: nothing written. -DryRun writes the job summary only.
+mkt/N at the green commit, then closes last week's. Lists the next 4 weeks' Steam fests and plan.json release deadlines,
+with a task for each one to act on. Nothing shipped: nothing written, unless a date is due within 7 days, which opens a short
+dates-only brief with no tag. -DryRun writes the job summary only.
 Settings in docs/promo.json ("ai": true rewords the drafts with GitHub Models). Runs weekly from the workflow init -Promo adds.
 
 ### help

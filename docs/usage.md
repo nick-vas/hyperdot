@@ -266,8 +266,14 @@ Marketing-Visual: yes           (worth a clip)
   the job named in the workflow `init` wrote) passed, or, for a merge or squash commit with no run of it, whose pull request's
   head passed. That commit and everything older shipped; newer changes are listed as waiting and come next week.
 - **Weeks:** the brief covers the changes since the newest `mkt/N` tag (the first one, the last 7 days). It opens the issue,
-  tags `mkt/N` at the green commit, then closes last week's brief, whose unticked tasks it carries over. A week with nothing
-  shipped writes nothing.
+  tags `mkt/N` at the green commit, then closes last week's brief, whose unticked tasks it carries over.
+- **Coming up:** the dates of the next 4 weeks: Steam's seasonal sales, Next Fests and themed fests once the game has a store
+  page (Steam's event page, read like `calendar`), and the release deadlines in plan.json not done yet (app fee, store page and
+  build reviews, Coming Soon, the Next Fest demo), a missed one marked overdue for a week. Each deadline is a task, and so is
+  an opt-in: a themed fest's or a seasonal sale the game can join (looked for 8 weeks ahead, since registration closes before
+  the start), and a Next Fest while the game is unreleased, dated at its demo review. Tick a task and it is not asked again.
+- **Quiet weeks:** nothing shipped and no date to act on within 7 days: nothing is written. A date to act on within 7 days
+  opens a short "Marketing dates" brief instead, with the dates, the tasks and the changes still waiting, and no tag.
 - **Mentions:** an `@name` in a commit gets a zero-width space after the `@` in the issue, so the brief notifies no one; the
   drafts keep it as written, in code blocks, ready to paste. Trailers inside HTML comments (a pull request template's hints)
   or fenced code are not read.
@@ -275,7 +281,8 @@ Marketing-Visual: yes           (worth a clip)
   week leave the window the next: tag the commit before them `mkt/0` to start there instead.
 - **By hand:** a real (not dry) run by hand runs only from the default branch, and two runs never overlap.
 - **Dry run:** *Actions > Marketing brief > Run workflow* is ticked as a dry run: the brief goes to the run's summary only.
-- **Settings** (`docs/promo.json`): `channels` (`discord`, `bluesky`, `steam`), `hashtags`, `ai` and `model`. With
+- **Settings** (`docs/promo.json`): `channels` (`discord`, `bluesky`, `steam`), `hashtags`, `calendar` (the Coming up dates, on
+  by default), `ai` and `model`. With
   `"ai": true` the drafts are reworded by GitHub Models (the workflow's `models: read`, no key; free and rate-limited), marked
   "check every claim"; on any error, or a Bluesky post over 300 graphemes, the brief keeps the template drafts. Off by default.
 - **Permissions:** the caller grants `contents: write` (the tag), `issues: write`, `checks: read`, `pull-requests: read` and

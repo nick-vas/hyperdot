@@ -12,15 +12,21 @@
 # with no run of that check (a merge or squash commit, a change paths-ignore skipped), the head of the merged pull request
 # it came from. That commit and its ancestors shipped; newer ones wait for next week. The issue is created, then mkt/N is
 # tagged at the green commit, then last week's brief is closed: a close that fails never makes the next brief count the
-# same commits twice. A week with nothing shipped writes nothing. -DryRun writes the brief to the job summary only.
+# same commits twice. The brief also lists the next 4 weeks' dates (Steam's fests, plan.json's release deadlines). A week
+# with nothing shipped writes nothing, unless a date to act on falls within 7 days: then a dates-only brief, with no tag.
+# -DryRun writes the brief to the job summary only.
 #
-# Settings: game name and stage from plan/plan.json (game, release), channels, hashtags and the optional GitHub Models
-# drafts (off by default) from docs/promo.json. The API is GITHUB_API_URL (default https://api.github.com) with
+# Settings: game name, stage and deadlines from plan/plan.json (game, release); channels, hashtags, the dates (calendar, on
+# by default) and the optional GitHub Models drafts (off by default) from docs/promo.json. The API is GITHUB_API_URL (default https://api.github.com) with
 # GITHUB_TOKEN; the models endpoint is HYPERDOT_MODELS_URL (default GitHub Models). Both are overridable for the self-test.
 
 $script:PromoLabel = 'marketing-brief'
 $script:PromoFirstRunDays = 7
 $script:PromoMaxHashtagGraphemes = 100
+# Coming up: the dates of the next 4 weeks; one within a week opens a brief even when nothing shipped.
+$script:PromoUpcomingDays = 28
+$script:PromoSoonDays = 7
+$script:PromoEventKinds = @('seasonal-sale', 'next-fest', 'themed-fest')
 $script:PromoBlueskyLimit = 300
 $script:PromoChannels = @('discord', 'bluesky', 'steam')
 $script:PromoDefaultModel = 'openai/gpt-4.1-mini'
@@ -35,6 +41,7 @@ function New-PromoSettings {
         channels = @($script:PromoChannels)
         hashtags = @('#indiedev', '#godotengine')
         ai       = $false
+        calendar = $true
         model    = $script:PromoDefaultModel
     }
 }
@@ -45,7 +52,7 @@ function Read-PromoSettings([string]$Path) {
     try { $data = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json -AsHashtable -Depth 5 }
     catch { Stop-GodotCi "$Path is not valid JSON: $($_.Exception.Message)" 'promo-settings' }
     if ($data -isnot [System.Collections.IDictionary]) { Stop-GodotCi "$Path is not a JSON object" 'promo-settings' }
-    $known = @('schema', 'channels', 'hashtags', 'ai', 'model')
+    $known = @('schema', 'channels', 'hashtags', 'ai', 'model', 'calendar')
     $unknown = @($data.Keys | Where-Object { $_ -notin $known })
     if ($unknown.Count) { Stop-GodotCi "${Path}: unknown setting(s) $($unknown -join ', '); the settings are $($known -join ', ')" 'promo-settings' }
     if ($data.ContainsKey('channels')) {
@@ -64,6 +71,10 @@ function Read-PromoSettings([string]$Path) {
     if ($data.ContainsKey('ai')) {
         if ($data['ai'] -isnot [bool]) { Stop-GodotCi "${Path}: ai is true or false" 'promo-settings' }
         $settings.ai = $data['ai']
+    }
+    if ($data.ContainsKey('calendar')) {
+        if ($data['calendar'] -isnot [bool]) { Stop-GodotCi "${Path}: calendar is true or false" 'promo-settings' }
+        $settings.calendar = $data['calendar']
     }
     if ($data.ContainsKey('model')) {
         if ($data['model'] -isnot [string] -or -not $data['model']) { Stop-GodotCi "${Path}: model is a GitHub Models model id, like ""$($script:PromoDefaultModel)""" 'promo-settings' }
@@ -280,6 +291,100 @@ function Get-PromoAiDrafts([string]$Game, [string]$Stage, $Items, [string[]]$Cha
     return [ordered]@{ drafts = $drafts; reason = $null }
 }
 
+# The dates of the next 4 weeks, by day: Steam's seasonal sales, Next Fests and themed fests (once the game has a store page),
+# and plan.json's release deadlines that are not done yet (overdue ones of the last week too). A date to act on carries a task:
+# a themed fest's opt-in, a seasonal sale the game can join, a Next Fest it can still enter (dated at its demo review, 3 weeks
+# before, 5 with the press preview), and each deadline. Opt-ins are looked for 8 weeks ahead, as registration closes before
+# the start. Steam's page is read the way calendar reads it (cached 6 hours in .godot/hyperdot-calendar); a page that cannot
+# be read is a warning, never a failure.
+function Get-PromoUpcoming($Info, $Release, [string]$Stage, [datetime]$Today, [System.Collections.Generic.List[string]]$Warnings) {
+    $until = $Today.AddDays($script:PromoUpcomingDays)
+    $optInUntil = $Today.AddDays(2 * $script:PromoUpcomingDays)
+    $items = [System.Collections.Generic.List[object]]::new()
+    $add = { param($Day, $What, $Kind, $Url, $Task, [datetime]$From = $Today, [datetime]$To = $until)
+        if ($null -ne $Day -and $Day -ge $From -and $Day -lt $To) { $items.Add([ordered]@{ date = (Format-CalendarDay $Day); what = $What; kind = $Kind; url = $Url; task = $Task }) } }
+    $releaseDay = ConvertTo-PlanDate (Get-CalendarField $Release 'date')
+    $events = @()
+    if ($Stage -ne 'development') {
+        $read = Read-CalendarSource $Info.ProjectDir 'steam' $Today $optInUntil $false
+        if ($read.status.error) { $Warnings.Add("Coming up: Steam's event page $(if ($read.status.ok) { 'was read, but ' } else { 'could not be read: ' })$($read.status.error)") }
+        elseif ($read.status.stale) { $Warnings.Add("Coming up: Steam's event page is a cached copy of $($read.status.fetchedAt), over $($script:CalendarCacheHours) hours old") }
+        $events = @($read.events)
+    }
+    $relation = if ($releaseDay -and $events.Count) { Get-CalendarRelease $Release $events $Today } else { $null }
+    $press = (Get-CalendarField $Release 'pressPreview') -eq $true
+    $reviewDays = $press ? 35 : $script:CalendarDemoReviewDays
+    $listedFest = $null
+    foreach ($item in @($events | Where-Object { $_.kind -in $script:PromoEventKinds -and $_.start })) {
+        $start = ConvertTo-PlanDate $item.start
+        $what = "$($item.name), $($item.start) to $($item.end)"
+        switch ($item.kind) {
+            'next-fest' {
+                # For unreleased games only, and entered with a demo in review 3 (5) weeks before: dated at that review.
+                $canEnter = $Stage -ne 'launched' -and ($null -eq $releaseDay -or $releaseDay -gt $start)
+                $by = $start.AddDays(-$reviewDays)
+                if ($canEnter -and $by -ge $Today) {
+                    $task = "Enter $($item.name): register$(if ($item.registration) { " ($($item.registration))" }) and send the demo to review by $(Format-CalendarDay $by)"
+                    & $add $by "$what; its demo goes to review by $(Format-CalendarDay $by)" 'next-fest' $item.url $task $Today $optInUntil
+                    $listedFest = $item.name
+                } else { & $add $start $what 'next-fest' $item.url $null }
+            }
+            'seasonal-sale' {
+                # Only a sale the game can join gets a task: released, and out of its first 30 days in time (calendar's rule).
+                $sale = @(if ($relation) { $relation.seasonalSales | Where-Object { $_.name -eq $item.name -and $_.joinable } })
+                $task = if ($sale.Count -and $item.registration) { "Opt in to $($item.name) (it starts on $($item.start)): $($item.registration)" }
+                    elseif ($sale.Count) { "Set a discount for $($item.name) (from $($sale[0].joinFrom))" } else { $null }
+                if ($task) { & $add $start $what 'seasonal-sale' $item.url $task $Today $optInUntil } else { & $add $start $what 'seasonal-sale' $item.url $null }
+            }
+            default {
+                if ($item.registration) { & $add $start $what $item.kind $item.url "Opt in to $($item.name) (it starts on $($item.start)): $($item.registration)" $Today $optInUntil }
+                else { & $add $start $what $item.kind $item.url $null }
+            }
+        }
+    }
+    if ($releaseDay) {
+        $line = Get-ReleaseTimeline $Release $Today
+        foreach ($warning in @($line.warnings | Where-Object { $_ -match 'is not a date' })) { $Warnings.Add("Coming up: $warning") }
+        $deadlines = $line.timeline.deadlines
+        $done = { param($Field) [bool](ConvertTo-PlanDate (Get-CalendarField $Release $Field)) }
+        $steps = @(
+            @('steamFee', 'steamFeePaid', "Pay Steam's app fee (21 days before release)"),
+            @('storePageReview', 'storePageSubmitted', 'Submit the store page for review (7 business days before Coming Soon)'),
+            @('comingSoon', 'comingSoon', 'Put the Coming Soon page live (2 weeks before release)'),
+            @('buildReview', 'buildSubmitted', 'Submit the release build for review (7 business days before release)'),
+            @('demoReview', 'demoSubmitted', 'Submit the Next Fest demo for review'))
+        foreach ($step in $steps) {
+            if (-not $deadlines.Contains($step[0]) -or (& $done $step[1])) { continue }
+            $day = ConvertTo-PlanDate $deadlines[$step[0]]
+            # A deadline missed in the last week stays, marked overdue: it is the most urgent line of the brief.
+            $what = if ($day -lt $Today) { "$($step[2]) (overdue)" } else { $step[2] }
+            & $add $day $what 'deadline' $null "$($step[2]): by $($deadlines[$step[0]])" $Today.AddDays(-$script:PromoSoonDays) $until
+        }
+        & $add $releaseDay 'Release day' 'release' $null $null
+        & $add (ConvertTo-PlanDate $deadlines['firstDiscount']) 'The first discount is allowed (30 days after release)' 'discount' $null $null
+        if ($relation -and $relation.nextFest.suggested -and $relation.nextFest.suggested -ne $listedFest) {
+            & $add (ConvertTo-PlanDate $relation.nextFest.demoReviewBy) "The demo for $($relation.nextFest.suggested), the last Next Fest before release, goes to review" 'deadline' $null `
+                "Decide on $($relation.nextFest.suggested): its demo goes to review by $($relation.nextFest.demoReviewBy) (set release.nextFest to plan it)"
+        }
+    }
+    return @($items | Sort-Object { $_.date }, { $_.what })
+}
+
+# The ticked boxes of the open briefs' Tasks sections, without "(from #N)": a date's task the owner ticked is not asked again
+# while the date is still coming up (each brief keeps it, ticked, so the next one knows).
+function Get-PromoTickedTasks($Issues) {
+    $ticked = [System.Collections.Generic.HashSet[string]]::new()
+    foreach ($issue in $Issues) {
+        $body = if ($issue.PSObject.Properties['body'] -and $issue.body) { "$($issue.body)" } else { '' }
+        $inTasks = $false
+        foreach ($line in @($body -split '\r?\n')) {
+            if ($line -match '^##\s') { $inTasks = $line -match '^##\s+Tasks\s*$'; continue }
+            if ($inTasks -and $line -match '^\s*- \[[xX]\] (?<t>\S.*?)\s*$') { $null = $ticked.Add(($Matches.t.Replace($script:PromoZeroWidthSpace, '') -replace '\s*\(from #\d+\)$', '')) }
+        }
+    }
+    return , $ticked
+}
+
 function Format-PromoItem($Item) {
     $extra = @("``$($Item.sha.Substring(0, 7))``")
     if ($Item.source -ne 'commit') { $extra += $Item.source }
@@ -292,16 +397,26 @@ function New-PromoBody($Brief) {
     $lines = [System.Collections.Generic.List[string]]::new()
     $lines.Add("<!-- hyperdot-promo $($Brief.tag) -->")
     $green = $Brief.green
-    $via = if ($green.via -eq 'pull-request') { "the head of #$($green.pullRequest) passed $($Brief.check)" } else { "$($Brief.check) passed" }
-    $lines.Add("Stage: **$($Brief.stage)**. Shipped up to ``$($green.sha.Substring(0, 7))`` ($via). Changes since $($Brief.range.from).")
-    $lines.Add(''); $lines.Add('## Shipped'); $lines.Add('')
-    foreach ($item in $Brief.shipped) { $lines.Add((Format-PromoItem $item)) }
+    if ($Brief.deadlineOnly) {
+        $lines.Add("Stage: **$($Brief.stage)**. Nothing shipped since $($Brief.range.from), but a date is coming up within $($script:PromoSoonDays) days.")
+    } else {
+        $via = if ($green.via -eq 'pull-request') { "the head of #$($green.pullRequest) passed $($Brief.check)" } else { "$($Brief.check) passed" }
+        $lines.Add("Stage: **$($Brief.stage)**. Shipped up to ``$($green.sha.Substring(0, 7))`` ($via). Changes since $($Brief.range.from).")
+        $lines.Add(''); $lines.Add('## Shipped'); $lines.Add('')
+        foreach ($item in $Brief.shipped) { $lines.Add((Format-PromoItem $item)) }
+    }
+    if ($Brief.upcoming.Count) {
+        $lines.Add(''); $lines.Add("## Coming up (next $($script:PromoUpcomingDays) days)"); $lines.Add('')
+        foreach ($date in $Brief.upcoming) { $lines.Add("- **$($date.date)** $($date.what)$(if ($date.url) { " ([details]($($date.url)))" })") }
+    }
     if ($Brief.waiting.Count) {
         $lines.Add(''); $lines.Add('## Waiting for a green build (next week)'); $lines.Add('')
         foreach ($item in $Brief.waiting) { $lines.Add((Format-PromoItem $item)) }
     }
     $lines.Add(''); $lines.Add('## Tasks'); $lines.Add('')
     foreach ($task in $Brief.tasks) { $lines.Add("- [ ] $(Protect-PromoMentions $task)") }
+    foreach ($task in $Brief.doneTasks) { $lines.Add("- [x] $(Protect-PromoMentions $task)") }
+    if ($null -eq $Brief.drafts) { return ($lines -join "`n").TrimEnd() + "`n" }
     $lines.Add(''); $lines.Add('## Drafts'); $lines.Add('')
     if ($Brief.drafts.source -eq 'ai') { $lines.Add("> AI drafts ($($Brief.drafts.model)): check every claim against the Shipped list before posting."); $lines.Add('') }
     elseif ($Brief.drafts.fallbackReason) { $lines.Add("> Template drafts: the AI drafts were not used ($($Brief.drafts.fallbackReason))."); $lines.Add('') }
@@ -392,10 +507,24 @@ function Invoke-Promo($Info, [bool]$DryRun, [datetime]$Today = [datetime]::UtcNo
         green = $green; shipped = @($shipped | ForEach-Object { & $publicItem $_ }); waiting = @($waiting | ForEach-Object { & $publicItem $_ })
         number = $number; tag = $null; issue = $null; previous = @(); carried = @(); drafts = $null; dryRun = $DryRun; written = $false
     }
-    if ($shipped.Count -eq 0) {
+    $upcoming = @(if ($settings.calendar) { Get-PromoUpcoming $Info $release $stage $Today $warnings })
+    $result['upcoming'] = $upcoming
+    # The open briefs are read only when there is a brief to write or a date's task to check against them.
+    $openBriefs = @(if ($shipped.Count -or @($upcoming | Where-Object { $_.task }).Count) {
+            Assert-PromoApi (Invoke-PromoApi GET "/repos/$repo/issues?labels=$($script:PromoLabel)&state=open&per_page=100") 'listing the open briefs' |
+                Where-Object { $_ -and -not $_.PSObject.Properties['pull_request'] } | Sort-Object { [int]$_.number }
+        })
+    $ticked = Get-PromoTickedTasks $openBriefs
+    $doneTasks = @($upcoming | Where-Object { $_.task -and $ticked.Contains($_.task) } | ForEach-Object { $_.task })
+    $soon = @($upcoming | Where-Object { $_.task -and -not $ticked.Contains($_.task) -and (ConvertTo-PlanDate $_.date) -lt $Today.AddDays($script:PromoSoonDays) })
+    # Nothing shipped but a date to act on within a week: a short brief with the dates and tasks, and no tag, so next week's
+    # brief still covers the changes since the last one.
+    $deadlineOnly = $shipped.Count -eq 0 -and $soon.Count -gt 0
+    $result['deadlineOnly'] = $deadlineOnly
+    if ($shipped.Count -eq 0 -and -not $deadlineOnly) {
         $why = if ($items.Count -eq 0) { "no commit since $($range.from) has a Marketing: trailer" } elseif (-not $green) { "no commit since $($range.from) passed $($check.name)" } else { 'every change with a trailer is newer than the last green build' }
         if (-not $last -and $items.Count) { $why += "; on the first run these fall out of the 7-day window next week: tag the commit before them mkt/0 to keep them" }
-        Write-CiLog "Nothing shipped: $why. No brief this week."
+        Write-CiLog "Nothing shipped: $why, and no date to act on within $($script:PromoSoonDays) days. No brief this week."
         $result['nothingShipped'] = $why
         Set-JsonField promo $result
         Set-JsonField warnings @($warnings)
@@ -403,36 +532,41 @@ function Invoke-Promo($Info, [bool]$DryRun, [datetime]$Today = [datetime]::UtcNo
     }
 
     # The tags are made through the API, so a clone that has not fetched them would count these changes again as brief N.
-    $tag = "mkt/$number"
-    $existing = Invoke-PromoApi GET "/repos/$repo/git/ref/tags/$tag"
-    if ($existing.status -eq 200) { Stop-GodotCi "$tag already exists on GitHub but not in this clone: run git fetch --tags and try again (nothing was written)" 'promo-tag-exists' }
-    if ($existing.status -ne 404) { $null = Assert-PromoApi $existing "checking for $tag" }
+    $tag = if ($deadlineOnly) { $null } else { "mkt/$number" }
+    if ($tag) {
+        $existing = Invoke-PromoApi GET "/repos/$repo/git/ref/tags/$tag"
+        if ($existing.status -eq 200) { Stop-GodotCi "$tag already exists on GitHub but not in this clone: run git fetch --tags and try again (nothing was written)" 'promo-tag-exists' }
+        if ($existing.status -ne 404) { $null = Assert-PromoApi $existing "checking for $tag" }
+    }
 
-    $openBriefs = @(Assert-PromoApi (Invoke-PromoApi GET "/repos/$repo/issues?labels=$($script:PromoLabel)&state=open&per_page=100") 'listing the open briefs' |
-            Where-Object { $_ -and -not $_.PSObject.Properties['pull_request'] } | Sort-Object { [int]$_.number })
     $tasks = [System.Collections.Generic.List[string]]::new()
     foreach ($item in @(Get-PromoSortedItems $shipped | Where-Object { $_.visual })) { $tasks.Add("Record a clip: $($item.text)") }
-    foreach ($channel in $channels) { $tasks.Add(@{ discord = 'Post on Discord'; bluesky = 'Post on Bluesky'; steam = 'Post Steam news' }[$channel]) }
+    if (-not $deadlineOnly) { foreach ($channel in $channels) { $tasks.Add(@{ discord = 'Post on Discord'; bluesky = 'Post on Bluesky'; steam = 'Post Steam news' }[$channel]) } }
+    foreach ($date in @($upcoming | Where-Object { $_.task -and -not $ticked.Contains($_.task) })) { if (-not $tasks.Contains($date.task)) { $tasks.Add($date.task) } }
     # A task this week's brief asks for anyway ("Post on Discord") is not carried as well.
     $carried = @(Get-PromoCarriedTasks $openBriefs | Where-Object { -not $tasks.Contains(($_ -replace '\s*\(from #\d+\)$', '')) })
     foreach ($task in $carried) { $tasks.Add($task) }
 
-    $text = New-PromoTemplateDrafts $game $shipped $channels @($settings.hashtags)
-    $drafts = [ordered]@{ source = 'template'; model = $null; fallbackReason = $null; text = $text }
-    if ($settings.ai -and $channels.Count) {
+    $drafts = $null
+    if (-not $deadlineOnly) {
+        $drafts = [ordered]@{ source = 'template'; model = $null; fallbackReason = $null; text = (New-PromoTemplateDrafts $game $shipped $channels @($settings.hashtags)) }
+    }
+    if ($drafts -and $settings.ai -and $channels.Count) {
         $ai = Get-PromoAiDrafts $game $stage $shipped $channels @($settings.hashtags) $settings.model
         if ($ai.drafts) { $drafts = [ordered]@{ source = 'ai'; model = $settings.model; fallbackReason = $null; text = $ai.drafts } }
         else { $drafts.fallbackReason = $ai.reason; $warnings.Add("AI drafts not used: $($ai.reason); the brief has the template drafts") }
     }
-    $brief = [ordered]@{ tag = $tag; stage = $stage; check = $check.name; green = $green; range = $range; shipped = $shipped; waiting = $waiting; tasks = @($tasks); drafts = $drafts }
-    $title = "Marketing brief ${number}: $(Protect-PromoMentions $game), $($Today.ToString('yyyy-MM-dd', [cultureinfo]::InvariantCulture))"
+    $brief = [ordered]@{ tag = $tag; stage = $stage; check = $check.name; green = $green; range = $range; shipped = $shipped; waiting = $waiting; tasks = @($tasks); drafts = $drafts
+        upcoming = $upcoming; deadlineOnly = $deadlineOnly; doneTasks = $doneTasks }
+    $day = $Today.ToString('yyyy-MM-dd', [cultureinfo]::InvariantCulture)
+    $title = if ($deadlineOnly) { "Marketing dates: $(Protect-PromoMentions $game), $day" } else { "Marketing brief ${number}: $(Protect-PromoMentions $game), $day" }
     $body = New-PromoBody $brief
     $result.carried = @($carried); $result.drafts = $drafts; $result['title'] = $title; $result['body'] = $body
     $result.previous = @($openBriefs | ForEach-Object { [ordered]@{ number = [int]$_.number; closed = $false } })
 
     if ($env:GITHUB_STEP_SUMMARY) { Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Value "# $title$(if ($DryRun) { ' (dry run)' })`n`n$body" }
     if ($DryRun) {
-        Write-CiLog "Dry run: brief $number with $($shipped.Count) shipped change(s); no issue, tag or close"
+        Write-CiLog "Dry run: $(if ($deadlineOnly) { 'a dates-only brief' } else { "brief $number" }) with $($shipped.Count) shipped change(s) and $($upcoming.Count) date(s); no issue, tag or close"
         Write-Console $body
         Set-JsonField promo $result
         Set-JsonField warnings @($warnings)
@@ -441,7 +575,7 @@ function Invoke-Promo($Info, [bool]$DryRun, [datetime]$Today = [datetime]::UtcNo
     # Issue, then tag, then close: once the tag is there the next brief starts after it, and a close that fails only leaves an old issue open.
     $issue = Assert-PromoApi (Invoke-PromoApi POST "/repos/$repo/issues" ([ordered]@{ title = $title; body = $body; labels = @($script:PromoLabel) })) 'opening the brief issue'
     $result.issue = [ordered]@{ number = [int]$issue.number; url = "$($issue.html_url)" }
-    $tagResponse = Invoke-PromoApi POST "/repos/$repo/git/refs" ([ordered]@{ ref = "refs/tags/$tag"; sha = $green.sha })
+    $tagResponse = if ($tag) { Invoke-PromoApi POST "/repos/$repo/git/refs" ([ordered]@{ ref = "refs/tags/$tag"; sha = $green.sha }) } else { [ordered]@{ error = $null } }
     if ($tagResponse.error) {
         Set-JsonField promo $result
         Set-JsonField warnings @($warnings)
@@ -454,7 +588,8 @@ function Invoke-Promo($Info, [bool]$DryRun, [datetime]$Today = [datetime]::UtcNo
         else { $previous.closed = $true }
     }
     $result.written = $true
-    Write-CiLog "Opened brief #$($issue.number) ($($shipped.Count) shipped, $($waiting.Count) waiting), tagged $tag at $($green.sha.Substring(0, 7))"
+    if ($tag) { Write-CiLog "Opened brief #$($issue.number) ($($shipped.Count) shipped, $($waiting.Count) waiting, $($upcoming.Count) date(s)), tagged $tag at $($green.sha.Substring(0, 7))" }
+    else { Write-CiLog "Opened dates-only brief #$($issue.number): nothing shipped, $($soon.Count) date(s) to act on within $($script:PromoSoonDays) days; no tag" }
     foreach ($warning in $warnings) { Write-CiLog "WARNING: $warning" }
     Set-JsonField promo $result
     Set-JsonField warnings @($warnings)
