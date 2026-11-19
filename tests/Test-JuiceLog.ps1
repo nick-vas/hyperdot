@@ -53,6 +53,11 @@ try {
     $two = Read-JuiceJson '{ "runs": [ { "name": "boss", "args": ["--stage=boss"], "frames": 7200, "rules": [ { "event": "slow", "feedback": ["sfx"] }, { "event": "mend", "feedback": ["flash"] } ] }, { "args": ["--stage=act2"], "rules": [ { "event": "blast", "feedback": ["shake"] } ] } ] }'
     Assert-True (@($two.runs).Count -eq 2 -and $two.runs[0].name -eq 'boss' -and $two.runs[0].frames -eq 7200 -and $two.runs[1].name -eq 'run2' -and $two.runs[1].frames -eq 1800 -and ($two.runs[1].args -join ' ') -eq '--stage=act2') "runs keep their own name (run<n> when unnamed), frames and args: $(@($two.runs | ForEach-Object { "$($_.name)/$($_.frames)" }) -join ', ')"
     Assert-True ((Get-JuiceRuleCount $two) -eq 3 -and (Get-JuiceRuleCount $one) -eq 1 -and (Get-JuiceRuleCount $null) -eq 0) 'the rule count (status look.juiceRules) adds up every run'
+    # Each run gets only its own args plus -GameArgs, in whichever order the runs come (#290).
+    $first = @(Get-JuiceRunArgs $two.runs[0] @('--seed=2')); $second = @(Get-JuiceRunArgs $two.runs[1] @('--seed=2'))
+    Assert-True (($first -join ' ') -eq '--stage=boss --seed=2' -and ($second -join ' ') -eq '--stage=act2 --seed=2') "each run's command line holds only its own args and -GameArgs: [$($first -join ' ')] [$($second -join ' ')]"
+    $juiceSource = Get-Content -LiteralPath (Join-Path $root 'ci/godot/lib/Juice.ps1') -Raw
+    Assert-True ($juiceSource -notmatch '(?m)^\s*\$gameArgs\s*=') 'the juice runner never assigns to $gameArgs, which is the -GameArgs parameter under another case'
     $boss = @(Test-JuiceLog @('[juice] event slow 100.0', '[juice] feedback sfx 110.0') $two.runs[0] $two.runs[0].frames)
     Assert-True ($boss.Count -eq 2 -and -not $boss[0].Failure -and $boss[1].Failure -match "^No 'mend' event") 'each run is judged on its own rules'
     foreach ($case in @(

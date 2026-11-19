@@ -1,0 +1,1 @@
+Fixed: with several `runs` in `juice.json`, each run got the earlier runs' `args` appended (a local variable was the `-GameArgs` parameter under another case), so a later run could play the wrong stage; each run now gets only its own `args` and `-GameArgs` (#290).
