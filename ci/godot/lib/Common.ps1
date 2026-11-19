@@ -96,12 +96,15 @@ $script:HistoryCommand = $null
 $script:HistoryProject = $null
 $script:HistoryStart = $null
 $script:HistoryTestRun = $null
+# More keys for this run's history line, set by the command (export: run, presets, launched); readers skip unknown keys.
+$script:HistoryExtra = $null
 
 function Start-RunHistory([string]$Command, [string]$ProjectDir) {
     $script:HistoryCommand = $Command
     $script:HistoryProject = $ProjectDir
     $script:HistoryStart = Get-Date
     $script:HistoryTestRun = $null
+    $script:HistoryExtra = $null
     $script:RunErrorKeys.Clear()
 }
 
@@ -144,6 +147,13 @@ function Add-RunHistory([bool]$Ok, [string]$Code) {
     } elseif ($script:JsonDoc.Contains('runnerResults')) {
         $entry['failedRunners'] = @($script:JsonDoc['runnerResults'] | Where-Object { -not $_.ok } | ForEach-Object { $_.runner })
     }
+    if ($script:HistoryExtra) {
+        foreach ($key in $script:HistoryExtra.Keys) {
+            # Lists stay lists (an if expression would unroll a one-item list); other values go in as they are.
+            $value = $script:HistoryExtra[$key]
+            if ($value -is [System.Collections.IList]) { $entry[$key] = [object[]]@($value) } else { $entry[$key] = $value }
+        }
+    }
     # Where and with what errors: status groups runs by error key (Get-RecurringErrors).
     try {
         $entry['commit'] = Get-HeadCommit $script:HistoryProject
@@ -157,9 +167,15 @@ function Add-RunHistory([bool]$Ok, [string]$Code) {
     try {
         New-Item -ItemType Directory -Force (Split-Path $file) | Out-Null
         Add-Content -LiteralPath $file -Value ($entry | ConvertTo-Json -Compress -Depth 4) -Encoding utf8
-        # Over 2,500 lines, the newest 2,000 are kept: status and telemetry read the whole file.
+        # Over 2,500 lines, the newest 2,000 are kept: status and telemetry read the whole file. The newest export -Run line
+        # is kept too, wherever it is: plan's export-run gate reads it, and frequent test runs would otherwise push it out.
         $kept = @(Get-Content -LiteralPath $file)
-        if ($kept.Count -gt 2500) { [System.IO.File]::WriteAllLines($file, [string[]]@($kept | Select-Object -Last 2000)) }
+        if ($kept.Count -gt 2500) {
+            $newest = @($kept | Select-Object -Last 2000)
+            $exportRun = @($kept | Where-Object { $_ -match '"command":"export"' -and $_ -match '"run":true' } | Select-Object -Last 1)
+            $head = @(if ($exportRun.Count -and $newest -notcontains $exportRun[0]) { $exportRun[0] })
+            [System.IO.File]::WriteAllLines($file, [string[]]@(@($head) + @($newest)))
+        }
     } catch {
         # History is a convenience; a read-only project must not fail the run.
         Write-RunLog "[hyperdot] Could not record the run in ${file}: $_"

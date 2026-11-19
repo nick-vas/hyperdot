@@ -30,9 +30,11 @@ Timeboxes are defaults for ~10 hours a week; set `weeklyHours` and resize at the
 ## How an agent uses it
 
 1. Start every session with `plan -Json`. Work only on `nextActions` of `currentPhase`.
-2. `check` is `manual` or automatic (`tests`: a test framework runner, `ci`, `preset`, `file:<path>`: a file that is not
-   empty, `runner:<name>`: that runner is set up, `placeholders`: none left). Automatic gates turn true when the project
-   makes them true; do the work, not the checkbox. `plan -Do done` refuses automatic gates. An `optional` gate does not hold its phase back.
+2. `check` is `manual` or automatic (`tests`: a test framework runner, `ci`, `preset`, `export-run`: every preset this
+   machine can launch passed its newest `export -Run`, `file:<path>`: a file that is not empty, `runner:<name>`: that
+   runner is set up, `placeholders`: none left). Automatic gates turn true when the project makes them true; do the work,
+   not the checkbox; an open gate's `detail` says what to run. `plan -Do done` refuses automatic gates (`export-run`
+   only when nothing here can be launched). An `optional` gate does not hold its phase back.
 3. Manual gates (the playtest happened, the verdict) need the user's word. Ask; do not mark them yourself.
 4. When `warnings` reports an overrun: propose cutting scope from the "could" tier; never cut testing or the gate.
 5. Work items are `tasks` in plan.json, edited with commands, not by hand:

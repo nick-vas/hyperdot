@@ -1072,9 +1072,12 @@ jobs:
           $d = pwsh -NoProfile -File ./ci/godot/hyperdot.ps1 init -McpAseprite (Join-Path $env:RUNNER_TEMP 'no-aseprite') -Project $dir -Json 2>$null | ConvertFrom-Json
           if ($d.ok -or $d.error.code -ne 'aseprite-not-found') { throw "expected aseprite-not-found, got: $($d.error.code)" }
           exit 0  # the last pwsh run failed on purpose; GitHub's shell would otherwise end the step with its exit code
-      - name: Export the Windows build and launch it
+      - name: Export the Windows build and launch it, and record the launch for plan's export-run gate
         shell: pwsh
-        run: ./ci/godot/hyperdot.ps1 export -Project examples/csharp/game -Preset Windows -Run
+        run: |
+          ./ci/godot/hyperdot.ps1 export -Project examples/csharp/game -Preset Windows -Run
+          $line = @(Get-Content examples/csharp/game/.godot/hyperdot-history.jsonl | Where-Object { $_ -match '"command":"export"' } | Select-Object -Last 1)[0] | ConvertFrom-Json
+          if (-not $line.ok -or $line.run -ne $true -or @($line.presets) -notcontains 'Windows' -or @($line.launched) -notcontains 'Windows') { throw "the export history line should record run, presets and launched: $($line | ConvertTo-Json -Compress -Depth 4)" }
       - name: Keep what this job's kit runs reached
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7

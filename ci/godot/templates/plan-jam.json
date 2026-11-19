@@ -74,7 +74,7 @@
         {
           "id": "jam.export",
           "text": "Exported to the jam's platform and launched (hyperdot.ps1 export -Run), and a private upload to the jam site works",
-          "check": "preset"
+          "check": "export-run"
         },
         {
           "id": "jam.fixes",
