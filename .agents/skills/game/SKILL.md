@@ -28,7 +28,7 @@ game and `brief` asks the rest. Otherwise draft `docs/GDD.md` from `${CLAUDE_PLU
 `inventory` (scenes, main scene, autoloads, input actions), the scripts behind them, and any notes in the repository.
 Each feature gets an id (F1, F2...), a guessed priority, the kinds of fun it serves (`Fun:`, from `game-design`) and
 "Done when" lines describing behaviour you can see in the code. The grammar is fixed: one `Priority:` line, one `Fun:`
-line with only kinds or `none` (`none` only at `could` or `won't`), the reason after a blank line. After every GDD edit
+line with only kinds or `none` (work that serves no kind of fun, at any priority), the reason after a blank line. After every GDD edit
 run `doctor -Json`: a `GDD.md line N` FAIL names its fix; apply that fix as written, never another form, and do not
 write `plan/STATUS.md` while one is open. Keep `Status: draft` in it. A game jam entry starts from
 `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/GDD-jam.md` instead (`game-plan`, jam mode).
@@ -69,7 +69,8 @@ watches it fail before the code (`godot-test-loop`); `playthrough.stub.json` bec
 Tests passing is not the whole picture. Look for at most five problems, design first, each one line with its evidence;
 leave out anything without evidence, and fix nothing here (each finding becomes a task in step 4 or a question in step 6):
 
-- **Design:** a feature serving none of the game's main kinds of fun (format problems are `doctor`'s, above); tasks in
+- **Design:** a feature serving none of the game's main kinds of fun, except the `must` and `should` support work `status`
+  lists as `gdd.supportFeatures` (format problems are `doctor`'s, above); tasks in
   `doing` for `could` features while `must` features are missing; code for something the GDD does not have; a core loop
   (the GDD's) that no tagged test or flow plays through.
 - **Architecture:** the `architecture` runner's `warnings` in the latest `test -Json` you ran (run
@@ -127,7 +128,8 @@ one, move it to `doing` in the plan (the sync moves the item), and start it with
   `godot-architect` subagent, and its decision is accepted before code is written.
 - **Too much in progress:** respect the work-in-progress limit; suggest finishing a task instead of starting one.
 - **Over the timebox:** when the phase is past its timebox, propose which `could` and `should` features to cut, starting
-  with those that serve none of the game's main kinds of fun. Never propose cutting tests.
+  with those that serve none of the game's main kinds of fun; a `should` feature with `Fun: none` (support work: crash
+  reports, cloud saves) is cut only when the user says so. Never propose cutting tests.
 - **Pixel art:** a next task that draws or animates sprites starts by checking `.mcp.json` for an `aseprite` server. If it is
   missing and the user draws in Aseprite, offer `init -McpAseprite "<the folder or Aseprite.exe>"` (`godot-editor-bridge`);
   ask for the path, never guess it.

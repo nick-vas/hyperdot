@@ -1,9 +1,9 @@
 #!/usr/bin/env pwsh
 # Self-test of the GDD feature grammar (Get-GddProblems): one "Priority:" line (must, should, could, won't) and one
-# "Fun:" line per feature, the kinds comma-separated and alone on their line, "Fun: none" only for could and won't. The
+# "Fun:" line per feature, the kinds comma-separated and alone on their line, or "Fun: none" at any priority. The
 # deliberately broken tests/gdd-fixture/GDD.md must give exactly the problems listed below, each with its fix; doctor
-# fails on them (doctor-problems) and status lists them as warnings; the C# example's GDD and the shipped templates have
-# none. No Godot is needed.
+# fails on them (doctor-problems) and status lists them as warnings, and lists must and should features with "Fun: none"
+# as supportFeatures; the C# example's GDD and the shipped templates have none. No Godot is needed.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -22,8 +22,7 @@ function Find-Problem([string]$Feature, [string]$Pattern) { return @($problems |
 $expected = @(
     @('F2', "'challenge — the timer makes every second count' is not a kind of fun", 'Write "Fun: challenge" and put the rest on a line of its own', 13, 'an explanation after the kind on the Fun line names the kind to keep'),
     @('F3', 'carries on onto the next line', 'leave a blank line before any explanation', 20, 'a Fun line that carries on onto the next line is a problem'),
-    @('F4', 'is a must feature with "Fun: none"', 'or set "Priority: could"', 26, 'a must feature may not serve no fun'),
-    @('F6', 'has no "Fun:" line', 'Add "Fun: none" or the kinds', 32, "a won't feature with no Fun line is told to add Fun: none or kinds"),
+    @('F6', 'has no "Fun:" line', 'or "Fun: none" when it serves none', 32, "a won't feature with no Fun line is told to add the kinds or Fun: none"),
     @('F7', "'high' is not a priority", "Priority: won't", 36, 'an unknown priority lists the four'),
     @('F7', "'fun' is not a kind of fun", 'Use only these words', 37, 'an unknown kind lists the eight'),
     @('F7', '2 features have the id F7', 'renumber the later ones', 43, 'a duplicate feature id'),
@@ -35,6 +34,9 @@ foreach ($case in $expected) {
 }
 Assert-True ($problems.Count -eq $expected.Count) "the fixture gives exactly $($expected.Count) problems, no more: $($problems.Count)"
 Assert-True (@(Find-Problem 'F1' '.').Count -eq 0 -and @(Find-Problem 'F5' '.').Count -eq 0 -and @(Find-Problem 'F8' '.').Count -eq 0) "a valid must feature, a could with Fun: none and a won't (curly apostrophe) with Fun: none are clean"
+Assert-True (@(Find-Problem 'F4' '.').Count -eq 0) 'a must feature with Fun: none is clean (credits, crash reports, cloud saves: work that serves no kind of fun)'
+$support = @(Get-SupportFeatures $gdd)
+Assert-True ($support.Count -eq 1 -and $support[0].id -eq 'F4' -and $support[0].priority -eq 'must' -and $support[0].title -eq 'Saving') "supportFeatures lists the must and should features with Fun: none, and not the could or won't ones: $(@($support | ForEach-Object { $_.id }) -join ', ')"
 Assert-True (@(Find-Problem 'F3' "''").Count -eq 0) 'a trailing comma gives no empty kind'
 $priorities = @($gdd.features | ForEach-Object { "$($_.id)=$($_.priority)" }) -join ' '
 Assert-True ($priorities -match "F6=won't" -and $priorities -match "F8=won't") "won't is read whole, with a straight or curly apostrophe (not 'won'): $priorities"
@@ -60,6 +62,7 @@ try {
     $out = & pwsh -NoProfile -NonInteractive -File $ci status -Json -Project $dir 2>$null | Out-String
     $status = $out | ConvertFrom-Json -Depth 20
     Assert-True ($status.ok -and @($status.gdd.problems).Count -eq $expected.Count -and @($status.warnings | Where-Object { $_ -match '^GDD line \d+: .* Fix: ' }).Count -eq $expected.Count) 'status never fails on them, and lists each as a warning with its fix'
+    Assert-True (@($status.gdd.supportFeatures).Count -eq 1 -and @($status.gdd.supportFeatures)[0].id -eq 'F4') 'status -Json reports gdd.supportFeatures'
     Copy-Item -LiteralPath (Join-Path $root 'examples/csharp/game/docs/GDD.md') (Join-Path $dir 'docs/GDD.md') -Force
     $out = & pwsh -NoProfile -NonInteractive -File $ci doctor -Json -Project $dir 2>$null | Out-String
     $doc = $out | ConvertFrom-Json -Depth 20

@@ -115,7 +115,7 @@ Branch on `error.code`; `message` can change.
 **doctor**: `checks[]` (`status` OK/INFO/WARN/FAIL, `message`, `fix`), `problems`, `warnings`. Checks are messages, not
 codes. A GDD (`docs/GDD.md`) breaking the feature grammar is a FAIL per problem, `<path> line <n>: <feature>: <problem>`
 with its one `fix`: each feature has exactly one `Priority:` line (must, should, could, won't) and exactly one `Fun:` line
-holding only kinds of fun, comma-separated, or `none`, which only a could or won't feature may have; feature ids are
+holding only kinds of fun, comma-separated, or `none` (at any priority); feature ids are
 unique; the Steamworks, trailer, tag and privacy checks are described in [steam.md](steam.md#kit-checks) and
 [store-and-legal.md](store-and-legal.md#kit-checks). `uncommittedKitFiles[]` (when the game is in a git repository)
 lists the files the kit wrote that git sees as new or changed: `path` (relative to the project), `status` (`untracked` or
@@ -457,7 +457,9 @@ in `.gitignore`).
 
 **status** (read-only; it never fails on what it finds):
 - `gdd`: `path`, `draft`, `pitch`, `featureCount`, `firstSession[]`, `problems[]` (the GDD grammar problems `doctor` fails
-  on: `feature`, `line`, `problem`, `fix`), or `null` when the project has no `docs/GDD.md`.
+  on: `feature`, `line`, `problem`, `fix`), `supportFeatures[]` (`id`, `title`, `priority` of each must or should feature
+  whose `Fun:` line is `none`: work the game needs that serves no kind of fun, listed for a design review, not a problem),
+  or `null` when the project has no `docs/GDD.md`.
   `firstSession[]` holds the numbered steps of its "First session, step by step" section: `id` (`S1`... from the step's
   number), `text`, `tests[]` (`file`, `line` of each `GDD:S<n>` tag in tests, flows, code and `playthrough.json`) and
   `stubs[]` (the same in `*.stub.json` files, flows or a `playthrough.json` not written yet, which no runner plays). A

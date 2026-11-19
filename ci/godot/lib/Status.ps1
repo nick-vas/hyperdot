@@ -93,7 +93,7 @@ function Read-Gdd([string]$Path) {
 # Every way a GDD's features break the grammar status and doctor read, each with its line and the one fix to make. These
 # are rules, not judgement: an agent applies the fix as written. Each feature has exactly one "Priority:" line (must,
 # should, could or won't) and exactly one "Fun:" line, alone on its line: one or more of the eight kinds, comma-separated,
-# or "none", which only a could or won't feature may have.
+# or "none" at any priority (credits, crash reports, cloud saves: work a game needs that serves no kind of fun).
 function Get-GddProblems($Gdd) {
     $kinds = $script:FunKinds -join ', '
     $problems = [System.Collections.Generic.List[object]]::new()
@@ -110,9 +110,8 @@ function Get-GddProblems($Gdd) {
             & $add $f $priorities[0].line "'$($priorities[0].value)' is not a priority" "Write one of: Priority: must, Priority: should, Priority: could, Priority: won't"
         }
         $funs = @($f.funLines)
-        $low = $f.priority -in 'could', "won't"
         if ($funs.Count -eq 0) {
-            & $add $f $f.line 'has no "Fun:" line' $(if ($low) { "Add ""Fun: none"" or the kinds it serves (""Fun: challenge, discovery""; kinds: $kinds)" } else { "Add ""Fun: <kinds>"" naming one or more of: $kinds" })
+            & $add $f $f.line 'has no "Fun:" line' "Add the kinds it serves (""Fun: challenge, discovery""; kinds: $kinds), or ""Fun: none"" when it serves none"
             continue
         }
         if ($funs.Count -gt 1) { & $add $f $funs[1].line "has $($funs.Count) ""Fun:"" lines" 'Merge them into one "Fun:" line, kinds comma-separated' }
@@ -120,23 +119,33 @@ function Get-GddProblems($Gdd) {
         # Empty pieces (a trailing comma) are left out: the line that carries on is its own problem.
         $tokens = @($value -split ',' | ForEach-Object { $_.Trim().ToLowerInvariant() } | Where-Object { $_ })
         if (-not $value.Trim()) {
-            & $add $f $funs[0].line '"Fun:" is empty' $(if ($low) { "Write ""Fun: none"" or the kinds it serves ($kinds)" } else { "Write the kinds it serves, comma-separated ($kinds)" })
+            & $add $f $funs[0].line '"Fun:" is empty' "Write the kinds it serves, comma-separated ($kinds), or ""Fun: none"" when it serves none"
         } elseif ($tokens -contains 'none') {
             if ($tokens.Count -gt 1) { & $add $f $funs[0].line '"Fun: none" is combined with other kinds' 'Write either "Fun: none" or the kinds, not both' }
-            elseif (-not $low) { & $add $f $funs[0].line "is a $($f.priority) feature with ""Fun: none""" "Name the kinds of fun it serves ($kinds), or set ""Priority: could"": only could and won't features may serve none" }
         } else {
             $bad = @($tokens | Where-Object { $_ -notin $script:FunKinds })
             if ($bad.Count) {
                 $good = @($tokens | Where-Object { $_ -in $script:FunKinds })
                 $lead = @($bad | ForEach-Object { if ($_ -match "^(?<k>$($script:FunKinds -join '|'))\b") { $Matches.k } } | Where-Object { $_ })
                 $keep = @(@($good) + @($lead) | Select-Object -Unique)
-                $fix = if ($keep.Count) { "Write ""Fun: $($keep -join ', ')"" and put the rest on a line of its own below it, after a blank line" } else { "Use only these words, comma-separated: $kinds (or ""none"" for a could or won't feature)" }
+                $fix = if ($keep.Count) { "Write ""Fun: $($keep -join ', ')"" and put the rest on a line of its own below it, after a blank line" } else { "Use only these words, comma-separated: $kinds (or ""none"" when it serves none)" }
                 & $add $f $funs[0].line "'$($bad -join "', '")' is not a kind of fun" $fix
             }
         }
         if ($f.funSpill) { & $add $f $f.funSpill 'the "Fun:" line carries on onto the next line' 'Keep "Fun:" to the kinds alone and leave a blank line before any explanation' }
     }
     return @($problems)
+}
+
+# Must and should features whose "Fun:" line is "none": work the game needs that serves no kind of fun. Not a problem;
+# status lists them so a design review sees them, and they are not the first to cut, as a could feature serving none is.
+function Get-SupportFeatures($Gdd) {
+    return @(foreach ($f in $Gdd.features) {
+        $funs = @($f.funLines)
+        if ($f.priority -in 'must', 'should' -and $funs.Count -eq 1 -and "$($funs[0].value)".Trim().ToLowerInvariant() -eq 'none') {
+            [ordered]@{ id = $f.id; title = $f.title; priority = $f.priority }
+        }
+    })
 }
 
 # Architecture decisions (docs/decisions/NNNN-title.md, templates/ADR.md), wherever the GDD would be.
@@ -438,7 +447,7 @@ function Invoke-Status($Info) {
     $handoffs = @($allHandoffs | Select-Object -First 20)
 
     Set-JsonField gdd ($gdd ? [ordered]@{ path = $gdd.path; draft = $gdd.draft; pitch = $gdd.pitch; featureCount = $features.Count
-        firstSession = $firstSession; problems = @($gddProblems) } : $null)
+        firstSession = $firstSession; problems = @($gddProblems); supportFeatures = @(Get-SupportFeatures $gdd) } : $null)
     Set-JsonField features $features
     Set-JsonField plan $plan
     Set-JsonField decisions $decisions
