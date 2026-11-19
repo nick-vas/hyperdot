@@ -221,6 +221,48 @@ try {
     Remove-Item -LiteralPath $runDir -Recurse -Force -ErrorAction SilentlyContinue
 }
 
+# The verdict gate (#289): only a line recording one verdict counts; the template's wording, a placeholder in parentheses,
+# comments and code blocks do not. The file is looked up from the repository root, then the Godot project.
+$verdictDir = Join-Path ([IO.Path]::GetTempPath()) "plan-verdict-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+try {
+    New-Item -ItemType Directory -Force (Join-Path $verdictDir 'plan'), (Join-Path $verdictDir 'docs') | Out-Null
+    $verdictInfo = [pscustomobject]@{ ProjectDir = $verdictDir; Runners = @(); Presets = @() }
+    $decisions = Join-Path $verdictDir 'docs/DECISIONS.md'
+    $verdictGate = [pscustomobject]@{ id = 'prototype.verdict'; check = 'verdict:docs/DECISIONS.md' }
+    $v = Get-VerdictGate $verdictInfo 'docs/DECISIONS.md'
+    Assert-True ($v.met -eq $false -and $v.detail -match 'does not exist yet' -and $v.detail -match 'Verdict: PROCEED') "no DECISIONS.md: open, saying what to write: $($v.detail)"
+    foreach ($case in @(
+            @("# Decisions`n`nThe loop tested well with five players.`n", $false, 'has no verdict line', 'evidence but no verdict line'),
+            @("# Decisions`n`nEvidence: 5 of 6 players asked for another run.`n`nVerdict: (owner to write: PROCEED, PIVOT or KILL)`n", $false, 'line 5 is still a placeholder', "Slay the Brick's placeholder"),
+            @("Verdict: PROCEED, PIVOT or KILL`n", $false, 'line 1 is still a placeholder', "the template's wording"),
+            @("Verdict: PROCEED / PIVOT / KILL`n", $false, 'still a placeholder', 'a slash-separated list'),
+            @("<!--`nVerdict: PROCEED`n-->`nVerdict: TBD`n", $false, 'line 4 is still a placeholder', 'a verdict inside a comment, with the line numbers kept'),
+            @("``````text`nVerdict: KILL`n``````n", $false, 'has no verdict line', 'a verdict inside a code block'),
+            @("# Decisions`n`nVerdict: PIVOT`n", $true, '^Verdict: PIVOT \(docs/DECISIONS.md line 3\)$', 'a plain verdict line'),
+            @("**Verdict:** proceed`n", $true, '^Verdict: PROCEED', 'bold, lower case'),
+            @("- Verdict: Kill - nobody played twice`n", $true, '^Verdict: KILL', 'a list item with a reason'),
+            @("## Verdict: Proceed, though we may pivot the art`n", $true, '^Verdict: PROCEED', 'a heading whose reason names another word'),
+            @("Verdict: (owner to write)`n`nVerdict: PROCEED`n", $true, 'line 3', 'a placeholder, then the real line'))) {
+        Set-Content -LiteralPath $decisions -Value $case[0] -NoNewline
+        $v = Get-VerdictGate $verdictInfo 'docs/DECISIONS.md'
+        Assert-True ($v.met -eq $case[1] -and $v.detail -match $case[2]) "verdict, $($case[3]): $($v.detail)"
+    }
+    Assert-True ((Test-PlanGate $verdictGate $verdictInfo) -eq $true) 'Test-PlanGate answers the verdict check'
+    $known = @(Get-PlanProblems ([pscustomobject]@{ phases = @([pscustomobject]@{ id = 'p'; gates = @($verdictGate) }); tasks = @() }))
+    Assert-True (@($known | Where-Object { $_ -match 'unknown check' }).Count -eq 0) 'verdict:<path> is a known check'
+    $plan = [pscustomobject]@{ wipLimit = 3; tasks = @(); phases = @(
+            [pscustomobject]@{ id = 'prototype'; name = 'Prototype'; goal = 'g'; gates = @([pscustomobject]@{ id = 'prototype.verdict'; text = 't'; check = 'verdict:docs/DECISIONS.md' }) }) }
+    Set-Content -LiteralPath $decisions -Value "Verdict: (owner to write: PROCEED, PIVOT or KILL)`n" -NoNewline
+    $state = Get-PlanState $plan $verdictInfo
+    $gate = @($state.phases[0].gates)[0]
+    Assert-True ($gate.done -eq $false -and $gate.detail -match 'still a placeholder' -and $state.current.id -eq 'prototype') "the placeholder holds the prototype open, and the gate's detail says why: $($gate.detail)"
+    $plan.phases[0].gates[0].check = 'file:docs/DECISIONS.md'
+    $state = Get-PlanState $plan $verdictInfo
+    Assert-True (@($state.warnings | Where-Object { $_ -match "Gate 'prototype.verdict' passes on any text in docs/DECISIONS.md" -and $_ -match 'verdict:docs/DECISIONS.md' }).Count -eq 1) 'a plan made before is warned to use verdict:docs/DECISIONS.md'
+} finally {
+    Remove-Item -LiteralPath $verdictDir -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 try {
     New-Item -ItemType Directory -Force $dir | Out-Null
     Set-Content -LiteralPath (Join-Path $dir 'project.godot') -Value "config_version=5`n`n[application]`n`nconfig/name=""Plan Fixture""`n"

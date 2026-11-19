@@ -2746,6 +2746,7 @@
         "Get-TestDuration",
         "Get-ToolsDir",
         "Get-TranslationSources",
+        "Get-VerdictGate",
         "Get-WorkflowStage",
         "Initialize-Project",
         "Invoke-Doctor",

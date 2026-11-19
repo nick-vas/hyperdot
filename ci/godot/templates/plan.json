@@ -101,8 +101,8 @@
         },
         {
           "id": "prototype.verdict",
-          "text": "Verdict recorded in docs/DECISIONS.md: PROCEED, PIVOT or KILL",
-          "check": "file:docs/DECISIONS.md"
+          "text": "Verdict recorded in docs/DECISIONS.md: a line \"Verdict: PROCEED\", \"PIVOT\" or \"KILL\"",
+          "check": "verdict:docs/DECISIONS.md"
         }
       ]
     },
