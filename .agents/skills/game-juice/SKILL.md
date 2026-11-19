@@ -25,6 +25,9 @@ Add it deliberately, and verify it with the `juice` runner instead of by eye.
 | Marks | a death or big hit leaves a trace: where it happened, and by fading, when (Move or Die's death paint, GDC) | a `Sprite2D` splat in the victim's colour, randomly rotated and scaled, drawn behind the play layer (`ZIndex`), its `Modulate` alpha tweened down over seconds; pooled, with a cap |
 | Rumble | the player who did not see it still feels it | `input` haptics: one helper scaled by the player's setting, never the only cue |
 
+Jan Willem Nijman's talk *The Art of Screenshake* (Vlambeer, INDIGO Classes, 2013) shows the method: a flat shooter made
+better by about 30 small tweaks, one at a time; build feedback the same way and keep each tweak that reads.
+
 Feedback is information, not decoration. Nicolae Berbece layered Move or Die's death (sounds, paint, particles, shake,
 a colour split, a shockwave, rumble) until players knew someone had died elsewhere on screen without looking there.
 In the `juice` runner, `mark` and `rumble` are feedback names like any other.

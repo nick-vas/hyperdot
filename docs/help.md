@@ -315,7 +315,7 @@ Feedback for every action within 100 ms, checked by the juice runner.
 Follow, orbit and side-scrolling cameras that do not clip, jerk or make players sick.
 
 ### animation
-Animation states, blending, uninterruptible attacks and root motion.
+Animation states, blending, uninterruptible attacks, root motion, and reward screens and callouts that read at a glance.
 
 ### godot-shaders-vfx
 Shaders, particles, post-processing and graphics quality settings.

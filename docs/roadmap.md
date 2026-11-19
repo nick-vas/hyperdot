@@ -348,7 +348,6 @@ Pasting a source, allowing a host or answering a question is enough for each.
   no sale calendar to read. LootRadar keeps about 12 weeks of prices, so "deepest discount" is recent, not all-time; its
   `/sales` page shows sale dates but no endpoint in its documented API serves them (2026-11-16). Undocumented endpoints were
   not tried.
-- Marc LeBlanc's eight kinds of fun (`www.8kindsoffun.com`): the site's TLS certificate has expired. Optional.
 - Bohemia's wiki (`community.bistudio.com`): a Cloudflare challenge. Optional: "DayZ:Central Economy Configuration" and
   "Arma Reforger:Multiplayer Scripting".
 - The full Iassenev interview on A-Life (AIGameDev, archived): web.archive.org rate-limited this server.
