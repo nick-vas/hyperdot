@@ -445,7 +445,8 @@ help does not know, or a name given to another command, fails with `invalid-argu
 
 **plan**: `plan` (path), `currentPhase` (`id`, `name`, `goal`, `timeboxWeeks`, `elapsedWeeks`, `timeboxDays`, `elapsedDays`; a jam plan sizes phases in days, the other plan in weeks, and both are given), `nextActions[]`
 (`id`, `text`, `auto`, `check`, `optional`: an open optional gate does not hold the phase back; `detail`: for an
-`export-run` gate, which presets failed or were never launched here and the command to run, else `null`), `phases[]` (`id`, `name`, `complete`, `gatesDone`, `gatesTotal`), `board`
+`export-run` gate, which presets failed or were never launched here and the command to run; for a `verdict:` gate, the
+verdict found or what is missing (no file, no verdict line, or the line of a placeholder); else `null`), `phases[]` (`id`, `name`, `complete`, `gatesDone`, `gatesTotal`), `board`
 (tasks per column), `tasks[]` (`id`, `title`, `column`, `phase`, `feature`, `itemId`, `boardColumn`), `projectBoard` (`<owner>/<number>` or `null`),
 `release` (`null` until plan.json's `release.date` is set: `date`, `daysLeft`, `businessDaysLeft`, `dateLocked`,
 `deadlines` with `steamFee`, `comingSoon`, `buildReview`, `dateLock`, `firstDiscount` (30 days after release: the first day a discount other than the launch discount can start), and `storePageReview` and `demoReview` when

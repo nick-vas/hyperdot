@@ -47,7 +47,11 @@ remove gates freely: `plan.json` is yours after `init`. A manual gate marked don
 
 Automatic checks: `tests` (a test framework's runner is detected), `ci` (a GitHub workflow calls the kit's reusable workflow or composite action), `preset` (an export
 preset exists), `export-run` (see below), `runner:<name>` (that runner is set up), `file:<path>` (a folder, or a file that is not empty: an empty
-`docs/RISKS.md` is not a risk log; the path is looked up from the repository root, then the Godot project) and
+`docs/RISKS.md` is not a risk log; the path is looked up from the repository root, then the Godot project),
+`verdict:<path>` (the file, looked up the same way, has a line recording one verdict: `Verdict: PROCEED`, `PIVOT` or
+`KILL`, any case, also as a list item, heading or in bold; a list such as `Verdict: PROCEED, PIVOT or KILL`, anything
+before the word such as `Verdict: (owner to write)`, HTML comments and code blocks do not count; `prototype.verdict` uses
+it, and `plan` warns about plans made before, whose `prototype.verdict` still checks `file:`) and
 `placeholders` (nothing is left as a placeholder: no `assets.json` entry has `"placeholder": true` and the Placeholders
 table of `docs/TECH-DEBT.md` has no row; with neither file, nothing says what is left, so it stays open).
 

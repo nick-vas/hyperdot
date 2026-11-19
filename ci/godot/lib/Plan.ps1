@@ -1,5 +1,5 @@
 # `plan`: an A-to-Z plan for one developer. plan/plan.json holds phases, each with gates. A gate is either
-# checked automatically from the project ("check": "tests", "ci", "preset", "export-run", "file:<path>", "runner:<name>",
+# checked automatically from the project ("check": "tests", "ci", "preset", "export-run", "file:<path>", "verdict:<path>", "runner:<name>",
 # "placeholders") or marked done by hand ("manual"). A gate with "optional": true does not hold its phase back. `plan`
 # reports the current phase, what blocks it, and warns when a phase overruns its timebox or too many tasks are in progress.
 
@@ -38,8 +38,8 @@ function Get-PlanProblems($Plan) {
         foreach ($gate in @($phase.gates)) {
             if ($gate -isnot [pscustomobject] -or -not $gate.PSObject.Properties['id']) { $problems.Add("a gate of phase '$($phase.id)' has no id"); continue }
             $check = $gate.PSObject.Properties['check'] ? "$($gate.check)" : 'manual'
-            if ($check -notmatch '^(manual|tests|preset|export-run|ci|placeholders|runner:[a-z0-9]+|file:.+)$') {
-                $problems.Add("gate '$($gate.id)' has an unknown check '$check' (use manual, tests, preset, export-run, ci, placeholders, file:<path>, runner:<name>)")
+            if ($check -notmatch '^(manual|tests|preset|export-run|ci|placeholders|runner:[a-z0-9]+|file:.+|verdict:.+)$') {
+                $problems.Add("gate '$($gate.id)' has an unknown check '$check' (use manual, tests, preset, export-run, ci, placeholders, file:<path>, verdict:<path>, runner:<name>)")
             }
         }
     }
@@ -100,6 +100,38 @@ function Get-ExportRunGate($Info) {
     return [ordered]@{ met = $false; detail = "$($text.Substring(0, 1).ToUpperInvariant())$($text.Substring(1)). Run: $command"; lastGood = $null }
 }
 
+# The verdict gate: the file (looked up from the repository root, then the Godot project, as file:) holds a line that
+# records one verdict, "Verdict: PROCEED", "PIVOT" or "KILL", any case, as a list item, heading or in bold too. A line
+# listing them ("Verdict: PROCEED, PIVOT or KILL") or with anything else before the word ("Verdict: (owner to write:
+# ...)") is a placeholder, and HTML comments and fenced code blocks are not read. detail says what was found.
+function Get-VerdictGate($Info, [string]$Path) {
+    $root = Split-Path (Split-Path (Get-PlanPath $Info))
+    $file = @(foreach ($base in $root, $Info.ProjectDir) {
+            $candidate = Join-Path $base $Path
+            if (Test-Path -LiteralPath $candidate -PathType Leaf) { $candidate }
+        }) | Select-Object -First 1
+    $how = "write one line ""Verdict: PROCEED"", ""Verdict: PIVOT"" or ""Verdict: KILL"" (the user's decision)"
+    if (-not $file) { return [ordered]@{ met = $false; detail = "$Path does not exist yet: $how" } }
+    $text = [System.IO.File]::ReadAllText($file)
+    # Comments and code blocks are blanked line for line, so the line numbers stay right.
+    $blank = { param($m) [regex]::Replace($m.Value, '[^\r\n]', '') }
+    $text = [regex]::Replace($text, '(?s)<!--.*?-->', $blank)
+    $text = [regex]::Replace($text, '(?ms)^\s*(```|~~~).*?^\s*\1[^\r\n]*$', $blank)
+    $lines = @($text -split '\r?\n')
+    $placeholder = $null
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        if ($lines[$i] -notmatch '(?i)^\s*(?:[-*+]\s+|#+\s*)?[*_]*verdict[*_]*\s*:(?<rest>.*)$') { continue }
+        # The verdict word first; a list of them right after it ("PROCEED, PIVOT or KILL", "PROCEED / PIVOT") is the template's
+        # wording, not a decision. Later prose may name another ("PROCEED, though we may pivot the art").
+        if ($Matches.rest -match '(?i)^[\s*_]*(?<v>proceed|pivot|kill)\b(?![\s*_]*(?:,|/|\bor\b)[\s*_]*(?:proceed|pivot|kill)\b)') {
+            return [ordered]@{ met = $true; detail = "Verdict: $($Matches.v.ToUpperInvariant()) ($Path line $($i + 1))" }
+        }
+        if ($null -eq $placeholder) { $placeholder = $i + 1 }
+    }
+    $found = if ($placeholder) { "line $placeholder is still a placeholder" } else { 'it has no verdict line' }
+    return [ordered]@{ met = $false; detail = "$Path exists, but $found`: $how" }
+}
+
 # True/false for gates the project can answer by itself; $null for manual gates.
 function Test-PlanGate($Gate, $Info) {
     $check = $Gate.PSObject.Properties['check'] ? "$($Gate.check)" : 'manual'
@@ -132,7 +164,9 @@ function Test-PlanGate($Gate, $Info) {
         }
         # Every preset this machine can launch passed its newest export -Run here; $null when it can launch none of them.
         '^export-run$' { return (Get-ExportRunGate $Info).met }
-        default { Stop-GodotCi "Gate '$($Gate.id)' has an unknown check '$check' (use manual, tests, preset, export-run, ci, placeholders, file:<path>, runner:<name>)" 'invalid-plan' }
+        # A line "Verdict: PROCEED" (or PIVOT, KILL) in the file, not a placeholder.
+        '^verdict:(?<path>.+)$' { return (Get-VerdictGate $Info $Matches.path).met }
+        default { Stop-GodotCi "Gate '$($Gate.id)' has an unknown check '$check' (use manual, tests, preset, export-run, ci, placeholders, file:<path>, verdict:<path>, runner:<name>)" 'invalid-plan' }
     }
 }
 
@@ -407,7 +441,15 @@ function Get-PlanState($Plan, $Info, [datetime]$Today = [datetime]::UtcNow.Date)
                     $warnings.Add("Gate '$($gate.id)' ($($phase.name)) no longer holds, but a later phase has begun, so it stays met: $detail")
                     $auto = $true
                 }
+            } elseif ($check -match '^verdict:(?<path>.+)$') {
+                $verdict = Get-VerdictGate $Info $Matches.path
+                $auto = $verdict.met
+                $detail = $verdict.detail
             } else { $auto = Test-PlanGate $gate $Info }
+            # Kit templates before verdict: passed prototype.verdict on any DECISIONS.md with text in it.
+            if ($gate.id -eq 'prototype.verdict' -and $check -like 'file:*') {
+                $warnings.Add("Gate 'prototype.verdict' passes on any text in $($check.Substring(5)), a placeholder included: set its ""check"" to ""verdict:$($check.Substring(5))"" in plan.json (it then holds once a line reads ""Verdict: PROCEED"", ""PIVOT"" or ""KILL"")")
+            }
             # Kit templates before export-run checked only that a preset exists, which a failed export also passes.
             if ($check -eq 'preset' -and $gate.id -in 'slice.export', 'jam.export', 'launch.gold') {
                 $warnings.Add("Gate '$($gate.id)' checks only that an export preset exists, but its text asks for export -Run: set its ""check"" to ""export-run"" in plan.json (it then holds once export -Run passes on this machine)")
