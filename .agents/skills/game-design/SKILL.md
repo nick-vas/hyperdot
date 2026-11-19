@@ -39,6 +39,9 @@ it as written. A feature that serves none of the game's main kinds is the first 
 Bartle's player types (achievers, explorers, socialisers, killers) are a different model, of why people play shared
 online worlds (Richard Bartle, 1996), not MDA; the `Fun:` line uses the eight kinds above.
 
+To read a playtest against these kinds, Nicole Lazzaro's four keys name the emotion a player shows (hard, easy, serious
+and people fun), and books for further reading: [fun.md](fun.md).
+
 ## 2. Rules of thumb: the 400 Project
 
 Hal Barwood and Noah Falstein collected practical design rules, around 110 of them, each with an imperative statement, where
@@ -182,7 +185,8 @@ a bot crossing yours (`automation-hooks`).
 ## In a review
 
 1. Say the core loop in one sentence. If it needs two, it is two loops; find which one the game is about.
-2. Name the game's two or three main kinds of fun, in order, under the pillars. Check each feature against them.
+2. Name the game's two or three main kinds of fun, in order, under the pillars. Check each feature against them. Test
+   the list: take one kind away in thought; if the game would still work, it was not a main kind.
 3. For each `must` feature: which pillar it serves, which kind of fun, and how a player would notice it is missing.
 4. Look for choices that are not choices, goals the player cannot see, and failures they cannot read. Players can review
    the current objective and see progress in numbers ("3 of 5"), and change difficulty at any time without losing
