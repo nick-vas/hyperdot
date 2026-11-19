@@ -714,6 +714,7 @@ function Test-WebExport([string]$Name, $Preset, [string]$ReleaseDir, [string]$De
     if ($setup) { Stop-GodotCi "Could not open '$Name' in $(@($setup | ForEach-Object browser) -join ', '): $(@($setup[0].errors) -join '; ')" 'no-browser' }
     $failed = @($runs | Where-Object { -not $_.ok })
     if ($failed) { Stop-GodotCi "The web build '$Name' failed in $(@($failed | ForEach-Object browser) -join ', '): $(@($failed[0].errors | Select-Object -First 3) -join '; ')" 'web-run-failed' }
+    $script:HistoryExtra.launched.Add($Name)
 }
 
 # Launches the exported game headless, as a player would get it, and fails on any engine error. This catches
@@ -738,6 +739,7 @@ function Test-ExportedBuild([string]$Name, [string]$Platform, [string]$File, $En
     if ($validation) { $Entry['gpuValidation'] = $validation.Report; Assert-GpuValidation $validation.Report "The exported '$Name' build" }
     Assert-GodotLogClean $log "The exported '$Name' build" -Expected $(if ($validation) { $validation.Lines } else { @() })
     Write-CiLog "Exported '$Name' build ran $Frames frames without errors"
+    $script:HistoryExtra.launched.Add($Name)
 }
 
 Write-CiLog "Project $($info.ProjectDir) | Godot $($info.GodotVersion) | solution $(if ($info.Solution) { $info.Solution } else { 'none' }) | runners $(if ($info.Runners) { $info.Runners -join ',' } else { 'none' })"
@@ -802,6 +804,12 @@ $commandResultsDir = [System.IO.Path]::GetFullPath($(
 if ($Command -in 'setup', 'build', 'test', 'export', 'bench', 'shot', 'audio', 'soak', 'credits', 'deck', 'clip') {
     Start-RunLog (Join-Path $commandResultsDir 'hyperdot.log')
     if ($Command -ne 'setup') { Start-RunHistory $Command $info.ProjectDir }
+    # export's history line says whether builds were launched and which passed, from the start: a build or template
+    # failure before any preset is a failed -Run too. plan's export-run gate reads it; a preset this machine cannot
+    # launch is skipped by -Run and so never lands in launched.
+    if ($Command -eq 'export') {
+        $script:HistoryExtra = [ordered]@{ run = [bool]$Run; presets = [System.Collections.Generic.List[string]]::new([string[]]@($presets)); launched = [System.Collections.Generic.List[string]]::new() }
+    }
 }
 # doctor and calendar write no run log (their findings are their output) but are recorded, so status's rules see when they last ran.
 if ($Command -in 'doctor', 'calendar') { Start-RunHistory $Command $info.ProjectDir }

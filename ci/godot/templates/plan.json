@@ -120,7 +120,7 @@
         {
           "id": "slice.export",
           "text": "An export preset exists and hyperdot export -Run passes",
-          "check": "preset"
+          "check": "export-run"
         },
         {
           "id": "slice.hooks",
@@ -264,7 +264,7 @@
         {
           "id": "launch.gold",
           "text": "Gold master: release build exported by CI, launched with export -Run, no engine errors",
-          "check": "preset"
+          "check": "export-run"
         },
         {
           "id": "launch.archive",

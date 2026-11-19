@@ -35,10 +35,10 @@ Three inputs, cross-referenced:
 |---|---|---|---|---|
 | 1 | Concept | 2 | What is it, and what is it not? | `docs/GDD.md` exists; `docs/RISKS.md` written; `docs/BUDGET.md` (optional) |
 | 2 | Prototype | 4 | Is the core loop fun? | CI workflow wired; `docs/TRAILER.md` exists; `docs/DECISIONS.md` has the verdict |
-| 3 | Vertical slice | 8 | Can I build and ship one polished piece? | a test runner detected; an export preset exists; `docs/TECH-DEBT.md` exists |
+| 3 | Vertical slice | 8 | Can I build and ship one polished piece? | a test runner detected; `export -Run` passes; `docs/TECH-DEBT.md` exists |
 | 4 | Production | 24 | Can I build the rest as playable milestones? | `docs/MILESTONES.md` exists |
 | 5 | Alpha and beta | 8 | Is it stable, fair, accessible? | no placeholders left; tests green |
-| 6 | Release candidate and launch | 4 | Does a clean export run, and can players find it? | export preset |
+| 6 | Release candidate and launch | 4 | Does a clean export run, and can players find it? | `export -Run` passes |
 | 7 | Post-launch | 8 | What do players hit, and what next? | `docs/RETRO.md` exists |
 
 \*Defaults for about 10 hours a week; the slice gate re-sizes the rest from measured velocity. Edit `timeboxWeeks`, add or
@@ -46,10 +46,20 @@ remove gates freely: `plan.json` is yours after `init`. A manual gate marked don
 `plan -Do reopen -Id <gate>`; an automatic gate opens by itself when the project stops meeting it.
 
 Automatic checks: `tests` (a test framework's runner is detected), `ci` (a GitHub workflow calls the kit's reusable workflow or composite action), `preset` (an export
-preset exists), `runner:<name>` (that runner is set up), `file:<path>` (a folder, or a file that is not empty: an empty
+preset exists), `export-run` (see below), `runner:<name>` (that runner is set up), `file:<path>` (a folder, or a file that is not empty: an empty
 `docs/RISKS.md` is not a risk log; the path is looked up from the repository root, then the Godot project) and
 `placeholders` (nothing is left as a placeholder: no `assets.json` entry has `"placeholder": true` and the Placeholders
-table of `docs/TECH-DEBT.md` has no row; with neither file, nothing says what is left, so it stays open). A gate with
+table of `docs/TECH-DEBT.md` has no row; with neither file, nothing says what is left, so it stays open).
+
+`export-run` reads this machine's run history (`.godot/hyperdot-history.jsonl`): it holds when every preset this machine
+can launch (its own desktop platform, and Web in a browser) passed its newest `export -Run` and was launched. A run that
+skipped the launch, a run of other presets, a failed run and runs without `-Run` do not count; `nextActions` names what
+failed or was never launched, and the command to run. It is per machine: an export in CI does not count, and a fresh
+clone or a second worktree starts with it open. When no preset can be launched here (an Android-only game), it is marked
+by hand with `plan -Do done` after `export -Run` passed where one can. Once a later phase has begun, a newer failure no
+longer reopens it: it becomes a warning, so one failed experiment does not send the plan back. For `jam.export` it
+checks the launch, not the upload to the jam site. Plans made before this check had `preset` on `slice.export`,
+`jam.export` and `launch.gold`; `plan` warns about those until their `check` is `export-run`. A gate with
 `"optional": true` (`concept.budget`) is listed while open but does not hold its phase back.
 
 ## Rules baked into the gates

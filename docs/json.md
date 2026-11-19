@@ -260,7 +260,10 @@ Each `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits`, `de
 project: `time` (UTC), `command`, `ok`, `code`, `seconds`, and `failedRunners` for `test`. A `test` run that reached its
 runners also records `scope` (`runners`, sorted, and `filter`, `""` without `-Filter`), `failures` (up to 200 ids
 `<runner>|<test name>`, in ordinal order) and `failuresTruncated`; the next run of the same scope compares itself with them.
-It also records `retry`, `flaky` and `quarantined` (ids as in `failures`, up to 200 each) and `runnerSeconds` (each runner's seconds, retries included; `telemetry` reads it). Lines only gain keys; a reader
+An `export` line also records `run` (`true` with `-Run`), `presets` (the presets it was asked for) and `launched` (the
+ones whose build was launched and passed: `-Run` skips a preset this machine cannot launch); `plan`'s `export-run` gate
+reads them. Trimming the file keeps the newest `export` line with `run` true, wherever it is.
+A `test` line also records `retry`, `flaky` and `quarantined` (ids as in `failures`, up to 200 each) and `runnerSeconds` (each runner's seconds, retries included; `telemetry` reads it). Lines only gain keys; a reader
 ignores the ones it does not know.
 Every `test` line also has `tree`, the git tree of the working folder at the end of the run (tracked and untracked files, what `.gitignore` leaves in; `null` outside git): the plugin's Stop hook lets a session finish when the tree in front of it is one that passed a full run, whatever its file times say. Every line also has `commit` (the short hash checked out, without uncommitted changes; `null` outside git) and `errorKeys`:
 the distinct error keys of the run's log, passing or failing, in the order they first appear, up to 20. A key is one
@@ -441,7 +444,8 @@ help does not know, or a name given to another command, fails with `invalid-argu
 **flows** is a runner like the others: it appears in `runnerResults[]`; each failure's `name` is the flow file and `message` is `step N (<step>): <reason>`.
 
 **plan**: `plan` (path), `currentPhase` (`id`, `name`, `goal`, `timeboxWeeks`, `elapsedWeeks`, `timeboxDays`, `elapsedDays`; a jam plan sizes phases in days, the other plan in weeks, and both are given), `nextActions[]`
-(`id`, `text`, `auto`, `check`, `optional`: an open optional gate does not hold the phase back), `phases[]` (`id`, `name`, `complete`, `gatesDone`, `gatesTotal`), `board`
+(`id`, `text`, `auto`, `check`, `optional`: an open optional gate does not hold the phase back; `detail`: for an
+`export-run` gate, which presets failed or were never launched here and the command to run, else `null`), `phases[]` (`id`, `name`, `complete`, `gatesDone`, `gatesTotal`), `board`
 (tasks per column), `tasks[]` (`id`, `title`, `column`, `phase`, `feature`, `itemId`, `boardColumn`), `projectBoard` (`<owner>/<number>` or `null`),
 `release` (`null` until plan.json's `release.date` is set: `date`, `daysLeft`, `businessDaysLeft`, `dateLocked`,
 `deadlines` with `steamFee`, `comingSoon`, `buildReview`, `dateLock`, `firstDiscount` (30 days after release: the first day a discount other than the launch discount can start), and `storePageReview` and `demoReview` when

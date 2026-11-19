@@ -99,6 +99,12 @@ function Get-JuiceRunVerdict([int]$Code, [string[]]$Lines, [object[]]$Cases) {
     return Get-ShutdownCrashVerdict $Code $Lines $judgedAll @(Select-GodotErrors $before) 'rule'
 }
 
+# One run's game arguments: its own args, then -GameArgs. A function of its own so that no run sees another's: in the
+# caller, a local named $gameArgs would be the -GameArgs parameter itself (PowerShell names ignore case) and pile up (#290).
+function Get-JuiceRunArgs($Run, [string[]]$GameArgs) {
+    return @(@($Run.args) + @($GameArgs) | Where-Object { $_ })
+}
+
 # Plays every run of juice.json and judges each on its own. One run keeps the plain names (case "run", juice.log); with
 # several, each case starts with its run's name ("boss: run", "boss: hit -> flash within 100 ms") and each has its own log.
 function Invoke-JuiceRunner($Info, [string]$ResultsDir, [string[]]$GameArgs) {
@@ -108,14 +114,14 @@ function Invoke-JuiceRunner($Info, [string]$ResultsDir, [string[]]$GameArgs) {
     $failed = $false
     foreach ($run in $config.runs) {
         $prefix = if ($run.name) { "$($run.name): " } else { '' }
-        $gameArgs = @(@($run.args) + @($GameArgs) | Where-Object { $_ })
+        $runArgs = @(Get-JuiceRunArgs $run $GameArgs)
         $log = Join-Path $ResultsDir $(if ($run.name) { "juice-$($run.name).log" } else { 'juice.log' })
-        Start-LogGroup "Juice $(if ($run.name) { "$($run.name) " })($($run.frames) frames$(if ($gameArgs) { ', ' + ($gameArgs -join ' ') }))"
+        Start-LogGroup "Juice $(if ($run.name) { "$($run.name) " })($($run.frames) frames$(if ($runArgs) { ', ' + ($runArgs -join ' ') }))"
         $engine = @('--headless', '--path', $Info.ProjectDir, '--fixed-fps', '60', '--quit-after', "$($run.frames)")
         $attempt = 0
         do {
             $attempt++
-            $code = Invoke-Logged $env:GODOT_BIN ($engine + $(if ($gameArgs) { @('--') + $gameArgs })) $log
+            $code = Invoke-Logged $env:GODOT_BIN ($engine + $(if ($runArgs) { @('--') + $runArgs })) $log
             $cases = @(Test-JuiceLog @(Get-Content -LiteralPath $log) $run $run.frames)
             $verdict = Get-JuiceRunVerdict $code @(Get-Content -LiteralPath $log) $cases
             # A crash that cost a rule its verdict may be the engine's, not the game's: the run is repeated once, and a second crash fails.

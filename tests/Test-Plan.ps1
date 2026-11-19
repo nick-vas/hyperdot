@@ -73,7 +73,7 @@ Assert-True ($trailer -match '(?m)^\| Mechanic \|.*\| On-screen feedback a viewe
 
 # The release timeline (plan.json "release"), on fixed days: Steam's 21 days after the fee, 2 weeks of Coming Soon,
 # 7 business days per review (the store page before the build), the date lock, and the Next Fest demo deadline.
-foreach ($lib in 'Common', 'Plan') { . (Join-Path $root "ci/godot/lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Detect', 'Report', 'Plan') { . (Join-Path $root "ci/godot/lib/$lib.ps1") }
 $fields = @($template.release.PSObject.Properties.Name)
 Assert-True (@($script:ReleaseDateFields | Where-Object { $_ -notin $fields }).Count -eq 0 -and $fields -contains 'pressPreview') "the plan template has every release field: $($fields -join ', ')"
 Assert-True ((Get-BusinessDayCount ([datetime]'2027-03-04') ([datetime]'2027-03-15')) -eq 7 -and (Get-BusinessDayBefore ([datetime]'2027-03-15') 7) -eq [datetime]'2027-03-04') 'business days skip the weekend'
@@ -141,6 +141,84 @@ try {
     Assert-True ((Test-PlanGate $presetGate $gateInfo) -eq $true) 'the preset gate passes with an export preset'
 } finally {
     Remove-Item -LiteralPath $gateDir -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+# The export-run gate (#288), from made-up history lines: every preset this machine can launch (its own desktop
+# platform and Web) passed its newest export -Run and was launched; skipped launches, partial runs, failures and lines
+# from before the gate do not count; a project it cannot launch anything of leaves the gate to plan -Do done; a later
+# phase that has begun keeps it met with a warning; trimming the history keeps the newest export -Run line.
+$runDir = Join-Path ([IO.Path]::GetTempPath()) "plan-exportrun-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+try {
+    New-Item -ItemType Directory -Force (Join-Path $runDir 'plan'), (Join-Path $runDir '.godot') | Out-Null
+    $native = if ($IsWindows) { 'Windows Desktop' } else { 'Linux' }
+    function Set-Presets([string[]]$Platforms) {
+        $i = 0
+        $text = @(foreach ($p in $Platforms) { "[preset.$i]`n`nname=""$($p -replace '[^A-Za-z]', '')""`nplatform=""$p""`nexport_path=""build/x""`n"; $i++ }) -join "`n"
+        Set-Content -LiteralPath (Join-Path $runDir 'export_presets.cfg') -Value $text
+    }
+    $desk = $native -replace '[^A-Za-z]', ''
+    function Set-History([object[]]$Lines) {
+        Set-Content -LiteralPath (Join-Path $runDir '.godot/hyperdot-history.jsonl') -Value @($Lines | ForEach-Object { $_ | ConvertTo-Json -Compress -Depth 4 })
+    }
+    function New-Line([string]$Time, [bool]$Ok, $Presets, $Launched, $Run = $true, [string]$Code = '') {
+        $line = [ordered]@{ time = $Time; command = 'export'; ok = $Ok; code = $Code; commit = 'abc1234' }
+        if ($null -ne $Run) { $line.run = $Run; $line.presets = @($Presets); $line.launched = @($Launched) }
+        return $line
+    }
+    $runInfo = [pscustomobject]@{ ProjectDir = $runDir; Runners = @(); Presets = @('x') }
+    $runGate = [pscustomobject]@{ id = 'slice.export'; check = 'export-run' }
+    Set-Presets @($native, 'Web', 'Android')
+    Set-History @()
+    $g = Get-ExportRunGate $runInfo
+    Assert-True ($g.met -eq $false -and $g.detail -match "never launched here: $desk, Web" -and $g.detail -match "export -Run -Preset `"$desk,Web`"") "no export -Run yet: open, naming the presets to launch: $($g.detail)"
+    Set-History @((New-Line '2026-11-18T10:00:00Z' $true @($desk, 'Web', 'Android') @($desk, 'Web')))
+    $g = Get-ExportRunGate $runInfo
+    Assert-True ($g.met -eq $true -and (Test-PlanGate $runGate $runInfo) -eq $true -and $g.detail -match '2026-11-18 10:00 UTC at abc1234') "every launchable preset passed (Android cannot launch here and does not count): $($g.detail)"
+    Set-History @((New-Line '2026-11-18T10:00:00Z' $true @($desk, 'Web') @('Web')))
+    Assert-True ((Get-ExportRunGate $runInfo).detail -match "'$desk' was not launched") 'an export -Run that skipped the launch proves nothing'
+    Set-History @((New-Line '2026-11-18T10:00:00Z' $true @($desk) @($desk)))
+    $g = Get-ExportRunGate $runInfo
+    Assert-True ($g.met -eq $false -and $g.detail -match 'never launched here: Web') "the stricter rule: a run of one preset leaves the others open: $($g.detail)"
+    Set-History @((New-Line '2026-11-18T10:00:00Z' $true @($desk, 'Web') @($desk, 'Web')), (New-Line '2026-11-19T09:30:00Z' $false @($desk) @() -Code 'export-failed'))
+    $g = Get-ExportRunGate $runInfo
+    Assert-True ($g.met -eq $false -and $g.detail -match "'$desk' failed \(export-failed\) on 2026-11-19 09:30 UTC") "a newer failed export -Run reopens it, with its time and code: $($g.detail)"
+    Set-History @((New-Line '2026-11-18T10:00:00Z' $true @($desk, 'Web') @($desk, 'Web')), (New-Line '2026-11-19T09:30:00Z' $false @($desk) @() -Run $false -Code 'export-failed'))
+    Assert-True ((Get-ExportRunGate $runInfo).met -eq $true) 'an export without -Run does not count either way'
+    Set-History @((New-Line '2026-11-18T10:00:00Z' $true @() @() -Run $null))
+    Assert-True ((Get-ExportRunGate $runInfo).met -eq $false) 'a history line from before export recorded -Run counts as no export -Run'
+    Set-Presets @('Android', 'iOS')
+    $g = Get-ExportRunGate $runInfo
+    Assert-True ($null -eq $g.met -and $null -eq (Test-PlanGate $runGate $runInfo) -and $g.detail -match 'can launch none of the presets \(Android, iOS\)' -and $g.detail -match 'plan -Do done') "nothing launchable here: the gate is marked by hand: $($g.detail)"
+    Remove-Item -LiteralPath (Join-Path $runDir 'export_presets.cfg')
+    $g = Get-ExportRunGate $runInfo
+    Assert-True ($g.met -eq $false -and $g.detail -match '^No export preset yet') "no preset at all: open, not marked by hand: $($g.detail)"
+    Set-Presets @($native, 'Web')
+
+    # The latch, and the warning for plans made before export-run.
+    $plan = [pscustomobject]@{ wipLimit = 3; tasks = @(); phases = @(
+            [pscustomobject]@{ id = 'slice'; name = 'Vertical slice'; goal = 'g'; gates = @([pscustomobject]@{ id = 'slice.export'; text = 't'; check = 'export-run' }) },
+            [pscustomobject]@{ id = 'launch'; name = 'Launch'; goal = 'g'; gates = @([pscustomobject]@{ id = 'launch.gold'; text = 't'; check = 'preset' }, [pscustomobject]@{ id = 'launch.go'; text = 't' }) }) }
+    Set-History @((New-Line '2026-11-18T10:00:00Z' $true @($desk, 'Web') @($desk, 'Web')), (New-Line '2026-11-19T09:30:00Z' $false @($desk) @() -Code 'export-failed'))
+    $state = Get-PlanState $plan $runInfo
+    $gate = @($state.phases[0].gates)[0]
+    Assert-True ($gate.done -eq $false -and $state.current.id -eq 'slice' -and $gate.detail -match "'$desk' failed") 'before the next phase begins, a failed export -Run holds the phase'
+    Assert-True (@($state.warnings | Where-Object { $_ -match "Gate 'launch.gold' checks only that an export preset exists" }).Count -eq 1) 'a kit gate still on check preset is a warning naming export-run'
+    $plan.phases[1] | Add-Member -NotePropertyName startedAt -NotePropertyValue '2026-11-10T00:00:00Z'
+    $state = Get-PlanState $plan $runInfo
+    Assert-True (@($state.phases[0].gates)[0].done -eq $true -and $state.current.id -eq 'launch' -and @($state.warnings | Where-Object { $_ -match "Gate 'slice.export' \(Vertical slice\) no longer holds, but a later phase has begun" }).Count -eq 1) 'once a later phase has begun, the gate stays met and the failure is a warning'
+    $known = @(Get-PlanProblems ([pscustomobject]@{ phases = @([pscustomobject]@{ id = 'p'; gates = @([pscustomobject]@{ id = 'g'; check = 'export-run' }) }); tasks = @() }))
+    Assert-True (@($known | Where-Object { $_ -match 'unknown check' }).Count -eq 0) "export-run is a known check: $($known -join '; ')"
+
+    # Trimming: over 2,500 lines the newest 2,000 stay, plus the newest export -Run line.
+    $old = (New-Line '2026-01-01T00:00:00Z' $true @($desk, 'Web') @($desk, 'Web')) | ConvertTo-Json -Compress -Depth 4
+    $filler = @(1..2600 | ForEach-Object { '{"time":"2026-11-01T00:00:00Z","command":"test","ok":true,"code":""}' })
+    Set-Content -LiteralPath (Join-Path $runDir '.godot/hyperdot-history.jsonl') -Value (@($old) + $filler)
+    Start-RunHistory 'doctor' $runDir
+    Add-RunHistory $true ''
+    $lines = @(Get-Content -LiteralPath (Join-Path $runDir '.godot/hyperdot-history.jsonl'))
+    Assert-True ($lines.Count -eq 2001 -and $lines[0] -eq $old -and (Get-ExportRunGate $runInfo).met -eq $true) "trimming keeps the newest export -Run line: $($lines.Count) lines"
+} finally {
+    Remove-Item -LiteralPath $runDir -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 try {

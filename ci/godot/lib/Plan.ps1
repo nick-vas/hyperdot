@@ -1,5 +1,5 @@
 # `plan`: an A-to-Z plan for one developer. plan/plan.json holds phases, each with gates. A gate is either
-# checked automatically from the project ("check": "tests", "ci", "preset", "file:<path>", "runner:<name>",
+# checked automatically from the project ("check": "tests", "ci", "preset", "export-run", "file:<path>", "runner:<name>",
 # "placeholders") or marked done by hand ("manual"). A gate with "optional": true does not hold its phase back. `plan`
 # reports the current phase, what blocks it, and warns when a phase overruns its timebox or too many tasks are in progress.
 
@@ -38,8 +38,8 @@ function Get-PlanProblems($Plan) {
         foreach ($gate in @($phase.gates)) {
             if ($gate -isnot [pscustomobject] -or -not $gate.PSObject.Properties['id']) { $problems.Add("a gate of phase '$($phase.id)' has no id"); continue }
             $check = $gate.PSObject.Properties['check'] ? "$($gate.check)" : 'manual'
-            if ($check -notmatch '^(manual|tests|preset|ci|placeholders|runner:[a-z0-9]+|file:.+)$') {
-                $problems.Add("gate '$($gate.id)' has an unknown check '$check' (use manual, tests, preset, ci, placeholders, file:<path>, runner:<name>)")
+            if ($check -notmatch '^(manual|tests|preset|export-run|ci|placeholders|runner:[a-z0-9]+|file:.+)$') {
+                $problems.Add("gate '$($gate.id)' has an unknown check '$check' (use manual, tests, preset, export-run, ci, placeholders, file:<path>, runner:<name>)")
             }
         }
     }
@@ -55,6 +55,50 @@ function Save-Plan($Plan, [string]$Path) {
 
 # The runners of test frameworks. The others (validate, smoke, data, flows, l10n, ...) check the project, not its tests.
 $script:TestFrameworkRunners = 'dotnet', 'gdunit4', 'godottest', 'gut'
+
+# The export-run gate, from this machine's run history (.godot/hyperdot-history.jsonl): for every preset this machine
+# can launch (its own desktop platform, and Web in a browser), the newest export -Run that included it passed and
+# launched it. -Run skips the presets it cannot launch, so an export that launched nothing proves nothing. met is false
+# with no preset at all, and $null when no preset can be launched here (the gate is then marked by hand, plan -Do
+# done); detail says why it is not met,
+# or when the oldest of the passing runs was.
+function Get-ExportRunGate($Info) {
+    $details = Get-ExportPresetDetails $Info.ProjectDir
+    if ($details.Count -eq 0) { return [ordered]@{ met = $false; detail = 'No export preset yet: add one in Project > Export, then run export -Run'; lastGood = $null } }
+    $runnable = @($details.Keys | Where-Object { $details[$_].Platform -eq 'Web' -or (Test-CanRunPlatform $details[$_].Platform) })
+    if ($runnable.Count -eq 0) {
+        $platforms = @($details.Values | ForEach-Object { $_.Platform } | Where-Object { $_ } | Select-Object -Unique)
+        return [ordered]@{ met = $null; detail = "Not checked here: this machine can launch none of the presets ($($platforms -join ', ')). Run export -Run where one can be launched, then $(Format-KitCommand 'plan -Do done -Id <gate>')"; lastGood = $null }
+    }
+    $runs = @(Read-RunHistory $Info.ProjectDir | Where-Object { $_.command -eq 'export' -and $_.PSObject.Properties['run'] -and $_.run -eq $true })
+    [array]::Reverse($runs)
+    $format = { param($Time) ([datetime]$Time).ToUniversalTime().ToString('yyyy-MM-dd HH:mm', [cultureinfo]::InvariantCulture) + ' UTC' }
+    $never = [System.Collections.Generic.List[string]]::new()
+    $failed = [System.Collections.Generic.List[string]]::new()
+    $good = [System.Collections.Generic.List[object]]::new()
+    $open = [System.Collections.Generic.List[string]]::new()
+    foreach ($name in $runnable) {
+        $last = @($runs | Where-Object { $_.PSObject.Properties['presets'] -and @($_.presets) -contains $name } | Select-Object -First 1)
+        if ($last.Count -eq 0) { $never.Add($name); $open.Add($name); continue }
+        $run = $last[0]
+        $launched = $run.PSObject.Properties['launched'] -and @($run.launched) -contains $name
+        if ($run.ok -and $launched) { $good.Add($run); continue }
+        $why = if (-not $run.ok) { "failed$(if ($run.code) { " ($($run.code))" })" } else { 'was not launched' }
+        $failed.Add("'$name' $why on $(& $format $run.time)")
+        $open.Add($name)
+    }
+    if ($never.Count -eq 0 -and $failed.Count -eq 0) {
+        $oldest = @($good | Sort-Object { [datetime]$_.time } | Select-Object -First 1)[0]
+        $commit = if ($oldest.PSObject.Properties['commit'] -and $oldest.commit) { " at $($oldest.commit)" } else { '' }
+        return [ordered]@{ met = $true; detail = "Every preset this machine can launch passed export -Run ($($runnable -join ', ')); the oldest of those runs was on $(& $format $oldest.time)$commit"; lastGood = (& $format $oldest.time) }
+    }
+    $parts = @(
+        if ($failed.Count) { "the newest export -Run of $($failed -join '; ')" }
+        if ($never.Count) { "never launched here: $($never -join ', ')" })
+    $text = $parts -join '; '
+    $command = Format-KitCommand ('export -Run -Preset "' + ($open -join ',') + '"')
+    return [ordered]@{ met = $false; detail = "$($text.Substring(0, 1).ToUpperInvariant())$($text.Substring(1)). Run: $command"; lastGood = $null }
+}
 
 # True/false for gates the project can answer by itself; $null for manual gates.
 function Test-PlanGate($Gate, $Info) {
@@ -86,7 +130,9 @@ function Test-PlanGate($Gate, $Info) {
             $found = Get-PlanPlaceholders $root $Info.ProjectDir
             return $found.sources.Count -gt 0 -and $found.items.Count -eq 0
         }
-        default { Stop-GodotCi "Gate '$($Gate.id)' has an unknown check '$check' (use manual, tests, preset, ci, placeholders, file:<path>, runner:<name>)" 'invalid-plan' }
+        # Every preset this machine can launch passed its newest export -Run here; $null when it can launch none of them.
+        '^export-run$' { return (Get-ExportRunGate $Info).met }
+        default { Stop-GodotCi "Gate '$($Gate.id)' has an unknown check '$check' (use manual, tests, preset, export-run, ci, placeholders, file:<path>, runner:<name>)" 'invalid-plan' }
     }
 }
 
@@ -342,12 +388,33 @@ function Get-ReleaseTimeline($Release, [datetime]$Today) {
 
 function Get-PlanState($Plan, $Info, [datetime]$Today = [datetime]::UtcNow.Date) {
     $now = [datetime]::UtcNow
-    $phases = @(foreach ($phase in $Plan.phases) {
+    $warnings = [System.Collections.Generic.List[string]]::new()
+    $allPhases = @($Plan.phases)
+    $exportRun = $null
+    $phases = @(for ($index = 0; $index -lt $allPhases.Count; $index++) {
+        $phase = $allPhases[$index]
+        # A later phase has begun: this phase was finished once, so a gate read from the run history stays met.
+        $laterStarted = @($allPhases | Select-Object -Skip ($index + 1) | Where-Object { $_.PSObject.Properties['startedAt'] -and $_.startedAt }).Count -gt 0
         $gates = @(foreach ($gate in $phase.gates) {
-            $auto = Test-PlanGate $gate $Info
+            $check = $gate.PSObject.Properties['check'] ? "$($gate.check)" : 'manual'
+            $detail = $null
+            if ($check -eq 'export-run') {
+                if (-not $exportRun) { $exportRun = Get-ExportRunGate $Info }
+                $auto = $exportRun.met
+                $detail = $exportRun.detail
+                # One failed export -Run while working on a later phase does not send the plan back to this one.
+                if ($auto -eq $false -and $laterStarted) {
+                    $warnings.Add("Gate '$($gate.id)' ($($phase.name)) no longer holds, but a later phase has begun, so it stays met: $detail")
+                    $auto = $true
+                }
+            } else { $auto = Test-PlanGate $gate $Info }
+            # Kit templates before export-run checked only that a preset exists, which a failed export also passes.
+            if ($check -eq 'preset' -and $gate.id -in 'slice.export', 'jam.export', 'launch.gold') {
+                $warnings.Add("Gate '$($gate.id)' checks only that an export preset exists, but its text asks for export -Run: set its ""check"" to ""export-run"" in plan.json (it then holds once export -Run passes on this machine)")
+            }
             $manual = $gate.PSObject.Properties['done'] -and $gate.done -eq $true
-            [ordered]@{ id = $gate.id; text = $gate.text; check = ($gate.PSObject.Properties['check'] ? $gate.check : 'manual')
-                done = ($null -ne $auto ? [bool]$auto : $manual) ; auto = ($null -ne $auto)
+            [ordered]@{ id = $gate.id; text = $gate.text; check = $check
+                done = ($null -ne $auto ? [bool]$auto : $manual) ; auto = ($null -ne $auto); detail = $detail
                 optional = [bool]($gate.PSObject.Properties['optional'] -and $gate.optional -eq $true) }
         })
         # A phase is sized in weeks (timeboxWeeks) or, in a jam plan, in days (timeboxDays); both are reported.
@@ -359,7 +426,6 @@ function Get-PlanState($Plan, $Info, [datetime]$Today = [datetime]::UtcNow.Date)
             gates = $gates; complete = (@($gates | Where-Object { -not $_.done -and -not $_.optional }).Count -eq 0) }
     })
     $current = $phases | Where-Object { -not $_.complete } | Select-Object -First 1
-    $warnings = [System.Collections.Generic.List[string]]::new()
     if ($current -and $current.startedAt) {
         $elapsed = ($now - (ConvertTo-UtcTime $current.startedAt)).TotalDays
         $weeks = [math]::Round($elapsed / 7, 1)
@@ -746,7 +812,8 @@ function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string
             $plan = Read-Plan $path
             $gate = $plan.phases.gates | Where-Object { $_.id -eq $Id } | Select-Object -First 1
             if (-not $gate) { Stop-GodotCi "No gate '$Id' in $path" 'unknown-gate' }
-            if ($gate.PSObject.Properties['check'] -and $gate.check -ne 'manual') {
+            # An export-run gate is marked by hand only where it cannot be checked: no preset this machine can launch.
+            if ($gate.PSObject.Properties['check'] -and $gate.check -ne 'manual' -and -not ($gate.check -eq 'export-run' -and $null -eq (Test-PlanGate $gate $Info))) {
                 Stop-GodotCi "Gate '$Id' is checked automatically ($($gate.check)); make it true in the project instead" 'auto-gate'
             }
             $gate | Add-Member -NotePropertyName done -NotePropertyValue $true -Force
@@ -871,7 +938,7 @@ function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string
         timeboxWeeks = $state.current.timeboxWeeks; elapsedWeeks = ($state.current.Contains('elapsedWeeks') ? $state.current.elapsedWeeks : $null)
         timeboxDays = $state.current.timeboxDays; elapsedDays = ($state.current.Contains('elapsedDays') ? $state.current.elapsedDays : $null) } : $null)
     Set-JsonField nextActions @($state.current ? @($state.current.gates | Where-Object { -not $_.done } | ForEach-Object {
-        [ordered]@{ id = $_.id; text = $_.text; auto = $_.auto; check = $_.check; optional = $_.optional } }) : @())
+        [ordered]@{ id = $_.id; text = $_.text; auto = $_.auto; check = $_.check; optional = $_.optional; detail = $_.detail } }) : @())
     Set-JsonField phases @($state.phases | ForEach-Object {
         [ordered]@{ id = $_.id; name = $_.name; complete = $_.complete; gatesDone = @($_.gates | Where-Object done).Count; gatesTotal = $_.gates.Count } })
     Set-JsonField board $state.board
@@ -893,6 +960,7 @@ function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string
         Write-Console ''; Write-Console "Now: $($state.current.name) - $($state.current.goal)"
         foreach ($gate in $state.current.gates | Where-Object { -not $_.done }) {
             Write-Console "  [ ] $($gate.id): $($gate.text)$($gate.auto ? '  (auto)' : '')$($gate.optional ? '  (optional)' : '')"
+            if ($gate.detail) { Write-Console "      $($gate.detail)" }
         }
     } else { Write-Console 'Every phase is complete.' }
     if ($state.release) {
