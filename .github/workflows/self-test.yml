@@ -499,7 +499,7 @@ jobs:
           if (-not $settings.enabledPlugins['hyperdot@hyperdot'] -or $settings.extraKnownMarketplaces['hyperdot'].source.source -ne 'github' -or (Test-Path (Join-Path $plugged '.claude/skills'))) { throw "init -Agents: $($settings | ConvertTo-Json -Depth 5)" }
           # The failing test run above set a non-zero exit code; GitHub's pwsh wrapper exits with $LASTEXITCODE.
           exit 0
-      - name: The juice runner passes timely feedback and fails late feedback
+      - name: The juice runner passes timely feedback and fails late feedback, one run or several
         shell: pwsh
         run: |
           $game = 'tests/juice-fixture'
@@ -510,6 +510,13 @@ jobs:
           $d = pwsh -NoProfile -File ./ci/godot/hyperdot.ps1 test -Json -Quiet -Project $game -Runners juice -GameArgs '--late' -Results (Join-Path $env:RUNNER_TEMP 'juice-late') 2>$null | ConvertFrom-Json
           $f = @($d.runnerResults[0].failures)
           if ($d.ok -or $d.error.code -ne 'tests-failed' -or $f.Count -ne 1 -or $f[0].message -notmatch "had no 'flash' within 100 ms") { throw "late feedback: $($d | ConvertTo-Json -Depth 6)" }
+          # Several runs in one juice.json, each judged on its own: the late one fails under its own name.
+          $copy = Join-Path $env:RUNNER_TEMP 'juice-runs'
+          Copy-Item -Recurse $game $copy
+          Set-Content -LiteralPath (Join-Path $copy 'juice.json') '{ "runs": [ { "name": "ontime", "frames": 300, "rules": [ { "event": "hit", "feedback": ["flash"] } ] }, { "name": "late", "frames": 300, "args": ["--late"], "rules": [ { "event": "hit", "feedback": ["flash"] } ] } ] }'
+          $d = pwsh -NoProfile -File ./ci/godot/hyperdot.ps1 test -Json -Quiet -Project $copy -Runners juice -Results (Join-Path $env:RUNNER_TEMP 'juice-runs-r') 2>$null | ConvertFrom-Json
+          $f = @($d.runnerResults[0].failures)
+          if ($d.ok -or $d.runnerResults[0].total -ne 4 -or $f.Count -ne 1 -or $f[0].name -notmatch 'late: hit -> flash') { throw "two runs: $($d | ConvertTo-Json -Depth 6)" }
           exit 0   # the last run failed on purpose; see the step above
       - name: Keep what this job's kit runs reached
         if: always()

@@ -29,7 +29,7 @@ function Get-LookSetup($Info) {
         $resolutions = @($line -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -match '^\d+x\d+$' })
     }
     $juice = Get-JuiceConfig $Info.ProjectDir
-    return [ordered]@{ styleGuide = $style; resolutions = $resolutions; juiceRules = $juice ? @($juice.rules).Count : 0 }
+    return [ordered]@{ styleGuide = $style; resolutions = $resolutions; juiceRules = (Get-JuiceRuleCount $juice) }
 }
 
 # The eight kinds of fun of the MDA framework (Hunicke, LeBlanc and Zubek); a feature's "Fun:" line names the ones it serves.

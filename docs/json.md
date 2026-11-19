@@ -145,7 +145,8 @@ when Godot reported objects leaked at exit (`5 ObjectDB instances were leaked at
 lines, with `file` the last flow or file that ran (any of them may have made the leak). When the runner fails on its exit code, its
 failure also carries those lines, so a failed runner always names a reason. A rule set to `error` in the project's `architecture.json` reports its findings as `failures` instead.
 The `juice` runner has one case named `run` (Godot's exit and engine errors) and one per rule and feedback, named
-`<event> -> <feedback> within <ms> ms`; its log is `juice.log` in the results folder. The `playthrough` runner has `run` and one
+`<event> -> <feedback> within <ms> ms`; its log is `juice.log` in the results folder. With `runs` in `juice.json`, each run
+has those cases with its name first (`boss: run`, `boss: hit -> flash within 100 ms`) and its own log, `juice-<name>.log`. The `playthrough` runner has `run` and one
 case per expected line, named `reached: <text>`, failed with the last milestone reached, or `Not checked` after the first one
 missing; its log is `playthrough.log`.
 The `data` runner has a case `data.json` (files that cannot be read, references to tables it does not list) and one

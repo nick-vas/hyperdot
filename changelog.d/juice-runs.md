@@ -1,0 +1,1 @@
+Added: `juice.json` can list several `runs` (stages), each with its own `name`, `args`, `frames` and `rules`, played and judged on its own, so a game whose events happen on different stages keeps every rule. Each run's JUnit cases start with its name and it has its own log, `juice-<name>.log`; the one-run form is unchanged (#284).

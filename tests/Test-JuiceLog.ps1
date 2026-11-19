@@ -1,7 +1,7 @@
 #Requires -Version 7.6
 # Self-test for the juice runner's log check, without Godot: feedback in time passes, late or missing feedback fails, an
 # event that never happens fails, an event at the very end of the run is not held against the game, and "frames": 0 is
-# refused.
+# refused; several runs per juice.json are read, named and checked, and their mistakes refused.
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
 $root = Split-Path $PSScriptRoot
@@ -32,6 +32,40 @@ $refused = & pwsh -NoProfile -NonInteractive -Command ". '$root/ci/godot/lib/Com
 Remove-Item -Recurse -Force $temp
 if ($refused -match '"frames" must be a whole number above 0') { Write-Host 'ok       juice.json "frames": 0 is refused' }
 else { Write-Host "WRONG    juice.json ""frames"": 0 should be refused -> '$($refused.Trim())'" -ForegroundColor Red; $failed++ }
+
+# Several runs (stages) per juice.json: each with its own args, frames and rules; the one-run form stays as it was.
+$temp = Join-Path ([System.IO.Path]::GetTempPath()) "juice-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
+New-Item -ItemType Directory $temp | Out-Null
+function Assert-True([bool]$Condition, [string]$Name) {
+    if ($Condition) { Write-Host "ok       $Name" } else { Write-Host "WRONG    $Name" -ForegroundColor Red; $script:failed++ }
+}
+function Read-JuiceJson([string]$Json) {
+    Set-Content -LiteralPath (Join-Path $temp 'juice.json') $Json
+    return Get-JuiceConfig $temp
+}
+function Get-JuiceRefusal([string]$Json) {
+    Set-Content -LiteralPath (Join-Path $temp 'juice.json') $Json
+    return (& pwsh -NoProfile -NonInteractive -Command ". '$root/ci/godot/lib/Common.ps1'; . '$root/ci/godot/lib/Juice.ps1'; try { Get-JuiceConfig '$temp' | Out-Null; 'accepted' } catch { `$_.Exception.Message }" 2>&1 | Out-String).Trim()
+}
+try {
+    $one = Read-JuiceJson '{ "args": ["--autoplay"], "rules": [ { "event": "hit", "feedback": ["flash"] } ] }'
+    Assert-True (@($one.runs).Count -eq 1 -and $one.runs[0].name -eq '' -and $one.runs[0].frames -eq 1800 -and ($one.runs[0].args -join ' ') -eq '--autoplay') 'the one-run form is one run with no name, 1800 frames by default and its args'
+    $two = Read-JuiceJson '{ "runs": [ { "name": "boss", "args": ["--stage=boss"], "frames": 7200, "rules": [ { "event": "slow", "feedback": ["sfx"] }, { "event": "mend", "feedback": ["flash"] } ] }, { "args": ["--stage=act2"], "rules": [ { "event": "blast", "feedback": ["shake"] } ] } ] }'
+    Assert-True (@($two.runs).Count -eq 2 -and $two.runs[0].name -eq 'boss' -and $two.runs[0].frames -eq 7200 -and $two.runs[1].name -eq 'run2' -and $two.runs[1].frames -eq 1800 -and ($two.runs[1].args -join ' ') -eq '--stage=act2') "runs keep their own name (run<n> when unnamed), frames and args: $(@($two.runs | ForEach-Object { "$($_.name)/$($_.frames)" }) -join ', ')"
+    Assert-True ((Get-JuiceRuleCount $two) -eq 3 -and (Get-JuiceRuleCount $one) -eq 1 -and (Get-JuiceRuleCount $null) -eq 0) 'the rule count (status look.juiceRules) adds up every run'
+    $boss = @(Test-JuiceLog @('[juice] event slow 100.0', '[juice] feedback sfx 110.0') $two.runs[0] $two.runs[0].frames)
+    Assert-True ($boss.Count -eq 2 -and -not $boss[0].Failure -and $boss[1].Failure -match "^No 'mend' event") 'each run is judged on its own rules'
+    foreach ($case in @(
+            @('{ "runs": [ { "rules": [ { "event": "a", "feedback": ["b"] } ] } ], "rules": [ { "event": "a", "feedback": ["b"] } ] }', 'both "runs" and a top-level "rules"', 'runs and top-level rules together'),
+            @('{ "runs": [] }', '"runs" is empty', 'an empty runs list'),
+            @('{ "runs": [ { "name": "x", "rules": [ { "event": "a", "feedback": ["b"] } ] }, { "name": "x", "rules": [ { "event": "a", "feedback": ["b"] } ] } ] }', "two runs named 'x'", 'two runs with one name'),
+            @('{ "runs": [ { "name": "boss fight", "rules": [ { "event": "a", "feedback": ["b"] } ] } ] }', "the name 'boss fight'", 'a name that cannot be a file name'),
+            @('{ "runs": [ { "name": "x", "args": ["--y"] } ] }', "run 'x' needs ""rules""", 'a run without rules'),
+            @('{ "runs": [ { "name": "x", "frames": 0, "rules": [ { "event": "a", "feedback": ["b"] } ] } ] }', 'must be a whole number above 0, not 0 \(run ''x''\)', 'frames 0 in a run'))) {
+        $message = Get-JuiceRefusal $case[0]
+        Assert-True ($message -match $case[1]) "refused: $($case[2]) -> $message"
+    }
+} finally { Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue }
 # Godot crashing in its shutdown after every rule was judged is a warning; a crash before that, or an engine error, still fails.
 $ok = @(@{ Name = 'hit -> flash'; Failure = '' })
 $bad = @(@{ Name = 'hit -> flash'; Failure = "1 of 2 'hit' events had no 'flash'" })

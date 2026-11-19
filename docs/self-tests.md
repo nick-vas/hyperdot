@@ -10,7 +10,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-WorkflowLint.ps1` | the workflows read as text: a pull request's concurrency group is its number, `release` without exports fails, the canary's upstream code runs with no write permission or token, versions matched whole (`\A..\z`), `-MaxMinutes` always set; lists unpinned installs without failing | - |
 | `Test-SkillFixtures.ps1` | the skill validator against broken skills (`skill-fixtures`) | - |
 | `Test-ArchitectureFixtures.ps1` | the architecture rules (`architecture-fixtures`) | - |
-| `Test-JuiceLog.ps1` | the juice runner (`juice-fixture`) | - |
+| `Test-JuiceLog.ps1` | the juice runner (`juice-fixture`): its log check, `juice.json`'s one-run and `runs` forms and their refusals | - |
 | `Test-Audio.ps1` | `audio`'s loudness checks (`audio-fixture`, sounds it generates); `-Mix` records the mix | ffmpeg; `-Mix` a display |
 | `Test-AssetManifest.ps1` | the asset manifest (`assets-fixture`) | - |
 | `Test-Localization.ps1` | the `l10n` runner and `shot -Locale` (`l10n-fixture`) | Godot for glyphs; `-NoGodot` for the rest |
