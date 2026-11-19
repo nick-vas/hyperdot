@@ -1,6 +1,6 @@
 ---
 name: animation
-description: Use when a Godot character or object needs animation states, blending, attacks that must not be cut short, root motion, or when an animation feels stiff, floaty or unreadable.
+description: Use when a Godot character or object needs animation states, blending, attacks that must not be cut short, root motion, when an animation feels stiff, floaty or unreadable, or when designing reward screens, score callouts, jackpot or mode-intro animations and attract loops.
 ---
 
 # Animation in Godot 4
@@ -92,10 +92,69 @@ From Thomas and Johnston's *The Illusion of Life*; review a key animation (an at
 The free references are Wikipedia's "Twelve basic principles of animation" and Alan Becker's video series; the book is *The
 Animator's Survival Kit*.
 
-## 5. Prove it
+## 5. Reward screens and callouts
+
+A jackpot, combo, mode start or level clear is a micro-story told while the player is still watching the action (a pinball
+ball, a horde): the event, an answer on the same frame (`game-juice`), a short build, the payout (the word and the number),
+and back to play. Most last 0.25 to 2 s, so they must read at a glance. Motion-graphics rules, more than character animation:
+
+- **One thing moves at a time** (staging). The payout holds still and large long enough to read; everything before it leads
+  the eye there (hierarchy, eye direction). Weak callouts fail by moving everything at once.
+- **Energy curve:** a fast impact in (overshoot, a flash frame), a hold, a quick exit. Ease with a `Tween`
+  (`TransitionType.Back` for the pop) on a `Label` or `Control` in a `CanvasLayer`, with `MouseFilter = Ignore`; never pause
+  gameplay for it.
+- **Many short pieces, not a few long ones.** A library of one-second callouts reused with different text beats a long
+  cinematic. Longer sequences only where play has stopped: attract loops, a wizard-mode intro, the end of a ball, and those
+  are skippable.
+- **A stack, not a free-for-all.** Pinball's Mission Pinball Framework gives every slide a priority (the mode's, adjusted
+  per event) and an optional expiry; the highest shows, and when it goes the next shows. Its expiry timer runs even while
+  a slide is covered, so a covered callout can vanish unseen. If every reward must be seen, let only the one on screen use
+  up its time:
+
+```csharp
+// Pure C#: the highest priority callout shows; equal priorities wait their turn; only the one on screen uses up its time.
+// Advance from _Process with the game delta, so slow motion and test -FixedFps see the same timing.
+public sealed class CalloutStack
+{
+    private sealed class Entry { public string Name = ""; public int Priority; public double Left; }
+    private readonly List<Entry> _entries = new();   // highest priority first, equal priority in arrival order
+
+    public string? Current => _entries.Count > 0 ? _entries[0].Name : null;
+
+    public void Push(string name, int priority, double seconds)
+    {
+        int i = _entries.FindIndex(e => e.Priority < priority);
+        _entries.Insert(i < 0 ? _entries.Count : i, new Entry { Name = name, Priority = priority, Left = seconds });
+    }
+
+    public void Advance(double delta)
+    {
+        while (delta > 0 && _entries.Count > 0)
+        {
+            var top = _entries[0];
+            double used = Math.Min(delta, top.Left);
+            top.Left -= used;
+            delta -= used;
+            if (top.Left <= 0) _entries.RemoveAt(0);
+        }
+    }
+
+    public void Remove(string name) => _entries.RemoveAll(e => e.Name == name);   // a callout no longer true (the mode ended)
+}
+```
+
+- **Low-resolution displays** (a 128x32 or 192x64 dot-matrix look): design at the native size with the `viewport` stretch
+  mode and integer scaling (`retro`), a pixel font sized for it (`typography`), and one idea per frame; Michael Azzi's
+  *Pixel Logic* covers readability at that size.
+- **Study the frames.** Pause videos of recent commercial machines' jackpot and multiball screens frame by frame, and the
+  reward and mission-complete screens collected on the Game UI Database: count the frames to the payout and how long it holds.
+
+## 6. Prove it
 
 - [ ] a test builds or loads the tree and checks every state and transition the GDD names exists
       (`AnimationNodeStateMachine.HasNode`, `HasTransition`), with each edge out of an attack set to `AtEnd`
 - [ ] a flow or bot run presses attack then move, and asserts the attack finished (`GetCurrentNode()` in the log)
 - [ ] the `juice` runner pairs each hit with its hit-stop and flash (`game-juice`)
 - [ ] screenshots of key poses at gameplay zoom, judged with `look`
+- [ ] a unit test on the callout stack: priority order, equal priorities in turn, a covered callout keeping its time, `Remove`
+- [ ] a `juice.json` rule per reward event with its callout as the feedback, `withinMs` 100 (`game-juice`)

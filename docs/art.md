@@ -20,6 +20,10 @@ display, because this machine has no Vulkan. The Forward+ and Mobile notes come 
 | [Renderers](https://docs.godotengine.org/en/stable/tutorials/rendering/renderers.html), `Environment`, `Viewport` | Post-processing per renderer, quality settings |
 | [Using AnimationTree](https://docs.godotengine.org/en/stable/tutorials/animation/animation_tree.html), `AnimationNodeStateMachine*`, `AnimationMixer` | State machines, blend spaces, root motion |
 | [Unity: Root Motion](https://docs.unity3d.com/Manual/RootMotion.html), [Unreal: Root Motion](https://dev.epicgames.com/documentation/en-us/unreal-engine/root-motion-in-unreal-engine) | Root motion versus in place; networking ("Root Motion from Montages Only ... suitable for network multiplayer") |
+| [Mission Pinball Framework: `slides:`](https://github.com/missionpinball/mpf-docs/blob/main/docs/config/slides.md), [`slide_player:`](https://github.com/missionpinball/mpf-docs/blob/main/docs/config/slide_player.md) | The callout stack: one slide shown, the highest priority; mode priority plus a per-event adjustment; `expire` runs even while a slide is covered |
+| Austin Shaw, *Design for Motion* (Focal Press 2015, 2nd edition Routledge 2019); [Motion Design School](https://motiondesign.school/) | Motion-graphics hierarchy, eye direction and energy curves for reward screens |
+| Michael Azzi, [*Pixel Logic*](https://pixellogicbook.com/) (PDF, 2022 revision) | Pixel readability for low-resolution and dot-matrix displays |
+| Jan Willem Nijman, *The Art of Screenshake* (INDIGO Classes, Control Conference, Amsterdam, 2013; [Game Developer's report](https://www.gamedeveloper.com/design/vlambeer-co-founder-shares-advice-on-building-better-action-games)) | `game-juice`: feedback built up from small tweaks |
 | [Twelve basic principles of animation](https://en.wikipedia.org/wiki/Twelve_basic_principles_of_animation) (Wikipedia, CC BY-SA 4.0) | The principles; the skill paraphrases them |
 | [Lospec](https://lospec.com), [GodotShaders licence](https://godotshaders.com/license/), [Kenney](https://kenney.nl/support), [OpenGameArt FAQ](https://opengameart.org/content/faq), Freesound's source code, [jsfxr](https://github.com/chr15m/jsfxr) | Licences of the free libraries |
 
@@ -77,6 +81,9 @@ display, because this machine has no Vulkan. The Forward+ and Mobile notes come 
   - The bone stayed in place visually.
 - **`bench`** now reports GPU time per frame (`gpuMs`), `primitives`, `textureMemoryMB` and `videoMemoryMB`. All four are 0
   under `-Headless`.
+- **The callout stack** in `animation` (*tested*, plain C# on .NET 8, no Godot): a callout shows at once; a higher priority
+  covers it; an equal priority waits until the one on screen ends; the covered callout then finishes the time it had left
+  (0.5 s of 1 s); then the display is clear.
 
 ## Palette check (`shot`)
 
@@ -118,3 +125,6 @@ there is no palette to check against. The pixels are read by `ci/godot/tools/Pal
 - Forward+ and Mobile rendering numbers, because this machine has no Vulkan.
 - Sonniss's licence: its site returned 403. Read the License.pdf inside the bundle you use.
 - Freesound's FAQ page also returned 403. Its licence list was read from the site's source code.
+- The Game UI Database (gameuidatabase.com) returned 403; it is named from its public reputation, not read.
+- The 0.25 to 2 s length of reward callouts and the study advice in `animation` come from a reading list the owner supplied,
+  not from a measurement. *The Art of Screenshake* is cited from Game Developer's report of it; the video was not watched here.
