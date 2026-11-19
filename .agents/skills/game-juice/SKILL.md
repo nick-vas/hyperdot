@@ -109,7 +109,9 @@ uses it, the shake still scales with the player's settings slider; it is young, 
 
 3. The `juice` runner is detected from it and runs with every `test`: Godot plays headless at a fixed 60 fps for `frames`
    frames with `args` (your bot, `automation-hooks`), and each rule fails when an event had no such feedback within the
-   window, or never happened at all (the bot did not reach it).
+   window, or never happened at all (the bot did not reach it). When events happen on different stages, list one run
+   per stage instead, each with its own `name`, `args`, `frames` and `rules`: `{ "runs": [ { "name": "boss", "args":
+   ["--stage=boss"], "rules": [...] }, ... ] }`. Never drop a rule because the bot's stage does not reach it.
 
 ```powershell
 pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 test -Json -Quiet -Runners juice

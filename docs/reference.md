@@ -311,6 +311,16 @@ The game prints `[juice] event <name> <ms>` and `[juice] feedback <name> <ms>`, 
 rule fails when an event went unanswered, or never happened (the bot did not reach it). Events too close to the end of the run
 to be answered are ignored. `tests/juice-fixture` is a minimal example (`-GameArgs --late` makes it fail).
 
+When the events happen on different stages, `runs` lists several runs instead, each played and judged on its own with its
+own `args` (plus `-GameArgs`), `frames` (default 1800) and `rules`; `name` (letters, digits, `.`, `-`, `_`; default `run1`,
+`run2`...) names its log, `juice-<name>.log`, and starts each of its JUnit cases. `runs` cannot be combined with a
+top-level `rules`, `frames` or `args`:
+
+```json
+{ "runs": [ { "name": "boss", "args": ["--stage=boss"], "frames": 7200, "rules": [ { "event": "paddle_slow", "feedback": ["sfx"] } ] },
+            { "name": "act2", "args": ["--stage=act2"], "rules": [ { "event": "blast", "feedback": ["shake", "sfx"] } ] } ] }
+```
+
 **`playthrough.json`** (optional, in the Godot project folder) turns on the `playthrough` runner: Godot plays the game headless
 at a fixed 60 fps for at most `frames` frames (default 36000, ten minutes of game time) with `args` (plus `-GameArgs`), and
 every text in `expect` must appear in a log line, in that order, the ending last:

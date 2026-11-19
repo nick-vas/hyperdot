@@ -32,9 +32,10 @@ Hunicke, LeBlanc and Zubek, *MDA: A Formal Approach to Game Design and Game Rese
 | submission | game as pastime | Can they play without thinking hard? | low stakes, gentle loops, routine |
 
 Every GDD feature has exactly one `Fun:` line holding only kinds from the table, comma-separated, or `none`; the reason
-goes after a blank line, never on the `Fun:` line. `none` is only for `could` and `won't` features: a `must` or `should`
-feature names at least one kind, or is lowered to `could`. `doctor` fails on any other form and names the one fix; apply
-it as written. A feature that serves none of the game's main kinds is the first candidate to cut.
+goes after a blank line, never on the `Fun:` line. `none` marks needed work that serves no fun (credits, crash reports)
+at any priority; never claim a kind to pass. `doctor` fails on any other form and names the one fix; apply it as
+written. Other than `status`'s `gdd.supportFeatures` (must and should with `none`), a feature serving none of the main
+kinds is the first candidate to cut.
 
 Bartle's player types (achievers, explorers, socialisers, killers) are a different model, of why people play shared
 online worlds (Richard Bartle, 1996), not MDA; the `Fun:` line uses the eight kinds above.

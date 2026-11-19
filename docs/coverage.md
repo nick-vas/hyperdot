@@ -155,7 +155,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Doctor.ps1` | 13/16 | `Test-Addons.ps1`, `Test-Steam.ps1`, `Test-SelectJobs.ps1`, `Test-DoctorFixture.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-ErrorCodes.ps1` and 8 more |
 | `Help.ps1` | 9/11 | `Test-Help.ps1`, `Test-ErrorCodes.ps1` |
 | `Init.ps1` | 13/15 | `Test-Promo.ps1`, `Test-KitPaths.ps1`, `Test-UpdatePins.ps1`, `Test-Plan.ps1`, `Test-ErrorCodes.ps1`, `Test-OldState.ps1` |
-| `Juice.ps1` | 1/4 | `Test-JuiceLog.ps1`, `Test-AssetManifest.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Gdd.ps1`, `Test-Handoffs.ps1`, `Test-Plan.ps1`, `Test-Workflow.ps1` |
+| `Juice.ps1` | 2/6 | `Test-JuiceLog.ps1`, `Test-Gdd.ps1`, `Test-AssetManifest.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Handoffs.ps1`, `Test-Plan.ps1`, `Test-Workflow.ps1` |
 | `Layout.ps1` | 3/3 | `Test-Deck.ps1`, `Test-Layout.ps1` |
 | `Localization.ps1` | 19/22 | `Test-Localization.ps1`, `Test-Data.ps1`, `Test-Detect.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-BenchHotspots.ps1`, `Test-BenchSweep.ps1` and 34 more |
 | `Measure.ps1` | 12/13 | `Test-GpuValidation.ps1`, `Test-SelectJobs.ps1`, `Test-BenchSweep.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-BenchHotspots.ps1`, `Test-Capture.ps1`, `Test-ColorVision.ps1` and 42 more |
@@ -171,7 +171,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Setup.ps1` | 11/16 | `Test-DownloadFailed.ps1`, `Test-BenchSweep.ps1`, `Test-Flows.ps1`, `Test-InstallLock.ps1`, `Test-GameVersion.ps1`, `Test-InstallAddon.ps1`, `Test-ReportPins.ps1`, `Test-SelectJobs.ps1` and 37 more |
 | `Sfx.ps1` | 5/6 | `Test-SelectJobs.ps1`, `Test-Sfx.ps1` |
 | `Soak.ps1` | 6/10 | `Test-Soak.ps1` |
-| `Status.ps1` | 17/17 | `Test-Gdd.ps1`, `Test-Brief.ps1`, `Test-ArchitectureFixtures.ps1`, `Test-Data.ps1`, `Test-Localization.ps1`, `Test-Telemetry.ps1`, `Test-TestDuration.ps1`, `Test-Plan.ps1` and 13 more |
+| `Status.ps1` | 18/18 | `Test-Gdd.ps1`, `Test-Brief.ps1`, `Test-ArchitectureFixtures.ps1`, `Test-Data.ps1`, `Test-Localization.ps1`, `Test-Telemetry.ps1`, `Test-TestDuration.ps1`, `Test-Plan.ps1` and 13 more |
 | `Steam.ps1` | 9/10 | `Test-Steam.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1` and 6 more |
 | `Store.ps1` | 8/12 | `Test-Store.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1` and 6 more |
 | `Telemetry.ps1` | 11/11 | `Test-Telemetry.ps1` |
