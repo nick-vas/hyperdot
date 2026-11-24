@@ -39,8 +39,8 @@ $ErrorActionPreference = 'Stop'
 # The jobs a change can skip; lint and coverage always run.
 $gated = 'zero-config', 'csharp', 'explicit-runners', 'action', 'local-windows', 'init', 'measure', 'game-benchmark', 'field-test', 'web'
 
-# Scripts of .github/scripts/ that belong to no job: the release workflow's and the token benchmark workflow's, held by lint.
-$ownScripts = 'Get-ChangelogSection\.ps1|Test-MajorTagMove\.ps1|Get-BenchmarkMinutes\.ps1'
+# Scripts of .github/scripts/ that belong to no job: the release workflows' and the token benchmark workflow's, held by lint.
+$ownScripts = 'Get-ChangelogSection\.ps1|Test-MajorTagMove\.ps1|Update-ReleasePr\.ps1|Get-PendingRelease\.ps1|Get-BenchmarkMinutes\.ps1'
 
 $sample = @(@{ genre = 'platformer'; language = 'csharp' }, @{ genre = 'arena'; language = 'gdscript' }, @{ genre = 'cards'; language = 'gdscript' })
 $pairsCode = '^benchmark/templates/|^benchmark/(GameProgramme\.ps1|game-programme\.json)$|^tests/Test-GameProgramme\.ps1$|^\.github/(workflows/self-test\.yml|scripts/(?!' + $ownScripts + '))'

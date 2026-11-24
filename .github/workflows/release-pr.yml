@@ -1,0 +1,58 @@
+# Keeps the release pull request up to date: after each push to main that passes Self-test, the branch release/next is
+# rebuilt from main with the changelog.d/ fragments assembled into CHANGELOG.md, and the pull request "Release x.y.z" from it
+# opened or updated (.github/scripts/Update-ReleasePr.ps1). Merging that pull request is the release: release.yml then
+# tags the new section and publishes it. A workflow cannot push to main (the ruleset), so the release goes through a pull
+# request the owner merges. docs/ci.md.
+name: Release PR
+
+on:
+  workflow_run:
+    workflows: [Self-test]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version for the release pull request, without the v. Empty: the next one the fragments call for.'
+        required: false
+        type: string
+
+permissions:
+  contents: write        # push release/next
+  pull-requests: write   # open, edit and close the release pull request
+
+# One at a time, none cancelled: Self-test runs on main can end out of order, and a late run of an older commit must not
+# cancel the newer one's (it stops at once by itself, Update-ReleasePr.ps1 -ExpectSha).
+concurrency:
+  group: release-pr
+  cancel-in-progress: false
+
+# git 2.54+ background maintenance: off, as in self-test.yml.
+env:
+  GIT_CONFIG_COUNT: '3'
+  GIT_CONFIG_KEY_0: gc.auto
+  GIT_CONFIG_VALUE_0: '0'
+  GIT_CONFIG_KEY_1: gc.autoDetach
+  GIT_CONFIG_VALUE_1: 'false'
+  GIT_CONFIG_KEY_2: maintenance.auto
+  GIT_CONFIG_VALUE_2: 'false'
+
+jobs:
+  propose:
+    # Only a push to main that passed Self-test, never a pull request's or a failed run.
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Open or update the release pull request
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ inputs.version }}
+          EXPECT_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: ./.github/scripts/Update-ReleasePr.ps1 -Version "$env:VERSION" -ExpectSha "$env:EXPECT_SHA"

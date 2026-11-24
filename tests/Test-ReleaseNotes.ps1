@@ -72,8 +72,8 @@ finally { Remove-Item -LiteralPath $base -Recurse -Force -ErrorAction SilentlyCo
 
 # Whether the major tag may move to a release (.github/scripts/Test-MajorTagMove.ps1).
 $mover = Join-Path $root '.github/scripts/Test-MajorTagMove.ps1'
-function Get-MajorDecision([string]$Version, [string[]]$Tags) {
-    $text = (& pwsh -NoProfile -NonInteractive -File $mover -Version $Version -Tags ($Tags -join ',') 2>&1) -join "`n"
+function Get-MajorDecision([string]$Version, [string[]]$Tags, [string]$MajorTag = '') {
+    $text = (& pwsh -NoProfile -NonInteractive -File $mover -Version $Version -Tags ($Tags -join ',') -MajorTag $MajorTag 2>&1) -join "`n"
     if ($LASTEXITCODE) { return [pscustomobject]@{ move = $null; reason = $text } }
     return $text | ConvertFrom-Json
 }
@@ -84,6 +84,11 @@ Assert-True ((Get-MajorDecision '1.2.1' 'v2.0.0', 'v1.2.0').move -eq $true) 'a g
 Assert-True ((Get-MajorDecision '1.10.0' 'v1.9.0', 'v1.2.0').move -eq $true -and (Get-MajorDecision '1.9.0' 'v1.10.0').move -eq $false) 'versions compare as numbers, not text'
 Assert-True ((Get-MajorDecision '0.1.0' @()).move -eq $true -and (Get-MajorDecision '0.2.0' 'v1', 'v0.1.0', 'latest').move -eq $true) 'no tags, or tags that are not versions, hold nothing back'
 Assert-True ($null -eq (Get-MajorDecision "1.0.0`n" @()).move) 'a version with a trailing newline is refused'
+# A 0.x release moves v1 (games pin @v1): fine until 1.0.0 exists, never back to 0.x after it.
+Assert-True ((Get-MajorDecision '0.2.0' 'v0.1.0', 'v1' 'v1').move -eq $true) 'a 0.x release moves v1 while there is no 1.x'
+Assert-True ((Get-MajorDecision '0.9.1' 'v0.9.0', 'v1.0.0' 'v1').move -eq $false) 'a 0.x release after v1.0.0 does not move v1 back'
+Assert-True ((Get-MajorDecision '0.9.1' 'v1.0.0' 'v0').move -eq $true) 'v0 itself still moves to it'
+Assert-True ($null -eq (Get-MajorDecision '0.9.1' @() 'latest').move) 'a major tag that is not v<number> is refused'
 
 if ($failures.Count) { Write-Host "$($failures.Count) failed"; exit 1 }
 Write-Host 'Release notes: all checks passed'
