@@ -14,6 +14,11 @@ function Assert-True([bool]$Condition, [string]$Name) {
 }
 $work = Join-Path ([System.IO.Path]::GetTempPath()) "claude-auth-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
 New-Item -ItemType Directory -Force $work | Out-Null
+$wrapper = Join-Path $work 'run-auth.ps1'
+Set-Content -LiteralPath $wrapper -Value @'
+param([string]$Script)
+try { & $Script @args; exit $LASTEXITCODE } catch { Write-Output "REFUSED: $($_.Exception.Message)"; exit 1 }
+'@
 $saved = @{}
 foreach ($name in 'HYPERDOT_API_KEY', 'CLAUDE_CODE_OAUTH_TOKEN', 'ANTHROPIC_API_KEY', 'GITHUB_ENV', 'PATH', 'FAKE_CLAUDE_EXIT', 'EXPECT_KEY') { $saved[$name] = [Environment]::GetEnvironmentVariable($name) }
 # Runs the script in a child pwsh with these variables; returns its exit code, output and what it added to GITHUB_ENV.
@@ -23,7 +28,9 @@ function Invoke-Auth([string[]]$Arguments, [hashtable]$Env) {
     foreach ($name in 'HYPERDOT_API_KEY', 'CLAUDE_CODE_OAUTH_TOKEN', 'ANTHROPIC_API_KEY', 'FAKE_CLAUDE_EXIT', 'EXPECT_KEY') { [Environment]::SetEnvironmentVariable($name, $null) }
     $env:GITHUB_ENV = $githubEnv
     foreach ($name in $Env.Keys) { [Environment]::SetEnvironmentVariable($name, $Env[$name]) }
-    $out = & pwsh -NoProfile -NonInteractive -File $script @Arguments 2>&1 | Out-String
+    # Through a wrapper that prints a refusal's message on one line: PowerShell's own error view wraps it at the console
+    # width, which differs between machines (on GitHub's runner it split "Anthropic Console" across two lines).
+    $out = & pwsh -NoProfile -NonInteractive -File $wrapper $script @Arguments 2>&1 | Out-String
     return @{ code = $LASTEXITCODE; out = $out; env = (Get-Content -LiteralPath $githubEnv -Raw) }
 }
 try {
