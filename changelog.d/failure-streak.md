@@ -1,1 +1,0 @@
-Added: `test -Json`'s `failureDelta` counts how many runs of the same scope in a row a failing test was in: `stillFailing[].streak` (this run included) and `failureDelta.longestStreak` (`null` without a baseline). The `godot-test-loop` skill's cap of three attempts at one failure reads the count instead of relying on the agent's memory.

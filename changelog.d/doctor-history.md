@@ -1,1 +1,0 @@
-Fixed: `doctor` runs are recorded in the run history, so `status` stops suggesting `doctor` with "doctor has not run on this project" after it has run; the `doctor.changed` and `doctor.release` suggestions, which need a recorded run, now fire, and a new rule, `doctor.failed`, suggests doctor again after a run that found problems (#254)

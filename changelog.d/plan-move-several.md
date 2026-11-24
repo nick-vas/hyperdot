@@ -1,1 +1,0 @@
-Added: `plan -Do move -Id t1,t2,t3 -Column done` moves several tasks in one call (all move or none), and returns `movedTasks[]`. Each plan call starts the kit and reads the project, so thirteen single moves took minutes. Part of #230.

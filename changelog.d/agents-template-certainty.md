@@ -1,1 +1,0 @@
-Added: the `AGENTS.md` that `init` and `plan` copy into a game asks the agent to end each reply with `Certainty: NN%` and a clause saying what it rests on (what was run or read, and what was not checked), so the figure appears in every chat that works on the game.

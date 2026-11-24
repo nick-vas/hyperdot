@@ -1,1 +1,0 @@
-Changed: the `godot-editor-bridge` skill carries the `init -McpAseprite` command (aseprite-mcp, for drawing and animating pixel art) next to the editor servers, and `/game` offers it when a next task draws sprites and `.mcp.json` has no `aseprite` server.

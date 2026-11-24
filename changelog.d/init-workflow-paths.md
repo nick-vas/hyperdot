@@ -1,1 +1,0 @@
-Changed: the workflow `init` writes skips pull requests and pushes to `main` that change only documents, the plan or `.gitignore` (`paths-ignore`), so a private repository's Actions minutes last; the push to `main` stays, for the merge check and the caches pull requests read. The game `AGENTS.md` asks for one push per finished piece of work (#256)

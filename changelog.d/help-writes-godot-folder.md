@@ -1,1 +1,0 @@
-Fixed: `help` without a name no longer rewrites `docs/kit-help.md` in the game (a tracked file, which left the working tree dirty); it writes `.godot/kit-help.md`, a folder no repository tracks, and prints the path. `init` still puts a first copy in `docs/kit-help.md` once and never rewrites it.

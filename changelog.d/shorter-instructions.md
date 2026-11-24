@@ -1,1 +1,0 @@
-Changed: the game AGENTS.md template is a third shorter (kept: the safety rules and the pointers to skills; cut: flag lists and how-to rules the skills already carry), and the kit's own AGENTS.md moves its self-test table to docs/self-tests.md

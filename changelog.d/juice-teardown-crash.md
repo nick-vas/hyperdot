@@ -1,1 +1,0 @@
-Fixed: the `juice` runner no longer fails a run for a Godot crash in its shutdown after every rule was judged (exit 134 from the mono teardown, `FATAL: Condition "csharp_lang && ..."`): that is a warning naming the FATAL line. A crash before every rule was judged, an engine error before the crash and any other nonzero exit still fail.
