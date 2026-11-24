@@ -34,12 +34,13 @@ or WSL2 or Linux as a normal user.
 ### Running the evals without an API key
 
 `claude plugin eval` uses whatever authentication Claude Code itself uses, and its runs count against that plan's usage
-([plugin evals](https://code.claude.com/docs/en/plugin-evals#requirements)). Three routes, none needing `ANTHROPIC_API_KEY`:
+([plugin evals](https://code.claude.com/docs/en/plugin-evals#requirements)). Four routes; only the API key route is billed per use:
 
 | Route | How | Caveats |
 |---|---|---|
 | A subscription, locally | WSL2 or Linux as a normal user: `claude` and log in once (Pro or Max), unset `ANTHROPIC_API_KEY`, then the command in `.github/workflows/evals.yml` | The docs do not say how the login reaches each run's isolated home; try `--runs 1 --case fix-score-bug` first |
 | A subscription, on GitHub | `claude setup-token` makes a one-year token ([authentication](https://code.claude.com/docs/en/authentication#generate-a-long-lived-token)); store it as the secret `CLAUDE_CODE_OAUTH_TOKEN` and run the `Evals` workflow by hand | The evals page names only API keys and cloud credentials for CI, so this is documented for Claude Code in Actions but not yet confirmed for evals. Subscription use is meant for ordinary individual use ([terms](https://code.claude.com/docs/en/legal-and-compliance#authentication-and-credential-use)): occasional manual runs, never a schedule. A present `ANTHROPIC_API_KEY` wins over the token |
+| An API key, on GitHub | Store an Anthropic Console key as the secret `ANTHROPIC_API_KEY` and run the `Evals` workflow with `auth: api-key` | Billed to the API account, not a plan's usage; make the key in a workspace with a spend limit. The summary gives the run's total cost |
 | A local model | Ollama 0.14+ or llama.cpp's `llama-server` speak the Anthropic Messages API ([Ollama](https://docs.ollama.com/api/anthropic-compatibility), [llama.cpp](https://huggingface.co/blog/ggml-org/anthropic-messages-api-in-llamacpp)); `ANTHROPIC_BASE_URL=http://localhost:11434` | Anthropic does not support Claude Code on non-Claude models ([LLM gateway](https://code.claude.com/docs/en/llm-gateway)); eval runs inherit only an allowlist of variables, so the base URL may not reach them (untested); and the scores would measure another model, so they only show the kit works |
 
 First run with the token (2026-10-22, Claude Code 2.1.308): the eval stopped after one run with `401 Invalid bearer

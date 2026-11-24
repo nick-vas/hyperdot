@@ -14,10 +14,18 @@ pwsh benchmark/Invoke-TokenBenchmark.ps1 -SaveResponses                       # 
 ```
 
 Or the **Token benchmark** workflow (Actions, run manually), which puts `summary.md` in the run's summary and the whole
-folder in an artifact. It authenticates with a Claude subscription, not an API key: the `CLAUDE_CODE_OAUTH_TOKEN` secret
-from `claude setup-token`, shared with the Evals workflow. Runs then count against the plan's usage rather than a bill,
-so keep them small (`tasks` one id, `repeat` 1); the cost columns are Claude Code's own figure, not a charge. Locally,
-a logged-in `claude` works the same way, with no key set.
+folder in an artifact. Its `auth` input, shared with the Evals workflow, chooses how Claude Code signs in
+(`.github/scripts/Initialize-ClaudeAuth.ps1`):
+
+- `subscription` (the default): the `CLAUDE_CODE_OAUTH_TOKEN` secret from `claude setup-token`. Runs count against the
+  plan's usage rather than a bill, so keep them small (`tasks` one id, `repeat` 1); the cost columns are Claude Code's own
+  figure, not a charge.
+- `api-key`: the `ANTHROPIC_API_KEY` secret, an Anthropic Console key. Runs are billed to the API account, and the cost
+  columns are what it is charged. Make the key in a workspace with a spend limit; the tier's `maxCostUsd` and
+  `-BudgetUsd` stop the run, the spend limit stops the account. Run `-DryRun` first for the estimate.
+
+Only the chosen secret reaches the job (an `ANTHROPIC_API_KEY` would take precedence over a token), and one small request
+checks it before anything else runs. Locally, a logged-in `claude` works the same way, with no key set.
 
 Each run writes `benchmark/results/<UTC time>/`: `results.csv` and `results.json` (one row per task, profile and
 repetition), `summary.json` and `summary.md` (per profile and per task), and with `-SaveResponses` every answer and the

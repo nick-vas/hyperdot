@@ -4,9 +4,11 @@
 #   game    the pilot: five tasks on a small Godot game graded by its tests (benchmark/game-benchmark.json)
 #   staged  the staged game programme (benchmark/game-programme.json, benchmark/PLAN.md): genres x stages x languages,
 #           chosen by a tier (min, mid, max) and narrowed by genre, stage and language
-# Manual only: each run calls the model. Authenticates with a Claude subscription, not an API key: the repository secret
-# CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token` (the same one the Evals workflow uses). Runs count against that plan's
-# usage, meant for ordinary individual use. The cost columns are Claude Code's own figure, not a charge on the plan.
+# Manual only: each run calls the model. The `auth` input chooses how Claude Code signs in, as in the Evals workflow
+# (.github/scripts/Initialize-ClaudeAuth.ps1): subscription, the repository secret CLAUDE_CODE_OAUTH_TOKEN from
+# `claude setup-token`, whose runs count against that plan's usage, meant for ordinary individual use; or api-key, the
+# repository secret ANTHROPIC_API_KEY, billed to the API account (use a workspace with a spend limit). The cost columns
+# are Claude Code's own figure: with a subscription not a charge, with an API key what the account is billed.
 #
 # `isolate` (on by default) runs every session as a user made for the run that can read only its game copy, not this
 # checkout with its hidden tests and graders (benchmark/Isolation.ps1); the runner's passwordless sudo makes the user.
@@ -100,6 +102,11 @@ on:
       max_minutes:
         description: Stop starting new sessions after this many minutes, and upload what was measured (the job limit is 330; at most 45 minutes less, empty or 0 for that)
         default: '285'
+      auth:
+        description: How Claude Code signs in - subscription (secret CLAUDE_CODE_OAUTH_TOKEN) or api-key (secret ANTHROPIC_API_KEY, billed to the API account)
+        type: choice
+        options: [subscription, api-key]
+        default: subscription
 permissions:
   contents: read
 
@@ -193,14 +200,15 @@ jobs:
       contents: read
       actions: read   # the continued run's artifacts
     env:
-      # An ANTHROPIC_API_KEY in the environment would take precedence over the token, so none is set here.
-      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      # Only the chosen credential: an ANTHROPIC_API_KEY would take precedence over the token, so the key is handed over
+      # under another name and exported by Initialize-ClaudeAuth.ps1 only for auth: api-key.
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ inputs.auth != 'api-key' && secrets.CLAUDE_CODE_OAUTH_TOKEN || '' }}
+      HYPERDOT_API_KEY: ${{ inputs.auth == 'api-key' && secrets.ANTHROPIC_API_KEY || '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Claude Code
         shell: pwsh
         run: |
-          if (-not $env:CLAUDE_CODE_OAUTH_TOKEN) { throw 'Add the CLAUDE_CODE_OAUTH_TOKEN repository secret (from claude setup-token) to run the benchmark' }
           npm install -g @anthropic-ai/claude-code@2.1.312
       - name: The continued run's results
         if: inputs.continue_run != ''
@@ -226,15 +234,13 @@ jobs:
         if: inputs.programme != 'tool'
         shell: pwsh
         run: ./ci/godot/hyperdot.ps1 setup -Project $(if ('${{ inputs.programme }}' -eq 'staged') { 'examples/csharp/game' } else { 'examples/gdscript' })
-      # One small request first: a token that is malformed or revoked fails here, by name, instead of as a run of 0 scores.
-      - name: The subscription token works
+      # One small request first: a credential that is missing, malformed or refused fails here, by name, instead of as a run
+      # of 0 scores. For auth: api-key it also exports ANTHROPIC_API_KEY to the steps below.
+      - name: The credential works
         shell: pwsh
-        run: |
-          $token = $env:CLAUDE_CODE_OAUTH_TOKEN
-          if ($token -match '\s') { Write-Host '::warning::CLAUDE_CODE_OAUTH_TOKEN contains spaces or line breaks; paste it again as one line' }
-          if ($token -notmatch '^sk-ant-oat') { Write-Host '::warning::CLAUDE_CODE_OAUTH_TOKEN does not start like a claude setup-token token (sk-ant-oat...)' }
-          $out = claude -p 'Reply with the single word OK.' --max-turns 1 --output-format json 2>&1
-          if ($LASTEXITCODE) { throw "Claude Code rejected CLAUDE_CODE_OAUTH_TOKEN; run claude setup-token again and replace the secret: $out" }
+        env:
+          AUTH: ${{ inputs.auth }}
+        run: ./.github/scripts/Initialize-ClaudeAuth.ps1 -Auth $(if ($env:AUTH) { $env:AUTH } else { 'subscription' }) -What 'run the benchmark'
       - name: Run the benchmark
         shell: pwsh
         env:
@@ -288,16 +294,18 @@ jobs:
       contents: read
       actions: read   # the judged runs' artifacts
     env:
-      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ inputs.auth != 'api-key' && secrets.CLAUDE_CODE_OAUTH_TOKEN || '' }}
+      HYPERDOT_API_KEY: ${{ inputs.auth == 'api-key' && secrets.ANTHROPIC_API_KEY || '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Claude Code
         shell: pwsh
-        run: |
-          if (-not $env:CLAUDE_CODE_OAUTH_TOKEN) { throw 'Add the CLAUDE_CODE_OAUTH_TOKEN repository secret (from claude setup-token) to calibrate the judge' }
-          npm install -g @anthropic-ai/claude-code@2.1.312
-          $out = claude -p 'Reply with the single word OK.' --max-turns 1 --output-format json 2>&1
-          if ($LASTEXITCODE) { throw "Claude Code rejected CLAUDE_CODE_OAUTH_TOKEN; run claude setup-token again and replace the secret: $out" }
+        run: npm install -g @anthropic-ai/claude-code@2.1.312
+      - name: The credential works
+        shell: pwsh
+        env:
+          AUTH: ${{ inputs.auth }}
+        run: ./.github/scripts/Initialize-ClaudeAuth.ps1 -Auth $(if ($env:AUTH) { $env:AUTH } else { 'subscription' }) -What 'calibrate the judge'
       # Each set's pairs, rebuilt from its run and checked against the key the owner's page was made from.
       - name: The owner's pairs
         shell: pwsh
