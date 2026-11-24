@@ -1,1 +1,0 @@
-Changed: `benchmark/cost-model.json` uses the means measured over the complete mid tier (six configurations, Haiku to Opus, with and without the plugin), the mid tier's cost ceiling in `game-programme.json` rises from $120 to $180 to fit them, and `benchmark/PLAN.md` records the results, what was lost and the finding that most failures are the answer-length limit.

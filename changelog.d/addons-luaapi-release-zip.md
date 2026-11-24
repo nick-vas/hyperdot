@@ -1,1 +1,0 @@
-Changed: `ci/godot/addons-status.json` records the release zip of godot-luaAPI (v2.1-beta11, asset `gdextension.zip`, folder `addons/luaAPI` under the wrapper `container/`, read with `zipfile` and never run); the canary can now check it. The repository is still archived. Fixes #202.

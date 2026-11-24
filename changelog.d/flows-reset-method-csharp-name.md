@@ -1,1 +1,0 @@
-Fixed: the `flows` runner's autoload reset (`hyperdot_reset_flow_state()`) also finds a C# autoload's `HyperdotResetFlowState()`; Godot calls a C# method by the name it is written with, so the snake_case name would have had to be written into the C# code.

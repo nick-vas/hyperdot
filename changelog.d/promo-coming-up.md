@@ -1,1 +1,0 @@
-Added: `promo` lists the next 4 weeks' dates in the weekly brief (Steam's sales and fests from the store-page stage on, and plan.json's release deadlines not done yet), with a task for each one to act on; a week with nothing shipped but a date due within 7 days opens a short dates-only brief, with no tag. `"calendar": false` in `docs/promo.json` turns it off (#273).

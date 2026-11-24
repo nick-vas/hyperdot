@@ -1,1 +1,0 @@
-Added: the plugin's edit hook also checks a `.gdshader` file after an edit: it asks the shader for its uniforms, which makes headless Godot compile it, and reports the `SHADER ERROR` lines to Claude. A working shader says nothing.

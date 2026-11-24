@@ -1,1 +1,0 @@
-Changed: when a runner fails in a game programme check without naming a failing test, the check now says why (`dotnet failed: reported no test results (exit code 1)`, with the locked file if there is one) instead of `dotnet failed`, so a failure that passes on a re-run (the racing C# milestone on `main`) leaves something to diagnose it from.

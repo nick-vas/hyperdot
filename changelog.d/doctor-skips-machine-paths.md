@@ -1,1 +1,0 @@
-Fixed: `doctor` no longer reports an absolute path in `AGENTS.md` or `CLAUDE.md` as a missing file when it points outside the game and its repository (the kit on the author's machine, a tool folder): such a path belongs to one machine and cannot be checked from another. A missing absolute path inside the game or its repository, and a missing relative file, are still reported.

@@ -1,1 +1,0 @@
-Added: `docs/steam.md` has the Steamworks SDK release notes 1.59 to 1.65 paraphrased with what each means for a Godot game, and the `steam` skill names `IsRunningUnderProton`, the performance-setting calls and Steam Timeline, each marked as not in the pinned SDK 1.64 package where that is so.

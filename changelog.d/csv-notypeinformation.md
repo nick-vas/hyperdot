@@ -1,1 +1,0 @@
-Fixed: `bench -Json` (and anything else that wrote a CSV) began its stdout with a PowerShell warning on PowerShell 7.7, which marks `Export-Csv -NoTypeInformation` obsolete, so agents could not parse the result. The flag is dropped (type information has been off by default since 6.0), and `Test-PowerShellPatterns.ps1` flags it as `csv-notypeinformation`.

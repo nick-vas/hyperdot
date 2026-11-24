@@ -1,1 +1,0 @@
-Added: `doctor` asks for `store/steam/mac_icon.icns` when the project has a macOS export preset (a WARN when it is missing, a FAIL when the file is not an ICNS); without it the Mac client shows Steam's default logo.

@@ -1,1 +1,0 @@
-Added: the `flows` and `validate` runners name a leak Godot reports at exit (`ObjectDB instances were leaked at exit`, `RID of type ... was leaked`) as an `exit-leak` warning with the last file that ran, and add it to the failure when the exit code fails the runner, so a failed runner never comes without a reason (#255)
