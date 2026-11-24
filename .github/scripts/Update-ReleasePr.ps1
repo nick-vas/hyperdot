@@ -87,7 +87,10 @@ try {
     } else {
         $url = & gh pr create --base $Base --head $Branch --title "Release $Version" --body-file $bodyFile
         if ($LASTEXITCODE -ne 0) {
-            throw "Could not open the release pull request (gh exit code $LASTEXITCODE). If the repository does not let workflows open pull requests, allow it: Settings > Actions > General > Workflow permissions > 'Allow GitHub Actions to create and approve pull requests'. The branch $Branch is pushed; it can also be opened by hand."
+            $message = "Could not open the release pull request (gh exit code $LASTEXITCODE). If the repository does not let workflows open pull requests, allow it: Settings > Actions > General > Workflow permissions > 'Allow GitHub Actions to create and approve pull requests'. The branch $Branch is pushed; it can also be opened by hand."
+            # On one line as an annotation of the run: the error view wraps a thrown message at the console width.
+            Write-Host "::error::$message"
+            throw $message
         }
         Write-Host "Opened the release pull request for $Version ($count fragments): $url"
     }
