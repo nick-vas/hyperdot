@@ -1,1 +1,0 @@
-Fixed: `docs/ci.md` said the release pull request starts no workflows. GitHub records a `Self-test` run for it that ends at once as Startup failure (no jobs, no logs), because it runs no workflow for an event the workflow's own token makes; the page now says so, why it is harmless, and what real checks there would take.

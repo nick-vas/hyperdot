@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.2.1 - 2026-11-24
+### Fixed
+- `docs/ci.md` said the release pull request starts no workflows. GitHub records a `Self-test` run for it that ends at once as Startup failure (no jobs, no logs), because it runs no workflow for an event the workflow's own token makes; the page now says so, why it is harmless, and what real checks there would take.
+
 ## 0.2.0 - 2026-11-24
 ### Added
 - `Update-AddonStatus.ps1` (the weekly canary) reads the newest release's zip of each add-on in `addons-status.json` (listed, never extracted or run) and compares its `addons/<name>/` folder and `.gdextension` file with the entry: a folder under another prefix is applied, a missing folder or file, a gone asset or a repository with a first release is reported for a person, and an API or download that cannot be reached is a note. Each entry with a release zip records it as `releaseZip` (tag, asset, prefix, date checked); the folders of Godot Jolt, godot-steam-audio and py4godot were confirmed against their zips on 2026-10-29.
