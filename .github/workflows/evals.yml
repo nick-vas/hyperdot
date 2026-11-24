@@ -53,18 +53,27 @@ jobs:
           # which lifts the restriction for every program, is the fallback on this throwaway runner.
           # Run 5 got past bwrap but every write in a case failed with "Read-only file system", the workspace included, so
           # the probe also needs a writable mount over the read-only root, as Claude Code's sandbox makes one.
+          # Run 9 (2026-11-24) got past both, yet every Bash call failed with "apply-seccomp: write /proc/self/setgroups
+          # (nested userns is capability-restricted ...)": Claude Code applies its seccomp filter in a second user namespace
+          # inside bwrap's, which the AppArmor profile for bwrap does not cover. So the restriction is lifted outright (the
+          # runner is thrown away after the job), and the probe also makes that nested namespace, mapping a user as the
+          # helper does.
           function Test-Sandbox {
             $probe = Join-Path $env:RUNNER_TEMP 'bwrap-probe'
             New-Item -ItemType Directory -Force $probe | Out-Null
-            bwrap --ro-bind / / --bind $probe $probe --dev /dev --proc /proc --unshare-net --unshare-user touch (Join-Path $probe 'written') *> $null
-            return $LASTEXITCODE -eq 0
+            $written = Join-Path $probe 'written'
+            bwrap --ro-bind / / --bind $probe $probe --dev /dev --proc /proc --unshare-net --unshare-user touch $written *> $null
+            if ($LASTEXITCODE -ne 0) { Write-Host 'probe: bwrap cannot make a writable sandbox'; return $false }
+            $nested = bwrap --ro-bind / / --dev /dev --proc /proc --unshare-net --unshare-user unshare --user --map-root-user true 2>&1
+            if ($LASTEXITCODE -ne 0) { Write-Host "probe: no nested user namespace inside bwrap: $nested"; return $false }
+            return $true
           }
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           if (-not (Test-Sandbox)) {
             "abi <abi/4.0>,`ninclude <tunables/global>`nprofile bwrap /usr/bin/bwrap flags=(unconfined) {`n  userns,`n}" | sudo tee /etc/apparmor.d/bwrap | Out-Null
             sudo apparmor_parser -r /etc/apparmor.d/bwrap
           }
-          if (-not (Test-Sandbox)) { sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 }
-          if (-not (Test-Sandbox)) { throw 'bwrap cannot make a sandbox on this runner, so every Bash call in the evals would fail' }
+          if (-not (Test-Sandbox)) { throw 'The sandbox cannot run a command on this runner (bwrap, or the nested user namespace inside it), so every Bash call in the evals would fail' }
           npm install -g @anthropic-ai/claude-code@2.1.312
           sudo mkdir -p $env:GODOT_TOOLS_DIR; sudo chown $env:USER $env:GODOT_TOOLS_DIR
           # Installs Godot and GUT into the example the cases copy, so runs need no download.
@@ -107,7 +116,10 @@ jobs:
           $errors = @(foreach ($case in $result.cases) { foreach ($arm in $case.arms.PSObject.Properties) { foreach ($run in $arm.Value) { if ($run.error) { "$($case.name) ($($arm.Name)): $($run.error)" } } } })
           if ($result.partial -or $errors.Count) { throw "The evals did not finish: $($result.partialReason) $($errors -join '; ')" }
           # A run whose commands the sandbox refused graded the environment, not the plugin.
-          if ((Get-Content evals/results/result.json -Raw) -match 'bwrap: |Read-only file system') { throw 'A case reports bwrap or read-only file system errors: the sandbox refused its commands, so these scores do not measure the plugin' }
+          # The run's transcripts too: a refused command appears there, and run 9's "apply-seccomp" passed the result alone.
+          $refusal = 'bwrap: |Read-only file system|apply-seccomp|nested userns|/proc/self/setgroups'
+          $refused = @(Get-ChildItem evals/results/traces -Filter *.jsonl -ErrorAction SilentlyContinue | Where-Object { (Get-Content -LiteralPath $_.FullName -Raw) -match $refusal } | ForEach-Object BaseName)
+          if ((Get-Content evals/results/result.json -Raw) -match $refusal -or $refused.Count) { throw "The sandbox refused commands ($($refused -join ', ')): these scores do not measure the plugin" }
           exit 0
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()

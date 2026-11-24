@@ -97,6 +97,39 @@ temp folder the cases' folders are made there, writes work, and both arms import
 failure (expected 25, got 20). Both scored 1.00. The `.bashrc: Permission denied` lines in the transcripts are the
 sandbox hiding the home folder's dotfiles, not an error.
 
+Run 9 (2026-11-24, all four cases, 5 runs per arm, $5.05, the first with an API key, `auth: api-key`): the bwrap probe
+passed and the run ended green, yet every one of the 55 Bash calls in `explain-failure` and `fix-score-bug` failed before
+it started, with `apply-seccomp: write /proc/self/setgroups (nested userns is capability-restricted; caller must provide
+CAP_SYS_ADMIN)`. Claude Code applies its seccomp filter in a second user namespace inside bwrap's, which the AppArmor
+profile for bwrap does not cover, and the guard looked only for `bwrap: ` and `Read-only file system`. The agents read
+and edited (one fixed `combo / 6` to `combo / 5`) but none could run Godot, so the two command cases measured the sandbox
+again. The two cases without commands are real results:
+
+| Case | With | Without | Delta |
+|---|---:|---:|---:|
+| review-publishing-deal | 1.00 (5 of 5) | 0.47 (1 of 5 flagged all three problems) | +0.53 |
+| lost-in-level | 0.80 (4 of 5) | 0.40 (2 of 5) | +0.40 |
+| explain-failure | 1.00 | 0.87 | not a result: every command refused |
+| fix-score-bug | 0.75 | 0.70 | not a result: `verified` failed in all 10, no run could test its fix |
+
+The workflow now lifts the AppArmor restriction outright, probes a nested user namespace inside bwrap as the seccomp
+helper makes one, and fails a run whose result or transcripts mention `apply-seccomp`, `nested userns` or
+`/proc/self/setgroups` (on run 9's transcripts that flags exactly the 20 command runs).
+
+Runs 10 and 11 (2026-11-24, on the fix branch, one case each, 5 runs per arm, $1.16 and $1.42): the nested probe passed
+and every command ran. Of 105 Bash calls none was refused; every run ran GUT, and with the plugin `fix-score-bug` also
+ran the kit's `test` two or three times.
+
+| Case | With | Without | Mean cost with | Mean cost without |
+|---|---:|---:|---:|---:|
+| explain-failure | 1.00 (5 of 5) | 1.00 (5 of 5) | $0.125 | $0.107 |
+| fix-score-bug | 1.00 (5 of 5) | 1.00 (5 of 5) | $0.171 | $0.113 |
+
+With a working sandbox both command cases are solved every time with or without the plugin, so they no longer tell
+the two apart; the plugin costs 17% more on `explain-failure` and 51% more on `fix-score-bug` (its extra `test` runs,
+10 turns against 7). The difference the plugin makes is in the two reading cases of run 9. Harder command cases (a bug
+the code does not show, a test that must be written) are what would measure it on command work.
+
 There is no mode without a model: `--ablation none` halves the cost but still calls it. The skill validator and its
 fixtures (`Test-Skills.ps1`, `Test-SkillFixtures.ps1`) are the free checks; they test structure, not effect.
 
