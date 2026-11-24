@@ -26,7 +26,7 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
   the sessions must not be able to recognise the test.
 - `.github/actions/godot`, `.github/workflows/godot.yml` composite action and reusable workflow; `.github/workflows/self-test.yml` and `.github/scripts/Select-Jobs.ps1` decide what runs for a change ([docs/ci.md](docs/ci.md)).
 - `.github/workflows/promo.yml` the reusable weekly marketing brief (`promo`); `init -Promo` writes its caller into a game.
-- `.github/workflows/release.yml` (run by hand) tags a release and publishes it, with `.github/scripts/Get-ChangelogSection.ps1` for the notes ([docs/ci.md](docs/ci.md)).
+- `.github/workflows/release-pr.yml` keeps the release pull request (`release/next`, `.github/scripts/Update-ReleasePr.ps1`) up to date after each green push to main; merging it is the release: `.github/workflows/release.yml` then tags the new changelog section and publishes it (also run by hand), with `.github/scripts/Get-ChangelogSection.ps1` for the notes ([docs/ci.md](docs/ci.md)).
 - `examples/csharp` (C#, every framework) and `examples/gdscript` (GUT): the integration fixtures.
 - `docs/` per-topic documentation; `docs/json.md` is the output contract; `docs/help.md` is the text of `help` and `/kit`
   (a new command, skill or subagent needs an entry there).

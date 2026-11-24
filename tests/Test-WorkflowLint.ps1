@@ -66,6 +66,17 @@ $release = Get-Workflow 'release.yml'
 Assert-True ($release -match [regex]::Escape('\A[0-9]+\.[0-9]+\.[0-9]+\z') -and $release -match [regex]::Escape('\Av[0-9]+\z')) 'release.yml matches the version and the major tag whole, ASCII digits only'
 Assert-True ($release -notmatch [regex]::Escape('^\d+\.\d+\.\d+$') -and $release -notmatch [regex]::Escape('^v\d+$')) 'release.yml has no ^..$ / \d match of a version'
 Assert-True ($release -match 'Test-MajorTagMove\.ps1') 'release.yml asks Test-MajorTagMove.ps1 before moving the major tag'
+# The automatic release and the release pull request start only from a push to main that passed Self-test, and release.yml's
+# steps take the version from its first step (a step's own `VERSION: ${{ inputs.version }}` would hide it, empty, after Self-test).
+$releasePr = Get-Workflow 'release-pr.yml'
+$gate = "github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success'"
+foreach ($pair in @(@('release.yml', $release), @('release-pr.yml', $releasePr))) {
+    Assert-True ($pair[1] -match '(?s)workflow_run:\s*\n\s*workflows: \[Self-test\]\s*\n\s*types: \[completed\]\s*\n\s*branches: \[main\]' -and $pair[1].Contains($gate)) "$($pair[0]) starts after Self-test only for a push to main that passed"
+}
+Assert-True ($release -notmatch '(?m)^\s+(VERSION|SHA_INPUT|MAJOR_INPUT): \$\{\{' -and [regex]::Matches($release, "if: env\.RELEASE_SKIP != '1'").Count -eq 4) 'release.yml: the version comes from the first step, and every later step is skipped when there is nothing to release'
+Assert-True ($release -match 'Get-PendingRelease\.ps1 -Sha' -and $release -match 'Test-MajorTagMove\.ps1 [^\n]*-MajorTag \$major') 'release.yml asks Get-PendingRelease.ps1 what to release after Self-test, and checks the major tag it moves'
+Assert-True ($releasePr -match '(?m)^  cancel-in-progress: false') 'release-pr.yml cancels no run (a late run of an older commit would cancel the newer one)'
+Assert-True ($releasePr -match 'Update-ReleasePr\.ps1' -and $releasePr -match '(?m)^  pull-requests: write' -and $releasePr -match '(?m)^  contents: write') 'release-pr.yml runs Update-ReleasePr.ps1 with the permissions to push its branch and open the pull request'
 # The plugin manifest declares no version: Claude Code then takes every commit on main as a new version of the plugin, so a game that
 # enables it from GitHub gets each merged change. A `version` there would hold every game at the last one until it changed.
 $manifest = Get-Content -LiteralPath (Join-Path $root '.claude-plugin/plugin.json') -Raw | ConvertFrom-Json -AsHashtable

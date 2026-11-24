@@ -119,6 +119,9 @@ jobs:
       - name: The release notes are the changelog section of exactly that version
         shell: pwsh
         run: ./tests/Test-ReleaseNotes.ps1
+      - name: The release pull request holds the next version from the fragments, is opened, updated after a force push and closed when nothing is left, and names the setting it needs (a stand-in gh)
+        shell: pwsh
+        run: ./tests/Test-ReleasePr.ps1
       - name: The workflows hold what cannot be run here - a pull request's own concurrency group, a release that cannot end green without exports, the canary's upstream code with no write token, whole-string version matches
         shell: pwsh
         run: ./tests/Test-WorkflowLint.ps1

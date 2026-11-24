@@ -296,23 +296,51 @@ not require a fragment.
 
 ## Releasing
 
+A release is a pull request the owner merges. The ruleset on `main` lets no workflow push there, so the changelog is
+assembled on a branch, and merging it is the decision to release:
+
+1. After each push to `main` that passes `Self-test`, `.github/workflows/release-pr.yml` ("Release PR") runs
+   `.github/scripts/Update-ReleasePr.ps1`: it rebuilds the branch `release/next` from that commit with the
+   `changelog.d/` fragments assembled into a new `CHANGELOG.md` section (`Update-Changelog.ps1 -Version <next>`),
+   force-pushes it, and opens the pull request "Release x.y.z" with the section as its body, or updates the open one. A
+   run for a commit `main` has already moved past does nothing (the newer commit's run follows). With no fragments left
+   an open release pull request is closed.
+2. The version follows the fragments (`Update-Changelog.ps1 -Next`): from the newest `## x.y.z - ` section, the minor
+   goes up when any fragment is `Added`, `Changed`, `Removed` or `Deprecated`, the patch when all are `Fixed` or
+   `Security`. The major never goes up by itself: run Release PR by hand with its `version` input (for example
+   `1.0.0`) and the pull request is rebuilt at that version.
+3. Merging the release pull request puts the section on `main`. When `Self-test` passes on that push, `release.yml` asks
+   `.github/scripts/Get-PendingRelease.ps1`: the highest `## x.y.z - ` section without a `v<x.y.z>` tag is released, but
+   only from the commit that added it (`git log --first-parent -S`, so a squash or a merge commit). A later commit whose
+   run ends first does not take the tag; its changes are not in the notes. If the run of the release commit fails, re-run
+   it, or run Release by hand with that version and commit (the skipped run names both). After every other push all
+   sections are tagged and it does nothing.
+
+The repository must let workflows open pull requests (Settings > Actions > General > Workflow permissions > "Allow GitHub
+Actions to create and approve pull requests"); without it the Release PR run fails and names that setting, with the
+branch already pushed. Pull requests opened with the workflow's token start no workflows, so the release pull request shows
+no checks: it changes only `CHANGELOG.md` and `changelog.d/`, and `Self-test` runs in full on the push its merge makes,
+before anything is tagged. `tests/Test-ReleasePr.ps1` (in `lint`) runs both scripts against a temporary repository and a
+stand-in `gh`.
+
 `.github/workflows/release.yml` ("Release") tags and publishes a release. Tags cannot be pushed from the cloud session (its
-git proxy answers 403 for tag pushes), so a workflow makes them. Run it from Actions > Release > Run workflow, or
-`gh workflow run release.yml -f version=0.1.0 [-f sha=<commit>]`:
+git proxy answers 403 for tag pushes), so a workflow makes them. Besides the automatic run above, it runs from Actions >
+Release > Run workflow, or `gh workflow run release.yml -f version=0.1.0 [-f sha=<commit>]`:
 
 | Input | |
 |---|---|
 | `version` | Required, `x.y.z` without the `v`. |
 | `sha` | Optional; the head of the branch the run is dispatched on when empty. |
+| `major_tag` | Optional; `v<major>` when empty, and `v1` for a 0.x release (games pin `@v1`). |
 
 It stops before changing anything unless: the commit is reachable from `origin/main` and has a successful `Self-test` run for
 a push to `main` (read with `gh api`; this needs read access to workflow runs, the default for a public repository, and on a
 private one the check fails closed until `actions: read` is added to the workflow's permissions); `CHANGELOG.md` has a
 `## <version> - ` section (`.github/scripts/Get-ChangelogSection.ps1`, held by `tests/Test-ReleaseNotes.ps1`). (`.claude-plugin/plugin.json` declares no version, so Claude Code treats every commit on `main` as a new version of the plugin; the release version lives in the tag and the changelog.) Then it creates the annotated tag `v<version>` (it fails if that tag
 exists at another commit: version tags are never moved; at this commit it is left alone, so a run can be repeated), creates or force-moves the moving tag (the one tag that moves, as games pin
-`@v1`; `.github/scripts/Test-MajorTagMove.ps1` leaves it where it is, with a notice, when a tag of a greater version of the same major exists, so releasing 1.2.1 after 1.3.0 does not move `v1` backwards; the repeated run of the version already tagged still moves it): `v<major>` by default, or the `major_tag` input, which a 0.x release sets to `v1`; it pushes both as `github-actions[bot]`, and runs `gh release create v<version> --verify-tag` with the changelog section
+`@v1`; `.github/scripts/Test-MajorTagMove.ps1` leaves it where it is, with a notice, when a tag of a greater version up to the moving tag's major exists, so releasing 1.2.1 after 1.3.0 does not move `v1` backwards, and neither does a 0.x release after 1.0.0; the repeated run of the version already tagged still moves it): `v<major>` by default and `v1` for 0.x, or the `major_tag` input; it pushes both as `github-actions[bot]`, and runs `gh release create v<version> --verify-tag` with the changelog section
 as the notes (cut near 120000 characters, the limit of a release body, with a link to the changelog). Tags pushed with the
-workflow's token start no other workflow. A change to `release.yml` or its scripts (`Get-ChangelogSection.ps1`, `Test-MajorTagMove.ps1`) runs `lint` alone. The version and the major tag are matched whole (`\A[0-9]+\.[0-9]+\.[0-9]+\z`): `$` accepts a trailing newline and `\d` Unicode digits in .NET.
+workflow's token start no other workflow. A change to `release.yml`, `release-pr.yml` or their scripts (`Get-ChangelogSection.ps1`, `Test-MajorTagMove.ps1`, `Update-ReleasePr.ps1`, `Get-PendingRelease.ps1`) runs `lint` alone. The version and the major tag are matched whole (`\A[0-9]+\.[0-9]+\.[0-9]+\z`): `$` accepts a trailing newline and `\d` Unicode digits in .NET.
 
 `tests/Test-WorkflowLint.ps1` (in `lint`) reads the workflows as text for what cannot run here: a pull request's concurrency group is `pr-<number>` (the branch name alone made pull requests of two forks cancel each other), `release: true` with no `exports` fails the `test` job of `godot.yml` instead of ending green without a release, and `canary.yml` runs the upstream code (the `try` job) with read permission, no token and no stored credentials, while `propose`, which has the write permissions, applies the patch it made and runs none of that code. Every action from another repository is pinned to a commit SHA with its version in a comment (`actions/checkout@<sha> # v7`), the Claude Code CLI and `uv` are installed at a version, and `.github/dependabot.yml` proposes the weekly bumps of the actions; the lint fails on a tag.
 

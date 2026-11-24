@@ -19,6 +19,13 @@
     pwsh ci/godot/tools/Update-Changelog.ps1 -Version 0.1.0
 .EXAMPLE
     pwsh ci/godot/tools/Update-Changelog.ps1 -Version 0.1.0 -Check     # only validate the fragments
+.EXAMPLE
+    pwsh ci/godot/tools/Update-Changelog.ps1 -Next                     # print the next version (nothing without fragments)
+
+.NOTES
+    The next version (-Next, or -Version next) follows the newest `## x.y.z - ` section: the minor goes up when a fragment
+    is Added, Changed, Removed or Deprecated, the patch when all are Fixed or Security. The major never goes up on its own;
+    pass that version by hand.
 #>
 [CmdletBinding()]
 param(
@@ -26,7 +33,9 @@ param(
     [string]$Date = [datetime]::UtcNow.ToString('yyyy-MM-dd', [cultureinfo]::InvariantCulture),
     [string]$Root = (Join-Path $PSScriptRoot '../../..'),
     # Validate the fragments and print what would be written; change nothing. -Version is not needed.
-    [switch]$Check
+    [switch]$Check,
+    # Print only the next version (see .NOTES), or nothing when there are no fragments; change nothing.
+    [switch]$Next
 )
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
@@ -61,6 +70,25 @@ if (Test-Path -LiteralPath $dir) {
 }
 $fragments = @(foreach ($file in $files) { Read-Fragment $file })
 
+# The newest released version in CHANGELOG.md (0.0.0 before the first), bumped by the kinds of change the fragments hold.
+function Get-NextVersion {
+    $latest = [version]'0.0.0'
+    if (Test-Path -LiteralPath $changelog) {
+        foreach ($m in [regex]::Matches([System.IO.File]::ReadAllText($changelog), '(?m)^## ([0-9]+)\.([0-9]+)\.([0-9]+) - ')) {
+            $v = [version]::new([int]$m.Groups[1].Value, [int]$m.Groups[2].Value, [int]$m.Groups[3].Value)
+            if ($v -gt $latest) { $latest = $v }
+        }
+    }
+    $minor = @($fragments | Where-Object { $_.Category -in 'Added', 'Changed', 'Removed', 'Deprecated' }).Count -gt 0
+    if ($minor) { return "$($latest.Major).$($latest.Minor + 1).0" }
+    return "$($latest.Major).$($latest.Minor).$($latest.Build + 1)"
+}
+if ($Next) {
+    if ($fragments.Count) { Get-NextVersion }
+    return
+}
+if ($Version -eq 'next' -and $fragments.Count) { $Version = Get-NextVersion }
+
 if ($fragments.Count -eq 0) { Write-Host 'No fragments in changelog.d/: CHANGELOG.md is unchanged.'; return }
 
 $groups = foreach ($category in $categories) {
@@ -78,9 +106,9 @@ $text = [System.IO.File]::ReadAllText($changelog).Replace("`r`n", "`n")
 $m = [regex]::Match($text, '(?m)^## Unreleased[ \t]*\n')
 if (-not $m.Success) { throw 'CHANGELOG.md has no "## Unreleased" heading to turn into the new version' }
 $tail = $text.Substring($m.Index + $m.Length)
-$next = [regex]::Match($tail, '(?m)^## ')
-$legacy = $(if ($next.Success) { $tail.Substring(0, $next.Index) } else { $tail }).Trim()
-$after = if ($next.Success) { $tail.Substring($next.Index) } else { '' }
+$nextHeading = [regex]::Match($tail, '(?m)^## ')
+$legacy = $(if ($nextHeading.Success) { $tail.Substring(0, $nextHeading.Index) } else { $tail }).Trim()
+$after = if ($nextHeading.Success) { $tail.Substring($nextHeading.Index) } else { '' }
 if ([regex]::IsMatch($text, "(?m)^## $([regex]::Escape($Version))( |$)")) { throw "CHANGELOG.md already has a section for $Version" }
 
 $section = "## $Version - $Date`n" + $(if ($legacy) { "$legacy`n`n" } else { '' }) + "$assembled`n"

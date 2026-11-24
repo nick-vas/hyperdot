@@ -18,4 +18,7 @@ Fixed: `bench -Sweep` named ' ' instead of the values.
 - At release the entries sit under `### <Category>` in that order, sorted by slug. The text under the old `## Unreleased`
   heading of `CHANGELOG.md` stays first in the new section.
 
-`pwsh ci/godot/tools/Update-Changelog.ps1 -Check` validates the fragments and shows the result without changing anything.
+`pwsh ci/godot/tools/Update-Changelog.ps1 -Check` validates the fragments and shows the result without changing anything;
+`-Next` prints the version they call for. The category decides it: `Added`, `Changed`, `Removed` or `Deprecated` raise the
+minor, `Fixed` and `Security` alone the patch. The release pull request (`release-pr.yml`, [docs/ci.md](../docs/ci.md#releasing))
+assembles them; nobody runs this by hand.
