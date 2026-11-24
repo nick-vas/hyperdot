@@ -1,1 +1,0 @@
-Changed: `docs/skills-quality.md` records why skill descriptions do not get a "not for X, see Y" clause: 98 routings of 49 messages (14 written to sit between two skills) by a subagent that saw only the names and descriptions all landed on the expected skill, so there was no misrouting to fix.

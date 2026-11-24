@@ -1,1 +1,0 @@
-Changed: `ci/godot/addons-status.json` records what a look on 2026-11-03 found: py4godot is still a prototype (new commits since 2026-10-08, but its README still calls it a demo and its newest tag is still 4.7-alpha21) and godot-luaAPI is still archived (its tags now run to v2.1-beta11, but the release assets could not be read, so `docs/roadmap.md` lists what is left to do).

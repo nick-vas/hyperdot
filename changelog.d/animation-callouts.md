@@ -1,1 +1,0 @@
-Added: The `animation` skill covers reward screens and callouts (jackpots, combos, mode intros, attract loops): one thing moving at a time, an energy curve, many short pieces, a tested priority stack in which no covered callout expires unseen, and low-resolution dot-matrix displays; `game-juice` cites *The Art of Screenshake*, and `docs/art.md` lists the sources.

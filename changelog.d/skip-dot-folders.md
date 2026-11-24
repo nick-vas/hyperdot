@@ -1,1 +1,0 @@
-Fixed: the project file search skips every folder whose name starts with a dot (`.git`, `.godot`, `.claude`), as Godot does, not only `.godot`. On Windows `.claude/worktrees` holds whole copies of the game, which the `architecture` scan read, so other branches' `Benchmark.cs` and `GameManager.cs` showed up as the game's warnings; they also made every walk slower. Fixes #232.

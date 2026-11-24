@@ -1,1 +1,0 @@
-Removed: The GitLab CI template (`ci/gitlab/`), which never ran on a GitLab runner and had no known users, with its self-test and the `ci` plan gate's GitLab check; `test` still writes every runner's results as JUnit (`junitDir`) for any CI that reads JUnit.

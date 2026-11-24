@@ -1,1 +1,0 @@
-Fixed: five skills (`mobile-web`, `multiplayer`, `servers`, `steam`, `store-page`) had a `: ` inside an unquoted `description`, which is not valid YAML, so a strict parser refused their front matter; the descriptions are quoted now, and `Test-Skills.ps1` reports a plain `name` or `description` that is not valid YAML (`frontmatter-yaml`, with the fixture `bad-yaml`).

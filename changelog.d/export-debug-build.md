@@ -1,1 +1,0 @@
-Added: `export -DebugBuild` makes debug builds (`debug: true` in `exports[]`), and an Android export with no keystore fails with `export-no-keystore` and a message naming the variables to set and `-DebugBuild`, instead of `export-failed` "exited with 1" (#257)

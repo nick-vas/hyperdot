@@ -1,1 +1,0 @@
-Changed: the remaining awesome lists (production, magictools, open-source games, Steam Deck, testing) are read entry by entry in `docs/awesome-lists.md`, six authoring tools are in `docs/addons.md`, and OpenLiberty is named as the field-test target.
