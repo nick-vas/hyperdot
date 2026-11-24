@@ -125,6 +125,9 @@ jobs:
       - name: The selection of what a change runs (the sample of pairs, the pairs of a changed game, everything on main) holds
         shell: pwsh
         run: ./tests/Test-SelectJobs.ps1
+      - name: The Evals and Token benchmark workflows sign in with the chosen secret only, a subscription token or an API key, and name what is missing
+        shell: pwsh
+        run: ./tests/Test-ClaudeAuth.ps1
       - name: Each job's input hash moves with the files it reads and the runner, and the observations name what to record (stage 0 of the CI cache)
         shell: pwsh
         run: ./tests/Test-InputHash.ps1
