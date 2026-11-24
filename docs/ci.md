@@ -318,9 +318,17 @@ assembled on a branch, and merging it is the decision to release:
 
 The repository must let workflows open pull requests (Settings > Actions > General > Workflow permissions > "Allow GitHub
 Actions to create and approve pull requests"); without it the Release PR run fails and names that setting, with the
-branch already pushed. Pull requests opened with the workflow's token start no workflows, so the release pull request shows
-no checks: it changes only `CHANGELOG.md` and `changelog.d/`, and `Self-test` runs in full on the push its merge makes,
-before anything is tagged. `tests/Test-ReleasePr.ps1` (in `lint`) runs both scripts against a temporary repository and a
+branch already pushed.
+
+GitHub runs no workflow for an event the workflow's own token makes (so that workflows cannot start each other in a loop),
+and the release pull request is opened with that token. Its `Self-test` is therefore not run: the Actions list shows a
+`Self-test` run of the `release/next` branch by `github-actions[bot]` that ends at once as **Startup failure**, with no
+jobs, no logs and no check on the pull request (run 45474206984, the first one, for 0.2.0). That is expected, not a broken
+workflow file: the same `self-test.yml` runs on every other pull request, and the release branch changes only
+`CHANGELOG.md` and `changelog.d/`. Merge it anyway; `Self-test` runs in full on the push the merge makes, and nothing is
+tagged before it passes. Giving the release pull request real checks would take a token that is not the workflow's own (a
+GitHub App's or a personal one) or a `workflow_dispatch` of `Self-test` on the branch, which repeats the whole run the merge
+makes anyway. `tests/Test-ReleasePr.ps1` (in `lint`) runs both scripts against a temporary repository and a
 stand-in `gh`.
 
 `.github/workflows/release.yml` ("Release") tags and publishes a release. Tags cannot be pushed from the cloud session (its
