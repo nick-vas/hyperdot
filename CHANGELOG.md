@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.3.0 - 2026-11-25
+### Changed
+- the add-on status list records py4godot at cece1f2 (2026-11-24): still a demo by its README, newest release still 4.7-alpha21, so `doctor` keeps calling it a prototype (#293)
+
+### Fixed
+- `docs/ci.md` gave the wrong cause for the release pull request's Startup failure. The run page says "Actor is not allowed to trigger Actions workflows": an Actions policy that restricts actors (Settings > Actions > Policies) does not list `github-actions[bot]`, and it stops Dependabot's pull requests the same way (#252). The page now says so and what to add.
+
 ## 0.2.1 - 2026-11-24
 ### Fixed
 - `docs/ci.md` said the release pull request starts no workflows. GitHub records a `Self-test` run for it that ends at once as Startup failure (no jobs, no logs), because it runs no workflow for an event the workflow's own token makes; the page now says so, why it is harmless, and what real checks there would take.
