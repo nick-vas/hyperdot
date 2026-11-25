@@ -1,0 +1,1 @@
+Added: `docs/token-benchmark.md` records the tool programme on 0.3.0 (run 45592866436, all four configurations and three profiles, three runs each, $10.56 on an API key): the plugin still adds 13% (Haiku) and 22% (Sonnet) to the index at the same pass rate, and Haiku's profile A passed 79.2% against 95.8% in October.
