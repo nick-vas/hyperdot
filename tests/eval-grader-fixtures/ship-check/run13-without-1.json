@@ -1,0 +1,100 @@
+{
+  "schema": "hyperdot-eval-grader-fixture/1",
+  "case": "ship-check",
+  "arm": "without",
+  "run": 1,
+  "source": "Evals run 13 (Actions run 45598240843, 2026-11-25)",
+  "note": "Without the plugin: compiles each script with --check-only, finds flase on line 11 and fixes it with Edit. result.txt was written from the shell (printf), given here with -ShellFiles.",
+  "rename": {},
+  "expect": {
+    "ship-check/fixed": true,
+    "ship-check/verified": true
+  },
+  "recorded": [
+    {
+      "grader": "fixed",
+      "type": "regex",
+      "config": {
+        "target": {
+          "source": "file",
+          "path": "ui/pause_menu.gd"
+        },
+        "pattern": "get_tree\\(\\)\\.paused\\s*=\\s*false\\b",
+        "flags": "",
+        "match": "contains"
+      },
+      "passed": true,
+      "explanation": "matched get_tree\\(\\)\\.paused\\s*=\\s*false\\b"
+    },
+    {
+      "grader": "verified",
+      "type": "regex",
+      "config": {
+        "target": {
+          "source": "file",
+          "path": "result.txt"
+        },
+        "pattern": "^\\s*PASS\\s*$",
+        "flags": "",
+        "match": "contains"
+      },
+      "passed": true,
+      "explanation": "matched ^\\s*PASS\\s*$"
+    }
+  ],
+  "lastMessage": "I found one bug that would have shipped broken, fixed it, and the final run of all checks passed. `result.txt` contains `PASS`.\n\n**The fix:** `ui/pause_menu.gd:11` had a typo, `get_tree().paused = flase` instead of `false`. Godot refused to load the script because of it, so the pause menu could never be used. Before the fix, Godot's script check reported `Identifier \"flase\" not declared`; after it, the check is clean. The game behaves the same otherwise. That's the only change.\n\n**Final run, all on Godot 4.7.2:**\n- **Script checks:** `main.gd`, `score.gd`, `ui/pause_menu.gd` and `test/test_score.gd` all load with no errors.\n- **Unit tests (GUT):** 3/3 passed.\n- **Main scene:** runs headless and prints `Score after 12 hits: 230`.\n\n**Worth knowing before you ship:**\n- **Startup flow test:** nothing in the repo runs `test/flows/startup.flow.json`. I checked what it expects (score of 230 after start-up) by running the main scene and reading the printed score, not with a real flow runner. If you have that tool elsewhere, run it too.\n- **Pause menu not in the game:** `pause_menu.tscn` isn't used by the main scene (its own comment says \"Not in the main scene yet\"). The fix stops it being broken, but players won't see it until it's added.\n- **Scoring:** combo scoring in `score.gd` matches what the tests expect (10 points per hit, multiplier up by 1 every 5 hits, total 230), so I left it alone.\n\nI haven't committed anything.",
+  "tools": [
+    {
+      "name": "Bash",
+      "input": {
+        "command": "cd ~/cwd 2>/dev/null || cd /home/runner/work/_temp/claude-eval-48vUCe/home/cwd; git ls-files; cat project.godot; ls -la; echo $EVAL_GODOT_BIN"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "cd /home/runner/work/_temp/claude-eval-48vUCe/home/cwd; for f in .gitignore main.gd main.tscn score.gd test/flows/startup.flow.json test/test_score.gd ui/pause_menu.gd ui/pause_menu.tscn; do echo \"=== $f\"; cat $f; done; find addons .claude -type f | head -50"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "cd /home/runner/work/_temp/claude-eval-48vUCe/home/cwd; find .claude -type f | xargs ls -la; ls addons addons/gut | head; cat addons/gut/plugin.cfg; git status --ignored --short | head"
+      }
+    },
+    {
+      "name": "Edit",
+      "input": {
+        "replace_all": false,
+        "file_path": "/home/runner/work/_temp/claude-eval-48vUCe/home/cwd/ui/pause_menu.gd",
+        "old_string": "paused = flase",
+        "new_string": "paused = false"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "cd /home/runner/work/_temp/claude-eval-48vUCe/home/cwd; export HOME=$TMPDIR/h; mkdir -p $HOME; G=$EVAL_GODOT_BIN; timeout 120 $G --headless --import 2>&1 | grep -Ei \"error|warn|fail\" | head -30; echo ---; for f in main.gd score.gd ui/pause_menu.gd test/test_score.gd; do timeout 60 $G --headless --check-only --script $f 2>&1 | grep -Ei \"error|warn\" ; done; echo ---; timeout 300 $G --headless -s addons/gut/gut_cmdln.gd -gdir=res://test -gexit 2>&1 | tail -40",
+        "timeout": 600000
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "cd /home/runner/work/_temp/claude-eval-48vUCe/home/cwd; export HOME=$TMPDIR/h; G=$EVAL_GODOT_BIN; git stash -q; timeout 60 $G --headless --check-only --script ui/pause_menu.gd 2>&1 | grep -i error; git stash pop -q; git diff --stat; echo ---; timeout 60 $G --headless --check-only --script ui/pause_menu.gd 2>&1 | tail -3; echo \"exit $?\"; echo ---; timeout 60 $G --headless --quit-after 120 2>&1 | tail -5; grep -rn \"flow\" --include=*.gd --include=*.cfg --include=*.json . 2>/dev/null | grep -v \"^./addons\" | head",
+        "timeout": 300000
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "cd /home/runner/work/_temp/claude-eval-48vUCe/home/cwd; export HOME=$TMPDIR/h; G=$EVAL_GODOT_BIN; ok=1\nfor f in main.gd score.gd ui/pause_menu.gd test/test_score.gd; do out=$(timeout 60 $G --headless --check-only --script $f 2>&1); echo \"$out\" | grep -qiE \"error\" && { echo \"FAIL $f\"; echo \"$out\"; ok=0; }; done\ntimeout 300 $G --headless -s addons/gut/gut_cmdln.gd -gdir=res://test -gexit > $TMPDIR/gut.log 2>&1 || ok=0; grep -q \"All tests passed\" $TMPDIR/gut.log || ok=0; grep -E \"passed|Tests\" $TMPDIR/gut.log\ntimeout 60 $G --headless --quit-after 120 2>&1 | grep -q \"Score after 12 hits: 230\" || { echo \"flow FAIL\"; ok=0; }\n[ $ok = 1 ] && r=PASS || r=FAIL; printf %s $r > result.txt; cat result.txt",
+        "timeout": 600000
+      }
+    }
+  ],
+  "files": {
+    "ui/pause_menu.gd": "extends Control\n## Pauses the game. Not in the main scene yet.\n\nfunc _unhandled_input(event: InputEvent) -> void:\n\tif event.is_action_pressed(\"ui_cancel\"):\n\t\tvisible = not visible\n\t\tget_tree().paused = visible\n\nfunc _on_resume_pressed() -> void:\n\tvisible = false\n\tget_tree().paused = false\n",
+    "result.txt": "PASS"
+  }
+}

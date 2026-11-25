@@ -1,0 +1,122 @@
+{
+  "schema": "hyperdot-eval-grader-fixture/1",
+  "case": "startup-total",
+  "arm": "with",
+  "run": 1,
+  "source": "Evals run 13 (Actions run 45598240843, 2026-11-25)",
+  "note": "Moves the cap onto the multiplier with Edit (1 + mini(combo / 5, 9)), a real fix: the multiplier rises every fifth hit up to x10. The fixed pattern of the run (only 1 + combo / 5) failed it; the corrected one passes it. result.txt was written from the shell (printf), given here with -ShellFiles.",
+  "rename": {},
+  "expect": {
+    "startup-total/checks-kept": true,
+    "startup-total/fixed": true,
+    "startup-total/verified": true
+  },
+  "recorded": [
+    {
+      "grader": "checks-kept",
+      "type": "regex",
+      "config": {
+        "target": {
+          "source": "file",
+          "path": "test/flows/startup.flow.json"
+        },
+        "pattern": "\"equals\"\\s*:\\s*230\\b",
+        "flags": "",
+        "match": "contains"
+      },
+      "passed": true,
+      "explanation": "matched \"equals\"\\s*:\\s*230\\b"
+    },
+    {
+      "grader": "fixed",
+      "type": "regex",
+      "config": {
+        "target": {
+          "source": "file",
+          "path": "score.gd"
+        },
+        "pattern": "\\(\\s*1\\s*\\+\\s*combo\\s*/\\s*5\\s*\\)",
+        "flags": "",
+        "match": "contains"
+      },
+      "passed": false,
+      "explanation": "pattern not found in file score.gd"
+    },
+    {
+      "grader": "verified",
+      "type": "regex",
+      "config": {
+        "target": {
+          "source": "file",
+          "path": "result.txt"
+        },
+        "pattern": "^\\s*PASS\\s*$",
+        "flags": "",
+        "match": "contains"
+      },
+      "passed": true,
+      "explanation": "matched ^\\s*PASS\\s*$"
+    }
+  ],
+  "lastMessage": "The combo multiplier stopped growing after it reached ×2. The scoring code in `score.gd:10` capped the hit count at 9 before dividing by 5, so the multiplier could never get past ×2. Hits 1–4 scored ×1 and every hit from the 5th onward scored ×2, however long the combo ran. Players were losing the reward they expected for long combos. That's why it \"felt off\" without being obviously broken.\n\n**Fix:** I moved the cap so it applies after the division:\n\n```gdscript\nvar gained := value * (1 + mini(combo / 5, 9))\n```\n\nNow every fifth hit in a row adds one to the multiplier (×1, ×2, ×3, …). The project's own checks expect exactly this: the startup flow expects 230 points after 12 hits of 10 (40 + 100 + 90). The old code gave 200, but no check caught it before because the unit test only covers the first five hits.\n\nOne judgement call: I kept the 9 as a cap on the bonus, which puts the top multiplier at ×10. Nothing in the project says what the cap was meant to be. If the design intends a different maximum, or no cap at all, it's that one number.\n\n**Checks:** I ran the full suite after the fix and it passed: validate 4/4, architecture 14/14, GUT 2/2, flows 1/1, smoke 1/1. I didn't change any tests or checks. `result.txt` contains `PASS`.\n\nRunning the checks made Godot generate three untracked `.uid` files, which I left alone. I haven't committed anything.",
+  "tools": [
+    {
+      "name": "Bash",
+      "input": {
+        "command": "cd /home/runner/work/_temp/claude-eval-sGvtXR/home/cwd; git ls-files; cat README* CLAUDE.md 2>/dev/null | head -50; git show --stat HEAD | head"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "cd /home/runner/work/_temp/claude-eval-sGvtXR/home/cwd; for f in main.gd main.tscn project.godot score.gd test/flows/startup.flow.json test/test_score.gd .gitignore; do echo \"== $f\"; cat $f; done"
+      }
+    },
+    {
+      "name": "Skill",
+      "input": {
+        "skill": "hyperdot:verify-before-done"
+      }
+    },
+    {
+      "name": "Edit",
+      "input": {
+        "replace_all": false,
+        "file_path": "/home/runner/work/_temp/claude-eval-sGvtXR/home/cwd/score.gd",
+        "old_string": "\tvar gained := value * (1 + mini(combo, 9) / 5)",
+        "new_string": "\tvar gained := value * (1 + mini(combo / 5, 9))"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "cd /home/runner/work/_temp/claude-eval-sGvtXR/home/cwd; export GODOT_BIN=\"$EVAL_GODOT_BIN\"; pwsh /home/runner/work/hyperdot/hyperdot/ci/godot/hyperdot.ps1 test -Json -Quiet 2>&1 | tail -80",
+        "timeout": 600000
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "cd /home/runner/work/_temp/claude-eval-sGvtXR/home/cwd; export GODOT_BIN=\"$EVAL_GODOT_BIN\"; pwsh /home/runner/work/hyperdot/hyperdot/ci/godot/hyperdot.ps1 test -Json -Quiet > $TMPDIR/r.json 2>&1; python3 -c \"\nimport json,sys;d=json.load(open('$TMPDIR/r.json'));print(d['ok'],d.get('error'));[print(r['runner'],r['ok'],r['passed'],'/',r['total']) for r in d['runnerResults']]\"",
+        "timeout": 600000
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "cd /home/runner/work/_temp/claude-eval-sGvtXR/home/cwd; head -c 600 $TMPDIR/r.json; echo; grep -n '\"ok\"\\|\"runner\"\\|\"total\"\\|\"code\"' $TMPDIR/r.json | head -40"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "cd /home/runner/work/_temp/claude-eval-sGvtXR/home/cwd; printf 'PASS' > result.txt; git diff"
+      }
+    }
+  ],
+  "files": {
+    "score.gd": "class_name Score\nextends RefCounted\n## Combo scoring, kept engine-light so it is easy to unit test with GUT.\n\nvar points := 0\nvar combo := 0\n\nfunc hit(value: int) -> int:\n\tcombo += 1\n\tvar gained := value * (1 + mini(combo / 5, 9))\n\tpoints += gained\n\treturn gained\n\nfunc miss() -> void:\n\tcombo = 0\n",
+    "test/flows/startup.flow.json": "{\n  \"name\": \"the main scene scores its twelve hits at start-up\",\n  \"scene\": \"res://main.tscn\",\n  \"seed\": 1,\n  \"steps\": [\n    { \"wait\": 2 },\n    { \"assert\": { \"node\": \".\", \"prop\": \"score:points\", \"equals\": 230 } }\n  ]\n}\n",
+    "result.txt": "PASS"
+  }
+}
