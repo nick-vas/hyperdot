@@ -1,1 +1,0 @@
-Fixed: `docs/ci.md` gave the wrong cause for the release pull request's Startup failure. The run page says "Actor is not allowed to trigger Actions workflows": an Actions policy that restricts actors (Settings > Actions > Policies) does not list `github-actions[bot]`, and it stops Dependabot's pull requests the same way (#252). The page now says so and what to add.
