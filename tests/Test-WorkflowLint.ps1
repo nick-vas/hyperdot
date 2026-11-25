@@ -89,6 +89,12 @@ foreach ($file in @(& git -C $root ls-files -z '*.ps1' '*.yml') -join '' -split 
 }
 Assert-True ($leftovers.Count -eq 0) "no version is matched with ^\d+\.\d+\.\d+ (accepts a trailing newline and Unicode digits): $($leftovers -join ', ')"
 
+# evals.yml: the case glob reaches the CLI quoted (PowerShell on Linux expands an unquoted or splatted s* against the
+# checkout; run 12's became `site`), and a run in which no case ran fails instead of ending green.
+$evals = Get-Workflow 'evals.yml'
+Assert-True ($evals -match [regex]::Escape('--case "$env:CASE"') -and $evals -notmatch '@caseArgs') 'evals.yml passes the case glob quoted, never splatted'
+Assert-True ($evals -match 'No eval case ran') 'evals.yml fails a run in which no case ran'
+
 # token-benchmark.yml
 $benchmark = Get-Workflow 'token-benchmark.yml'
 Assert-True ($benchmark -match 'Get-BenchmarkMinutes\.ps1' -and $benchmark -notmatch 'if \(\$minutes -gt 0\)') '-MaxMinutes is always set, by Get-BenchmarkMinutes.ps1'
