@@ -320,15 +320,18 @@ The repository must let workflows open pull requests (Settings > Actions > Gener
 Actions to create and approve pull requests"); without it the Release PR run fails and names that setting, with the
 branch already pushed.
 
-GitHub runs no workflow for an event the workflow's own token makes (so that workflows cannot start each other in a loop),
-and the release pull request is opened with that token. Its `Self-test` is therefore not run: the Actions list shows a
-`Self-test` run of the `release/next` branch by `github-actions[bot]` that ends at once as **Startup failure**, with no
-jobs, no logs and no check on the pull request (run 45474206984, the first one, for 0.2.0). That is expected, not a broken
-workflow file: the same `self-test.yml` runs on every other pull request, and the release branch changes only
-`CHANGELOG.md` and `changelog.d/`. Merge it anyway; `Self-test` runs in full on the push the merge makes, and nothing is
-tagged before it passes. Giving the release pull request real checks would take a token that is not the workflow's own (a
-GitHub App's or a personal one) or a `workflow_dispatch` of `Self-test` on the branch, which repeats the whole run the merge
-makes anyway. `tests/Test-ReleasePr.ps1` (in `lint`) runs both scripts against a temporary repository and a
+The release pull request's `Self-test` does not run. The Actions list shows a `Self-test` run of the `release/next`
+branch by `github-actions[bot]` that ends at once as **Startup failure**, with no jobs, no logs and no check on the pull
+request, and the run page says: "Actor is not allowed to trigger Actions workflows. Workflow file:
+'.github/workflows/self-test.yml'" (run 45500756564, for 0.2.1). That is an Actions policy of this repository's account,
+not the workflow file: a workflow execution protection that restricts actors (Settings > Actions > Policies,
+"Restrict actors") lets only the actors on its list start workflows, and `github-actions[bot]` is not on it. Dependabot's
+pull requests stop the same way (#252): GitHub's documentation says `dependabot[bot]` "must be added as an allowed actor"
+for workflows it should start ([control workflow execution](https://docs.github.com/en/actions/how-tos/administer/control-workflow-execution)).
+Merge the release pull request anyway: it changes only `CHANGELOG.md` and `changelog.d/`, `Self-test` runs in full on
+the push the merge makes, and nothing is tagged before it passes. Allowing `github-actions[bot]` in that policy would
+not be enough for real checks there either, since GitHub starts no workflow for most events the workflow's own token
+makes; that would take a token that is not the workflow's own (a GitHub App's or a personal one). `tests/Test-ReleasePr.ps1` (in `lint`) runs both scripts against a temporary repository and a
 stand-in `gh`.
 
 `.github/workflows/release.yml` ("Release") tags and publishes a release. Tags cannot be pushed from the cloud session (its
