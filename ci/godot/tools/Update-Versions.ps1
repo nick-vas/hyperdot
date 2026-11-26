@@ -213,6 +213,8 @@ $godotPins = @(
     @{ File = 'README.md'; Pattern = 'Verified on Godot {v}|pass on Godot {v}' }
     @{ File = 'evals/fix-score-bug/prompt.md'; Pattern = 'Godot {v} is installed' }
     @{ File = 'evals/explain-failure/prompt.md'; Pattern = 'Godot {v} is installed' }
+    @{ File = 'evals/startup-total/prompt.md'; Pattern = 'Godot {v} is installed' }
+    @{ File = 'evals/ship-check/prompt.md'; Pattern = 'Godot {v} is installed' }
 )
 $packageFiles = @($csprojs) + @('ci/godot/lib/Init.ps1', '.agents/skills/godot-test-loop/SKILL.md', 'docs/godot-pipelines.md')
 

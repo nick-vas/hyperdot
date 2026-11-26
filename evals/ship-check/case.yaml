@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: ship-check
+tags: [core]
+context:
+  scaffold_script: scaffold.sh

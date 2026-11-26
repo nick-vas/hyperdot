@@ -7,7 +7,7 @@ Makes a grader fixture for tests/Test-EvalGraders.ps1 from one run of a real `cl
 Reads the Evals workflow's artifact: result.json (or aggregate-result.json) and, when the run kept it, the run's
 transcript (traces/<case>-<arm>-<n>.jsonl). The fixture keeps what the free graders read: the tool calls (name and input),
 the last message, and the files the regex graders read, replayed from the session's Edit and Write calls on -StartFiles
-(a file changed by a shell command is not replayed). Without a transcript the last message comes from a model grader's
+(a file changed by a shell command is not replayed; -ShellFiles gives such a file as the transcript wrote it). Without a transcript the last message comes from a model grader's
 evidence, which is the whole answer, and the tool calls stay unknown.
 
 It also records each free grader's verdict in that run with the grader's configuration then, so the self-test can show
@@ -26,6 +26,9 @@ param(
     [Parameter(Mandatory)][int]$Run,
     # Workspace files as the scaffold left them (name in the workspace = file on disk), for the Edit and Write replay.
     [hashtable]$StartFiles = @{},
+    # Files the session wrote from the shell (printf PASS > result.txt), with their content as the run's graders saw it: the
+    # replay follows only Edit and Write calls. Name each only from the transcript's own command.
+    [hashtable]$ShellFiles = @{},
     [Parameter(Mandatory)][hashtable]$Expect,
     # Names the kit has had since the run ("old" = "new"), applied before the graders as they are now judge the session.
     [hashtable]$Rename = @{},
@@ -68,7 +71,10 @@ foreach ($name in $StartFiles.Keys) { $files[$name] = [System.IO.File]::ReadAllT
 if ($null -ne $tools) {
     foreach ($call in $tools) {
         if ($call.name -notin 'Edit', 'Write' -or -not $call.input.PSObject.Properties['file_path']) { continue }
-        $name = Split-Path ([string]$call.input.file_path) -Leaf
+        # The workspace path the call names: a start file whose path ends the call's path (ui/pause_menu.gd), else the leaf.
+        $path = ([string]$call.input.file_path).Replace('\', '/')
+        $name = @($files.Keys | Where-Object { $path -eq $_ -or $path.EndsWith('/' + $_) } | Sort-Object Length -Descending) | Select-Object -First 1
+        if (-not $name) { $name = Split-Path $path -Leaf }
         if ($call.name -eq 'Write') { $files[$name] = [string]$call.input.content; continue }
         if (-not $files.Contains($name)) { continue }
         $old = [string]$call.input.old_string; $new = [string]$call.input.new_string
@@ -78,6 +84,7 @@ if ($null -ne $tools) {
         $files[$name] = if ($all) { $text.Replace($old, $new) } else { $text.Substring(0, $at) + $new + $text.Substring($at + $old.Length) }
     }
 }
+foreach ($name in $ShellFiles.Keys) { $files[$name] = [string]$ShellFiles[$name] }
 
 # The free graders' verdicts in that run, each with its configuration then.
 $recorded = [System.Collections.Generic.List[object]]::new()

@@ -130,6 +130,32 @@ the two apart; the plugin costs 17% more on `explain-failure` and 51% more on `f
 10 turns against 7). The difference the plugin makes is in the two reading cases of run 9. Harder command cases (a bug
 the code does not show, a test that must be written) are what would measure it on command work.
 
+Run 12 (2026-11-25, `case: s*`) measured nothing: PowerShell on Linux expanded the splatted `s*` against the checkout to
+`site`, no case matched, and the run ended green in 42 seconds at no cost. The workflow now passes the glob quoted and
+fails a run in which no case ran.
+
+Run 13 (2026-11-25, on the branch of the two new cases, 3 runs per arm, $2.20 on an API key): `startup-total` (a vague
+"scoring feels off" whose cap only the start-up flow catches) and `ship-check` (a pause menu script that does not compile,
+which no test loads). With the plugin every session loaded `verify-before-done` and ran the kit's `test` (and twice
+`doctor`); without it every session still found the bug: it compiled each script with `--check-only`, or ran the main
+scene and compared its printed total with the flow's 230.
+
+| Case | With | Without | Mean cost with | Mean cost without |
+|---|---:|---:|---:|---:|
+| ship-check | 1.00 (3 of 3) | 1.00 (3 of 3) | $0.215 | $0.181 |
+| startup-total, as graded | 0.47 | 0.40 | $0.183 | $0.155 |
+| startup-total, corrected graders | 1.00 (3 of 3) | 0.80 (2 of 3) | | |
+
+`startup-total`'s graders were wrong, not the sessions: five of six moved the cap onto the multiplier
+(`1 + mini(combo / 5, 9)`, a real fix up to x10), which `fixed` (only `1 + combo / 5`) and `diagnosis` ("removes the
+cap") both refused. Both now accept it. The sixth (without the plugin) raised the cap from 9 to 10: the start-up flow then
+passes at 230, but the multiplier stops at x3, so the bug moved and `fixed` still fails it (fixture
+`run13-without-3`). The corrected row is the free graders re-run on the sessions and the model grader read by hand, not
+a new run. So: a capable model finds both bugs without the kit, at 16 to 19% less cost; the one difference is a
+shortcut that passed the check without fixing the cause, one session of three, too few to call. Bugs the kit finds and
+reading or Godot alone do not (a flow that only the kit runs, an export, a check against `docs/json.md`) are what is
+left to try.
+
 There is no mode without a model: `--ablation none` halves the cost but still calls it. The skill validator and its
 fixtures (`Test-Skills.ps1`, `Test-SkillFixtures.ps1`) are the free checks; they test structure, not effect.
 

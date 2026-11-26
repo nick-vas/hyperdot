@@ -98,9 +98,14 @@ jobs:
           # folders go on the runner's own temp disk instead.
           TMPDIR: ${{ runner.temp }}
         run: |
-          $caseArgs = if ($env:CASE) { @('--case', $env:CASE) } else { @() }
           New-Item -ItemType Directory -Force evals/results | Out-Null
-          claude plugin eval . --runs $env:RUNS @caseArgs --scaffold --trust-plugin --allow-tools Bash Edit Write --no-publish --keep-temp --json evals/results/result.json
+          # The case glob is passed quoted, in place: PowerShell on Linux expands an unquoted or splatted argument such as s*
+          # against the checkout (run 12's s* became `site` and matched no case).
+          if ($env:CASE) {
+            claude plugin eval . --runs $env:RUNS --case "$env:CASE" --scaffold --trust-plugin --allow-tools Bash Edit Write --no-publish --keep-temp --json evals/results/result.json
+          } else {
+            claude plugin eval . --runs $env:RUNS --scaffold --trust-plugin --allow-tools Bash Edit Write --no-publish --keep-temp --json evals/results/result.json
+          }
           $result = Get-Content evals/results/result.json -Raw | ConvertFrom-Json
           # Each run's transcript, uploaded with the result: the scores alone do not say why a command failed.
           New-Item -ItemType Directory -Force evals/results/traces | Out-Null
@@ -115,6 +120,8 @@ jobs:
           # A low score is a result, not a failure; a run that never got graded (auth, rate limit, crash) is.
           $errors = @(foreach ($case in $result.cases) { foreach ($arm in $case.arms.PSObject.Properties) { foreach ($run in $arm.Value) { if ($run.error) { "$($case.name) ($($arm.Name)): $($run.error)" } } } })
           if ($result.partial -or $errors.Count) { throw "The evals did not finish: $($result.partialReason) $($errors -join '; ')" }
+          # No case at all (a case glob that matched none) is not a result either.
+          if (@($result.cases | Where-Object { $_ }).Count -eq 0) { throw "No eval case ran$(if ($env:CASE) { " (--case '$env:CASE' matched none under evals/)" }): nothing was measured" }
           # A run whose commands the sandbox refused graded the environment, not the plugin.
           # The run's transcripts too: a refused command appears there, and run 9's "apply-seccomp" passed the result alone.
           $refusal = 'bwrap: |Read-only file system|apply-seccomp|nested userns|/proc/self/setgroups'

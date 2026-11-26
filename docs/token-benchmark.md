@@ -379,6 +379,42 @@ What they show:
 Earlier runs (Sonnet on 2026-10-23 07:45 and 08:11, Haiku at 08:23, Sonnet with the plugin at 08:50) used a grader
 and sessions that could read the spec. They are superseded by the runs above.
 
+## Run on 0.3.0 (November 2026)
+
+Hyperdot 0.3.0 at commit `6ec45fc`, Claude Code 2.1.312, three runs of every task in all three profiles for all four
+configurations. This is GitHub Actions run 45592866436 (2026-11-25): 288 sessions (384 calls), every one run and graded
+(no retries, refusals or sessions left out), $10.56 billed to the API account (`auth: api-key`). The figures are
+`benchmark/Get-HyperdotLabel.ps1` on the run's four artifacts, without coverage; the scale is still October's.
+
+| Model | Profile | AEI | Pass | Tokens per solved task | Cost per solved task | Class |
+|---|---|---:|---:|---:|---:|---|
+| Haiku 5.5 | A-baseline | 100.5 | 79.2% | 95,023 | $0.0042 | F |
+| Haiku 5.5 | B-scoped | 111.5 | 79.2% | 89,077 | $0.0048 | |
+| Haiku 5.5 | C-iterative | 202.3 | 79.2% | 169,479 | $0.0185 | |
+| Haiku 5.5 + plugin | A-baseline | 113.9 | 79.2% | 107,694 | $0.0053 | G |
+| Haiku 5.5 + plugin | B-scoped | 153.5 | 79.2% | 129,844 | $0.0075 | |
+| Haiku 5.5 + plugin | C-iterative | 232.0 | 79.2% | 190,128 | $0.0216 | |
+| Sonnet 5.5 | A-baseline | 97.6 | 50% | 82,420 | $0.0646 | F |
+| Sonnet 5.5 | B-scoped | 108.9 | 50% | 97,292 | $0.0727 | |
+| Sonnet 5.5 | C-iterative | 216.7 | 54.2% | 164,284 | $0.1359 | |
+| Sonnet 5.5 + plugin | A-baseline | 119.3 | 50% | 106,760 | $0.1028 | G |
+| Sonnet 5.5 + plugin | B-scoped | 115.9 | 58.3% | 95,547 | $0.0964 | |
+| Sonnet 5.5 + plugin | C-iterative | 256.9 | 54.2% | 193,758 | $0.2605 | |
+
+What it shows:
+
+- **The plugin still costs on these tasks and gains nothing reliable.** With the same pass rate in every profile, it
+  adds 13% to Haiku's index (100.5 to 113.9) and 22% to Sonnet's (97.6 to 119.3); per solved task Sonnet pays $0.1028
+  against $0.0646. Sonnet's B-scoped rises from 50% to 58.3% with it, two tasks of 24, within noise. As in October,
+  these are tasks on Hyperdot's own code; `evals/` measures the plugin on game work.
+- **Haiku's profile A fell from 95.8% to 79.2% since October** (index 74.2 to 100.5). Its five failed answers of 24:
+  `DEBUG-GD-001` twice without `quarantine` (once also without `process_frame` and over the limit), `DEBUG-PS-001`
+  twice over the word limit, `CODE-PS-001` once without `Stop-GodotCi`. With three runs a task, one or two answers either
+  way move the rate by 4 to 8 points, so this is not yet a regression; `DEBUG-GD-001`'s `quarantine` is missed by
+  almost every configuration (`quarantine.json` is read by `ci/godot/hyperdot.ps1`, which is not in the task's context).
+- **Sonnet still fails on length**: most of its failed answers are over the stated word limit.
+- **Scoping and planning still do not pay**: B and C cost more per solved task than A in every configuration.
+
 ## Differences from the blueprint it started from
 
 | Blueprint | Here | Why |
