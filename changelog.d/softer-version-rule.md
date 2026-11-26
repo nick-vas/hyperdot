@@ -1,0 +1,1 @@
+Changed: the next version from the changelog fragments raises the minor only for `Added`, `Removed` or `Deprecated`; `Changed` alone now raises the patch, as `Fixed` and `Security` do (a recheck such as py4godot's took 0.2.1 to 0.3.0). `docs/ci.md` says the release pull request stays open and collects changes until the owner releases.

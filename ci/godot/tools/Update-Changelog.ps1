@@ -24,8 +24,8 @@
 
 .NOTES
     The next version (-Next, or -Version next) follows the newest `## x.y.z - ` section: the minor goes up when a fragment
-    is Added, Changed, Removed or Deprecated, the patch when all are Fixed or Security. The major never goes up on its own;
-    pass that version by hand.
+    is Added, Removed or Deprecated (something a game can start or stop using), the patch when all are Changed, Fixed or
+    Security. The major never goes up on its own; pass that version by hand.
 #>
 [CmdletBinding()]
 param(
@@ -79,7 +79,7 @@ function Get-NextVersion {
             if ($v -gt $latest) { $latest = $v }
         }
     }
-    $minor = @($fragments | Where-Object { $_.Category -in 'Added', 'Changed', 'Removed', 'Deprecated' }).Count -gt 0
+    $minor = @($fragments | Where-Object { $_.Category -in 'Added', 'Removed', 'Deprecated' }).Count -gt 0
     if ($minor) { return "$($latest.Major).$($latest.Minor + 1).0" }
     return "$($latest.Major).$($latest.Minor).$($latest.Build + 1)"
 }
