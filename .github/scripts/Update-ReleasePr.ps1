@@ -70,7 +70,7 @@ $notes = (Invoke-Native 'Get-ChangelogSection.ps1' { pwsh -NoProfile -NonInterac
 $intro = @"
 Merging this releases **$Version**. Once Self-test passes on $Base, the Release workflow tags ``v$Version``, moves the major tag games pin and publishes the notes below.
 
-This branch is rebuilt from $Base ($($head.Substring(0, 7))) after every green push, from its $count changelog fragment(s); change the fragments on $Base, not here. The version follows the fragments: the minor goes up for Added, Changed, Removed or Deprecated, the patch for Fixed or Security alone. For another version, run the Release PR workflow by hand with that version.
+This branch is rebuilt from $Base ($($head.Substring(0, 7))) after every green push, from its $count changelog fragment(s); change the fragments on $Base, not here. The version follows the fragments: the minor goes up for Added, Removed or Deprecated, the patch for Changed, Fixed or Security alone. For another version, run the Release PR workflow by hand with that version.
 
 ---
 

@@ -306,10 +306,11 @@ assembled on a branch, and merging it is the decision to release:
    run for a commit `main` has already moved past does nothing (the newer commit's run follows). With no fragments left
    an open release pull request is closed.
 2. The version follows the fragments (`Update-Changelog.ps1 -Next`): from the newest `## x.y.z - ` section, the minor
-   goes up when any fragment is `Added`, `Changed`, `Removed` or `Deprecated`, the patch when all are `Fixed` or
-   `Security`. The major never goes up by itself: run Release PR by hand with its `version` input (for example
+   goes up when any fragment is `Added`, `Removed` or `Deprecated` (something a game can start or stop using), the
+   patch when all are `Changed`, `Fixed` or `Security`. The major never goes up by itself: run Release PR by hand with its `version` input (for example
    `1.0.0`) and the pull request is rebuilt at that version.
-3. Merging the release pull request puts the section on `main`. When `Self-test` passes on that push, `release.yml` asks
+3. The release pull request stays open and collects every merge until the owner decides to release: it is not merged
+   with each change, so one release can hold many. Merging it puts the section on `main`. When `Self-test` passes on that push, `release.yml` asks
    `.github/scripts/Get-PendingRelease.ps1`: the highest `## x.y.z - ` section without a `v<x.y.z>` tag is released, but
    only from the commit that added it (`git log --first-parent -S`, so a squash or a merge commit). A later commit whose
    run ends first does not take the tag; its changes are not in the notes. If the run of the release commit fails, re-run

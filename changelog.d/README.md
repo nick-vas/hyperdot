@@ -19,6 +19,6 @@ Fixed: `bench -Sweep` named ' ' instead of the values.
   heading of `CHANGELOG.md` stays first in the new section.
 
 `pwsh ci/godot/tools/Update-Changelog.ps1 -Check` validates the fragments and shows the result without changing anything;
-`-Next` prints the version they call for. The category decides it: `Added`, `Changed`, `Removed` or `Deprecated` raise the
-minor, `Fixed` and `Security` alone the patch. The release pull request (`release-pr.yml`, [docs/ci.md](../docs/ci.md#releasing))
+`-Next` prints the version they call for. The category decides it: `Added`, `Removed` or `Deprecated` raise the minor,
+`Changed`, `Fixed` and `Security` alone the patch. The release pull request (`release-pr.yml`, [docs/ci.md](../docs/ci.md#releasing))
 assembles them; nobody runs this by hand.

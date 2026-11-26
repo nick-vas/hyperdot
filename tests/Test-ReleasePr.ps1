@@ -1,7 +1,7 @@
 #!/usr/bin/env pwsh
 # Self-test of .github/scripts/Update-ReleasePr.ps1, the release pull request of .github/workflows/release-pr.yml, in a
 # temporary repository with a bare origin and a stand-in `gh` that logs its calls: the next version from the fragments
-# (minor for Added, patch for Fixed alone, or -Version), release/next pushed with the assembled CHANGELOG.md and no
+# (minor for Added, Removed or Deprecated, patch for Changed, Fixed or Security alone, or -Version), release/next pushed with the assembled CHANGELOG.md and no
 # fragments while main keeps them, the pull request opened, or the open one updated after a force push, closed when no
 # fragments are left, nothing done for a commit main has moved past, a refused pull request named with the setting that
 # allows it, and a malformed version refused. And Update-Changelog.ps1 -Next. Needs git; the stand-in gh needs Linux or macOS.
@@ -77,12 +77,18 @@ function Invoke-ReleasePr($Work, [string[]]$ToolArgs, [hashtable]$Env = @{}) {
 function Get-Remote($Work, [string]$Ref, [string]$Path) { return (& git -C $Work.Origin show "$($Ref):$Path" 2>$null) -join "`n" }
 
 try {
-    # Update-Changelog.ps1 -Next: minor for Added, patch for Fixed alone, nothing without fragments.
+    # Update-Changelog.ps1 -Next: minor for Added, Removed or Deprecated, patch for Changed, Fixed or Security alone, nothing without fragments.
     $tool = Join-Path $root 'ci/godot/tools/Update-Changelog.ps1'
     $w = New-Work @{ 'a-new' = 'Added: a thing'; 'b-fix' = 'Fixed: a bug' }
     Assert-True ((& pwsh -NoProfile -NonInteractive -File $tool -Next -Root $w.Dir | Out-String).Trim() -eq '0.2.0') '-Next: an Added fragment raises the minor'
     $p = New-Work @{ 'b-fix' = 'Fixed: a bug'; 'c-sec' = 'Security: a hole' }
     Assert-True ((& pwsh -NoProfile -NonInteractive -File $tool -Next -Root $p.Dir | Out-String).Trim() -eq '0.1.1') '-Next: Fixed and Security alone raise the patch'
+    $ch = New-Work @{ 'b-fix' = 'Fixed: a bug'; 'c-tweak' = 'Changed: a recheck' }
+    Assert-True ((& pwsh -NoProfile -NonInteractive -File $tool -Next -Root $ch.Dir | Out-String).Trim() -eq '0.1.1') '-Next: Changed raises only the patch'
+    foreach ($kind in 'Removed', 'Deprecated') {
+        $k = New-Work @{ 'b-fix' = 'Fixed: a bug'; 'c-kind' = "${kind}: a flag" }
+        Assert-True ((& pwsh -NoProfile -NonInteractive -File $tool -Next -Root $k.Dir | Out-String).Trim() -eq '0.2.0') "-Next: $kind raises the minor"
+    }
     $e = New-Work @{}
     Assert-True ((& pwsh -NoProfile -NonInteractive -File $tool -Next -Root $e.Dir | Out-String).Trim() -eq '') '-Next: no fragments, no version'
 
