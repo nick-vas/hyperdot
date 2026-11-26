@@ -112,6 +112,11 @@ exclude_filter="test/*, addons/gut/*, gdunit4_testadapter*/*"
 - On Linux, if Microsoft's download servers are blocked (as in sandboxed cloud sessions), setup falls back
   to the distro's `dotnet-sdk-8.0` package.
 
+Every program the kit starts (Godot for each runner, `shot`, `clip`, `audio -Mix`, `soak`, `export -Run`, and `dotnet test`
+with the Godot it starts) has `HYPERDOT_RUN=1` in its environment, so a game can tell a kit run from a player's and keep away
+from the player's saves and settings: `OS.GetEnvironment("HYPERDOT_RUN")` (the `saves` skill). The kit sets it on each
+program it starts, not on its own process, so the shell that ran the kit does not keep it.
+
 ## How it fits together
 
 ```

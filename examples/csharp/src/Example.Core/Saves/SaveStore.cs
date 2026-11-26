@@ -35,19 +35,28 @@ public sealed record LoadResult(SaveStatus Status, JsonObject? Data, SaveMeta? M
 /// </summary>
 public sealed class SaveStore
 {
-    const string Format = "breakout-save";
     const int HistoryLength = 32;
 
     readonly string _path;
+    readonly string _format;
+    readonly bool _bareVersionOne;
     readonly int _currentVersion;
     readonly IReadOnlyDictionary<int, Func<JsonObject, JsonObject>> _migrations;
     List<string> _history = new();
     long _generation;
 
     /// <param name="migrations">Step from version v to v+1, for every v below currentVersion.</param>
-    public SaveStore(string path, int currentVersion, IReadOnlyDictionary<int, Func<JsonObject, JsonObject>> migrations)
+    /// <param name="format">The game's own name for its save files, written into every save and checked on load, so another
+    /// game's file (or any other JSON at the path) is refused instead of read.</param>
+    /// <param name="bareVersionOne">Read a file without the envelope as version 1 data: only for a game whose first release
+    /// wrote its saves without one. Off, such a file is not this game's save and loads as Corrupt.</param>
+    public SaveStore(string path, int currentVersion, IReadOnlyDictionary<int, Func<JsonObject, JsonObject>> migrations,
+        string format, bool bareVersionOne = false)
     {
+        if (string.IsNullOrWhiteSpace(format)) throw new ArgumentException("A save format name is required", nameof(format));
         _path = path;
+        _format = format;
+        _bareVersionOne = bareVersionOne;
         _currentVersion = currentVersion;
         _migrations = migrations;
         for (int v = 1; v < currentVersion; v++)
@@ -67,7 +76,7 @@ public sealed class SaveStore
         var meta = new SaveMeta(_currentVersion, _generation + 1, nowUtc ?? DateTime.UtcNow, playTimeSeconds, hash, history);
         var envelope = new JsonObject
         {
-            ["format"] = Format,
+            ["format"] = _format,
             ["version"] = meta.Version,
             ["generation"] = meta.Generation,
             ["savedAtUtc"] = meta.SavedAtUtc.ToString("O"),
@@ -188,8 +197,9 @@ public sealed class SaveStore
         SyncDirectory(Path.GetDirectoryName(Path.GetFullPath(_path))!);
     }
 
-    /// <summary>Reads one file. A file without the envelope is a version 1 save from before envelopes existed.</summary>
-    static (JsonObject? Envelope, SaveMeta? Meta, string? Problem) Read(string path)
+    /// <summary>Reads one file. With bareVersionOne, a file without the envelope is a version 1 save from before envelopes
+    /// existed; without it, such a file is not this game's save.</summary>
+    (JsonObject? Envelope, SaveMeta? Meta, string? Problem) Read(string path)
     {
         JsonObject root;
         try { root = JsonNode.Parse(File.ReadAllText(path)) as JsonObject ?? throw new JsonException("not an object"); }
@@ -197,12 +207,12 @@ public sealed class SaveStore
 
         // Version 1 had no envelope at all. Anything with an envelope field is an envelope, damaged or not: a flipped bit in
         // "format" must not turn a current save into a "legacy" one and migrate it into nonsense.
-        if (root["format"] is null && root["checksum"] is null && root["data"] is null && root["version"] is null)
+        if (_bareVersionOne && root["format"] is null && root["checksum"] is null && root["data"] is null && root["version"] is null)
         {
             var legacy = new JsonObject { ["data"] = root.DeepClone() };
             return (legacy, new SaveMeta(1, 0, File.GetLastWriteTimeUtc(path), 0, Hash(root), Array.Empty<string>()), null);
         }
-        if (root["format"] is not JsonValue format || format.GetValueKind() != JsonValueKind.String || format.GetValue<string>() != Format)
+        if (root["format"] is not JsonValue format || format.GetValueKind() != JsonValueKind.String || format.GetValue<string>() != _format)
             return (null, null, "not a save file of this game");
         try
         {

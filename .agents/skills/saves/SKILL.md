@@ -7,8 +7,8 @@ description: Use when a Godot game saves progress, settings or profiles, when a 
 
 A save must survive a crash in the middle of writing, a disk that flips a bit, the next five versions of the game and a
 second device. The working, tested version is `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Saves/SaveStore.cs`
-(plain .NET, no engine) with its tests in `${CLAUDE_PLUGIN_ROOT}/examples/csharp/tests/Example.Core.Tests/SaveStoreTests.cs`; copy it and
-change the schema. Sources and the measurements behind each rule: `${CLAUDE_PLUGIN_ROOT}/docs/saves.md`.
+(plain .NET, no engine) with its tests in `${CLAUDE_PLUGIN_ROOT}/examples/csharp/tests/Example.Core.Tests/SaveStoreTests.cs`; copy it unchanged,
+pass the game's own format name (`new SaveStore(path, currentVersion, migrations, "mygame-save")`) and change the schema. Sources and the measurements behind each rule: `${CLAUDE_PLUGIN_ROOT}/docs/saves.md`.
 
 ## 1. Where and with what to write
 
@@ -20,6 +20,10 @@ change the schema. Sources and the measurements behind each rule: `${CLAUDE_PLUG
   after the project name otherwise, so renaming the game moves (loses) every player's saves.
 - Saves and settings are separate files. Settings (resolution, volume) are per device and stay out of the cloud.
 - C# games cannot export to the web in Godot 4, so `user://` is always a real folder.
+- Kit runs must not read or write the player's save: tests, flows, `shot`, `clip`, `audio -Mix`, `soak` and `export -Run`
+  of a release build all run the game on the owner's machine. Every program the kit starts has `HYPERDOT_RUN=1` in its
+  environment: when `OS.GetEnvironment("HYPERDOT_RUN") == "1"`, save to a throwaway folder (or not at all) and load
+  nothing. It reaches `dotnet test` and release builds, where `--no-save` and the engine's own flags do not.
 
 ## 2. Format: plain data only
 
@@ -73,8 +77,9 @@ public static readonly IReadOnlyDictionary<int, Func<JsonObject, JsonObject>> Mi
 - When a version ships, commit one real save from it as a golden file (`tests/.../Saves/golden/v3.json`). CI loads every
   golden file through the real loader and checks the migrated values. Never regenerate an old golden file from the
   current build: that hides the migration you broke.
-- A save from before envelopes existed (v1) is recognised only when no envelope field is present, so a damaged
-  envelope is never mistaken for an old save.
+- A save from before envelopes existed (v1) is recognised only with `bareVersionOne: true` and only when no envelope
+  field is present, so a damaged envelope is never mistaken for an old save. A game that always wrote the envelope
+  leaves it off: any other JSON at its save path then loads as `Corrupt` and is left as it is.
 
 ### Choices carried into a sequel or New Game+
 

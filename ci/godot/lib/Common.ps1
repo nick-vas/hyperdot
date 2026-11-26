@@ -244,6 +244,16 @@ function Get-ProcessTimeout {
     return $seconds
 }
 
+# Every program the kit starts gets HYPERDOT_RUN=1 in its environment, so a game can tell a kit run (tests, flows, shot,
+# clip, audio -Mix, soak, export -Run of a release build, dotnet test) from a player's and keep away from the player's saves
+# and settings: OS.GetEnvironment("HYPERDOT_RUN") (issue 309). An environment variable rather than an argument: it reaches
+# the processes dotnet test and gdUnit4 start, and cannot clash with the user arguments games and the kit's tools read.
+# Set on each child's start info, never on the kit's own process, so a shell that ran the kit does not keep it.
+$script:KitRunVariable = 'HYPERDOT_RUN'
+function Set-KitRunEnvironment([System.Diagnostics.ProcessStartInfo]$StartInfo) {
+    $StartInfo.Environment[$script:KitRunVariable] = '1'
+}
+
 # Runs a program, shows (or logs) stdout and stderr line by line, and returns its exit code. A program that outlives
 # Get-ProcessTimeout is stopped with its child processes and returns 124, the exit code of coreutils' timeout.
 function Invoke-Logged {
@@ -254,6 +264,7 @@ function Invoke-Logged {
     $info = [System.Diagnostics.ProcessStartInfo]::new($command[0].Source)
     foreach ($argument in $ArgumentList) { $info.ArgumentList.Add($argument) }
     $info.UseShellExecute = $false
+    Set-KitRunEnvironment $info
     $info.RedirectStandardOutput = $true
     $info.RedirectStandardError = $true
     $info.StandardOutputEncoding = [System.Text.UTF8Encoding]::new($false)
@@ -344,6 +355,7 @@ function Invoke-ExternalBounded([string]$FilePath, [string[]]$ArgumentList = @()
     $info = [System.Diagnostics.ProcessStartInfo]::new($command[0].Source)
     foreach ($argument in $ArgumentList) { $info.ArgumentList.Add($argument) }
     $info.UseShellExecute = $false
+    Set-KitRunEnvironment $info
     $info.RedirectStandardOutput = $true
     $info.RedirectStandardError = $true
     $info.StandardOutputEncoding = [System.Text.UTF8Encoding]::new($false)

@@ -205,7 +205,7 @@ public sealed class SaveStoreTests : IDisposable
         var future = new SaveStore(SavePath, 4, new Dictionary<int, Func<JsonObject, JsonObject>>
         {
             [1] = BreakoutSave.Migrations[1], [2] = BreakoutSave.Migrations[2], [3] = d => d,
-        });
+        }, BreakoutSave.Format, bareVersionOne: true);
         future.Save(Current(999), 99);
         string before = File.ReadAllText(SavePath);
         var result = BreakoutSave.Open(SavePath).Load();
@@ -216,7 +216,32 @@ public sealed class SaveStoreTests : IDisposable
 
     [Fact]
     public void AMissingMigrationIsRefusedAtStartup() =>
-        Assert.Throws<ArgumentException>(() => new SaveStore(SavePath, 3, new Dictionary<int, Func<JsonObject, JsonObject>> { [1] = d => d }));
+        Assert.Throws<ArgumentException>(() => new SaveStore(SavePath, 3, new Dictionary<int, Func<JsonObject, JsonObject>> { [1] = d => d }, BreakoutSave.Format));
+
+    [Fact]
+    public void AFormatNameIsRequired() =>
+        Assert.Throws<ArgumentException>(() => new SaveStore(SavePath, 1, new Dictionary<int, Func<JsonObject, JsonObject>>(), " "));
+
+    [Fact]
+    public void WithoutBareVersionOneAFileWithoutTheEnvelopeIsNotThisGamesSave()
+    {
+        // A game that always wrote the envelope: any other JSON object at its path is refused, and left as it is.
+        File.WriteAllText(SavePath, "{\"highScore\": 1200, \"levelsCleared\": 2}");
+        string before = File.ReadAllText(SavePath);
+        var result = new SaveStore(SavePath, 1, new Dictionary<int, Func<JsonObject, JsonObject>>(), "another-game").Load();
+        Assert.Equal(SaveStatus.Corrupt, result.Status);
+        Assert.Null(result.Data);
+        Assert.Contains(result.Notes, n => n.Contains("not a save file of this game"));
+        Assert.Equal(before, File.ReadAllText(SavePath));
+    }
+
+    [Fact]
+    public void AnotherGamesFormatIsRefused()
+    {
+        BreakoutSave.Open(SavePath).Save(Current(100), 10);
+        var result = new SaveStore(SavePath, BreakoutSave.CurrentVersion, BreakoutSave.Migrations, "another-game").Load();
+        Assert.Equal(SaveStatus.Corrupt, result.Status);
+    }
 
     [Fact]
     public void NoSaveMeansANewGame() =>

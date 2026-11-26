@@ -1,6 +1,6 @@
 #!/usr/bin/env pwsh
 # Self-test of Invoke-Logged's time limit: a program that hangs is stopped, with its child processes, and returns 124;
-# one that finishes keeps its exit code and its output. pwsh itself is the test program, so this runs on every OS.
+# one that finishes keeps its exit code and its output. And every program the kit starts sees HYPERDOT_RUN=1. pwsh itself is the test program, so this runs on every OS.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '../ci/godot/lib/Common.ps1')
@@ -33,10 +33,19 @@ $code = Invoke-Logged $pwshPath @('-NoProfile', '-Command', 'Write-Output out; [
 $lines = @(Get-Content -LiteralPath $log)
 if ($code -ne 3) { $failures += "finished program returned $code, expected 3" }
 if ('out' -notin $lines -or 'err' -notin $lines) { $failures += "finished program's log: $($lines -join ' | ')" }
+
+# Every program the kit starts sees HYPERDOT_RUN=1, so a game can tell a kit run from a player's (issue 309); the kit's own
+# process does not get it, so a shell that ran the kit does not keep it.
+[Environment]::SetEnvironmentVariable('HYPERDOT_RUN', $null)
+$code = Invoke-Logged $pwshPath @('-NoProfile', '-Command', 'Write-Output "run=$env:HYPERDOT_RUN"') $log
+if ('run=1' -notin @(Get-Content -LiteralPath $log)) { $failures += "a program Invoke-Logged starts should see HYPERDOT_RUN=1: $(Get-Content -LiteralPath $log -Raw)" }
+$bounded = Invoke-ExternalBounded $pwshPath @('-NoProfile', '-Command', 'Write-Output "run=$env:HYPERDOT_RUN"')
+if ('run=1' -notin @($bounded.Lines)) { $failures += "a program Invoke-ExternalBounded starts should see HYPERDOT_RUN=1: $($bounded.Lines -join ' | ')" }
+if ($env:HYPERDOT_RUN) { $failures += "the kit's own process should not get HYPERDOT_RUN: $env:HYPERDOT_RUN" }
 Remove-Item -LiteralPath $log
 
 if ($failures) {
     foreach ($failure in $failures) { Write-Host "FAIL $failure" }
     exit 1
 }
-Write-Host "Invoke-Logged stops a hung program after its time limit (code 124 in $([int]$seconds) s) and keeps a finished one's exit code"
+Write-Host "Invoke-Logged stops a hung program after its time limit (code 124 in $([int]$seconds) s) and keeps a finished one's exit code; the programs the kit starts see HYPERDOT_RUN=1"
