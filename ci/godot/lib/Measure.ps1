@@ -430,6 +430,13 @@ function Invoke-Shot {
             Stop-GodotCi "$($over -join '; ') (allowed: $MaxOffPalettePercent%); see each shots[].palette.image, and add a colour to the palette in docs/STYLE.md only when it is wanted" 'shot-off-palette'
         }
     }
+    # The renderer the pictures were drawn with: Godot falls back to OpenGL 3 on a machine without Vulkan, and those pictures
+    # differ from the project's own renderer in colour, lighting and anti-aliasing.
+    $rendering = Get-RenderingInfo @(Get-Content -LiteralPath $log)
+    Set-JsonField renderer $rendering
+    if ($rendering.fallbackFromVulkan) {
+        Write-CiLog 'This machine has no Vulkan, so Godot drew these pictures with OpenGL 3 (the Compatibility renderer): colours, lighting and anti-aliasing can differ from the project''s own renderer. Compare them only with pictures taken the same way.'
+    }
     # After reporting the pictures: a scene that printed errors while it ran still fails the run.
     Assert-GodotLogClean $log 'The screenshot run' -Expected $(if ($validation) { $validation.Lines } else { @() })
 }

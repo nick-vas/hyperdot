@@ -489,9 +489,47 @@ function Get-IgnoredErrorsRegex([switch]$Lenient) {
     return ($ignore | ForEach-Object { "(?:$_)" }) -join '|'
 }
 
+# A machine without Vulkan (a cloud runner under Xvfb): Godot 4.7.2 logs "Required Vulkan instance extension VK_KHR_surface
+# not found" and a bare 'Condition "err != OK"' from drivers/vulkan/, then "switching to OpenGL 3" and draws with it. Those
+# errors are the machine, not the project, but only when the switch is in the same log: on their own they are a real
+# Vulkan failure. The bare condition is the Vulkan driver's only by its "at:" line, so both lines of each error go.
+$script:RendererFallbackPattern = 'required Vulkan version, switching to OpenGL'
+function Remove-RendererFallbackNoise([string[]]$Lines) {
+    $clean = @($Lines | ForEach-Object { $_ -replace "`e\[[0-9;]*m", '' })
+    if (-not @($clean | Where-Object { $_ -match $script:RendererFallbackPattern }).Count) { return $Lines }
+    $kept = [System.Collections.Generic.List[string]]::new()
+    for ($i = 0; $i -lt $clean.Count; $i++) {
+        $next = if ($i + 1 -lt $clean.Count) { $clean[$i + 1] } else { '' }
+        $isError = $clean[$i] -cmatch '^\s*ERROR:'
+        if ($isError -and ($clean[$i] -match 'Required Vulkan instance extension VK_KHR_surface not found' -or $next -match '^\s+at: .*drivers[/\\]vulkan[/\\]')) {
+            Write-CiLog "Ignored: $($clean[$i].Trim()) (no Vulkan on this machine; Godot switched to OpenGL 3)"
+            if ($next -match '^\s+at: ') { $i++ }
+            continue
+        }
+        $kept.Add($Lines[$i])
+    }
+    return $kept.ToArray()
+}
+
+# The renderer a windowed run drew with, from Godot's own line (Vulkan 1.x, OpenGL API, D3D12, Metal), and whether Godot
+# fell back to OpenGL 3 because the machine has no Vulkan. Headless runs print no renderer line: driver is then null.
+function Get-RenderingInfo([string[]]$Lines) {
+    $driver = $null
+    foreach ($raw in $Lines) {
+        $line = $raw -replace "`e\[[0-9;]*m", ''
+        if ($line -match '^Vulkan \d') { $driver = 'vulkan'; break }
+        if ($line -match '^OpenGL API ') { $driver = 'opengl3'; break }
+        if ($line -match '^D3D12 ') { $driver = 'd3d12'; break }
+        if ($line -match '^Metal ') { $driver = 'metal'; break }
+    }
+    $fallback = @($Lines | Where-Object { $_ -match $script:RendererFallbackPattern }).Count -gt 0
+    return [ordered]@{ driver = $driver; fallbackFromVulkan = $fallback }
+}
+
 # Godot often exits 0 after printing errors, so builds, exports and smoke runs also scan the log.
 # Returns the offending lines (empty when clean).
 function Select-GodotErrors([string[]]$Lines) {
+    $Lines = @(Remove-RendererFallbackNoise $Lines)
     $pattern = $script:GodotErrorPattern
     $ignoreRegex = Get-IgnoredErrorsRegex
     $errors = @()
@@ -512,6 +550,7 @@ $script:EngineInternalPattern = 'Handle is not initialized|\bSwapGCHandleForType
 
 # Select-GodotErrors, with the engine's own errors told apart: Own are the project's errors, Engine the bindings' (see EngineInternalPattern).
 function Split-GodotErrors([string[]]$Lines) {
+    $Lines = @(Remove-RendererFallbackNoise $Lines)
     $pattern = $script:GodotErrorPattern
     $ignoreRegex = Get-IgnoredErrorsRegex
     $clean = @($Lines | ForEach-Object { $_ -replace "`e\[[0-9;]*m", '' })
@@ -591,6 +630,7 @@ function Get-ErrorKey([string]$Text, [string]$File) {
 # trimmed), File and Line (the res:// location on the line, or else the first one in the indented "at:"/backtrace lines
 # under it, frames in addons/ only when there is no other), Key (Get-ErrorKey) and Index (its line number in $Lines, from 0).
 function Get-GodotErrorDetails([string[]]$Lines, [switch]$Lenient) {
+    $Lines = @(Remove-RendererFallbackNoise $Lines)
     $ignoreRegex = Get-IgnoredErrorsRegex -Lenient:$Lenient
     $location = '(?<file>res://[^\s:()''"]+):(?<line>\d+)'
     for ($i = 0; $i -lt $Lines.Count; $i++) {

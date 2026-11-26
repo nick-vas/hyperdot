@@ -86,6 +86,13 @@ In Halo 4's last year of optimisation most fixes were content, not code, and kep
 - **Prove it looks the same, blind.** Show the art lead several copies, one optimised; if they cannot pick it out, keep it.
 - **Content players build** cannot be tuned: give them a placement budget.
 
+## C#: kit runs and `bench` are Debug builds
+
+Godot builds and runs a C# game in Debug, and a plain library the game references (match rules, a simulation, a server's
+snapshot code) inherits it: no optimisation, so its hot paths measure slower in `bench` than they will ship. Set
+`<Optimize>true</Optimize>` in that library's csproj for every configuration before judging it against a budget, and measure
+before and after; `doctor` lists the referenced libraries that do not (INFO).
+
 ## C#: zero garbage in the frame loop
 
 A GC collection mid-fight is a hitch. Report collections as a custom monitor so `bench` shows them (`customMonitors`):

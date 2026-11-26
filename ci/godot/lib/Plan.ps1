@@ -658,7 +658,14 @@ function Invoke-GhProject([string[]]$Arguments) {
         if ($text -match 'scope|not logged in|authentication|gh auth login|HTTP 401|GH_TOKEN') {
             Stop-GodotCi "GitHub refused the call (gh $($Arguments[0..1] -join ' ')): $short. Sign in with the project scope: gh auth refresh -s project" 'project-credentials'
         }
-        Stop-GodotCi "GitHub project call failed (gh $($Arguments[0..1] -join ' ')): $short" 'project-error'
+        # A 403 with the right scope: a proxy or the environment blocks GitHub's GraphQL API (a Claude Code cloud session
+        # does), or the token cannot reach that owner. gh can report it as "unknown owner type", which reads like a typo.
+        if ($text -match 'HTTP 403|\b403\b.*Forbidden|FORBIDDEN|Resource not accessible') {
+            Stop-GodotCi "GitHub refused the call with 403 (gh $($Arguments[0..1] -join ' ')): $short. This environment or a proxy blocks GitHub's GraphQL API, or the token cannot reach that owner: run plan -Do sync where GitHub's API is reachable (a local machine or a GitHub Actions job), or give the token access to the owner" 'project-credentials'
+        }
+        # gh's own words for an owner it cannot resolve: a misspelled user or organization, or one the token cannot see.
+        $hint = if ($text -match 'unknown owner type') { ". Check the owner's name in -Board (user or organization), and that the signed-in token can see it" } else { '' }
+        Stop-GodotCi "GitHub project call failed (gh $($Arguments[0..1] -join ' ')): $short$hint" 'project-error'
     }
     return $text
 }
