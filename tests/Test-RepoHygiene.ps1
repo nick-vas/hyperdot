@@ -167,7 +167,21 @@ foreach ($name in $cases.Keys) {
     if ($case.warn -and $hit.Count -eq 1 -and ($hit[0] -notmatch '2560x1080' -or $hit[0] -match '1920x1080,|, 1920x1080')) { $failures += "stretch case '$name' should name the resolutions of another shape and not the design one: $($hit[0])" }
 }
 
+# Godot builds a C# game in Debug, and a plain library the game references inherits it (issue 311): doctor says so for each
+# such library without <Optimize>, and not for one that opts in, a test project, or a project the game does not reference.
+$cs = New-Project 'csharp-lib'
+New-Item -ItemType Directory -Force (Join-Path $cs 'src/Rules'), (Join-Path $cs 'src/Fast'), (Join-Path $cs 'tests/Rules.Tests'), (Join-Path $cs 'src/Unused') | Out-Null
+Set-Content -LiteralPath (Join-Path $cs 'Game.csproj') '<Project Sdk="Godot.NET.Sdk/4.7.2"><PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup><ItemGroup><ProjectReference Include="src/Rules/Rules.csproj" /><ProjectReference Include="src\Fast\Fast.csproj" /><ProjectReference Include="tests/Rules.Tests/Rules.Tests.csproj" /></ItemGroup></Project>'
+Set-Content -LiteralPath (Join-Path $cs 'src/Rules/Rules.csproj') '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup></Project>'
+Set-Content -LiteralPath (Join-Path $cs 'src/Fast/Fast.csproj') '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net8.0</TargetFramework><Optimize>true</Optimize></PropertyGroup></Project>'
+Set-Content -LiteralPath (Join-Path $cs 'tests/Rules.Tests/Rules.Tests.csproj') '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.0.0" /></ItemGroup></Project>'
+Set-Content -LiteralPath (Join-Path $cs 'src/Unused/Unused.csproj') '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup></Project>'
+& git -C $cs add -A
+$messages = @(Get-DoctorMessages $cs | Where-Object { $_ -match 'runs unoptimised' })
+if ($messages.Count -ne 1 -or $messages[0] -notmatch 'Rules\.csproj runs unoptimised') { $failures += "doctor should name only the referenced library without <Optimize> (Rules.csproj); got: $($messages -join ' | ')" }
+Remove-Item -Recurse -Force $cs
+
 Remove-Item -Recurse -Force $clean, $broken, $kit
 if ($failures) { $failures | ForEach-Object { Write-Host "FAIL $_" -ForegroundColor Red }; exit 1 }
-Write-Host 'doctor reports LFS pointers, committed keys, Windows-reserved names, case twins, res:// paths in the wrong case and uncommitted kit files (and files an issue only after a yes), and nothing on a clean project'
+Write-Host 'doctor reports LFS pointers, committed keys, Windows-reserved names, case twins, res:// paths in the wrong case, uncommitted kit files (and files an issue only after a yes) and referenced C# libraries that run unoptimised, and nothing on a clean project'
 exit 0

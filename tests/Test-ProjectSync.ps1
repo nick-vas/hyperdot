@@ -25,7 +25,8 @@ function Assert-True([bool]$Condition, [string]$What) {
 }
 
 # The stand-in keeps just enough of GitHub Projects for the sync: projects (by owner and number) with their fields,
-# single-select options and draft items, and the calls it was given. FAKE_GH_MODE makes it refuse (scope) or fail (fail).
+# single-select options and draft items, and the calls it was given. FAKE_GH_MODE makes it refuse (scope), fail (fail),
+# be refused with a 403 as a proxy that blocks GraphQL does (forbidden), or not resolve the owner (owner).
 $standIn = @'
 param()
 Set-StrictMode -Version 3.0
@@ -35,6 +36,8 @@ $statePath = Join-Path $env:FAKE_GH_DIR 'state.json'
 Add-Content -LiteralPath (Join-Path $env:FAKE_GH_DIR 'calls.log') -Value ($args -join ' ')
 if ($env:FAKE_GH_MODE -eq 'scope') { [Console]::Error.WriteLine('error: your authentication token is missing required scopes [project]'); exit 1 }
 if ($env:FAKE_GH_MODE -eq 'fail') { [Console]::Error.WriteLine('HTTP 502: Bad Gateway'); exit 1 }
+if ($env:FAKE_GH_MODE -eq 'forbidden') { [Console]::Error.WriteLine('HTTP 403: Forbidden (https://api.github.com/graphql)'); exit 1 }
+if ($env:FAKE_GH_MODE -eq 'owner') { [Console]::Error.WriteLine('unknown owner type'); exit 1 }
 $state = Get-Content -LiteralPath $statePath -Raw | ConvertFrom-Json -AsHashtable
 function Get-Flag([string]$Name) { $i = [array]::IndexOf($argv, $Name); if ($i -ge 0 -and $i + 1 -lt $argv.Count) { return [string]$argv[$i + 1] } return $null }
 function New-GhId([string]$Prefix) { $Prefix + '_' + [guid]::NewGuid().ToString('N').Substring(0, 12) }
@@ -387,6 +390,12 @@ try {
         $env:FAKE_GH_MODE = 'fail'
         $d = Invoke-PlanJson @('-Do', 'sync')
         Assert-True (-not $d.ok -and $d.error.code -eq 'project-error') "any other failure is project-error: $($d.error.code)"
+        $env:FAKE_GH_MODE = 'forbidden'
+        $d = Invoke-PlanJson @('-Do', 'sync')
+        Assert-True (-not $d.ok -and $d.error.code -eq 'project-credentials' -and $d.error.message -match 'blocks GitHub''s GraphQL API' -and $d.error.message -match 'GitHub Actions job') "a 403 (a proxy that blocks GraphQL) is project-credentials and names the way out: $($d.error.message)"
+        $env:FAKE_GH_MODE = 'owner'
+        $d = Invoke-PlanJson @('-Do', 'sync')
+        Assert-True (-not $d.ok -and $d.error.code -eq 'project-error' -and $d.error.message -match 'unknown owner type' -and $d.error.message -match 'owner''s name') "gh's 'unknown owner type' stays project-error, with a hint to check the owner: $($d.error.message)"
         $env:FAKE_GH_MODE = ''
         $d = Invoke-PlanJson @('-Do', 'sync', '-Board', "$projectOwner/99")
         Assert-True (-not $d.ok -and $d.error.code -eq 'project-error' -and $d.error.message -match 'ProjectV2') "a project that does not exist fails with project-error: $($d.error.message)"

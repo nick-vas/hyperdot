@@ -354,7 +354,10 @@ are not frame times to keep.
 **shot**: `shots[]` with `scene`, `file` (absolute path of the PNG, `<name>.png` after the scene, or after its path, `a_main.png`,
 when two scenes share a name), `width`, `height`, `locale` (`null` for the project's own,
 else the `-Locale` entry or `pseudo`) and `text[]`: `node` (path from the scene root), `problem` (`cut off`, `off screen`,
-`missing glyphs`) and `detail`. With a fixed aspect ratio (`keep`), the
+`missing glyphs`) and `detail`. `renderer`: `driver` (`vulkan`, `opengl3`, `d3d12` or `metal`, from Godot's own line) and
+`fallbackFromVulkan` (true when the machine has no Vulkan and Godot drew with OpenGL 3 instead, as under Xvfb on a cloud runner:
+its two Vulkan errors are then not engine errors, but the pictures differ from the project's renderer, so compare them only with
+pictures taken the same way). With a fixed aspect ratio (`keep`), the
 picture is the game area without the black bars, so it can be smaller than `-Resolution`. With `-Baseline <folder>`, each shot
 also has `compare`: `baseline` (the earlier PNG with the same name, or `null` when there is none), `changedPercent` (pixels that
 differ at quarter resolution, `null` without a baseline), `sizeChanged`, and `image` (`<name>.compare.png`: before, after, and the

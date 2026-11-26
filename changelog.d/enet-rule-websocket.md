@@ -1,0 +1,1 @@
+Fixed: the `enet-server-channels` architecture rule no longer fires on `WebSocketMultiplayerPeer.create_server(port, "*", tls)`: a string literal second argument or a TLS third is WebSocket's, not ENet's channel count (#312).

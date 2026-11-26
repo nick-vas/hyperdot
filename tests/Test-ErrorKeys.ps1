@@ -60,6 +60,31 @@ $game = @('Error: no save file found, starting a new game', 'warning: failed to 
 Assert-True (@(Select-GodotErrors $game).Count -eq 0 -and @(Get-GodotErrorDetails $game).Count -eq 0) 'a game printing "Error:" or "failed to load script" is not an engine error'
 Assert-True (@(Select-GodotErrors @('USER ERROR: x', 'Unhandled exception. boom')).Count -eq 2) "Godot's prefixes and .NET's unhandled exception still count"
 
+# --- No Vulkan: Godot falls back to OpenGL 3 (issue 303) -----------------------------------------------------------------
+# As Godot 4.7.2 printed them for a Forward+ project under Xvfb with no Vulkan: two errors from drivers/vulkan/, then the
+# switch to OpenGL 3. They are the machine's, not the project's, but only with the switch in the same log.
+$fallbackLog = @(
+    'Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org',
+    'ERROR: Required Vulkan instance extension VK_KHR_surface not found.',
+    '   at: _initialize_instance_extensions (drivers/vulkan/rendering_context_driver_vulkan.cpp:494)',
+    'ERROR: Condition "err != OK" is true. Returning: err',
+    '   at: initialize (drivers/vulkan/rendering_context_driver_vulkan.cpp:915)',
+    'WARNING: Your video card drivers seem not to support the required Vulkan version, switching to OpenGL 3.',
+    '     at: DisplayServerX11 (platform/linuxbsd/x11/display_server_x11.cpp:7124)',
+    'OpenGL API 4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4 - Compatibility - Using Device: Mesa - llvmpipe (LLVM 20.1.2, 256 bits)'
+)
+Assert-True (@(Select-GodotErrors $fallbackLog).Count -eq 0 -and @(Get-GodotErrorDetails $fallbackLog).Count -eq 0) 'the Vulkan errors before a switch to OpenGL 3 are not engine errors'
+$withOwn = $fallbackLog + @('ERROR: Condition "err != OK" is true. Returning: err', '   at: load (res://save.gd:12)', 'SCRIPT ERROR: Invalid call. Nonexistent function in base Nil.')
+$left = @(Select-GodotErrors $withOwn)
+Assert-True ($left.Count -eq 2) "an error of the project's own in the same log still counts, the same message from elsewhere too: $($left -join ' | ')"
+$noSwitch = @($fallbackLog | Where-Object { $_ -notmatch 'switching to OpenGL' })
+Assert-True (@(Select-GodotErrors $noSwitch).Count -eq 2) 'without the switch to OpenGL 3 the Vulkan errors are a real failure'
+$r = Get-RenderingInfo $fallbackLog
+Assert-True ($r.driver -eq 'opengl3' -and $r.fallbackFromVulkan) "the renderer is reported as OpenGL 3, reached by falling back: $($r | ConvertTo-Json -Compress -Depth 2)"
+$r = Get-RenderingInfo @('Vulkan 1.3.280 - Forward+ - Using Device #0: NVIDIA - GeForce RTX 3060')
+Assert-True ($r.driver -eq 'vulkan' -and -not $r.fallbackFromVulkan) 'a Vulkan run is reported as Vulkan, no fallback'
+Assert-True ($null -eq (Get-RenderingInfo @('Godot Engine v4.7.2', 'Score after 12 hits: 230')).driver) 'a headless run has no renderer'
+
 # --- A run's keys -----------------------------------------------------------------------------------------------------
 $run = @($log) + @(
     '[hyperdot] Godot reported errors:',

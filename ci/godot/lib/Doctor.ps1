@@ -702,6 +702,19 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
     if ($testsWithoutCoverage.Count -gt 0) {
         Add-Check INFO "No coverage for $($testsWithoutCoverage.Name -join ', ') (-Coverage needs coverlet.collector)" 'dotnet add package coverlet.collector'
     }
+    # Godot builds and runs a C# game in Debug, and a plain library it references inherits that: no optimisation. A hot path
+    # in one (a server tick, pathfinding, a simulation) can run several times slower than it will ship, and bench measures it
+    # that way (issue 311). The library can opt in with <Optimize>true</Optimize> for every configuration.
+    if ($isCSharp) {
+        $gameDir = Split-Path $csprojs[0].FullName
+        foreach ($ref in [regex]::Matches($gameCsproj, '<ProjectReference\s+Include="(?<p>[^"]+)"')) {
+            $refPath = Join-Path $gameDir ($ref.Groups['p'].Value -replace '\\', '/')
+            if (-not (Test-Path -LiteralPath $refPath)) { continue }
+            $refText = Get-Content -LiteralPath $refPath -Raw
+            if ($refText -match 'Godot\.NET\.Sdk|Microsoft\.NET\.Test\.Sdk' -or $refText -match '<Optimize>') { continue }
+            Add-Check INFO "Godot builds the game in Debug, so $(Split-Path $refPath -Leaf) runs unoptimised in every kit run and in bench" 'If it holds a hot path (a server tick, pathfinding, a simulation), set <Optimize>true</Optimize> in its csproj for every configuration, and measure before and after'
+        }
+    }
     # quarantine.json: a test in quarantine still runs but does not fail the run, for a few weeks, with an owner. After its
     # date the test counts again, and this is a FAIL until it is fixed or deleted (Rare's rule for Sea of Thieves).
     $quarantine = Read-Quarantine $project

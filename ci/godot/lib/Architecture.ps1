@@ -213,7 +213,10 @@ function Get-ArchitectureFindings([string]$ProjectDir, $Config) {
                 & $add 'parent-path' $relative $n $line.Trim()
             }
             # create_server(port, max_clients, max_channels, ...): a third argument that is not 0 (a fixed engine bug in 4.7.2).
-            if ($line -match '\b(create_server|CreateServer)\s*\(\s*[^,()]+,\s*[^,()]+,\s*(?!0\s*[,)])[^,()\s]') {
+            # WebSocketMultiplayerPeer.create_server(port, bind_address, tls_options) has the same shape: its second argument
+            # is a string (the bind address) and its third TLS options, so a string literal second or a TLS third is not ENet.
+            if ($line -match '\b(create_server|CreateServer)\s*\(\s*[^,()]+,\s*(?<second>[^,()]+),\s*(?!0\s*[,)])(?<third>[^,()\s][^,()]*)' -and
+                $Matches['second'].Trim() -notmatch '^[@$]?["'']' -and $Matches['third'] -notmatch '(?i)\btls') {
                 & $add 'enet-server-channels' $relative $n $line.Trim()
             }
             # load("user://..."), GD.Load($"user://{x}"), ResourceLoader.Load<T>("user://" + name): files players can replace.
