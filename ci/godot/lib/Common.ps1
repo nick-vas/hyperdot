@@ -958,35 +958,37 @@ function Get-KitFlagName($Parameter) {
 # given to a command that does not read it is refused, not ignored: an agent that passed soak -BudgetMs would believe a
 # frame budget was checked. tests/Test-CommandFlags.ps1 holds this table to hyperdot.ps1: every parameter is listed, and
 # no command's own code reads a parameter its row leaves out.
-$script:KitAnyCommandFlags = @('Command', 'Project', 'Solution', 'GodotVersion', 'Json', 'Quiet', 'UnboundArguments')
+# -Results and -Output only say where files go: every command takes them, so a script can hand the same folders to each
+# command it runs, and one that writes nothing there ignores them without hiding a check that did not run.
+$script:KitAnyCommandFlags = @('Command', 'Project', 'Solution', 'GodotVersion', 'Json', 'Quiet', 'UnboundArguments', 'Results', 'Output')
 $script:KitCommandFlags = [ordered]@{
-    test      = @('Runners', 'Filter', 'Retry', 'Coverage', 'MinCoverage', 'Results', 'Frames', 'FixedFps', 'GameArgs')
-    build     = @('Results')
-    export    = @('Preset', 'Run', 'DebugBuild', 'Browser', 'GameVersion', 'GitHubOutput', 'Results', 'Output', 'Frames', 'GameArgs', 'GpuValidation')
-    setup     = @('Templates', 'Results')
+    test      = @('Runners', 'Filter', 'Retry', 'Coverage', 'MinCoverage', 'Frames', 'FixedFps', 'GameArgs')
+    build     = @()
+    export    = @('Preset', 'Run', 'DebugBuild', 'Browser', 'GameVersion', 'GitHubOutput', 'Frames', 'GameArgs', 'GpuValidation')
+    setup     = @('Templates')
     detect    = @('Runners', 'Preset', 'GitHubOutput')
     doctor    = @('Runners', 'ReportIssue')
     init      = @('Agents', 'Plugin', 'CopySkills', 'PluginSource', 'Mcp', 'McpDiagnostics', 'McpAseprite', 'Promo')
     plan      = @('Do', 'Id', 'Game', 'Title', 'Column', 'Board', 'Feature', 'Item', 'PlanProfile', 'TimeoutSec')
     status    = @('Runners', 'Handoff', 'Checked', 'Verdict', 'TimeoutSec')
     bench     = @('Scene', 'Seconds', 'Warmup', 'Resolution', 'Uncapped', 'MaxFps', 'Headless', 'BudgetMs', 'Label', 'GameArgs', 'HotspotCell',
-        'MaxDrawCalls', 'MaxLoadMs', 'GpuValidation', 'Sweep', 'Results')
+        'MaxDrawCalls', 'MaxLoadMs', 'GpuValidation', 'Sweep')
     shot      = @('Scene', 'Frames', 'Resolution', 'GameArgs', 'Baseline', 'MaxChangedPercent', 'Locale', 'Pseudo', 'ColorVision',
-        'MaxOffPalettePercent', 'PaletteTolerance', 'Output', 'GpuValidation', 'RequireResolution', 'NameBySize')
+        'MaxOffPalettePercent', 'PaletteTolerance', 'GpuValidation', 'RequireResolution', 'NameBySize')
     deck      = @('Scene', 'Seconds', 'Warmup', 'Frames', 'BudgetMs', 'MaxDrawCalls', 'MaxLoadMs', 'GameArgs', 'Locale', 'Pseudo', 'GpuValidation',
-        'Resolution', 'Results')
+        'Resolution')
     soak      = @('Clients', 'Seconds', 'Warmup', 'GameArgs', 'MaxGrowthMbPerHour', 'MaxMetricGrowth', 'JunkPps', 'PlayersPerClient',
-        'StopGraceSeconds', 'RequireCleanStop', 'Results')
-    audio     = @('Mix', 'TargetLufs', 'MaxOnsetMs', 'Seconds', 'Scene', 'GameArgs', 'Results')
-    sfx       = @('Sound', 'Count', 'Seed', 'Vary', 'Amount', 'PeakDb', 'Output')
-    playtest  = @('Sessions', 'Schema', 'HotspotCell', 'Results')
-    credits   = @('Output', 'Results')
+        'StopGraceSeconds', 'RequireCleanStop')
+    audio     = @('Mix', 'TargetLufs', 'MaxOnsetMs', 'Seconds', 'Scene', 'GameArgs')
+    sfx       = @('Sound', 'Count', 'Seed', 'Vary', 'Amount', 'PeakDb')
+    playtest  = @('Sessions', 'Schema', 'HotspotCell')
+    credits   = @()
     help      = @('Topic')
     telemetry = @('Topic', 'Last')
-    calendar  = @('Source', 'Days', 'Offline', 'Comparable', 'Results')
+    calendar  = @('Source', 'Days', 'Offline', 'Comparable')
     brief     = @('Do', 'Id', 'Value', 'Quote', 'TextFile')
-    promo     = @('Do', 'Id', 'DryRun', 'GitHubOutput', 'Results')
-    clip      = @('Scene', 'Seconds', 'Resolution', 'GameArgs', 'Label', 'Output')
+    promo     = @('Do', 'Id', 'DryRun', 'GitHubOutput')
+    clip      = @('Scene', 'Seconds', 'Resolution', 'GameArgs', 'Label')
 }
 # What a refusal adds for a flag that is easily taken for another command's.
 $script:KitFlagHints = @{
