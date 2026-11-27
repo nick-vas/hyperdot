@@ -10,7 +10,7 @@ gives the percentages and the floors CI holds them to.
 | Part | Items | Covered |
 |---|---|---|
 | [Commands](#commands) | 23 | 23 |
-| [Error codes](#error-codes) | 79 | 76 |
+| [Error codes](#error-codes) | 80 | 77 |
 | [Library files](#library-files) | 42 | 42 |
 | [Tools](#tools) | 23 | 23 |
 | [Skills](#skills) | 55 | 55 |
@@ -92,6 +92,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `no-gpu-validation` | `Test-GpuValidation.ps1` |
 | `soak-failed` | `Test-Soak.ps1` |
 | `soak-leak` | `Test-Soak.ps1` |
+| `soak-metric-growth` | `Test-Soak.ps1` |
 | `soak-unclean-stop` | `Test-Soak.ps1` |
 | `web-run-failed` | `Test-Web.ps1` |
 | `no-browser` | `Test-ErrorCodes.ps1` |
@@ -171,7 +172,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Runners.ps1` | 7/13 | `Test-Flaky.ps1`, `Test-Flows.ps1`, `Test-StaleTres.ps1`, `Test-Detect.ps1`, `Test-FixedFps.ps1`, `Test-SelectJobs.ps1`, `Test-TestsNotRun.ps1`, `Test-ErrorCodes.ps1` and 11 more |
 | `Setup.ps1` | 11/16 | `Test-DownloadFailed.ps1`, `Test-BenchSweep.ps1`, `Test-Flows.ps1`, `Test-InstallLock.ps1`, `Test-GameVersion.ps1`, `Test-InstallAddon.ps1`, `Test-ReportPins.ps1`, `Test-SelectJobs.ps1` and 37 more |
 | `Sfx.ps1` | 5/6 | `Test-SelectJobs.ps1`, `Test-Sfx.ps1` |
-| `Soak.ps1` | 6/10 | `Test-Soak.ps1` |
+| `Soak.ps1` | 6/14 | `Test-Soak.ps1` |
 | `Status.ps1` | 18/18 | `Test-Gdd.ps1`, `Test-Brief.ps1`, `Test-ArchitectureFixtures.ps1`, `Test-Data.ps1`, `Test-Localization.ps1`, `Test-Telemetry.ps1`, `Test-TestDuration.ps1`, `Test-Plan.ps1` and 13 more |
 | `Steam.ps1` | 9/10 | `Test-Steam.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1` and 6 more |
 | `Store.ps1` | 8/12 | `Test-Store.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1` and 6 more |
