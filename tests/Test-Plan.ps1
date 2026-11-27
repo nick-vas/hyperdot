@@ -681,7 +681,7 @@ if (-not $IsWindows) {
         Remove-Item -LiteralPath $slow, $hang -Recurse -Force -ErrorAction SilentlyContinue
     }
     $other = pwsh -NoProfile -NonInteractive -File $ci doctor -Json -TimeoutSec 5 -Project $dir 2>$null | ConvertFrom-Json
-    Assert-True (-not $other.ok -and $other.error.code -eq 'invalid-arguments' -and $other.error.message -match 'status and plan') '-TimeoutSec on another command is refused (invalid-arguments)'
+    Assert-True (-not $other.ok -and $other.error.code -eq 'invalid-arguments' -and $other.error.message -match 'is for plan, status, not doctor') '-TimeoutSec on another command is refused (invalid-arguments)'
 }
 
 if ($failures.Count) { throw "$($failures.Count) plan check(s) failed" }
