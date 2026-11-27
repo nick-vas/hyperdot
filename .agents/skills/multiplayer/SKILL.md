@@ -162,8 +162,8 @@ Logic tests run without Godot over a simulated link (fast, seeded); `soak` runs 
 pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 soak -Clients 8 -Seconds 600 -MaxGrowthMbPerHour 50 -Json -Quiet
 ```
 
-The game takes part through flags and printed lines: it is started with `--soak-role=server|client`, `--soak-port`
-and `--soak-id`, prints `[soak] ready`, `[soak] metric <name> <number>` and, when it detects a problem itself (a
+The game takes part through flags and printed lines: it is started with `--soak-role=server|client`, `--soak-port`,
+`--soak-id` and `--soak-players` (`-PlayersPerClient`, for many players per process; the server gets the total), prints `[soak] ready`, `[soak] metric <name> <number>` and, when it detects a problem itself (a
 checksum mismatch, a lost connection), `[soak] fail <reason>`. `soak` fails on a crash, an engine error, a process that
 never got ready, or memory that keeps growing (`soak-failed`, `engine-errors`, `soak-leak`). At the end it sends the
 server SIGTERM and reports whether it quit cleanly (`soak.stop`; `-RequireCleanStop` fails `soak-unclean-stop`).

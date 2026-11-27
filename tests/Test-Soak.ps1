@@ -127,6 +127,22 @@ if (-not $IsWindows) {
 
 $leak = Invoke-Soak @('-Clients', '2', '-GameArgs', '--leak')
 if ($leak.ok -or $leak.error.code -ne 'soak-leak') { $failures += "a leaking server should fail as soak-leak: $($leak.error.code) $($leak.error.message)" }
+# A process with no heap metric of its own gets the hint to print one: process memory also grows when a runtime only holds
+# what it freed (issue 310).
+elseif ($leak.error.message -notmatch 'managed_heap_after_gc_mb') { $failures += "soak-leak should suggest a heap metric: $($leak.error.message)" }
+
+# Several players per client process (issue 304): each client is told its players, the server the whole count, and the
+# report counts players as well as processes.
+$many = Invoke-Soak @('-Clients', '2', '-PlayersPerClient', '3')
+if (-not $many.ok) { $failures += "a run with 3 players per client failed: $($many.error.code) $($many.error.message)" }
+else {
+    $clientPlayers = @($many.soak.processes | Where-Object { $_.name -like 'client-*' } | ForEach-Object { $_.metrics.players })
+    if ($many.soak.players -ne 6 -or $many.soak.playersPerClient -ne 3 -or $many.soak.clients -ne 2 -or $many.soak.server.metrics.players -ne 6 -or ($clientPlayers -join ',') -ne '3,3') {
+        $failures += "2 clients of 3 players: the report should count 6 players, the server be told 6 and each client 3: players=$($many.soak.players) server=$($many.soak.server.metrics.players) clients=$($clientPlayers -join ',')"
+    }
+}
+$refused = Invoke-Soak @('-Clients', '1', '-PlayersPerClient', '0')
+if ($refused.ok -or $refused.error.code -ne 'invalid-arguments') { $failures += "-PlayersPerClient 0 should be refused as invalid-arguments: $($refused.error.code)" }
 
 $crash = Invoke-Soak @('-Clients', '2', '-GameArgs', '--crash-after=5')
 if ($crash.ok -or $crash.error.code -ne 'soak-failed' -or $crash.error.message -notmatch 'server exited with 3') {

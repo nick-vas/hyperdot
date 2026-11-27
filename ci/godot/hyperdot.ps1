@@ -174,6 +174,9 @@ param(
     # soak: flood the server's own port on 127.0.0.1 with this many junk UDP packets a second (loopback only), to measure
     # how the server holds up under a packet flood. 0: no flood. Reported under soak.junk; the server's input_loss_pct rises.
     [int]$JunkPps = 0,
+    # soak: players each client process holds (passed as --soak-players), for games too big for one process per player; the
+    # server is told clients x this (--soak-players) and the report counts players. 1: one player per process.
+    [int]$PlayersPerClient = 1,
     # soak: at the end, stop the server with SIGTERM (as Docker, systemd and Kubernetes do) and wait this long for it to
     # quit; reported under soak.stop. -RequireCleanStop fails the run (soak-unclean-stop) when it does not quit with 0.
     [double]$StopGraceSeconds = 30,
@@ -876,7 +879,7 @@ switch ($Command) {
     }
     'soak' {
         Invoke-Setup; Invoke-Build
-        Invoke-Soak -Info $info -Clients $Clients -Seconds $Seconds -Warmup $Warmup -GameArgs $GameArgs -MaxGrowthMbPerHour $MaxGrowthMbPerHour -JunkPps $JunkPps `
+        Invoke-Soak -Info $info -Clients $Clients -Seconds $Seconds -Warmup $Warmup -GameArgs $GameArgs -MaxGrowthMbPerHour $MaxGrowthMbPerHour -JunkPps $JunkPps -PlayersPerClient $PlayersPerClient `
             -StopGraceSeconds $StopGraceSeconds -RequireCleanStop:$RequireCleanStop -ResultsDir $commandResultsDir
     }
     'sfx' {

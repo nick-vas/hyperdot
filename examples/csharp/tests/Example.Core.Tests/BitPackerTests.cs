@@ -10,6 +10,72 @@ public sealed class BitPackerTests
     readonly ITestOutputHelper _output;
     public BitPackerTests(ITestOutputHelper output) => _output = output;
 
+    // The wire layout, pinned: a field sequence and the exact bytes the writer must produce (least significant bit first,
+    // fields packed back to back, a 32-bit field crossing byte boundaries). Recorded from the bit-by-bit writer before it
+    // was rewritten around a 64-bit accumulator (issue 305), so the two agree byte for byte.
+    static void WriteGoldenSequence(BitWriter w)
+    {
+        w.WriteBool(true);
+        w.WriteUInt(5, 3);
+        w.WriteUInt(0xDEADBEEF, 32);
+        w.WriteInt(-7, -300, 300);
+        w.WriteQuantized(1.5f, -10f, 10f, 0.01f);
+        w.WriteUInt(1, 1);
+        w.WriteUInt(0x3FF, 10);
+        w.WriteUInt(0, 32);
+        w.WriteUInt(uint.MaxValue, 32);
+        w.WriteBool(false);
+    }
+
+    const string GoldenHex = "FBEEDBEA5DD21FFF0F000000F0FFFFFF0F";
+
+    [Fact]
+    public void TheWireLayoutIsUnchanged()
+    {
+        var writer = new BitWriter();
+        WriteGoldenSequence(writer);
+        string hex = Convert.ToHexString(writer.ToArray());
+        _output.WriteLine($"golden: {writer.BitCount} bits, {hex}");
+        Assert.Equal(GoldenHex, hex);
+
+        var reader = new BitReader(writer.ToArray());
+        Assert.True(reader.ReadBool());
+        Assert.Equal(5u, reader.ReadUInt(3));
+        Assert.Equal(0xDEADBEEFu, reader.ReadUInt(32));
+        Assert.Equal(-7, reader.ReadInt(-300, 300));
+        Assert.Equal(1.5f, reader.ReadQuantized(-10f, 10f, 0.01f), 0.005f);
+        Assert.Equal(1u, reader.ReadUInt(1));
+        Assert.Equal(0x3FFu, reader.ReadUInt(10));
+        Assert.Equal(0u, reader.ReadUInt(32));
+        Assert.Equal(uint.MaxValue, reader.ReadUInt(32));
+        Assert.False(reader.ReadBool());
+        reader.Finish();
+    }
+
+    [Fact]
+    public void AResetWriterWritesTheSameBytesAgain()
+    {
+        var writer = new BitWriter();
+        WriteGoldenSequence(writer);
+        var mid = writer.ToArray();                           // ToArray leaves the writer writing
+        writer.WriteUInt(0x2A, 7);
+        Assert.Equal(GoldenHex, Convert.ToHexString(mid));
+        writer.Reset();
+        Assert.Equal(0, writer.BitCount);
+        Assert.Empty(writer.ToArray());
+        for (int packet = 0; packet < 3; packet++)            // the same buffer, packet after packet
+        {
+            writer.Reset();
+            WriteGoldenSequence(writer);
+            Assert.Equal(GoldenHex, Convert.ToHexString(writer.ToArray()));
+        }
+        writer.Reset();
+        for (int i = 0; i < 1000; i++) writer.WriteUInt((uint)i, 10);   // grows past its first buffer
+        var reader = new BitReader(writer.ToArray());
+        for (int i = 0; i < 1000; i++) Assert.Equal((uint)i, reader.ReadUInt(10));
+        reader.Finish();
+    }
+
     [Fact]
     public void EveryTypeRoundTrips()
     {

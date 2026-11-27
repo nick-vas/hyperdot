@@ -17,7 +17,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-Localization.ps1` | the `l10n` runner and `shot -Locale` (`l10n-fixture`) | Godot for glyphs; `-NoGodot` for the rest |
 | `Test-ColorVision.ps1` | `shot -ColorVision` (`colorvision-fixture`) | Godot, display |
 | `Test-Palette.ps1` | `shot`'s palette check against a style guide | Godot, display; `-NoGodot` for the synthetic part |
-| `Test-Soak.ps1` | `soak` (`soak-fixture`, an ENet game; `soak-fixture-cs`, a C# server that catches SIGTERM) | Godot |
+| `Test-Soak.ps1` | `soak` (`soak-fixture`, an ENet game; `soak-fixture-cs`, a C# server that catches SIGTERM), with `-PlayersPerClient` and the heap hint of `soak-leak` | Godot |
 | `Test-Data.ps1` | the `data` runner (`data-fixture`) | - |
 | `Test-TextSize.ps1` | the `textsize` runner (`textsize-fixture`) | Godot |
 | `Test-Layout.ps1` | the `layout` runner (`layout-fixture`) | Godot |

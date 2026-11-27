@@ -1,5 +1,5 @@
 # A minimal networked game for `hyperdot.ps1 soak`: one headless server, N headless clients over ENet on localhost.
-# The kit starts each process with --soak-role=server|client, --soak-port and --soak-id; the game prints
+# The kit starts each process with --soak-role=server|client, --soak-port, --soak-id and --soak-players; the game prints
 # "[soak] ready", "[soak] metric <name> <value>" and, when it finds something wrong, "[soak] fail <reason>".
 # --leak makes the server keep memory it never frees; --crash-after=<s> makes it quit early: the self-test's broken cases.
 # The server reports input_loss_pct (inputs it never saw, counted from gaps in each client's sequence numbers) and
@@ -10,6 +10,7 @@ extends Node
 var _role := ""
 var _port := 0
 var _id := 0
+var _players := 1             # --soak-players: this client's players, or the server's whole count
 var _leak := false
 var _crash_after := -1.0
 var _elapsed := 0.0
@@ -34,6 +35,7 @@ func _ready() -> void:
 			"--soak-role": _role = value
 			"--soak-port": _port = int(value)
 			"--soak-id": _id = int(value)
+			"--soak-players": _players = int(value)
 			"--leak": _leak = true
 			"--crash-after": _crash_after = float(value)
 	var peer := ENetMultiplayerPeer.new()
@@ -82,6 +84,7 @@ func _physics_process(delta: float) -> void:
 			if total > 0:
 				loss = 100.0 * _inputs_lost / total
 			print("[soak] metric clients %d" % _positions.size())
+			print("[soak] metric players %d" % _players)
 			print("[soak] metric input_loss_pct %.1f" % loss)
 			print("[soak] metric frame_ms_max %.1f" % _frame_ms_max)
 	elif _role == "client" and multiplayer.multiplayer_peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED:
@@ -94,6 +97,7 @@ func _physics_process(delta: float) -> void:
 			print("[soak] metric rtt_ms %.1f" % _rtt_ms)
 			print("[soak] metric rtt_max_ms %.1f" % _rtt_max_ms)
 			print("[soak] metric states %d" % _states_received)
+			print("[soak] metric players %d" % _players)
 
 
 @rpc("any_peer", "unreliable_ordered")
