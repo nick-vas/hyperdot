@@ -169,6 +169,9 @@ param(
     [double]$PeakDb = -6,
     # playtest: the folder of session files (telemetry batches, .json or .jsonl) to read. Default: <project>/playtests/sessions.
     [string]$Sessions,
+    # playtest: the game's own event schema (as templates/playtest-events.json: events, their fields and label values) to
+    # read the sessions against instead of the template; adds playtest.byEvent. A path, or one in the project (res:// too).
+    [string]$Schema,
     # soak: fail when any process's memory grows faster than this many MB per hour (a leak). 0: report only.
     [double]$MaxGrowthMbPerHour = 0,
     # soak: flood the server's own port on 127.0.0.1 with this many junk UDP packets a second (loopback only), to measure
@@ -887,7 +890,7 @@ switch ($Command) {
             -OutputDir ([System.IO.Path]::GetFullPath($(if ($PSBoundParameters.ContainsKey('Output')) { $Output } else { Join-Path $info.ProjectDir 'sounds/sfx' })))
     }
     'playtest' {
-        Invoke-Playtest -Info $info -Cell $HotspotCell -SessionsDir $(if ($Sessions) { $Sessions } else { Join-Path $info.ProjectDir 'playtests/sessions' }) `
+        Invoke-Playtest -Info $info -Cell $HotspotCell -SchemaFile $Schema -SessionsDir $(if ($Sessions) { $Sessions } else { Join-Path $info.ProjectDir 'playtests/sessions' }) `
             -ResultsDir $(if ($PSBoundParameters.ContainsKey('Results')) { $Results } else { 'playtest-results' })
     }
     'credits' {

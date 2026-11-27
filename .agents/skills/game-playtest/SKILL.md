@@ -83,7 +83,9 @@ passes. A heat map of deaths and stalls over all testers beats any single replay
   files in one folder, then `hyperdot.ps1 playtest -Sessions playtests/sessions -Json`: per level the median level time, deaths and stalls per
   session, the share who found each item, and a PNG heat map per event type (`playtest.json` lays one over a level
   screenshot from `shot`). Open the maps, put the table in `docs/playtests/<date>.md`, and compare one build's folder with
-  the next. Sessions from different builds go in different folders.
+  the next. Sessions from different builds go in different folders. A game with its own events (rooms, rounds, votes)
+  writes them in the same format into its own `events.json` and passes `-Schema events.json`: `playtest.byEvent` gives
+  each event's count, label shares and medians per label value, the numbers its kill criteria need.
 
 ## 6. Soft-locks: search, do not wait for a tester
 

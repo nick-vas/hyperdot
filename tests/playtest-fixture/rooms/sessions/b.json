@@ -1,0 +1,11 @@
+{
+  "schema": 1, "session": "b", "build": "1.1", "consent": true,
+  "events": [
+    { "event": "room_opened", "v": 1, "seq": 1, "t": "2026-11-24T11:00:00Z", "fields": { "variant": "classic", "players": 2 } },
+    { "event": "puzzle_ended", "v": 1, "seq": 2, "t": "2026-11-24T11:02:00Z", "fields": { "variant": "classic", "seconds": 200, "solved": true } },
+    { "event": "puzzle_ended", "v": 1, "seq": 3, "t": "2026-11-24T11:03:00Z", "fields": { "variant": "classic", "seconds": 300, "solved": true } },
+    { "event": "vote", "v": 1, "seq": 4, "t": "2026-11-24T11:04:00Z", "fields": { "choice": "red" } },
+    { "event": "vote", "v": 1, "seq": 5, "t": "2026-11-24T11:05:00Z", "fields": { "choice": "blue" } },
+    { "event": "stuck", "v": 1, "seq": 6, "t": "2026-11-24T11:06:00Z", "fields": { "level": "hall", "x": 1, "y": 1, "z": 0, "level_seconds": 1, "seconds": 9 } }
+  ]
+}

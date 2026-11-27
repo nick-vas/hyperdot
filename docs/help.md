@@ -145,9 +145,10 @@ Sounds go to sounds/sfx in the project unless -Output says otherwise.
 ### playtest
 Read a folder of playtest telemetry: per-level counts and medians, and PNG heat maps of stalls and deaths.
 
-    hyperdot.ps1 playtest -Json [-Sessions playtests/sessions]
+    hyperdot.ps1 playtest -Json [-Sessions playtests/sessions] [-Schema events.json]
 
-No Godot needed. The event schema is ci/godot/templates/playtest-events.json.
+No Godot needed. The event schema is ci/godot/templates/playtest-events.json; -Schema reads the game's own (rooms,
+rounds, votes) and adds per event its count, label shares and medians.
 
 ### deck
 The Steam Deck check in one run at 1280x800: text size, layout, a screenshot and bench with a 30 fps budget, one verdict.

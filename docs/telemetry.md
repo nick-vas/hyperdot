@@ -77,11 +77,19 @@ other event: analytics, recorded only after the player agrees, numbers and fixed
   with no event left out (2026-10-23, Godot 4.7.2).
 
 `hyperdot.ps1 playtest -Sessions <folder>` reads that folder (`.json`: a batch or an array of batches; `.jsonl`: one batch a
-line) and writes `playtest-results/`: per level, the median level time, deaths and stalls per session (sessions without
+line, or one event with its `session` a line) and writes `playtest-results/`: per level, the median level time, deaths and stalls per session (sessions without
 any count as 0, so one tester stuck for ten minutes is not averaged away), the share of sessions that found each item, and
 one PNG heat map per level and event type, on a grid, alone or over a level screenshot that `playtest.json` places in the
 world ([reference.md](reference.md)). A batch sent twice counts once (same session and `seq`); events that do not fit the
 schema, and files that are not JSON, are listed and left out.
+
+A game whose events are not levels and positions (rooms, puzzles, rounds, votes) passes its own schema in the same format:
+`hyperdot.ps1 playtest -Schema events.json` checks every event against it (a field it does not declare, such as a player's
+name, leaves the event out, which backs a "no names or IPs" promise) and adds `byEvent[]`: per event its count and
+sessions, the share of each label value, and the median, min and max of each number, alone and per label value (puzzle
+time by variant). Events with a `level` label still get the per-level table, and with `x` and `y` a heat map; events
+copied from `playtest-events.json` unchanged keep their figures (level time, deaths, stalls). A broken schema file fails as
+`invalid-playtest-schema` and names each problem.
 
 Why the PNGs are drawn by a C# file compiled into PowerShell (`ci/godot/tools/Heatmap.cs`, as `Sfxr.cs` is) rather than
 otherwise: `System.Drawing` works only on Windows from .NET 6; PowerShell loops over pixels take seconds a picture; and
