@@ -86,6 +86,7 @@ Branch on `error.code`; `message` can change.
 | `credits-invalid` | `credits`: an entry lacks what its licence needs, or its licence cannot ship in a sold game (the files are still written) | `credits.errors[]` |
 | `engine-notices-failed` | `credits`: Godot exited with an error, or wrote no notices, when asked for the engine's notices; nothing is written, so an earlier `THIRD-PARTY-NOTICES.txt` is kept (Godot's MIT text must ship with the game) | `error.message` |
 | `no-playtest-sessions` | `playtest`: the sessions folder (`-Sessions`, default `<project>/playtests/sessions`) does not exist or holds no telemetry batch | `error.message` |
+| `invalid-playtest-schema` | `playtest -Schema`: the file is not JSON, has no `events`, or an event or field is malformed (a `v` below 1, an unknown key or `kind`, a number without `min` and `max`, an empty `allowed`, a `level` that is not a label); every problem is named | `error.message` |
 | `invalid-playtest-config` | `playtest`: `playtest.json` is not valid (an unknown setting, a bad cell, plane or bounds, an image without bounds or missing), a level's screenshot is not a PNG it can read (8-bit, not interlaced), or a level's grid would exceed 2048 cells a side | `error.message` |
 | `shallow-checkout` | `export -GameVersion auto` in a shallow clone, which has neither the tags nor the commits to count (actions/checkout fetches one commit unless `fetch-depth: 0`); checked before Godot is set up. No version is guessed | `error.message` |
 | `download-failed` | Godot or its export templates could not be downloaded after four attempts (an HTTP error, no network): the network or the server, not the project; retry later | `error.message` (the URL and the last error) |
@@ -399,8 +400,8 @@ parameters, which bfxr2's editor and library open), `sound` (the preset, or the 
 (distinct session ids), `builds[]`, `events` (playtest events counted), `otherEvents` (events that are not playtest events,
 such as `run_end`, ignored), `duplicates` (the same session and `seq` seen again: a batch sent twice), `invalidEvents` and
 `invalid[]` (up to 20: `file`, `session`, `event`, `seq`, `reason`: an event that does not fit
-`ci/godot/templates/playtest-events.json`, left out), `skipped[]` (`file`, `reason`: a file or `.jsonl` line that is not JSON
-or not a batch), `unknownLevels[]` (levels with events that `playtest.json` does not list, when it lists any), `levels[]`
+`ci/godot/templates/playtest-events.json`, or the `-Schema` file, left out), `skipped[]` (`file`, `reason`: a file or `.jsonl` line that is not JSON
+or not a batch; a `.jsonl` line that is one event with its `session` is a batch of one), `unknownLevels[]` (levels with events that `playtest.json` does not list, when it lists any), `levels[]`
 and `heatmaps[]`, `report` (the same document, `<Results>/playtest.json`) and `summary` (`<Results>/playtest.md`, a table and
 the pictures). Each `levels[]` entry: `level`, `sessions` (sessions with any event in it), `levelTime` (`count`, `median`,
 `min`, `max` seconds of its `level_time` events, and how many `finished`, `quit`, `failed`), `deaths` (`total`,
@@ -413,6 +414,17 @@ the pictures). Each `levels[]` entry: `level`, `sessions` (sessions with any eve
 `rows`, `count`, `outside` (events outside `bounds`, not drawn), `maxCount` and `hotCells[]` (up to 5, most events first, then
 by row and column: `col`, `row`, `count`, `from` and `to`, the cell's corners in the plane's coordinates). Only reports: no
 counts fail the run.
+
+With `-Schema <events.json>` (the game's own events, in the template's format), events are checked against that file
+instead, and the report adds `schema` (its path) and `byEvent[]`, one entry per event of the schema in its order, seen or
+not: `event`, `v`, `count`, `sessions` (sessions with one), `labels` (per label field: `distinct` values seen, `values[]`
+(`value`, `count`, `share` of the event's count; an `allowed` list in its order, values never seen included, else the 50
+most frequent) and `other` (events with a value not listed)), `flags` (per flag field: `true`, `share`), `numbers` (per number
+or integer field: `count`, `median`, `min`, `max`) and `byLabel` (per label field, for the same values: `value` and
+`numbers`, each number's summary among the events with that value). `levels[]` and `heatmaps[]` then come from the events
+with a `level` label (heat maps: and `x`, `y` numbers, `z` optional); the per-level figures named after template events
+(level time, deaths, stalls, items) count only events copied from the template unchanged. Without `-Schema` there is no
+`schema` or `byEvent`.
 
 **soak**: `soak` with `clients` (client processes), `playersPerClient` and `players` (`clients` x `-PlayersPerClient`), `seconds` (actual), `port`, `server` and `processes[]` (each: `name`, `ready`, `exitCode`,
 `memoryMb` (`start`, `end`, `growthPerHour`: the steady rate, the smallest slope of the samples over the whole window and over each half, so a one-time step is not extrapolated to an hourly rate and a leak that runs the whole window is; on Linux anonymous resident memory, the heaps and stacks a leak grows, not the binary and libraries mapped from files; elsewhere the working set; `growthWholeWindowPerHour`, `growthFirstHalfPerHour`, `growthSecondHalfPerHour`: the three slopes (MB/h, rounded to 0.1) `growthPerHour` is the smallest of, over the whole window after the warm-up and over each half (with fewer than 8 samples both halves equal the whole window); `residentGrowthPerHour`: all resident memory), `cpuPercent`, `metrics` (the `[soak] metric` values the game printed),

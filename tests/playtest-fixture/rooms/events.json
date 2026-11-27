@@ -1,0 +1,21 @@
+{
+  "$comment": "A game's own playtest events, for tests/Test-Playtest.ps1: rooms, puzzles and votes, a template event copied unchanged (death) and one with a level and x, y but no z (marker).",
+  "events": {
+    "room_opened": { "v": 1, "fields": { "variant": { "kind": "label", "allowed": ["classic", "speed"] }, "players": { "kind": "integer", "min": 1, "max": 8 } } },
+    "puzzle_ended": { "v": 1, "fields": { "variant": { "kind": "label", "allowed": ["classic", "speed"] }, "seconds": { "kind": "number", "min": 0, "max": 3600 }, "solved": { "kind": "flag" } } },
+    "vote": { "v": 1, "fields": { "choice": { "kind": "label" } } },
+    "death": {
+      "v": 1,
+      "fields": {
+        "level": { "kind": "label" },
+        "x": { "kind": "number", "min": -1000000, "max": 1000000 },
+        "y": { "kind": "number", "min": -1000000, "max": 1000000 },
+        "z": { "kind": "number", "min": -1000000, "max": 1000000 },
+        "level_seconds": { "kind": "number", "min": 0, "max": 86400 },
+        "checkpoint": { "kind": "integer", "min": 0, "max": 100000 }
+      }
+    },
+    "marker": { "v": 1, "fields": { "level": { "kind": "label" }, "x": { "kind": "number", "min": -10000, "max": 10000 }, "y": { "kind": "number", "min": -10000, "max": 10000 } } },
+    "never": { "v": 1, "fields": {} }
+  }
+}

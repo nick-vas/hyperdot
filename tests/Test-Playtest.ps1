@@ -2,7 +2,8 @@
 # Self-test of `playtest`: reads tests/playtest-fixture's synthetic sessions (one session split over a .json and a .jsonl
 # file, a batch sent twice, an event missing a field, another game event, a broken file, a level playtest.json does not
 # list) and checks the counts, medians, hot cells and PNG heat maps, alone, over a level screenshot and for level ids that
-# differ only in case. The PNGs are read here with .NET's zlib and a CRC of this file's own, not with the kit's decoder;
+# differ only in case; and, with -Schema, a game's own events in rooms/: byEvent's counts, shares and medians, and a broken
+# schema. The PNGs are read here with .NET's zlib and a CRC of this file's own, not with the kit's decoder;
 # the screenshot is written here with all five PNG row filters, as libpng (Godot's screenshots) uses them. No Godot, no
 # network, about ten seconds.
 Set-StrictMode -Version 3.0
@@ -250,6 +251,48 @@ try {
     Assert-Equal "$($bad.ok) $($bad.error.code)" 'False invalid-playtest-config' 'a screenshot without bounds'
     if ("$($bad.error.message)" -notmatch 'image needs bounds') { $failures.Add("the error should say the image needs bounds: $($bad.error.message)") }
 
+    # 6. -Schema: the game's own events (rooms/events.json), some as one event a .jsonl line with its session. byEvent counts
+    # each event, the share of each label value (an allowed list in its order, with values never seen) and each number's
+    # median, alone and per label value; a field the schema does not declare (a player's name) leaves the event out; a
+    # template event copied unchanged (death) keeps its per-level figures, and an event with a level and x, y but no z
+    # (marker) gets a heat map.
+    $own = Invoke-PlaytestCommand $fixture @('-Results', (Join-Path $work 'own'), '-Sessions', (Join-Path $fixture 'rooms/sessions'), '-Schema', 'rooms/events.json')
+    if (-not $own.ok) { throw "playtest -Schema failed: $($own.error.code) $($own.error.message)" }
+    $o = $own.playtest
+    Assert-Equal "$($o.events) $($o.duplicates) $($o.invalidEvents) $($o.otherEvents) $($o.sessions) $($o.builds -join ',')" '11 1 1 1 2 1.0,1.1' '-Schema: events, duplicates, invalid, other, sessions, builds'
+    Assert-Equal "$($o.invalid[0].file) $($o.invalid[0].reason)" 'a.jsonl:8 name is not in the schema' '-Schema: an undeclared field leaves the event out'
+    Assert-Equal (Split-Path $o.schema -Leaf) 'events.json' '-Schema: the schema read'
+    Assert-Equal (@($o.byEvent | ForEach-Object { "$($_.event)=$($_.count)/$($_.sessions)" }) -join ' ') 'room_opened=2/2 puzzle_ended=4/2 vote=3/2 death=1/1 marker=1/1 never=0/0' 'byEvent counts and sessions, in the schema''s order'
+    $ended = $o.byEvent | Where-Object event -eq 'puzzle_ended'
+    Assert-Equal (@($ended.labels.variant.values | ForEach-Object { "$($_.value):$($_.count):$($_.share)" }) -join ' ') 'classic:3:0.75 speed:1:0.25' 'label shares'
+    Assert-Equal "$($ended.flags.solved.true) $($ended.flags.solved.share)" '3 0.75' 'a flag''s share'
+    Assert-Equal "$($ended.numbers.seconds.median) $($ended.numbers.seconds.min) $($ended.numbers.seconds.max)" '150 30 300' 'a number''s median, min and max'
+    Assert-Equal (@($ended.byLabel.variant | ForEach-Object { "$($_.value):$($_.numbers.seconds.median)" }) -join ' ') 'classic:200 speed:30' 'a number''s median per label value'
+    $opened = $o.byEvent | Where-Object event -eq 'room_opened'
+    Assert-Equal (@($opened.labels.variant.values | ForEach-Object { "$($_.value):$($_.count)" }) -join ' ') 'classic:2 speed:0' 'an allowed value never seen is listed'
+    Assert-Equal "$($null -eq ($opened.byLabel.variant | Where-Object value -eq 'speed').numbers.players.median)" 'True' 'no median for a value never seen'
+    $vote = $o.byEvent | Where-Object event -eq 'vote'
+    Assert-Equal (@($vote.labels.choice.values | ForEach-Object { "$($_.value):$($_.count)" }) -join ' ') 'blue:2 red:1' 'a free label by count (the duplicate counted once)'
+    Assert-Equal (@($o.levels | ForEach-Object { "$($_.level) $($_.deaths.total) $($_.stuck.total)" }) -join ',') 'hall 1 0' 'levels from the events with a level; stuck is not in this schema'
+    Assert-Equal (@($o.heatmaps | ForEach-Object { "$($_.level).$($_.event)" }) -join ',') 'hall.death,hall.marker' 'heat maps for the events with a level and x, y'
+    if ((Get-Content -LiteralPath (Join-Path $work 'own/playtest.md') -Raw) -notmatch '\| puzzle_ended \| 4 \| 2 \| variant: classic 75%, speed 25%; solved: 75% true \| seconds 150 \|') { $failures.Add('playtest.md has no events table row for puzzle_ended') }
+    $plain = Invoke-PlaytestCommand $fixture @('-Results', (Join-Path $work 'plain'))
+    Assert-Equal "$($plain.playtest.PSObject.Properties.Name -contains 'byEvent') $($plain.playtest.PSObject.Properties.Name -contains 'schema')" 'False False' 'without -Schema, no byEvent'
+
+    # 6b. A schema that is broken says what is wrong; a missing one is refused.
+    $badSchema = Join-Path $work 'bad-events.json'
+    '{ "events": { "x": { "v": 0, "fields": { "a": { "kind": "text" }, "n": { "kind": "number", "min": 5, "max": 1 }, "level": { "kind": "integer", "min": 0, "max": 9 } } } } }' | Set-Content -LiteralPath $badSchema
+    $broken = Invoke-PlaytestCommand $fixture @('-Results', (Join-Path $work 'broken'), '-Sessions', (Join-Path $fixture 'rooms/sessions'), '-Schema', $badSchema)
+    Assert-Equal "$($broken.ok) $($broken.error.code)" 'False invalid-playtest-schema' 'a broken schema'
+    foreach ($says in 'events.x.v must', 'fields.a: expected', 'fields.n: a number needs min and max', 'level is the level''s id') {
+        if ("$($broken.error.message)" -notmatch [regex]::Escape($says)) { $failures.Add("the schema error should say '$says': $($broken.error.message)") }
+    }
+    'not json' | Set-Content -LiteralPath $badSchema
+    $notJson = Invoke-PlaytestCommand $fixture @('-Results', (Join-Path $work 'broken'), '-Schema', $badSchema)
+    Assert-Equal "$($notJson.ok) $($notJson.error.code)" 'False invalid-playtest-schema' 'a schema that is not JSON'
+    $missing = Invoke-PlaytestCommand $fixture @('-Results', (Join-Path $work 'broken'), '-Schema', 'no-such-events.json')
+    Assert-Equal "$($missing.ok) $($missing.error.code)" 'False invalid-arguments' 'a schema that does not exist'
+
     # The limits of the shipped event definitions, read by Get-PlaytestEventProblem: a value at its maximum fits, one past it
     # does not; a label of 64 characters fits, 65 does not; a label from an allowed list is case-sensitive; no fields is a problem.
     . (Join-Path $root 'ci/godot/lib/Playtest.ps1')
@@ -273,6 +316,16 @@ try {
     Assert-Equal (Test-EventFits $withResult $resultFields) 'True' 'an allowed result'
     $resultFields['result'] = 'Finished'
     Assert-Equal (Test-EventFits $withResult $resultFields) 'False' 'an allowed value in the wrong case'
+
+    # A free label keeps its 50 most frequent values; the rest are counted under other.
+    $voteDefinition = @{ v = 1; fields = [ordered]@{ choice = @{ kind = 'label' } } }
+    $tally = @{ Count = 0; Sessions = [System.Collections.Generic.HashSet[string]]::new(); Labels = @{}; Flags = @{}; Numbers = @{}; Groups = @{} }
+    for ($i = 1; $i -le 60; $i++) { for ($j = 0; $j -lt $i; $j++) { Add-PlaytestEventTally $tally $voteDefinition @{ choice = "c$i" } 's' } }
+    $summary = ConvertTo-PlaytestEventSummary 'vote' $voteDefinition $tally
+    $choice = $summary['labels']['choice']
+    Assert-Equal "$($choice['distinct']) $(@($choice['values']).Count) $($choice['values'][0]['value']) $($choice['other'])" '60 50 c60 55' 'a free label: 50 values shown, the rest under other'
+    # The shipped template passes the schema check.
+    Assert-Equal (@((Read-PlaytestSchema (Join-Path $root 'ci/godot/templates/playtest-events.json'))['events'].Keys).Count) '7' 'the template passes its own schema check'
 } catch {
     $failures.Add("$_ ($($_.InvocationInfo.PositionMessage))")
 } finally {
@@ -280,5 +333,5 @@ try {
 }
 
 if ($failures.Count) { $failures | ForEach-Object { Write-Host "FAIL $_" -ForegroundColor Red }; exit 1 }
-Write-Host 'playtest reads split, repeated and broken session files, counts and medians per level, finds the hot cells, and draws the same PNG heat maps every time, alone and over a screenshot'
+Write-Host 'playtest reads split, repeated and broken session files, counts and medians per level, finds the hot cells, and draws the same PNG heat maps every time, alone and over a screenshot; with -Schema it reads a game''s own events'
 exit 0

@@ -2,6 +2,10 @@
 # templates/playtest-events.json) and reports, per level, counts and medians (level time, deaths, stalls) and a heat map
 # per event type as a PNG, alone or over a level screenshot that playtest.json places in the world. No Godot: the PNGs are
 # drawn by tools/Heatmap.cs, compiled into this session with Add-Type. The same folder always gives the same report.
+# -Schema reads the game's own events instead (rooms, rounds, votes: anything with labels and numbers) and adds byEvent[]:
+# per event its count, the share of each label value and the median of each number, alone and per label value. Levels
+# and heat maps then come from the events that have a level label (and x, y numbers); the template's per-level figures
+# (level time, deaths, stalls, items) from the events copied from the template unchanged.
 
 # Events with a position, in the order their maps are drawn.
 $script:PlaytestPlaced = @('stuck', 'death', 'revisit', 'solved_but_stayed', 'item_found', 'hint_requested')
@@ -12,6 +16,55 @@ function Get-OrdinalSorted([string[]]$Items) {
     $copy = [string[]]$Items.Clone()
     [Array]::Sort($copy, [StringComparer]::Ordinal)
     return $copy
+}
+
+function Test-PlaytestNumber($Value) {
+    return $Value -is [int] -or $Value -is [long] -or $Value -is [double] -or $Value -is [decimal] -or $Value -is [System.Numerics.BigInteger]
+}
+
+# An event schema: the template, or the game's own (-Schema). Checked here so that a broken file says what is wrong instead
+# of every event failing to fit it. Returns the parsed schema (ordered: events in the file's order).
+function Read-PlaytestSchema([string]$File) {
+    try { $json = Get-Content -LiteralPath $File -Raw | ConvertFrom-Json -AsHashtable }
+    catch { Stop-GodotCi "${File}: not valid JSON: $($_.Exception.Message -replace '\s+', ' ')" 'invalid-playtest-schema' }
+    if ($json -isnot [System.Collections.IDictionary] -or -not $json.Contains('events') -or $json['events'] -isnot [System.Collections.IDictionary] -or $json['events'].Count -eq 0) {
+        Stop-GodotCi "${File}: expected an object with events: event name -> { v, fields } (as templates/playtest-events.json)" 'invalid-playtest-schema'
+    }
+    $problems = [System.Collections.Generic.List[string]]::new()
+    foreach ($name in @($json['events'].Keys)) {
+        $d = $json['events'][$name]
+        if ($name -cnotmatch '^[A-Za-z0-9_.-]{1,64}$') { $problems.Add("events.${name}: an event name is 1 to 64 letters, digits, _ . or -") }
+        if ($d -isnot [System.Collections.IDictionary]) { $problems.Add("events.${name}: expected an object { v, fields }"); continue }
+        foreach ($key in $d.Keys) { if ($key -cnotin 'v', 'fields' -and -not "$key".StartsWith('$')) { $problems.Add("events.${name}.${key}: unknown key (v, fields)") } }
+        if (-not ($d['v'] -is [int] -or $d['v'] -is [long]) -or $d['v'] -lt 1) { $problems.Add("events.${name}.v must be a whole number from 1, the event's version") }
+        if ($d['fields'] -isnot [System.Collections.IDictionary]) { $problems.Add("events.${name}.fields must be an object: field name -> { kind, ... }"); continue }
+        foreach ($field in @($d['fields'].Keys)) {
+            $k = $d['fields'][$field]
+            $at = "events.${name}.fields.${field}"
+            if ($k -isnot [System.Collections.IDictionary] -or $k['kind'] -cnotin 'label', 'number', 'integer', 'flag') { $problems.Add("${at}: expected { kind: label, number, integer or flag }"); continue }
+            $allowedKeys = switch ($k['kind']) { 'label' { 'kind', 'allowed' } 'flag' { , 'kind' } default { 'kind', 'min', 'max' } }
+            foreach ($key in $k.Keys) { if ($key -cnotin $allowedKeys -and -not "$key".StartsWith('$')) { $problems.Add("${at}.${key}: unknown key for a $($k['kind']) ($($allowedKeys -join ', '))") } }
+            if ($k['kind'] -in 'number', 'integer') {
+                if (-not (Test-PlaytestNumber $k['min']) -or -not (Test-PlaytestNumber $k['max']) -or [double]$k['min'] -gt [double]$k['max']) { $problems.Add("${at}: a $($k['kind']) needs min and max, numbers with min at most max") }
+            }
+            if ($k['kind'] -eq 'label' -and $k.Contains('allowed')) {
+                $allowed = $k['allowed']
+                if ($allowed -isnot [System.Collections.IList] -or $allowed.Count -eq 0 -or @($allowed | Where-Object { $_ -isnot [string] -or -not $_ }).Count) { $problems.Add("${at}.allowed must be a list of the label's values (strings)") }
+            }
+            if ($field -ceq 'level' -and $k['kind'] -ne 'label') { $problems.Add("${at}: level is the level's id, a label") }
+        }
+    }
+    if ($problems.Count) { Stop-GodotCi "${File}: $($problems -join '; ')" 'invalid-playtest-schema' }
+    return $json
+}
+
+# A definition as one string, to tell an event copied from the template unchanged from one that only shares its name.
+function Get-PlaytestDefinitionKey($Definition) {
+    $parts = foreach ($field in @(Get-OrdinalSorted @($Definition['fields'].Keys))) {
+        $k = $Definition['fields'][$field]
+        "${field}:$($k['kind']):$($k['min']):$($k['max']):$(if ($k.Contains('allowed')) { @($k['allowed']) -join '|' })"
+    }
+    return "v$($Definition['v']);$($parts -join ';')"
 }
 
 function Import-HeatmapType {
@@ -80,6 +133,12 @@ function Read-PlaytestBatches([string]$Dir) {
             $where = if ($f.Extension -eq '.jsonl') { "${relative}:$line" } else { $relative }
             try { $parsed = $text | ConvertFrom-Json -AsHashtable -NoEnumerate }
             catch { $result.Skipped.Add([ordered]@{ file = $where; reason = "not valid JSON: $($_.Exception.Message -replace '\s+', ' ')" }); continue }
+            # A log line that is one event with its session ({session, build, event, v, seq, t, fields}) is a batch of one.
+            if ($parsed -is [System.Collections.IDictionary] -and -not $parsed.Contains('events') -and $parsed.Contains('event') -and $parsed['session'] -is [string]) {
+                $one = [ordered]@{}
+                foreach ($key in $parsed.Keys) { if ($key -cnotin 'session', 'build') { $one[$key] = $parsed[$key] } }
+                $parsed = @{ session = $parsed['session']; build = $parsed['build']; events = @(, $one) }
+            }
             foreach ($batch in @(if ($parsed -is [System.Collections.IDictionary]) { , $parsed } else { $parsed })) {
                 if ($batch -isnot [System.Collections.IDictionary] -or $batch['session'] -isnot [string] -or -not $batch['session'] -or -not $batch.Contains('events')) {
                     $result.Skipped.Add([ordered]@{ file = $where; reason = 'not a telemetry batch (session and events[])' }); continue
@@ -100,7 +159,7 @@ function Get-PlaytestEventProblem($Definition, $Fields) {
         if (-not $Fields.Contains($name)) { return "$name is missing" }
         $kind = $Definition['fields'][$name]
         $value = $Fields[$name]
-        $numeric = $value -is [int] -or $value -is [long] -or $value -is [double] -or $value -is [decimal] -or $value -is [System.Numerics.BigInteger]
+        $numeric = Test-PlaytestNumber $value
         $fits = switch ($kind['kind']) {
             'label' {
                 $value -is [string] -and $(if ($kind.Contains('allowed')) { $value -cin @($kind['allowed']) } else { $value -cmatch '^[A-Za-z0-9_.-]{1,64}$' })
@@ -125,13 +184,42 @@ function Get-PlaytestMedian([double[]]$Values) {
 }
 
 function Invoke-Playtest {
-    param($Info, [string]$SessionsDir, [double]$Cell = 0, [string]$ResultsDir)
+    param($Info, [string]$SessionsDir, [double]$Cell = 0, [string]$ResultsDir, [string]$SchemaFile)
     if (-not (Test-Path -LiteralPath $SessionsDir -PathType Container)) {
         Stop-GodotCi "No sessions folder at ${SessionsDir}: put the session files the playtest builds wrote there, or pass -Sessions" 'no-playtest-sessions'
     }
     $SessionsDir = (Resolve-Path -LiteralPath $SessionsDir).Path
-    $templateFile = Join-Path $PSScriptRoot '../templates/playtest-events.json'
-    $schema = Get-Content -LiteralPath $templateFile -Raw | ConvertFrom-Json -AsHashtable
+    $templateFile = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../templates/playtest-events.json'))
+    $template = Read-PlaytestSchema $templateFile
+    $schemaName = 'templates/playtest-events.json'
+    if ($SchemaFile) {
+        $found = @($SchemaFile, (Join-Path $Info.ProjectDir ($SchemaFile -replace '^res://', ''))) | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+        if (-not $found) { Stop-GodotCi "-Schema ${SchemaFile}: no such file (here or in the project folder)" 'invalid-arguments' }
+        $SchemaFile = (Resolve-Path -LiteralPath $found).Path
+        $schema = Read-PlaytestSchema $SchemaFile
+        $schemaName = $SchemaFile
+    } else { $schema = $template }
+    # The template's per-level figures read these events' fields by name: only an event copied from it unchanged has them.
+    $standard = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($name in $schema['events'].Keys) {
+        if ($template['events'].Contains($name) -and (Get-PlaytestDefinitionKey $schema['events'][$name]) -ceq (Get-PlaytestDefinitionKey $template['events'][$name])) { [void]$standard.Add($name) }
+    }
+    # Events drawn on heat maps: the template's, in its order; with -Schema, every event with a level and x, y numbers.
+    $placed = if ($SchemaFile) {
+        @(foreach ($name in $schema['events'].Keys) {
+            $fields = $schema['events'][$name]['fields']
+            if ($fields.Contains('level') -and @('x', 'y' | Where-Object { $fields.Contains($_) -and $fields[$_]['kind'] -in 'number', 'integer' }).Count -eq 2 -and
+                (-not $fields.Contains('z') -or $fields['z']['kind'] -in 'number', 'integer')) { $name }
+        })
+    } else { $script:PlaytestPlaced }
+    # byEvent (with -Schema): per event its sessions, label values, flags and numbers, and the numbers per label value.
+    $byEvent = [ordered]@{}
+    if ($SchemaFile) {
+        foreach ($name in $schema['events'].Keys) {
+            $byEvent[$name] = @{ Count = 0; Sessions = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+                Labels = @{}; Flags = @{}; Numbers = @{}; Groups = @{} }
+        }
+    }
     $config = Read-PlaytestConfig $Info.ProjectDir
     $known = @($config.Levels.Keys)
     $read = Read-PlaytestBatches $SessionsDir
@@ -165,6 +253,9 @@ function Invoke-Playtest {
             if ($null -ne $e['seq'] -and -not $seen.Add("$session|$($e['seq'])")) { $duplicates++; continue }
             $counted++
             $f = $e['fields']
+            if ($SchemaFile) { Add-PlaytestEventTally $byEvent[$name] $definition $f $session }
+            # Levels and heat maps are per level: an event without one is counted in byEvent alone.
+            if (-not $definition['fields'].Contains('level')) { continue }
             $id = $f['level']
             if (-not $levels.ContainsKey($id)) {
                 $levels[$id] = @{
@@ -178,7 +269,7 @@ function Invoke-Playtest {
             $l = $levels[$id]
             [void]$l.Sessions.Add($session)
             $l.Counts[$name] = 1 + $(if ($l.Counts.Contains($name)) { $l.Counts[$name] } else { 0 })
-            switch ($name) {
+            switch ($(if ($standard.Contains($name)) { $name } else { '' })) {
                 'level_time' { $l.Times.Add([double]$f['seconds']); $l.Results[$f['result']]++ }
                 'death' { $l.Deaths[$session] = 1 + $(if ($l.Deaths.Contains($session)) { $l.Deaths[$session] } else { 0 }) }
                 'stuck' { $l.Stuck[$session] = 1 + $(if ($l.Stuck.Contains($session)) { $l.Stuck[$session] } else { 0 }); $l.StuckSeconds.Add([double]$f['seconds']) }
@@ -189,14 +280,14 @@ function Invoke-Playtest {
                     [void]$l.Items[$item].Add($session)
                 }
             }
-            if ($name -in $script:PlaytestPlaced) {
+            if ($name -cin $placed) {
                 if (-not $l.Points.Contains($name)) { $l.Points[$name] = [System.Collections.Generic.List[double[]]]::new() }
-                $l.Points[$name].Add([double[]]@([double]$f['x'], [double]$f['y'], [double]$f['z']))
+                $l.Points[$name].Add([double[]]@([double]$f['x'], [double]$f['y'], $(if ($f.Contains('z')) { [double]$f['z'] } else { 0.0 })))
             }
         }
     }
     foreach ($s in $read.Skipped) { Write-CiLog "Skipped $($s.file): $($s.reason)" }
-    if ($invalidCount) { Write-CiLog "$invalidCount playtest event(s) did not fit templates/playtest-events.json and were left out (playtest.invalid)" }
+    if ($invalidCount) { Write-CiLog "$invalidCount playtest event(s) did not fit $schemaName and were left out (playtest.invalid)" }
 
     Import-HeatmapType
     $ResultsDir = [System.IO.Path]::GetFullPath($ResultsDir)
@@ -279,7 +370,7 @@ function Invoke-Playtest {
         if (-not $stem) { $stem = 'level' }
         $baseStem = $stem
         for ($n = 2; -not $mapStems.Add($stem); $n++) { $stem = "$baseStem-$n" }
-        foreach ($name in $script:PlaytestPlaced) {
+        foreach ($name in $placed) {
             if (-not $l.Points.Contains($name)) { continue }
             $counts = [int[]]::new($cols * $rows)
             $outside = 0
@@ -316,6 +407,10 @@ function Invoke-Playtest {
         invalidEvents = $invalidCount; invalid = @($invalid); skipped = @($read.Skipped); unknownLevels = $unknown
         levels = @($levelResults); heatmaps = @($maps)
     }
+    if ($SchemaFile) {
+        $report.schema = $SchemaFile
+        $report.byEvent = @(foreach ($name in $byEvent.Keys) { ConvertTo-PlaytestEventSummary $name $schema['events'][$name] $byEvent[$name] })
+    }
     $report.report = Join-Path $ResultsDir 'playtest.json'
     $report.summary = Join-Path $ResultsDir 'playtest.md'
     $report | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $report.report -Encoding utf8
@@ -324,8 +419,91 @@ function Invoke-Playtest {
         Write-CiLog ("{0}: {1} session(s), level time median {2} s, deaths median {3} per session, {4} stall(s) in {5} session(s)" -f
             $lr.level, $lr.sessions, $(if ($null -ne $lr.levelTime.median) { $lr.levelTime.median } else { '-' }), $lr.deaths.medianPerSession, $lr.stuck.total, $lr.stuck.sessions)
     }
+    if ($SchemaFile) {
+        foreach ($be in $report.byEvent) { Write-CiLog "$($be.event): $($be.count) in $($be.sessions) session(s)" }
+    }
     Write-CiLog "$($maps.Count) heat map(s) in $mapsDir; report in $($report.summary)"
     Set-JsonField playtest $report
+}
+
+# Label values kept per field in byEvent; the rest are counted under distinct and other.
+$script:PlaytestTopValues = 50
+
+# Adds one valid event to its byEvent tally.
+function Add-PlaytestEventTally($Tally, $Definition, $Fields, [string]$Session) {
+    $Tally.Count++
+    [void]$Tally.Sessions.Add($Session)
+    $labels = @()
+    foreach ($field in $Definition['fields'].Keys) {
+        $kind = $Definition['fields'][$field]['kind']
+        $value = $Fields[$field]
+        if ($kind -eq 'label') {
+            if (-not $Tally.Labels.Contains($field)) { $Tally.Labels[$field] = [System.Collections.Generic.Dictionary[string, int]]::new([StringComparer]::Ordinal) }
+            $Tally.Labels[$field][$value] = 1 + $(if ($Tally.Labels[$field].ContainsKey($value)) { $Tally.Labels[$field][$value] } else { 0 })
+            $labels += , @($field, $value)
+        } elseif ($kind -eq 'flag') {
+            $Tally.Flags[$field] = $(if ($Tally.Flags.Contains($field)) { $Tally.Flags[$field] } else { 0 }) + [int]$value
+        } else {
+            if (-not $Tally.Numbers.Contains($field)) { $Tally.Numbers[$field] = [System.Collections.Generic.List[double]]::new() }
+            $Tally.Numbers[$field].Add([double]$value)
+        }
+    }
+    foreach ($pair in $labels) {
+        $key = "$($pair[0])`n$($pair[1])"
+        if (-not $Tally.Groups.Contains($key)) { $Tally.Groups[$key] = @{} }
+        foreach ($field in $Definition['fields'].Keys) {
+            if ($Definition['fields'][$field]['kind'] -notin 'number', 'integer') { continue }
+            if (-not $Tally.Groups[$key].Contains($field)) { $Tally.Groups[$key][$field] = [System.Collections.Generic.List[double]]::new() }
+            $Tally.Groups[$key][$field].Add([double]$Fields[$field])
+        }
+    }
+}
+
+function Get-PlaytestNumberSummary([double[]]$Values) {
+    if ($null -eq $Values -or $Values.Count -eq 0) { return [ordered]@{ count = 0; median = $null; min = $null; max = $null } }
+    $m = $Values | Measure-Object -Minimum -Maximum
+    return [ordered]@{ count = $Values.Count; median = Get-PlaytestMedian $Values; min = [Math]::Round($m.Minimum, 2); max = [Math]::Round($m.Maximum, 2) }
+}
+
+# One byEvent[] entry. Label values: an allowed list in its order (with the values never seen), others by count then name,
+# at most PlaytestTopValues of them. byLabel: each number's summary per label value, for the same values.
+function ConvertTo-PlaytestEventSummary([string]$Name, $Definition, $Tally) {
+    $labels = [ordered]@{}; $flags = [ordered]@{}; $numbers = [ordered]@{}; $byLabel = [ordered]@{}
+    $numberFields = @($Definition['fields'].Keys | Where-Object { $Definition['fields'][$_]['kind'] -in 'number', 'integer' })
+    foreach ($field in $Definition['fields'].Keys) {
+        $kind = $Definition['fields'][$field]
+        switch ($kind['kind']) {
+            'label' {
+                $seen = if ($Tally.Labels.Contains($field)) { $Tally.Labels[$field] } else { [System.Collections.Generic.Dictionary[string, int]]::new() }
+                $values = if ($kind.Contains('allowed')) { @($kind['allowed']) } else {
+                    # Names in ordinal order first, then a stable sort by count: the same order in every culture.
+                    @(Get-OrdinalSorted @($seen.Keys) | Sort-Object -Stable -Descending { $seen[$_] })
+                }
+                $top = @($values | Select-Object -First $script:PlaytestTopValues)
+                $shown = 0
+                $entries = @(foreach ($v in $top) {
+                    $n = if ($seen.ContainsKey($v)) { $seen[$v] } else { 0 }
+                    $shown += $n
+                    [ordered]@{ value = $v; count = $n; share = $(if ($Tally.Count) { [Math]::Round($n / [double]$Tally.Count, 3) } else { 0 }) }
+                })
+                $labels[$field] = [ordered]@{ distinct = $seen.Count; values = $entries; other = $Tally.Count - $shown }
+                if ($numberFields.Count) {
+                    $byLabel[$field] = @(foreach ($v in $top) {
+                        $group = $Tally.Groups["$field`n$v"]
+                        $per = [ordered]@{}
+                        foreach ($nf in $numberFields) { $per[$nf] = Get-PlaytestNumberSummary $(if ($group -and $group.Contains($nf)) { $group[$nf].ToArray() } else { $null }) }
+                        [ordered]@{ value = $v; numbers = $per }
+                    })
+                }
+            }
+            'flag' {
+                $n = if ($Tally.Flags.Contains($field)) { $Tally.Flags[$field] } else { 0 }
+                $flags[$field] = [ordered]@{ true = $n; share = $(if ($Tally.Count) { [Math]::Round($n / [double]$Tally.Count, 3) } else { 0 }) }
+            }
+            default { $numbers[$field] = Get-PlaytestNumberSummary $(if ($Tally.Numbers.Contains($field)) { $Tally.Numbers[$field].ToArray() } else { $null }) }
+        }
+    }
+    return [ordered]@{ event = $Name; v = $Definition['v']; count = $Tally.Count; sessions = $Tally.Sessions.Count; labels = $labels; flags = $flags; numbers = $numbers; byLabel = $byLabel }
 }
 
 # playtest.md: the per-level table and the maps, for docs/playtests/<date>.md and for people.
@@ -345,6 +523,20 @@ function Write-PlaytestSummary($Report) {
         if (@($l.items).Count) {
             $lines.Add('')
             $lines.Add("Items found in $($l.level): $(@($l.items | ForEach-Object { "#$($_.item) $([Math]::Round($_.share * 100))%" }) -join ', ')")
+        }
+    }
+    if ($Report.Contains('byEvent')) {
+        $lines.Add('')
+        $lines.Add("## Events ($([System.IO.Path]::GetFileName($Report.schema)))")
+        $lines.Add('')
+        $lines.Add('| Event | Count | Sessions | Labels | Numbers (median) |')
+        $lines.Add('|---|---|---|---|---|')
+        foreach ($be in $Report.byEvent) {
+            $labelText = @(foreach ($field in $be.labels.Keys) {
+                "${field}: " + (@($be.labels[$field].values | Select-Object -First 5 | ForEach-Object { "$($_.value) $([Math]::Round($_.share * 100))%" }) -join ', ')
+            }) + @(foreach ($field in $be.flags.Keys) { "${field}: $([Math]::Round($be.flags[$field].share * 100))% true" })
+            $numberText = @(foreach ($field in $be.numbers.Keys) { "${field} $(& $show $be.numbers[$field].median)" })
+            $lines.Add("| $($be.event) | $($be.count) | $($be.sessions) | $(($labelText -join '; ') -replace '\|', '\|') | $($numberText -join ', ') |")
         }
     }
     if ($Report.heatmaps.Count) {

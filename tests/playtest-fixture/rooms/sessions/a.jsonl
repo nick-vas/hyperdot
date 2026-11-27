@@ -1,0 +1,8 @@
+{"session":"a","build":"1.0","event":"room_opened","v":1,"seq":1,"t":"2026-11-24T10:00:00Z","fields":{"variant":"classic","players":4}}
+{"session":"a","build":"1.0","event":"puzzle_ended","v":1,"seq":2,"t":"2026-11-24T10:02:00Z","fields":{"variant":"classic","seconds":100,"solved":true}}
+{"session":"a","build":"1.0","event":"puzzle_ended","v":1,"seq":3,"t":"2026-11-24T10:03:00Z","fields":{"variant":"speed","seconds":30,"solved":false}}
+{"session":"a","build":"1.0","event":"vote","v":1,"seq":4,"t":"2026-11-24T10:04:00Z","fields":{"choice":"blue"}}
+{"session":"a","build":"1.0","event":"vote","v":1,"seq":4,"t":"2026-11-24T10:04:00Z","fields":{"choice":"blue"}}
+{"session":"a","build":"1.0","event":"death","v":1,"seq":5,"t":"2026-11-24T10:05:00Z","fields":{"level":"hall","x":10,"y":10,"z":0,"level_seconds":5,"checkpoint":0}}
+{"session":"a","build":"1.0","event":"marker","v":1,"seq":6,"t":"2026-11-24T10:06:00Z","fields":{"level":"hall","x":70,"y":10}}
+{"session":"a","build":"1.0","event":"vote","v":1,"seq":7,"t":"2026-11-24T10:07:00Z","fields":{"choice":"red","name":"Bob"}}

@@ -10,7 +10,7 @@ gives the percentages and the floors CI holds them to.
 | Part | Items | Covered |
 |---|---|---|
 | [Commands](#commands) | 23 | 23 |
-| [Error codes](#error-codes) | 78 | 75 |
+| [Error codes](#error-codes) | 79 | 76 |
 | [Library files](#library-files) | 42 | 42 |
 | [Tools](#tools) | 23 | 23 |
 | [Skills](#skills) | 55 | 55 |
@@ -111,6 +111,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `credits-invalid` | `Test-Credits.ps1` |
 | `engine-notices-failed` | `Test-Credits.ps1` |
 | `no-playtest-sessions` | `Test-Playtest.ps1` |
+| `invalid-playtest-schema` | `Test-Playtest.ps1` |
 | `invalid-playtest-config` | `Test-Playtest.ps1` |
 | `shallow-checkout` | `Test-GameVersion.ps1` |
 | `download-failed` | `Test-DownloadFailed.ps1` |
@@ -163,7 +164,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Placement.ps1` | 2/2 | `Test-Placement.ps1` |
 | `Plan.ps1` | 37/38 | `Test-Plan.ps1`, `Test-Calendar.ps1`, `Test-Promo.ps1`, `Test-ProjectSync.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1` and 3 more |
 | `Platforms.ps1` | 1/1 | `Test-Platforms.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1` and 7 more |
-| `Playtest.ps1` | 8/8 | `Test-Playtest.ps1` |
+| `Playtest.ps1` | 8/14 | `Test-Playtest.ps1` |
 | `Playthrough.ps1` | 3/3 | `Test-Playthrough.ps1` |
 | `Promo.ps1` | 27/27 | `Test-Promo.ps1` |
 | `Report.ps1` | 29/34 | `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Flows.ps1`, `Test-Localization.ps1`, `Test-Plan.ps1`, `Test-Telemetry.ps1`, `Test-Calendar.ps1`, `Test-ArchitectureFixtures.ps1` and 27 more |
