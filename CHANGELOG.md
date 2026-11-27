@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.4.1 - 2026-11-27
+### Changed
+- a flag given to a command that does not read it is refused as `invalid-arguments`, naming the commands that take it (`soak -BudgetMs`: "-BudgetMs is for bench, deck, not soak"), instead of being ignored, so a check that never ran cannot pass for one that did. The GitHub action passes each of its inputs only to the commands that read it. `-Results` and `-Output`, which only say where files go, are taken by every command, so a script can still hand the same folders to each command it runs; a script that hands other flags to several commands (`-Runners` to `export`, `-Coverage` to `build`) now fails and must pass each command its own.
+- the reusable workflow checks the kit out without `benchmark/`, `tests/` and `examples/`, which no game's job runs: 380 files and 5 MB instead of 6,365 files and 82 MB, in each test, export and release job.
+
+### Fixed
+- `export` launched every build it could run on the machine whether `-Run` was given or not: a local variable named `$run` in the export loop hid the `-Run` switch (PowerShell names ignore case). Launches now follow `-Run`, and a self-test fails if any function of `hyperdot.ps1` assigns a variable named like one of its parameters.
+
 ## 0.4.0 - 2026-11-27
 ### Added
 - `doctor` lists the plain C# libraries the game references that set no `<Optimize>` (INFO): Godot builds the game in Debug, so their hot paths run unoptimised in every kit run and in `bench`. `godot-pitfalls` gains that row and one for `OS.GetCmdlineArgs()`, which never shows Godot's own flags (`--headless`, `--write-movie`); the `performance` skill says `bench` measures C# in Debug (#311, #307).
