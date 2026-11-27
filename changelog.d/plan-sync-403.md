@@ -1,1 +1,0 @@
-Fixed: `plan -Do sync` names a 403 from GitHub (a proxy or environment that blocks the GraphQL API, or a token that cannot reach the owner) as `project-credentials` with the way out, and adds a hint to gh's "unknown owner type" (check the owner's name and the token) instead of passing it on bare (#313).

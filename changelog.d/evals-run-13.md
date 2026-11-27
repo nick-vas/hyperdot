@@ -1,1 +1,0 @@
-Changed: the `startup-total` eval graders accept a fix that moves the cap onto the multiplier (`1 + mini(combo / 5, 9)`) and still fail one that only raises it (x3), as run 13 showed; `New-EvalGraderFixture.ps1` replays edits to files in subfolders and takes `-ShellFiles` for files a session wrote from the shell. `docs/research.md` records runs 12 and 13.
