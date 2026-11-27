@@ -1,0 +1,1 @@
+Changed: the reusable workflow checks the kit out without `benchmark/`, `tests/` and `examples/`, which no game's job runs: 380 files and 5 MB instead of 6,365 files and 82 MB, in each test, export and release job.

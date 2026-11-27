@@ -102,7 +102,7 @@ try {
         $preset = { param([int]$Index, [string]$Name, [string]$Embed) "[preset.$Index]`n`nname=`"$Name`"`nplatform=`"Linux`"`nrunnable=$($Index -eq 0 ? 'true' : 'false')`ncustom_features=`"`"`nexport_filter=`"all_resources`"`ninclude_filter=`"`"`nexclude_filter=`"test/*, addons/gut/*`"`nexport_path=`"../build/$Name/game.x86_64`"`n`n[preset.$Index.options]`n`nbinary_format/embed_pck=$Embed`nbinary_format/architecture=`"x86_64`"`n`n" }
         Set-Content -LiteralPath (Join-Path $game 'export_presets.cfg') ((& $preset 0 'Linux' 'false') + (& $preset 1 'Embedded' 'true'))
         $out = Join-Path $work 'out'
-        $json = (& pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') export -Json -Runners none -Project $game -Output $out 2>$null) -join "`n" | ConvertFrom-Json
+        $json = (& pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') export -Json -Project $game -Output $out 2>$null) -join "`n" | ConvertFrom-Json
         Assert-True ($json.ok) "the export passes: $(if (-not $json.ok) { $json.error | ConvertTo-Json -Depth 10 -Compress })"
         if ($json.ok) {
             $linux = @($json.exports | Where-Object preset -eq 'Linux')[0].size
@@ -116,7 +116,7 @@ try {
             # export -DebugBuild: Godot's debug template, a different and larger executable than the release one.
             $releaseExe = (Get-Item -LiteralPath @($json.exports | Where-Object preset -eq 'Linux')[0].file).Length
             $debugOut = Join-Path $work 'out-debug'
-            $debugJson = (& pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') export -Json -DebugBuild -Preset Linux -Runners none -Project $game -Output $debugOut 2>$null) -join "`n" | ConvertFrom-Json
+            $debugJson = (& pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') export -Json -DebugBuild -Preset Linux -Project $game -Output $debugOut 2>$null) -join "`n" | ConvertFrom-Json
             Assert-True ($debugJson.ok) "export -DebugBuild passes: $(if (-not $debugJson.ok) { $debugJson.error | ConvertTo-Json -Depth 10 -Compress })"
             if ($debugJson.ok) {
                 $debugEntry = @($debugJson.exports)[0]
