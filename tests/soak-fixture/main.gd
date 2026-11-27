@@ -2,6 +2,7 @@
 # The kit starts each process with --soak-role=server|client, --soak-port, --soak-id and --soak-players; the game prints
 # "[soak] ready", "[soak] metric <name> <value>" and, when it finds something wrong, "[soak] fail <reason>".
 # --leak makes the server keep memory it never frees; --crash-after=<s> makes it quit early: the self-test's broken cases.
+# --grow makes the server's backlog metric climb (10 a second) with no memory behind it, for -MaxMetricGrowth.
 # The server reports input_loss_pct (inputs it never saw, counted from gaps in each client's sequence numbers) and
 # frame_ms_max (its longest real frame): both rise when junk traffic crowds legitimate packets out of the socket buffer,
 # which is what `soak -JunkPps` floods the port to measure. Each client reports its last and worst round trip.
@@ -12,6 +13,7 @@ var _port := 0
 var _id := 0
 var _players := 1             # --soak-players: this client's players, or the server's whole count
 var _leak := false
+var _grow := false
 var _crash_after := -1.0
 var _elapsed := 0.0
 var _positions := {}          # server: peer id -> Vector2
@@ -37,6 +39,7 @@ func _ready() -> void:
 			"--soak-id": _id = int(value)
 			"--soak-players": _players = int(value)
 			"--leak": _leak = true
+			"--grow": _grow = true
 			"--crash-after": _crash_after = float(value)
 	var peer := ENetMultiplayerPeer.new()
 	if _role == "server":
@@ -87,6 +90,7 @@ func _physics_process(delta: float) -> void:
 			print("[soak] metric players %d" % _players)
 			print("[soak] metric input_loss_pct %.1f" % loss)
 			print("[soak] metric frame_ms_max %.1f" % _frame_ms_max)
+			print("[soak] metric backlog %d" % (int(_elapsed * 10) if _grow else 0))
 	elif _role == "client" and multiplayer.multiplayer_peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED:
 		_sequence += 1
 		send_input.rpc_id(1, _sequence, Vector2(sin(_elapsed + _id), cos(_elapsed)))

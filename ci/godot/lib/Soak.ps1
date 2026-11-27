@@ -8,6 +8,9 @@
 #                  [soak] metric <name> <number>
 #                  [soak] fail <reason>
 # Each process writes its own log (Godot's --log-file), so dozens of them never fight over one pipe.
+# The kit reads each log at every memory sample, so a metric is a series as well as a last value: processes[].metricGrowth
+# is its growth per hour, the same three slopes as memory, and -MaxMetricGrowth name=limit fails a run whose metric grows
+# faster (soak-metric-growth). The game prints no times: a value is dated when the kit read it, right to one sample interval.
 
 function Get-FreeUdpPort {
     $socket = [System.Net.Sockets.UdpClient]::new(0)
@@ -69,6 +72,83 @@ $socket.Dispose()
     return [pscustomobject]@{ Process = [System.Diagnostics.Process]::Start($info); CountFile = $countFile }
 }
 
+# The "[soak] metric" values a process has logged since the last read, each dated $T, added to its Series (name -> list of
+# @{ T; V }). Only whole lines are read: a line Godot is still writing waits for the next read. -Discard moves past what is
+# there without keeping it: the values of the warm-up.
+function Read-SoakMetricSeries($Proc, [double]$T, [switch]$Discard) {
+    $path = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Proc.Log)
+    if (-not [System.IO.File]::Exists($path)) { return }
+    try {
+        $stream = [System.IO.FileStream]::new($path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+        try {
+            if ($stream.Length -le $Proc.LogOffset) { return }
+            [void]$stream.Seek($Proc.LogOffset, [System.IO.SeekOrigin]::Begin)
+            $buffer = [byte[]]::new($stream.Length - $Proc.LogOffset)
+            $total = 0
+            while ($total -lt $buffer.Length) {
+                $n = $stream.Read($buffer, $total, $buffer.Length - $total)
+                if ($n -le 0) { break }
+                $total += $n
+            }
+        } finally { $stream.Dispose() }
+    } catch [System.IO.IOException] { Write-Verbose "$($Proc.Name): log not readable now"; return }
+    if ($total -eq 0) { return }
+    $lastNewline = [Array]::LastIndexOf($buffer, [byte]10, $total - 1)
+    if ($lastNewline -lt 0) { return }
+    $Proc.LogOffset += $lastNewline + 1
+    if ($Discard) { return }
+    foreach ($line in [System.Text.Encoding]::UTF8.GetString($buffer, 0, $lastNewline + 1) -split "`r?`n") {
+        if ($line -notmatch '^\[soak\] metric (?<n>\S+) (?<v>\S+)') { continue }
+        $value = 0.0
+        if (-not [double]::TryParse($Matches.v, [System.Globalization.NumberStyles]::Float, [cultureinfo]::InvariantCulture, [ref]$value) -or -not [double]::IsFinite($value)) { continue }
+        if (-not $Proc.Series.Contains($Matches.n)) { $Proc.Series[$Matches.n] = [System.Collections.Generic.List[object]]::new() }
+        $Proc.Series[$Matches.n].Add([pscustomobject]@{ T = $T; V = $value })
+    }
+}
+
+# Each metric's series as processes[].metricGrowth: samples, first and last value, and its growth per hour as memory's
+# (the smallest of the three slopes, and each), rounded to 0.01. Names in ordinal order.
+function Get-SoakMetricGrowth($Series) {
+    $growth = [ordered]@{}
+    $names = [string[]]@($Series.Keys)
+    [Array]::Sort($names, [StringComparer]::Ordinal)
+    foreach ($name in $names) {
+        $points = @($Series[$name])
+        $slopes = Get-GrowthSlopes $points 'V' 2
+        $growth[$name] = [ordered]@{
+            samples = $points.Count; first = $points[0].V; last = $points[-1].V
+            growthPerHour = $slopes.Smallest; growthWholeWindowPerHour = $slopes.Whole
+            growthFirstHalfPerHour = $slopes.First; growthSecondHalfPerHour = $slopes.Second
+        }
+    }
+    return $growth
+}
+
+# -MaxMetricGrowth "name=limit,name=limit" as an ordered name -> limit (a metric's growth per hour).
+function ConvertFrom-MetricLimits([string]$Text) {
+    $limits = [ordered]@{}
+    foreach ($part in @($Text -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })) {
+        $value = 0.0
+        $ok = $part -match '^(?<n>[^=\s]+)=(?<v>\S+)$' -and [double]::TryParse($Matches.v, [System.Globalization.NumberStyles]::Float, [cultureinfo]::InvariantCulture, [ref]$value) -and [double]::IsFinite($value)
+        if (-not $ok) { Stop-GodotCi "-MaxMetricGrowth takes name=limit pairs, comma-separated (a [soak] metric's growth per hour, such as managed_heap_after_gc_mb=5), not '$part'" 'invalid-arguments' }
+        $limits[$Matches.n] = $value
+    }
+    return $limits
+}
+
+# What soak-leak says of one leaking process: its memory, and, when it printed a heap metric, how that heap grew over the
+# same window (issue 310): flat means the growth is outside that heap (native memory, or freed memory the runtime holds),
+# growing means a leak in it. Without one, nothing: the message then suggests printing one.
+function Get-SoakLeakText($Process) {
+    $text = "$($Process.name) +$($Process.memoryMb.growthPerHour) MB/h (all resident memory +$($Process.memoryMb.residentGrowthPerHour) MB/h)"
+    $heaps = @($Process.metricGrowth.Keys | Where-Object { $_ -match 'heap' })
+    foreach ($h in $heaps) {
+        $g = $Process.metricGrowth[$h]
+        $text += "; its $h went $($g.first) to $($g.last), $('{0:+0.##;-0.##;0}' -f $g.growthPerHour)/h (flat: the growth is outside that heap, native memory or freed memory the runtime holds; growing: a leak in it)"
+    }
+    return $text
+}
+
 function Start-SoakProcess([string]$ProjectDir, [string]$Log, [string[]]$UserArgs) {
     $info = [System.Diagnostics.ProcessStartInfo]::new($env:GODOT_BIN)
     foreach ($a in @('--headless', '--path', $ProjectDir, '--log-file', $Log, '--') + @($UserArgs)) { $info.ArgumentList.Add($a) }
@@ -102,7 +182,7 @@ function Get-SlopeMbPerHour($Points, [string]$Field) {
 # All three slopes behind the growth, in MB per hour, rounded to 0.1: over the whole window (Whole), over its first half
 # (First) and over its second (Second). With fewer than 8 samples a half is too short to read, so both halves equal the
 # whole. Smallest is the gate.
-function Get-GrowthSlopes($Samples, [string]$Field = 'Mb') {
+function Get-GrowthSlopes($Samples, [string]$Field = 'Mb', [int]$Digits = 1) {
     $points = @($Samples)
     $whole = Get-SlopeMbPerHour $points $Field
     $first = $whole; $second = $whole
@@ -112,8 +192,8 @@ function Get-GrowthSlopes($Samples, [string]$Field = 'Mb') {
         $second = Get-SlopeMbPerHour @($points[$half..($points.Count - 1)]) $Field
     }
     return [ordered]@{
-        Whole = [Math]::Round($whole, 1); First = [Math]::Round($first, 1); Second = [Math]::Round($second, 1)
-        Smallest = [Math]::Round([Math]::Min($whole, [Math]::Min($first, $second)), 1)
+        Whole = [Math]::Round($whole, $Digits); First = [Math]::Round($first, $Digits); Second = [Math]::Round($second, $Digits)
+        Smallest = [Math]::Round([Math]::Min($whole, [Math]::Min($first, $second)), $Digits)
     }
 }
 function Get-GrowthMbPerHour($Samples, [string]$Field = 'Mb') { return (Get-GrowthSlopes $Samples $Field).Smallest }
@@ -145,13 +225,14 @@ function Get-LeakMemoryMb([System.Diagnostics.Process]$Process) {
 
 function Invoke-Soak {
     param($Info, [int]$Clients, [double]$Seconds, [double]$Warmup, [string]$ResultsDir, [string[]]$GameArgs, [double]$MaxGrowthMbPerHour, [int]$JunkPps,
-        [double]$StopGraceSeconds = 30, [switch]$RequireCleanStop, [int]$PlayersPerClient = 1)
+        [double]$StopGraceSeconds = 30, [switch]$RequireCleanStop, [int]$PlayersPerClient = 1, [string]$MaxMetricGrowth)
     if ($Clients -lt 1) { Stop-GodotCi '-Clients must be 1 or more' 'invalid-arguments' }
     # A 100-player game cannot start 100 Godot processes on one machine (about 16 GB): one client process then holds several
     # players (issue 304). The game reads --soak-players; the server is told the players as well as the processes.
     if ($PlayersPerClient -lt 1) { Stop-GodotCi '-PlayersPerClient must be 1 or more' 'invalid-arguments' }
     $players = $Clients * $PlayersPerClient
     if ($JunkPps -lt 0) { Stop-GodotCi '-JunkPps must be 0 or more' 'invalid-arguments' }
+    $metricLimits = ConvertFrom-MetricLimits $MaxMetricGrowth
     New-Item -ItemType Directory -Force $ResultsDir | Out-Null
     $port = Get-FreeUdpPort
     $extra = @(Split-GameArgs $GameArgs)
@@ -169,12 +250,12 @@ function Invoke-Soak {
     Start-LogGroup "Soak: 1 server and $Clients client(s)$(if ($PlayersPerClient -gt 1) { " of $PlayersPerClient players each ($players players)" }) for $Seconds s (port $port)$(if ($JunkPps) { ", junk flood $JunkPps pps" })"
     try {
         $serverLog = Join-Path $ResultsDir 'server.log'
-        $procs.Add([pscustomobject]@{ Name = 'server'; Log = $serverLog; Samples = [System.Collections.Generic.List[object]]::new()
+        $procs.Add([pscustomobject]@{ Name = 'server'; Log = $serverLog; Samples = [System.Collections.Generic.List[object]]::new(); Series = [ordered]@{}; LogOffset = [long]0
             Process = Start-SoakProcess $Info.ProjectDir $serverLog (@('--soak-role=server', "--soak-port=$port", "--soak-clients=$Clients", "--soak-players=$players") + $extra) })
         Start-Sleep -Milliseconds 500   # the server listens before the first client knocks
         for ($i = 1; $i -le $Clients; $i++) {
             $log = Join-Path $ResultsDir "client-$i.log"
-            $procs.Add([pscustomobject]@{ Name = "client-$i"; Log = $log; Samples = [System.Collections.Generic.List[object]]::new()
+            $procs.Add([pscustomobject]@{ Name = "client-$i"; Log = $log; Samples = [System.Collections.Generic.List[object]]::new(); Series = [ordered]@{}; LogOffset = [long]0
                 Process = Start-SoakProcess $Info.ProjectDir $log (@('--soak-role=client', "--soak-port=$port", "--soak-id=$i", "--soak-players=$PlayersPerClient") + $extra) })
         }
 
@@ -183,6 +264,7 @@ function Invoke-Soak {
         # Flood for the whole run, the warm-up included, so the measured window is entirely under load.
         if ($JunkPps -gt 0) { $flood = Start-JunkFlood $port $JunkPps $end $ResultsDir }
         $nextSample = $Warmup
+        $firstSample = $true
         while ($clock.Elapsed.TotalSeconds -lt $end) {
             Start-Sleep -Milliseconds 250
             if (@($procs | Where-Object { $_.Process.HasExited }).Count -gt 0) { break }   # a crash ends the run early
@@ -191,7 +273,10 @@ function Invoke-Soak {
                 foreach ($p in $procs) {
                     try { $p.Process.Refresh(); $p.Samples.Add([pscustomobject]@{ T = $t; Mb = (Get-LeakMemoryMb $p.Process); Resident = $p.Process.WorkingSet64 / 1MB; Cpu = $p.Process.TotalProcessorTime.TotalSeconds }) }
                     catch [System.InvalidOperationException] { Write-Verbose "$($p.Name) exited while sampled" }
+                    # The first read only skips what the warm-up printed: those values would be dated at its end.
+                    Read-SoakMetricSeries $p $t -Discard:$firstSample
                 }
+                $firstSample = $false
                 $nextSample += $sampleEvery
             }
         }
@@ -232,6 +317,8 @@ function Invoke-Soak {
 
     $report = @(); $problems = @(); $errors = @(); $errorDetails = @()
     foreach ($p in $procs) {
+        # What the process printed after the last sample (and before it was stopped) is dated at the end of the run.
+        if (-not $firstSample) { Read-SoakMetricSeries $p $ranFor }
         $lines = if (Test-Path -LiteralPath $p.Log) { @(Get-Content -LiteralPath $p.Log) } else { @() }
         $parsed = ConvertFrom-SoakMetrics $lines
         $metrics = $parsed.Metrics
@@ -254,6 +341,7 @@ function Invoke-Soak {
             }
             cpuPercent = if ($samples.Count -ge 2 -and $samples[-1].T -gt $samples[0].T) { [Math]::Round(100 * ($samples[-1].Cpu - $samples[0].Cpu) / ($samples[-1].T - $samples[0].T), 1) } else { $null }
             metrics = $metrics
+            metricGrowth = Get-SoakMetricGrowth $p.Series
             unparsedMetrics = $parsed.Unparsed
             fails = $fails
             log = $p.Log
@@ -282,6 +370,21 @@ function Invoke-Soak {
     # A run cut short (a crash, a stop) can still end with fewer than 3 samples; then growth reads 0 and gates nothing.
     if ($MaxGrowthMbPerHour -gt 0 -and $procs[0].Samples.Count -lt 3) {
         $growthWarnings += [ordered]@{ process = $server.name; message = "too few samples to measure growth: $($procs[0].Samples.Count) of the 3 needed, so growthPerHour is 0 and -MaxGrowthMbPerHour checked nothing" }
+    }
+    # -MaxMetricGrowth: a metric no process printed, or printed too seldom for a slope, gates nothing: said, not passed silently.
+    $metricOver = @()
+    foreach ($name in $metricLimits.Keys) {
+        $limit = $metricLimits[$name]
+        $reported = @($report | Where-Object { $_.metricGrowth.Contains($name) })
+        if (-not $reported.Count) {
+            $growthWarnings += [ordered]@{ process = $null; message = "no process printed [soak] metric $name after the warm-up, so -MaxMetricGrowth $name=$limit checked nothing" }
+            continue
+        }
+        foreach ($r in $reported) {
+            $g = $r.metricGrowth[$name]
+            if ($g.samples -lt 3) { $growthWarnings += [ordered]@{ process = $r.name; message = "$($r.name) printed $name $($g.samples) time(s) after the warm-up, fewer than the 3 a slope needs, so -MaxMetricGrowth $name checked nothing for it; print it every few seconds or soak longer" } }
+            elseif ($g.growthPerHour -gt $limit) { $metricOver += "$($r.name) $name +$($g.growthPerHour)/h ($($g.first) to $($g.last))" }
+        }
     }
     $summary['warnings'] = $growthWarnings
     $summary['stop'] = $stop
@@ -317,6 +420,9 @@ function Invoke-Soak {
         # the game's own heap, printed every few seconds, tells that from a leak (issue 310). It does not replace this gate:
         # a flat managed heap does not rule out a native leak (Godot objects, buffers).
         $hint = if (@($leaks | Where-Object { -not @($_.metrics.Keys | Where-Object { $_ -match 'heap' }).Count }).Count) { '. To tell a held heap from a leak, print the game''s own heap every few seconds ([soak] metric managed_heap_after_gc_mb <MB>, from GC.GetTotalMemory(true) in C#); it is reported under processes[].metrics' } else { '' }
-        Stop-GodotCi "Memory keeps growing: $(($leaks | ForEach-Object { "$($_.name) +$($_.memoryMb.growthPerHour) MB/h (all resident memory +$($_.memoryMb.residentGrowthPerHour) MB/h)" }) -join ', ') (limit $MaxGrowthMbPerHour MB/h)$hint" 'soak-leak'
+        Stop-GodotCi "Memory keeps growing: $(($leaks | ForEach-Object { Get-SoakLeakText $_ }) -join ', ') (limit $MaxGrowthMbPerHour MB/h)$hint" 'soak-leak'
+    }
+    if ($metricOver) {
+        Stop-GodotCi "A metric keeps growing: $($metricOver -join ', ') (-MaxMetricGrowth $(@($metricLimits.Keys | ForEach-Object { "$_=$($metricLimits[$_])" }) -join ','))" 'soak-metric-growth'
     }
 }

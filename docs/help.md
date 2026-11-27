@@ -128,7 +128,9 @@ Godot's Movie Maker plays the scene at a fixed 30 fps, so every machine records 
 ### soak
 Run one headless server and several headless clients together; fails on crashes, errors and memory leaks.
 
-    hyperdot.ps1 soak -Json -Clients 8 -Seconds 600 [-MaxGrowthMbPerHour 50] [-RequireCleanStop]
+    hyperdot.ps1 soak -Json -Clients 8 -Seconds 600 [-MaxGrowthMbPerHour 50] [-MaxMetricGrowth managed_heap_after_gc_mb=5] [-RequireCleanStop]
+
+Each [soak] metric the game prints is also tracked over time: its growth per hour is reported, and -MaxMetricGrowth fails one that climbs.
 
 ### credits
 Write CREDITS.md, credits.json and THIRD-PARTY-NOTICES.txt from assets.json; fails when a credit or notice is missing.

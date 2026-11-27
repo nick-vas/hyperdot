@@ -2,7 +2,8 @@
 # Self-test of `soak` on tests/soak-fixture (GDScript, ENet on localhost): a healthy run passes, a server that never frees
 # memory fails as soak-leak, one that quits early fails as soak-failed. Needs Godot (GODOT_BIN, or the kit installs it).
 # First, without Godot: the growth rate from synthetic samples (a step is not growth, a steady slope is), then metric values
-# in Godot's own formats are read whole, and those that are not numbers are listed.
+# in Godot's own formats are read whole, and those that are not numbers are listed; -MaxMetricGrowth pairs, a metric's
+# growth and the soak-leak text beside a heap metric. With Godot, each metric's series and a metric that climbs.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -15,6 +16,17 @@ $parsed = ConvertFrom-SoakMetrics @('[soak] metric rtt_ms 1e-07', '[soak] metric
 $read = @($parsed.Metrics.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value.ToString([cultureinfo]::InvariantCulture))" }) -join ' '
 if ($read -ne 'rtt_ms=1E-07 bytes=3E+21 delta=-2.5') { $failures += "metric values should be read whole: $read" }
 if ((@($parsed.Unparsed) -join ' | ') -ne '[soak] metric version 1.2.3 | [soak] metric ratio inf') { $failures += "values that are not numbers should be listed: $(@($parsed.Unparsed) -join ' | ')" }
+
+# -MaxMetricGrowth is read as name=limit pairs (anything else is refused before a process starts, checked below). soak-leak shows how a heap
+# metric grew beside memory (issue 310), so a flat managed heap and a leak in it read differently.
+$limits = ConvertFrom-MetricLimits 'managed_heap_after_gc_mb=5, entities=1e3'
+if ((@($limits.Keys | ForEach-Object { "$_=$($limits[$_])" }) -join ' ') -ne 'managed_heap_after_gc_mb=5 entities=1000') { $failures += "-MaxMetricGrowth pairs: $(@($limits.Keys) -join ',')" }
+$series = [ordered]@{ heap = [System.Collections.Generic.List[object]]::new() }
+foreach ($i in 0..9) { $series['heap'].Add([pscustomobject]@{ T = 10.0 * $i; V = 40 + 0.001 * $i }) }
+$heapGrowth = Get-SoakMetricGrowth $series
+if ($heapGrowth['heap'].samples -ne 10 -or $heapGrowth['heap'].first -ne 40 -or [Math]::Abs($heapGrowth['heap'].growthPerHour - 0.36) -gt 0.01) { $failures += "a metric's growth: $($heapGrowth | ConvertTo-Json -Depth 4 -Compress)" }
+$leakText = Get-SoakLeakText ([ordered]@{ name = 'server'; memoryMb = [ordered]@{ growthPerHour = 300; residentGrowthPerHour = 310 }; metricGrowth = $heapGrowth })
+if ($leakText -notmatch '^server \+300 MB/h' -or $leakText -notmatch 'its heap went 40 to 40\.009, \+0\.36/h \(flat: the growth is outside that heap') { $failures += "soak-leak beside a heap metric: $leakText" }
 
 # The growth rate, from synthetic samples (one a second for 20 s, as a 20 s run takes them). A one-time step reads as no
 # growth, whatever the window: a warm-up step, a step in the middle, one at either end, and a decaying warm-up. A steady
@@ -89,7 +101,7 @@ function Invoke-Soak([string[]]$Extra, [string]$Project = $fixture, [double]$War
 }
 
 try {
-$healthy = Invoke-Soak @('-Clients', '4')
+$healthy = Invoke-Soak @('-Clients', '4', '-MaxMetricGrowth', 'backlog=100,nosuch=1')
 if (-not $healthy.ok) { $failures += "a healthy run failed: $($healthy.error.code) $($healthy.error.message)" }
 else {
     if (@($healthy.soak.processes | Where-Object { -not $_.ready }).Count) { $failures += 'a process never became ready' }
@@ -98,6 +110,11 @@ else {
     }
     if ($null -eq $healthy.soak.warnings) { $failures += 'soak.warnings should be a list (empty when nothing grew)' }
     if ($healthy.soak.server.metrics.clients -ne 4) { $failures += "the server reported $($healthy.soak.server.metrics.clients) clients" }
+    # Each metric is a series: read at every sample, past the warm-up. The fixture prints every 5 s, so 4 values in 20 s.
+    $backlog = $healthy.soak.server.metricGrowth.backlog
+    if ($null -eq $backlog -or $backlog.samples -lt 3 -or $backlog.growthPerHour -ne 0) { $failures += "the server's flat backlog metric: $($backlog | ConvertTo-Json -Depth 5 -Compress)" }
+    if (@($healthy.soak.processes | Where-Object { $_.name -like 'client-*' -and $_.metricGrowth.rtt_ms.samples -lt 3 }).Count) { $failures += 'each client''s rtt_ms should be a series of 3 or more' }
+    if (-not @($healthy.soak.warnings | Where-Object { $_.message -match 'nosuch=1 checked nothing' }).Count) { $failures += "a limit on a metric no process prints should be a warning: $($healthy.soak.warnings | ConvertTo-Json -Depth 4 -Compress)" }
 }
 
 # A window too short for 3 memory samples reads 0 MB/h and would pass any limit: refused up front, before a process starts.
@@ -131,6 +148,17 @@ if ($leak.ok -or $leak.error.code -ne 'soak-leak') { $failures += "a leaking ser
 # what it freed (issue 310).
 elseif ($leak.error.message -notmatch 'managed_heap_after_gc_mb') { $failures += "soak-leak should suggest a heap metric: $($leak.error.message)" }
 
+# A metric that climbs fails -MaxMetricGrowth as soak-metric-growth, with no memory behind it: the fixture's --grow adds 10
+# to its backlog a second, 36000 an hour.
+$grow = Invoke-Soak @('-Clients', '1', '-GameArgs', '--grow', '-MaxMetricGrowth', 'backlog=1000')
+if ($grow.ok -or $grow.error.code -ne 'soak-metric-growth' -or $grow.error.message -notmatch 'server backlog \+') { $failures += "a climbing metric should fail as soak-metric-growth: $($grow.error.code) $($grow.error.message)" }
+$measured = if ($grow.soak) { $grow.soak.server.metricGrowth.backlog.growthPerHour } else { $null }
+if ($null -eq $measured -or [Math]::Abs($measured - 36000) -gt 3600) { $failures += "backlog grew 36000 an hour, measured $measured" }
+foreach ($bad in 'backlog', 'backlog=', 'backlog=fast', 'backlog=inf') {
+    $malformed = Invoke-Soak @('-Clients', '1', '-MaxMetricGrowth', $bad)
+    if ($malformed.ok -or $malformed.error.code -ne 'invalid-arguments' -or $malformed.error.message -notmatch 'name=limit') { $failures += "-MaxMetricGrowth '$bad' should be refused as invalid-arguments: $($malformed.error.code)" }
+}
+
 # Several players per client process (issue 304): each client is told its players, the server the whole count, and the
 # report counts players as well as processes.
 $many = Invoke-Soak @('-Clients', '2', '-PlayersPerClient', '3')
@@ -163,5 +191,5 @@ if (-not $degraded) {
 }
 
 if ($failures) { $failures | ForEach-Object { Write-Host "FAIL $_" -ForegroundColor Red }; exit 1 }
-Write-Host 'soak passes a healthy server and clients, catches a leak and a crash, a junk flood degrades the server, and the SIGTERM stop tells a server with a handler from one without'
+Write-Host 'soak passes a healthy server and clients, catches a leak, a climbing metric and a crash, a junk flood degrades the server, and the SIGTERM stop tells a server with a handler from one without'
 exit 0
