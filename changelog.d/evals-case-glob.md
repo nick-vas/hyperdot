@@ -1,1 +1,0 @@
-Fixed: the Evals workflow passes its `case` glob quoted, so PowerShell on Linux no longer expands it against the checkout (`s*` became `site` and matched no case), and a run in which no case ran fails instead of ending green with nothing measured.
