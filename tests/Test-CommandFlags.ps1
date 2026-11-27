@@ -4,7 +4,8 @@
 #   1. the table and the script agree: every parameter is in it, every name in it is a parameter, every command has a row;
 #   2. no command's own code reads a parameter its row leaves out (its switch branch, an `if ($Command -eq ...)` block,
 #      and the script's own functions they call), so the check never refuses a flag a command uses;
-#   3. every `hyperdot.ps1 <command> -Flag` written in the skills, docs, workflows, templates, evals and tests passes it;
+#   3. every `hyperdot.ps1 <command> -Flag` (or `-File $ci <command>`) written in the skills, docs, workflows, templates,
+#      evals and tests passes it, but for a test's own refusal case (it checks invalid-arguments in the next lines);
 #   4. a flag given to the wrong command is refused as invalid-arguments, naming the commands that take it.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
@@ -88,17 +89,20 @@ $scanned = 0
 $files = @(git -C $root ls-files -- '.agents' 'agents' 'docs' '.github' 'ci/godot/templates' 'evals' 'tests' 'README.md' 'hooks' |
         Where-Object { $_ -match '\.(md|yml|yaml|ps1|json|sh)$' -and $_ -notmatch '^docs/coverage\.md$' })
 foreach ($rel in $files) {
-    $lineNo = 0
-    foreach ($line in [System.IO.File]::ReadLines((Join-Path $root $rel))) {
-        $lineNo++
-        foreach ($m in [regex]::Matches($line, 'hyperdot\.ps1[''"]?\s+(?<cmd>[a-z]+)\b(?<rest>[^|;`]*)')) {
+    $lines = [System.IO.File]::ReadAllLines((Join-Path $root $rel))
+    for ($i = 0; $i -lt $lines.Length; $i++) {
+        $line = $lines[$i]
+        $lineNo = $i + 1
+        # A test that gives a flag to the wrong command on purpose checks the refusal within the next three lines.
+        $expectsRefusal = (@($lines[$i..([Math]::Min($i + 3, $lines.Length - 1))]) -join "`n") -match 'invalid-arguments|refused'
+        foreach ($m in [regex]::Matches($line, '(?:hyperdot\.ps1[''"]?\)?|-File \$(?:ci|kit|cli|entry|script|hyperdot))\s+(?<cmd>[a-z]+)\b(?<rest>[^|;`]*)')) {
             $cmd = $m.Groups['cmd'].Value
             if ($cmd -notin $commands) { continue }
             $scanned++
             $own = @($script:KitAnyCommandFlags) + @($script:KitCommandFlags[$cmd])
             foreach ($f in [regex]::Matches($m.Groups['rest'].Value, '(?<![\w-])-(?<f>[A-Z][A-Za-z]+)')) {
                 $variable = $flagToVariable[$f.Groups['f'].Value.ToLowerInvariant()]
-                if ($variable -and $variable -notin $own) { $failures.Add("${rel}:${lineNo}: $cmd -$($f.Groups['f'].Value) would be refused ($($line.Trim()))") }
+                if ($variable -and $variable -notin $own -and -not $expectsRefusal) { $failures.Add("${rel}:${lineNo}: $cmd -$($f.Groups['f'].Value) would be refused ($($line.Trim()))") }
             }
         }
     }
