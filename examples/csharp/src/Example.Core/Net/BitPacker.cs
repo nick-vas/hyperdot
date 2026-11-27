@@ -27,10 +27,19 @@ public static class BitPacking
     public static int QuantizedBits(float min, float max, float precision) => BitsFor(Steps(min, max, precision));
 }
 
-/// <summary>Writes values in as few bits as their range needs; <see cref="ToArray"/> gives the bytes to send.</summary>
+/// <summary>
+/// Writes values in as few bits as their range needs; <see cref="ToArray"/> gives the bytes to send. Bits gather in a
+/// 64-bit accumulator and go out a whole byte at a time into a buffer that <see cref="Reset"/> keeps, so a server that
+/// writes a snapshot for every client every tick allocates nothing but the array it sends (the first writer, one bit at a
+/// time into a List of bytes, cost a 100-player server about 13 ms a tick; issue 305). The layout is unchanged: least
+/// significant bit first, fields back to back (pinned by BitPackerTests' golden bytes).
+/// </summary>
 public sealed class BitWriter
 {
-    readonly List<byte> _bytes = new();
+    byte[] _buffer = new byte[64];
+    int _length;          // whole bytes in _buffer
+    ulong _pending;       // bits not yet a whole byte, lowest first
+    int _pendingBits;     // 0 to 7 between writes
 
     public int BitCount { get; private set; }
     public int ByteCount => (BitCount + 7) / 8;
@@ -42,12 +51,26 @@ public sealed class BitWriter
     {
         if (bits is < 1 or > 32) throw new ArgumentOutOfRangeException(nameof(bits), "1 to 32 bits");
         if (bits < 32 && value >> bits != 0) throw new ArgumentOutOfRangeException(nameof(value), $"{value} does not fit in {bits} bits");
-        for (int i = 0; i < bits; i++)
+        _pending |= (ulong)value << _pendingBits;   // at most 7 + 32 bits: fits
+        _pendingBits += bits;
+        BitCount += bits;
+        if (_pendingBits < 8) return;
+        if (_length + 5 > _buffer.Length) Array.Resize(ref _buffer, _buffer.Length * 2);
+        while (_pendingBits >= 8)
         {
-            if (BitCount % 8 == 0) _bytes.Add(0);
-            if ((value & (1u << i)) != 0) _bytes[^1] |= (byte)(1 << (BitCount % 8));
-            BitCount++;
+            _buffer[_length++] = (byte)_pending;
+            _pending >>= 8;
+            _pendingBits -= 8;
         }
+    }
+
+    /// <summary>Empties the writer for the next packet, keeping its buffer.</summary>
+    public void Reset()
+    {
+        _length = 0;
+        _pending = 0;
+        _pendingBits = 0;
+        BitCount = 0;
     }
 
     /// <summary>An int in [<paramref name="min"/>, <paramref name="max"/>], as its offset from min.</summary>
@@ -70,7 +93,14 @@ public sealed class BitWriter
         WriteUInt(step, BitPacking.BitsFor(steps));
     }
 
-    public byte[] ToArray() => _bytes.ToArray();
+    /// <summary>The bytes written so far (the last one padded with zero bits); the writer can go on writing.</summary>
+    public byte[] ToArray()
+    {
+        var bytes = new byte[ByteCount];
+        Array.Copy(_buffer, bytes, _length);
+        if (_pendingBits > 0) bytes[_length] = (byte)_pending;
+        return bytes;
+    }
 }
 
 /// <summary>Reads what a <see cref="BitWriter"/> wrote, in the same order and with the same sizes.</summary>
@@ -89,10 +119,12 @@ public sealed class BitReader
     {
         if (bits is < 1 or > 32) throw new ArgumentOutOfRangeException(nameof(bits), "1 to 32 bits");
         if (bits > BitsLeft) throw new InvalidOperationException($"read of {bits} bits with {BitsLeft} left: the reader and writer disagree");
-        uint value = 0;
-        for (int i = 0; i < bits; i++, _position++)
-            if ((_bytes[_position / 8] & (1 << (_position % 8))) != 0) value |= 1u << i;
-        return value;
+        // The (at most 5) bytes the field touches, least significant first, then shifted and masked: no loop per bit.
+        int first = _position >> 3, offset = _position & 7, last = (_position + bits - 1) >> 3;
+        ulong chunk = 0;
+        for (int i = first; i <= last; i++) chunk |= (ulong)_bytes[i] << (8 * (i - first));
+        _position += bits;
+        return (uint)((chunk >> offset) & (bits == 32 ? 0xFFFF_FFFFUL : (1UL << bits) - 1));
     }
 
     public int ReadInt(int min, int max) => (int)(min + (long)ReadUInt(BitPacking.BitsFor((uint)((long)max - min))));

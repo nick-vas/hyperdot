@@ -1,0 +1,1 @@
+Changed: the C# example's `BitWriter` and `BitReader` pack through a 64-bit accumulator instead of a loop per bit, about five times faster on large snapshots; `BitWriter.Reset()` reuses the buffer, and a golden-bytes test pins the unchanged wire layout (#305).

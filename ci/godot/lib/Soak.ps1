@@ -1,7 +1,9 @@
 # soak: one headless server and -Clients headless clients of the game on this machine for -Seconds, to find what only
 # time and load show: crashes, engine errors, memory that keeps growing, and failures the game detects itself (a desync,
 # a lost connection). The game takes part through a small contract of command-line flags and printed lines:
-#   started with   --soak-role=server|client --soak-port=<port> --soak-id=<n>  (plus -GameArgs)
+#   started with   --soak-role=server|client --soak-port=<port>, and
+#                  the server --soak-clients=<processes> --soak-players=<clients x -PlayersPerClient>,
+#                  each client --soak-id=<n> --soak-players=<-PlayersPerClient>  (plus -GameArgs)
 #   prints         [soak] ready            once listening (server) or connected (client)
 #                  [soak] metric <name> <number>
 #                  [soak] fail <reason>
@@ -143,8 +145,12 @@ function Get-LeakMemoryMb([System.Diagnostics.Process]$Process) {
 
 function Invoke-Soak {
     param($Info, [int]$Clients, [double]$Seconds, [double]$Warmup, [string]$ResultsDir, [string[]]$GameArgs, [double]$MaxGrowthMbPerHour, [int]$JunkPps,
-        [double]$StopGraceSeconds = 30, [switch]$RequireCleanStop)
+        [double]$StopGraceSeconds = 30, [switch]$RequireCleanStop, [int]$PlayersPerClient = 1)
     if ($Clients -lt 1) { Stop-GodotCi '-Clients must be 1 or more' 'invalid-arguments' }
+    # A 100-player game cannot start 100 Godot processes on one machine (about 16 GB): one client process then holds several
+    # players (issue 304). The game reads --soak-players; the server is told the players as well as the processes.
+    if ($PlayersPerClient -lt 1) { Stop-GodotCi '-PlayersPerClient must be 1 or more' 'invalid-arguments' }
+    $players = $Clients * $PlayersPerClient
     if ($JunkPps -lt 0) { Stop-GodotCi '-JunkPps must be 0 or more' 'invalid-arguments' }
     New-Item -ItemType Directory -Force $ResultsDir | Out-Null
     $port = Get-FreeUdpPort
@@ -160,16 +166,16 @@ function Invoke-Soak {
         Stop-GodotCi "-MaxGrowthMbPerHour needs at least 3 memory samples, one every $sampleEvery s, so -Seconds of $shortest or more (not $Seconds)" 'invalid-arguments'
     }
 
-    Start-LogGroup "Soak: 1 server and $Clients client(s) for $Seconds s (port $port)$(if ($JunkPps) { ", junk flood $JunkPps pps" })"
+    Start-LogGroup "Soak: 1 server and $Clients client(s)$(if ($PlayersPerClient -gt 1) { " of $PlayersPerClient players each ($players players)" }) for $Seconds s (port $port)$(if ($JunkPps) { ", junk flood $JunkPps pps" })"
     try {
         $serverLog = Join-Path $ResultsDir 'server.log'
         $procs.Add([pscustomobject]@{ Name = 'server'; Log = $serverLog; Samples = [System.Collections.Generic.List[object]]::new()
-            Process = Start-SoakProcess $Info.ProjectDir $serverLog (@('--soak-role=server', "--soak-port=$port", "--soak-clients=$Clients") + $extra) })
+            Process = Start-SoakProcess $Info.ProjectDir $serverLog (@('--soak-role=server', "--soak-port=$port", "--soak-clients=$Clients", "--soak-players=$players") + $extra) })
         Start-Sleep -Milliseconds 500   # the server listens before the first client knocks
         for ($i = 1; $i -le $Clients; $i++) {
             $log = Join-Path $ResultsDir "client-$i.log"
             $procs.Add([pscustomobject]@{ Name = "client-$i"; Log = $log; Samples = [System.Collections.Generic.List[object]]::new()
-                Process = Start-SoakProcess $Info.ProjectDir $log (@('--soak-role=client', "--soak-port=$port", "--soak-id=$i") + $extra) })
+                Process = Start-SoakProcess $Info.ProjectDir $log (@('--soak-role=client', "--soak-port=$port", "--soak-id=$i", "--soak-players=$PlayersPerClient") + $extra) })
         }
 
         $clock = [System.Diagnostics.Stopwatch]::StartNew()
@@ -262,7 +268,7 @@ function Invoke-Soak {
     $server = $report[0]
     $clientsReport = @($report | Select-Object -Skip 1)
     $summary = [ordered]@{
-        clients = $Clients; seconds = $ranFor; port = $port
+        clients = $Clients; playersPerClient = $PlayersPerClient; players = $players; seconds = $ranFor; port = $port
         server = $server
         clientMemoryMb = [ordered]@{
             average = $clientsReport ? [Math]::Round((@($clientsReport | ForEach-Object { $_.memoryMb.end } | Where-Object { $null -ne $_ }) | Measure-Object -Average).Average, 1) : $null
@@ -307,6 +313,10 @@ function Invoke-Soak {
     }
     $leaks = @($report | Where-Object { $_.memoryMb.growthPerHour -gt $MaxGrowthMbPerHour })
     if ($MaxGrowthMbPerHour -gt 0 -and $leaks) {
-        Stop-GodotCi "Memory keeps growing: $(($leaks | ForEach-Object { "$($_.name) +$($_.memoryMb.growthPerHour) MB/h (all resident memory +$($_.memoryMb.residentGrowthPerHour) MB/h)" }) -join ', ') (limit $MaxGrowthMbPerHour MB/h)" 'soak-leak'
+        # Process memory also grows when a runtime only holds what it collected (.NET's GC keeps freed segments): a metric of
+        # the game's own heap, printed every few seconds, tells that from a leak (issue 310). It does not replace this gate:
+        # a flat managed heap does not rule out a native leak (Godot objects, buffers).
+        $hint = if (@($leaks | Where-Object { -not @($_.metrics.Keys | Where-Object { $_ -match 'heap' }).Count }).Count) { '. To tell a held heap from a leak, print the game''s own heap every few seconds ([soak] metric managed_heap_after_gc_mb <MB>, from GC.GetTotalMemory(true) in C#); it is reported under processes[].metrics' } else { '' }
+        Stop-GodotCi "Memory keeps growing: $(($leaks | ForEach-Object { "$($_.name) +$($_.memoryMb.growthPerHour) MB/h (all resident memory +$($_.memoryMb.residentGrowthPerHour) MB/h)" }) -join ', ') (limit $MaxGrowthMbPerHour MB/h)$hint" 'soak-leak'
     }
 }
