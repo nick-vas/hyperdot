@@ -245,6 +245,14 @@ jobs:
           repository: ${{ job.workflow_repository || 'nick-vas/hyperdot' }}
           ref: ${{ job.workflow_sha || 'main' }}
           path: .godot-pipelines
+          # The kit without its own benchmark, self-tests and example games: about 90% of its files, none of which a
+          # game's job runs (2026-11: 6,365 files and 82 MB checked out, of which benchmark/ alone was 71 MB).
+          sparse-checkout: |
+            /*
+            !/benchmark/
+            !/tests/
+            !/examples/
+          sparse-checkout-cone-mode: false
 
       # Keep Godot from importing the pipeline repository's example projects.
       - run: New-Item -Force .godot-pipelines/.gdignore | Out-Null
@@ -357,6 +365,14 @@ jobs:
           repository: ${{ job.workflow_repository || 'nick-vas/hyperdot' }}
           ref: ${{ job.workflow_sha || 'main' }}
           path: .godot-pipelines
+          # The kit without its own benchmark, self-tests and example games: about 90% of its files, none of which a
+          # game's job runs (2026-11: 6,365 files and 82 MB checked out, of which benchmark/ alone was 71 MB).
+          sparse-checkout: |
+            /*
+            !/benchmark/
+            !/tests/
+            !/examples/
+          sparse-checkout-cone-mode: false
 
       - run: New-Item -Force .godot-pipelines/.gdignore | Out-Null
         shell: pwsh
@@ -443,6 +459,14 @@ jobs:
           repository: ${{ job.workflow_repository || 'nick-vas/hyperdot' }}
           ref: ${{ job.workflow_sha || 'main' }}
           path: .godot-pipelines
+          # The kit without its own benchmark, self-tests and example games: about 90% of its files, none of which a
+          # game's job runs (2026-11: 6,365 files and 82 MB checked out, of which benchmark/ alone was 71 MB).
+          sparse-checkout: |
+            /*
+            !/benchmark/
+            !/tests/
+            !/examples/
+          sparse-checkout-cone-mode: false
 
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:

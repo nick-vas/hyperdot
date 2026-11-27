@@ -1,0 +1,1 @@
+Fixed: `export` launched every build it could run on the machine whether `-Run` was given or not: a local variable named `$run` in the export loop hid the `-Run` switch (PowerShell names ignore case). Launches now follow `-Run`, and a self-test fails if any function of `hyperdot.ps1` assigns a variable named like one of its parameters.

@@ -257,6 +257,9 @@ jobs:
       - name: No function in ci/godot is defined twice or named like a built-in alias
         shell: pwsh
         run: ./tests/Test-LibNames.ps1
+      - name: Each command refuses a flag it does not read, and the table of which reads which matches the script
+        shell: pwsh
+        run: ./tests/Test-CommandFlags.ps1
       - name: bench and audio refuse several scenes before any setup
         shell: pwsh
         run: ./tests/Test-SceneCount.ps1

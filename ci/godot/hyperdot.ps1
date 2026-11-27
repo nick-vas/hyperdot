@@ -297,27 +297,12 @@ $script:QuietMode = [bool]$Quiet
 # Any unexpected terminating error still ends with a structured result.
 trap { Stop-GodotCi $_.Exception.Message 'unexpected-error' }
 Assert-KitArguments $MyInvocation.MyCommand.ScriptBlock.Ast.ParamBlock $PSBoundParameters
+Assert-KitCommandFlags $MyInvocation.MyCommand.ScriptBlock.Ast.ParamBlock $Command $PSBoundParameters
 $null = Set-DotnetRollForward
 
 # help needs no project: it is answered before one is looked for.
-if ($Topic -and $Command -notin 'help', 'telemetry') { Stop-GodotCi "'$Topic' is not a parameter of $Command; only help and telemetry take a name (help $Topic)" 'invalid-arguments' }
-if ($DebugBuild -and $Command -ne 'export') { Stop-GodotCi "-DebugBuild is for export (a debug build in place of a release build), not $Command" 'invalid-arguments' }
-if ($PSBoundParameters.ContainsKey('ReportIssue') -and $Command -ne 'doctor') { Stop-GodotCi '-ReportIssue is for doctor (it offers to file an issue about kit files that are not committed)' 'invalid-arguments' }
-foreach ($initOnly in 'CopySkills', 'PluginSource') {
-    if ($PSBoundParameters.ContainsKey($initOnly) -and $Command -ne 'init') { Stop-GodotCi "-$initOnly is for init (how the skills reach the game)" 'invalid-arguments' }
-}
-if ($PSBoundParameters.ContainsKey('Promo') -and $Command -ne 'init') { Stop-GodotCi '-Promo is for init (it adds the weekly marketing brief workflow); the brief itself is the promo command' 'invalid-arguments' }
-if ($PSBoundParameters.ContainsKey('DryRun') -and $Command -ne 'promo') { Stop-GodotCi "-DryRun is for promo, not $Command" 'invalid-arguments' }
 if ($PSBoundParameters.ContainsKey('FixedFps')) {
-    if ($Command -ne 'test') { Stop-GodotCi "-FixedFps is for test (smoke and the Godot gdUnit4 starts), not $Command" 'invalid-arguments' }
     if ($FixedFps -lt 0) { Stop-GodotCi "-FixedFps is a rate of game frames per second (the game's physics tick rate), or 0 for real time, not $FixedFps" 'invalid-arguments' }
-}
-if ($PSBoundParameters.ContainsKey('Last') -and $Command -ne 'telemetry') { Stop-GodotCi '-Last is for telemetry (how many runs of each command to read)' 'invalid-arguments' }
-foreach ($calendarFlag in 'Source', 'Days', 'Offline', 'Comparable') {
-    if ($PSBoundParameters.ContainsKey($calendarFlag) -and $Command -ne 'calendar') { Stop-GodotCi "-$calendarFlag is for calendar, not $Command" 'invalid-arguments' }
-}
-foreach ($briefFlag in 'Value', 'Quote', 'TextFile') {
-    if ($PSBoundParameters.ContainsKey($briefFlag) -and $Command -ne 'brief') { Stop-GodotCi "-$briefFlag is for brief, not $Command" 'invalid-arguments' }
 }
 $briefActions = @('status', 'start', 'answer', 'gdd')
 if ($Command -eq 'brief' -and $Do -notin $briefActions) { Stop-GodotCi "brief -Do $Do is not one of: $($briefActions -join ', ')" 'invalid-arguments' }
@@ -337,8 +322,7 @@ if ($Command -eq 'brief') {
 }
 
 $GameArgs = @(Split-GameArgs $GameArgs)
-# -TimeoutSec belongs to the read-only commands; the limit starts before the project is detected, which is a slow step on a large game.
-if ($TimeoutSec -ge 0 -and $Command -notin 'status', 'plan') { Stop-GodotCi "-TimeoutSec is for status and plan, not $Command (a Godot run has HYPERDOT_TIMEOUT)" 'invalid-arguments' }
+# -TimeoutSec (status and plan only) starts its limit before the project is detected, which is a slow step on a large game.
 $readOnlyCommand = $Command -eq 'status' -or ($Command -eq 'plan' -and $Do -eq 'status')
 Set-CommandDeadline $(if ($TimeoutSec -ge 0) { $TimeoutSec } elseif ($readOnlyCommand) { 120 } else { 0 })
 $info = Get-ProjectInfo -Project $Project -Solution $Solution -GodotVersion $GodotVersion -Runners $Runners -SkipRunners:($Command -eq 'export')
@@ -444,9 +428,9 @@ function Invoke-Build {
     Start-LogGroup 'Godot import'
     $log = [System.IO.Path]::GetTempFileName()
     # Godot crashes now and then during the import (Invoke-GodotRetried); a crash is repeated, a failure is not.
-    $run = Invoke-GodotRetried @('--headless', '--path', $info.ProjectDir, '--import') $log 'import'
-    $code = $run.Code
-    if ($run.Retries) { Set-JsonField importRetried $run.Retries }
+    $godotRun = Invoke-GodotRetried @('--headless', '--path', $info.ProjectDir, '--import') $log 'import'
+    $code = $godotRun.Code
+    if ($godotRun.Retries) { Set-JsonField importRetried $godotRun.Retries }
     Stop-LogGroup
     if ($code -ne 0) {
         Set-EngineErrors @(Get-GodotErrorDetails @(Get-Content -LiteralPath $log))
@@ -467,10 +451,10 @@ function Invoke-Build {
         Set-JsonField importRepeated $true
         $first = $log
         $log = [System.IO.Path]::GetTempFileName()
-        $run = Invoke-GodotRetried @('--headless', '--path', $info.ProjectDir, '--import') $log 'import'
-        if ($run.Code -ne 0) {
+        $godotRun = Invoke-GodotRetried @('--headless', '--path', $info.ProjectDir, '--import') $log 'import'
+        if ($godotRun.Code -ne 0) {
             Set-EngineErrors @(Get-GodotErrorDetails @(Get-Content -LiteralPath $log))
-            Stop-GodotCi "Godot import exited with $($run.Code)" 'import-failed'
+            Stop-GodotCi "Godot import exited with $($godotRun.Code)" 'import-failed'
         }
         Remove-Item -LiteralPath $first -ErrorAction SilentlyContinue
         $madeByImport = @()
@@ -640,18 +624,18 @@ function Invoke-ExportPresets {
     Add-OutputGdignore $Output $info.ProjectDir
     foreach ($name in $presets) {
         if (-not $details.Contains($name)) { Stop-GodotCi "Preset '$name' not found; the project has: $($info.Presets -join ', ')" 'preset-not-found' }
-        $preset = $details[$name]
-        if (-not $preset.ExportPath) { Stop-GodotCi "Preset '$name' has no export path; set it in Project > Export (export_path in export_presets.cfg)" 'export-no-path' }
+        $presetInfo = $details[$name]
+        if (-not $presetInfo.ExportPath) { Stop-GodotCi "Preset '$name' has no export path; set it in Project > Export (export_path in export_presets.cfg)" 'export-no-path' }
         $dir = Join-Path ([System.IO.Path]::GetFullPath($Output)) (ConvertTo-SafeName $name)
         New-Item -ItemType Directory -Force $dir | Out-Null
-        $file = Join-Path $dir (Split-Path $preset.ExportPath -Leaf)
+        $file = Join-Path $dir (Split-Path $presetInfo.ExportPath -Leaf)
 
         Start-LogGroup "Export '$name' -> $file"
         $log = [System.IO.Path]::GetTempFileName()
         # Godot 4.7.2 headless sometimes aborts (134) at shutdown after a finished export; the export is repeated then.
         $mode = if ($DebugBuild) { '--export-debug' } else { '--export-release' }
-        $run = Invoke-GodotRetried @('--headless', '--path', $info.ProjectDir, $mode, $name, $file) $log "export '$name'" $file
-        $code = $run.Code
+        $godotRun = Invoke-GodotRetried @('--headless', '--path', $info.ProjectDir, $mode, $name, $file) $log "export '$name'" $file
+        $code = $godotRun.Code
         Stop-LogGroup
         if ($code -ne 0) {
             Set-EngineErrors @(Get-GodotErrorDetails @(Get-Content -LiteralPath $log))
@@ -659,13 +643,13 @@ function Invoke-ExportPresets {
             if ($template) { Stop-GodotCi "Export '$name' has no export template at $template; install Godot's export templates for this version and platform" 'export-template-missing' }
             $keystore = Get-MissingExportKeystore $log
             if ($keystore) { Stop-GodotCi (Get-KeystoreHint $name $keystore) 'export-no-keystore' }
-            Stop-GodotCi "Export '$name' exited with $code$(if ($run.Retries) { " after $($run.Retries) retries of a crash" })" 'export-failed'
+            Stop-GodotCi "Export '$name' exited with $code$(if ($godotRun.Retries) { " after $($godotRun.Retries) retries of a crash" })" 'export-failed'
         }
         if (-not (Test-Path -LiteralPath $file)) { Stop-GodotCi "Export '$name' finished but $file was not created" 'export-failed' }
         Assert-GodotLogClean $log "Export '$name'"
         # A C# export that could not build its code still exits 0 (Godot 4.7.2 with no .sln: "completed with
         # warnings"), and the game ships without its C#. On desktop the code sits in data_<Name>_<platform>_<arch>/.
-        if ($info.IsCSharp -and $preset.Platform -in 'Windows Desktop', 'Linux', 'Linux/X11' -and
+        if ($info.IsCSharp -and $presetInfo.Platform -in 'Windows Desktop', 'Linux', 'Linux/X11' -and
             -not @(Get-ChildItem -LiteralPath $dir -Directory -Filter 'data_*' | Where-Object { @(Get-ChildItem -LiteralPath $_.FullName -Filter '*.dll').Count -gt 0 }).Count) {
             Stop-GodotCi "Export '$name' has no data_* folder with the game's C# assembly: the build would run without its code" 'export-failed'
         }
@@ -679,20 +663,20 @@ function Invoke-ExportPresets {
             Write-CiLog "  $($size.pack.file): $(@($size.pack.byFolder | Select-Object -First 5 | ForEach-Object { '{0} {1:N1} MB' -f $_.folder, ($_.bytes / 1MB) }) -join ', ')"
         }
 
-        $entry = [ordered]@{ preset = $name; platform = $preset.Platform; file = $file; size = $size }
+        $entry = [ordered]@{ preset = $name; platform = $presetInfo.Platform; file = $file; size = $size }
         if ($DebugBuild) { $entry.debug = $true }
-        if ($run.Retries) { $entry.retried = $run.Retries }
-        if ($preset.Platform -eq 'Web') {
+        if ($godotRun.Retries) { $entry.retried = $godotRun.Retries }
+        if ($presetInfo.Platform -eq 'Web') {
             $entry.web = Get-WebBuildSize $dir
             Write-CiLog "Web build: $($entry.web.rawMb) MB, $($entry.web.gzipMb) MB gzipped"
         }
         $exports += $entry
         Set-JsonField exports $exports
-        if ($Run -and $preset.Platform -eq 'Web') {
+        if ($Run -and $presetInfo.Platform -eq 'Web') {
             if ($GpuValidation) { Write-CiLog "-GpuValidation: the browser renders '$name' with WebGL, which has no validation layers; not validated" }
-            Test-WebExport $name $preset $dir $(if ($DebugBuild) { $file })
+            Test-WebExport $name $presetInfo $dir $(if ($DebugBuild) { $file })
         }
-        elseif ($Run) { Test-ExportedBuild $name $preset.Platform $file $entry }
+        elseif ($Run) { Test-ExportedBuild $name $presetInfo.Platform $file $entry }
     }
 }
 
@@ -772,9 +756,7 @@ $scenes = @($Scene | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim
 if ($Command -in 'bench', 'audio', 'clip' -and $scenes.Count -gt 1) {
     Stop-GodotCi "$Command runs one scene, but -Scene names $($scenes.Count): $($scenes -join ', '). Run $Command once per scene" 'invalid-arguments'
 }
-if ($NameBySize -and $Command -ne 'shot') { Stop-GodotCi "-NameBySize is for shot, not $Command" 'invalid-arguments' }
 # bench -Sweep, checked before Godot is set up.
-if ($Sweep -and $Command -ne 'bench') { Stop-GodotCi "-Sweep is for bench (one run per value), not $Command" 'invalid-arguments' }
 $benchSweep = if ($Sweep) { ConvertFrom-BenchSweep $Sweep } else { $null }
 # deck runs everything at the Deck's own 1280x800.
 if ($Command -eq 'deck' -and $Resolution -and $Resolution -ne '1280x800') {

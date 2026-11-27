@@ -216,18 +216,24 @@ runs:
         ) >> $env:GITHUB_OUTPUT
         if ($env:COMMAND -eq 'export') { "build-path=$output" >> $env:GITHUB_OUTPUT }
 
-        $params = @{ Project = $env:PROJECT; GodotVersion = $env:GODOT_VERSION_INPUT; Results = $results; Output = $output }
-        if ($env:RUNNERS) { $params.Runners = $env:RUNNERS }
-        if ($env:FILTER) { $params.Filter = $env:FILTER }
-        if ($env:COMMAND -eq 'test' -and [int]$env:RETRY -gt 0) { $params.Retry = [int]$env:RETRY }
-        if ($env:COMMAND -eq 'test' -and [int]$env:FIXED_FPS -gt 0) { $params.FixedFps = [int]$env:FIXED_FPS }
-        if ($env:COVERAGE -eq 'true') { $params.Coverage = $true }
-        if ($env:PRESET) { $params.Preset = $env:PRESET }
-        if ([double]$env:MIN_COVERAGE -gt 0) { $params.MinCoverage = [double]$env:MIN_COVERAGE }
-        if ($env:RUN_EXPORTS -eq 'true') { $params.Run = $true }
-        if ($env:GAME_VERSION) { $params.GameVersion = $env:GAME_VERSION }
-        # export writes version and android-version-code to this step's outputs.
-        if ($env:COMMAND -eq 'export') { $params.GitHubOutput = $true }
+        # Each flag only to the commands that read it: hyperdot.ps1 refuses one given to another command.
+        $params = @{ Project = $env:PROJECT; GodotVersion = $env:GODOT_VERSION_INPUT; Results = $results }
+        if ($env:COMMAND -eq 'test') {
+          if ($env:RUNNERS) { $params.Runners = $env:RUNNERS }
+          if ($env:FILTER) { $params.Filter = $env:FILTER }
+          if ([int]$env:RETRY -gt 0) { $params.Retry = [int]$env:RETRY }
+          if ([int]$env:FIXED_FPS -gt 0) { $params.FixedFps = [int]$env:FIXED_FPS }
+          if ($env:COVERAGE -eq 'true') { $params.Coverage = $true }
+          if ([double]$env:MIN_COVERAGE -gt 0) { $params.MinCoverage = [double]$env:MIN_COVERAGE }
+        }
+        if ($env:COMMAND -eq 'export') {
+          $params.Output = $output
+          if ($env:PRESET) { $params.Preset = $env:PRESET }
+          if ($env:RUN_EXPORTS -eq 'true') { $params.Run = $true }
+          if ($env:GAME_VERSION) { $params.GameVersion = $env:GAME_VERSION }
+          # export writes version and android-version-code to this step's outputs.
+          $params.GitHubOutput = $true
+        }
         & $env:CLI $env:COMMAND @params
         $code = $LASTEXITCODE
         # Only an export that used Gradle has anything there to save.

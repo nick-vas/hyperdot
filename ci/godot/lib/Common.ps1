@@ -954,6 +954,67 @@ function Get-KitFlagName($Parameter) {
     return $Parameter.Name.VariablePath.UserPath
 }
 
+# Which command reads which parameter (by variable name, as $PSBoundParameters has it: -Profile is PlanProfile). A flag
+# given to a command that does not read it is refused, not ignored: an agent that passed soak -BudgetMs would believe a
+# frame budget was checked. tests/Test-CommandFlags.ps1 holds this table to hyperdot.ps1: every parameter is listed, and
+# no command's own code reads a parameter its row leaves out.
+$script:KitAnyCommandFlags = @('Command', 'Project', 'Solution', 'GodotVersion', 'Json', 'Quiet', 'UnboundArguments')
+$script:KitCommandFlags = [ordered]@{
+    test      = @('Runners', 'Filter', 'Retry', 'Coverage', 'MinCoverage', 'Results', 'Frames', 'FixedFps', 'GameArgs')
+    build     = @('Results')
+    export    = @('Preset', 'Run', 'DebugBuild', 'Browser', 'GameVersion', 'GitHubOutput', 'Results', 'Output', 'Frames', 'GameArgs', 'GpuValidation')
+    setup     = @('Templates', 'Results')
+    detect    = @('Runners', 'Preset', 'GitHubOutput')
+    doctor    = @('Runners', 'ReportIssue')
+    init      = @('Agents', 'Plugin', 'CopySkills', 'PluginSource', 'Mcp', 'McpDiagnostics', 'McpAseprite', 'Promo')
+    plan      = @('Do', 'Id', 'Game', 'Title', 'Column', 'Board', 'Feature', 'Item', 'PlanProfile', 'TimeoutSec')
+    status    = @('Runners', 'Handoff', 'Checked', 'Verdict', 'TimeoutSec')
+    bench     = @('Scene', 'Seconds', 'Warmup', 'Resolution', 'Uncapped', 'MaxFps', 'Headless', 'BudgetMs', 'Label', 'GameArgs', 'HotspotCell',
+        'MaxDrawCalls', 'MaxLoadMs', 'GpuValidation', 'Sweep', 'Results')
+    shot      = @('Scene', 'Frames', 'Resolution', 'GameArgs', 'Baseline', 'MaxChangedPercent', 'Locale', 'Pseudo', 'ColorVision',
+        'MaxOffPalettePercent', 'PaletteTolerance', 'Output', 'GpuValidation', 'RequireResolution', 'NameBySize')
+    deck      = @('Scene', 'Seconds', 'Warmup', 'Frames', 'BudgetMs', 'MaxDrawCalls', 'MaxLoadMs', 'GameArgs', 'Locale', 'Pseudo', 'GpuValidation',
+        'Resolution', 'Results')
+    soak      = @('Clients', 'Seconds', 'Warmup', 'GameArgs', 'MaxGrowthMbPerHour', 'MaxMetricGrowth', 'JunkPps', 'PlayersPerClient',
+        'StopGraceSeconds', 'RequireCleanStop', 'Results')
+    audio     = @('Mix', 'TargetLufs', 'MaxOnsetMs', 'Seconds', 'Scene', 'GameArgs', 'Results')
+    sfx       = @('Sound', 'Count', 'Seed', 'Vary', 'Amount', 'PeakDb', 'Output')
+    playtest  = @('Sessions', 'Schema', 'HotspotCell', 'Results')
+    credits   = @('Output', 'Results')
+    help      = @('Topic')
+    telemetry = @('Topic', 'Last')
+    calendar  = @('Source', 'Days', 'Offline', 'Comparable', 'Results')
+    brief     = @('Do', 'Id', 'Value', 'Quote', 'TextFile')
+    promo     = @('Do', 'Id', 'DryRun', 'GitHubOutput', 'Results')
+    clip      = @('Scene', 'Seconds', 'Resolution', 'GameArgs', 'Label', 'Output')
+}
+# What a refusal adds for a flag that is easily taken for another command's.
+$script:KitFlagHints = @{
+    Topic        = ' (help <name>)'
+    DebugBuild   = ' (a debug build in place of a release build)'
+    ReportIssue  = ' (it offers to file an issue about kit files that are not committed)'
+    CopySkills   = ' (how the skills reach the game)'
+    PluginSource = ' (how the skills reach the game)'
+    Promo        = ' (it adds the weekly marketing brief workflow); the brief itself is the promo command'
+    FixedFps     = ' (smoke and the Godot gdUnit4 starts)'
+    Last         = ' (how many runs of each command to read)'
+    TimeoutSec   = ' (a Godot run has HYPERDOT_TIMEOUT)'
+    Sweep        = ' (one run per value)'
+}
+
+# A parameter given to a command that does not read it: invalid-arguments, naming the commands that do.
+function Assert-KitCommandFlags($ParamBlock, [string]$Command, [hashtable]$Bound) {
+    if (-not $script:KitCommandFlags.Contains($Command)) { return }
+    $own = @($script:KitAnyCommandFlags) + @($script:KitCommandFlags[$Command])
+    foreach ($p in $ParamBlock.Parameters) {
+        $name = $p.Name.VariablePath.UserPath
+        if (-not $Bound.ContainsKey($name) -or $name -in $own) { continue }
+        $takers = @($script:KitCommandFlags.Keys | Where-Object { $name -in $script:KitCommandFlags[$_] })
+        $hint = if ($script:KitFlagHints.ContainsKey($name)) { $script:KitFlagHints[$name] } else { '' }
+        Stop-GodotCi "-$(Get-KitFlagName $p) is for $($takers -join ', '), not $Command$hint" 'invalid-arguments'
+    }
+}
+
 # What PowerShell would have refused before the script started, refused here with invalid-arguments so -Json still gives
 # one document: a flag hyperdot.ps1 does not have, a word too many, a command or a value outside its set. (A flag left
 # without its value, or a value of the wrong type such as -Retry abc, still fails in PowerShell's binding.)

@@ -12,6 +12,10 @@ fails with `deck-failed`, and `deck.parts[]` gives each part's own code ([json.m
 1280x800 is refused. Results go to `deck-results` (`textsize/`, `layout/`, `screenshots/`, `bench/`). `bench` measures
 this machine at the Deck's resolution, not a Deck's speed.
 
+Each command takes only the parameters it reads: one given to another command is refused with `invalid-arguments`,
+naming the commands that take it (`soak -BudgetMs`: "-BudgetMs is for bench, deck, not soak"), rather than ignored. The
+table is `$KitCommandFlags` in `ci/godot/lib/Common.ps1`.
+
 | Parameter | Default | |
 |---|---|---|
 | `-Project` | detected | Folder with `project.godot` |

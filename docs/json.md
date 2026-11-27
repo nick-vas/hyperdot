@@ -12,8 +12,9 @@ below) and stderr carries just the kit's own lines, about 1 KB instead of 7 to 1
 
 Arguments the kit cannot use give `invalid-arguments` in JSON too, with a message naming the parameter, the value and
 what it takes: a command not in the `command` list below, a value outside a parameter's set (`-Do`, `-Mcp`,
-`-Profile`, `-Retry` above 5), an unknown flag (with the nearest real one), a word that belongs to no parameter, an
-unknown runner, a misspelt sound or a bad environment variable. Two mistakes are still refused by PowerShell before the
+`-Profile`, `-Retry` above 5), an unknown flag (with the nearest real one), a flag of another command (`soak -BudgetMs`:
+"-BudgetMs is for bench, deck, not soak"; a flag a command does not read is refused, never ignored), a word that belongs
+to no parameter, an unknown runner, a misspelt sound or a bad environment variable. Two mistakes are still refused by PowerShell before the
 script starts, and print no JSON: a flag left without its value (`-Project` as the last word) and a value of the wrong
 type (`-Retry abc`). Then stdout is empty, the exit code is 1 and stderr says which argument was wrong; treat an empty
 stdout with exit code 1 as such an error.
@@ -50,7 +51,7 @@ Branch on `error.code`; `message` can change.
 | `export-template-missing` | An export template for the preset's platform and version is not installed. For Windows Desktop and Linux presets the kit checks the template files itself before the import and the build; other platforms are found out by Godot's export. The path is in the message | `engineErrors[]`, `exports[]` |
 | `unsafe-results-dir` | `-Results` would delete the project or cwd, or a non-empty folder inside the project that holds no `summary.json` or `hyperdot.log` of the kit's | - |
 | `doctor-problems` | `doctor` found `FAIL` checks | `checks[]` |
-| `invalid-arguments` | Any command: a parameter or environment variable the kit cannot use (an unknown command, flag or runner, a value outside a parameter's set, a word that belongs to no parameter, several `-Scene`s for `bench` or `audio`, `-Seconds` of 0 or less for `bench`, `deck` or `audio -Mix`, `-Frames` below 1 for `test`, `shot`, `deck` or `export -Run`, `-HotspotCell` of 0 or less for `playtest`, `-MaxGrowthMbPerHour` with a `soak` `-Seconds` too short for 3 memory samples, two `sfx` sounds that would share a file, a malformed `-Sweep` or one on another command, a bad `HYPERDOT_TIMEOUT` or `HYPERDOT_IGNORE_ERRORS`, an out-of-range percentage, a misspelt sound); checked before the work starts where it can be | `error.message` |
+| `invalid-arguments` | Any command: a parameter or environment variable the kit cannot use (an unknown command, flag or runner, a flag of another command, a value outside a parameter's set, a word that belongs to no parameter, several `-Scene`s for `bench` or `audio`, `-Seconds` of 0 or less for `bench`, `deck` or `audio -Mix`, `-Frames` below 1 for `test`, `shot`, `deck` or `export -Run`, `-HotspotCell` of 0 or less for `playtest`, `-MaxGrowthMbPerHour` with a `soak` `-Seconds` too short for 3 memory samples, two `sfx` sounds that would share a file, a malformed `-Sweep` or one on another command, a bad `HYPERDOT_TIMEOUT` or `HYPERDOT_IGNORE_ERRORS`, an out-of-range percentage, a misspelt sound); checked before the work starts where it can be | `error.message` |
 | `no-plan`, `invalid-plan`, `unknown-gate`, `auto-gate`, `unknown-task`, `wip-limit` | `plan` problems (`wip-limit`: too many tasks in `doing`) | - |
 | `command-timeout` | a GitHub call of `plan -Do sync` outlived `-TimeoutSec` and was stopped (the message names the call); `status` and a read-only `plan` never fail on it, they return a `partial` result | - |
 | `project-credentials`, `project-error`, `project-column-missing` | `plan -Do sync` could not use the GitHub Project (the GitHub CLI missing or refused: sign in with the project scope; a call failed; the Column field lacks an option) | - |
