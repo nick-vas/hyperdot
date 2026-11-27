@@ -60,6 +60,7 @@ $socket.Dispose()
         $info.ArgumentList.Add([string]$a)
     }
     $info.UseShellExecute = $false
+    Set-KitRunEnvironment $info
     # Keep the child's streams off the parent's stdout so a -Json run stays one clean document (the flood prints nothing).
     $info.RedirectStandardOutput = $true
     $info.RedirectStandardError = $true
@@ -70,6 +71,7 @@ function Start-SoakProcess([string]$ProjectDir, [string]$Log, [string[]]$UserArg
     $info = [System.Diagnostics.ProcessStartInfo]::new($env:GODOT_BIN)
     foreach ($a in @('--headless', '--path', $ProjectDir, '--log-file', $Log, '--') + @($UserArgs)) { $info.ArgumentList.Add($a) }
     $info.UseShellExecute = $false
+    Set-KitRunEnvironment $info
     # The log file holds the output; the pipes are drained and discarded so a chatty process never blocks on a full pipe.
     $info.RedirectStandardOutput = $true
     $info.RedirectStandardError = $true

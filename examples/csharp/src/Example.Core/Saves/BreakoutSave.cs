@@ -34,5 +34,9 @@ public static class BreakoutSave
         },
     };
 
-    public static SaveStore Open(string path) => new(path, CurrentVersion, Migrations);
+    /// <summary>The name written into every Breakout save. Its first release wrote saves without the envelope, so a bare
+    /// file is read as version 1 here; a game that always wrote the envelope leaves bareVersionOne off.</summary>
+    public const string Format = "breakout-save";
+
+    public static SaveStore Open(string path) => new(path, CurrentVersion, Migrations, Format, bareVersionOne: true);
 }

@@ -47,7 +47,7 @@ nothing.
 |---|---|
 | `--seed=N` | reproduces a whole run; every bug report and balance run carries one |
 | `--autoplay`, `--bot-skill=0.5` | a bot plays, so smoke runs and exports exercise real gameplay |
-| `--no-save` | test runs never touch the player's save |
+| `--no-save` | test runs never touch the player's save; every kit run also has `HYPERDOT_RUN=1` in its environment (`saves`) |
 | `--act=N`, `--start-floor=N`, `--level=X` | jump straight to the content under test |
 | `--stress` | the worst case for `bench` (`performance`) |
 | `--capture=nohud` | hides everything in group `hud` (put the minimap and waypoint markers there too): navigation playtests run with it (`game-design` section 7); capture mode is `debug-tools` section 7 |
