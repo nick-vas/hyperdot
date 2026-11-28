@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.4.2 - 2026-11-28
+### Fixed
+- `init -Agents` with the kit outside the game no longer writes this machine's path into the shared `AGENTS.md`: its commands run `pwsh "$HYPERDOT_KIT/ci/godot/hyperdot.ps1"`, and a line says each machine sets `HYPERDOT_KIT` to its own clone (`$HYPERDOT_KIT` in bash, `$env:HYPERDOT_KIT` in PowerShell). `init` sets it for Claude Code on this machine in `.claude/settings.local.json`, which it keeps out of git, and `-CopySkills` copies name the kit the same way; `doctor` gives an INFO while the variable is unset or names no kit (#314).
+
 ## 0.4.1 - 2026-11-27
 ### Changed
 - a flag given to a command that does not read it is refused as `invalid-arguments`, naming the commands that take it (`soak -BudgetMs`: "-BudgetMs is for bench, deck, not soak"), instead of being ignored, so a check that never ran cannot pass for one that did. The GitHub action passes each of its inputs only to the commands that read it. `-Results` and `-Output`, which only say where files go, are taken by every command, so a script can still hand the same folders to each command it runs; a script that hands other flags to several commands (`-Runners` to `export`, `-Coverage` to `build`) now fails and must pass each command its own.
