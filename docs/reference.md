@@ -97,7 +97,7 @@ naming the commands that take it (`soak -BudgetMs`: "-BudgetMs is for bench, dec
 | `-McpDiagnostics` | off | `init`: also register minimal-godot-mcp (GDScript diagnostics, game console) |
 | `-McpAseprite` | none | `init`: also register aseprite-mcp for this Aseprite (the program, or its folder such as `C:\Program Files\Aseprite`) |
 | `-Mcp` | `none` | `init`: `godot-mcp` registers that editor MCP server; `godot-ai` prints its steps |
-| `-Agents` | off | `init`: also add AGENTS.md, CLAUDE.md and `docs/kit-notes.md` (one line each time the kit gets in the way), and enable this kit as a Claude Code plugin in `.claude/settings.json`; the plugin supplies the skills, the subagents (`godot-verifier`, `godot-architect`) and the hooks, so nothing is copied into the game |
+| `-Agents` | off | `init`: also add AGENTS.md, CLAUDE.md and `docs/kit-notes.md` (one line each time the kit gets in the way; with the kit outside the game, AGENTS.md runs it from `$HYPERDOT_KIT` and `.claude/settings.local.json` sets that for this machine), and enable this kit as a Claude Code plugin in `.claude/settings.json`; the plugin supplies the skills, the subagents (`godot-verifier`, `godot-architect`) and the hooks, so nothing is copied into the game |
 | `-Templates` | off | `setup`: also install the export templates (`export` installs them when it needs them) |
 | `-Plugin` | off | `init`: the same as `-Agents` (kept for scripts written when `-Agents` copied the skills) |
 | `-CopySkills` | off | `init`: with `-Agents`, copy the skills and subagents into the game instead of enabling the plugin, for an agent host that loads no plugins. Refused (the step says why) when the game already enables the plugin: each skill would load twice and the copy would go stale |

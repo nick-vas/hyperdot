@@ -95,7 +95,7 @@ foreach ($rel in $files) {
         $lineNo = $i + 1
         # A test that gives a flag to the wrong command on purpose checks the refusal within the next three lines.
         $expectsRefusal = (@($lines[$i..([Math]::Min($i + 3, $lines.Length - 1))]) -join "`n") -match 'invalid-arguments|refused'
-        foreach ($m in [regex]::Matches($line, '(?:hyperdot\.ps1[''"]?\)?|-File \$(?:ci|kit|cli|entry|script|hyperdot))\s+(?<cmd>[a-z]+)\b(?<rest>[^|;`]*)')) {
+        foreach ($m in [regex]::Matches($line, '(?:hyperdot\.ps1[''"]?\)?|-File \$(?:ci|kit|cli|entry|script|hyperdot))\s+(?<cmd>[a-z]+)\b(?<rest>[^|;`"()]*)')) {
             $cmd = $m.Groups['cmd'].Value
             if ($cmd -notin $commands) { continue }
             $scanned++

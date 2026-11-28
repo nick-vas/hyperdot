@@ -10,7 +10,7 @@ repository or your exported builds (`init` adds only the files listed below):
 git clone https://github.com/nick-vas/hyperdot C:\Tools\hyperdot
 pwsh C:\Tools\hyperdot\ci\godot\hyperdot.ps1 init -Project 'C:\path\to\your\game'
 ```
-With the kit outside, `init -Agents` writes its full path into `AGENTS.md`, so agents call it from there (the skills come from the plugin; the path only names the script `AGENTS.md`'s commands run, so keep that clone on the version you want).
+With the kit outside, `init -Agents` writes its commands into `AGENTS.md` as `pwsh "$HYPERDOT_KIT/ci/godot/hyperdot.ps1" ...`, never this machine's path, since the game's repository is shared: each machine sets `HYPERDOT_KIT` to its own clone (`$HYPERDOT_KIT` in bash, which Claude Code's shell is on every system, `$env:HYPERDOT_KIT` in PowerShell). `init` sets it for Claude Code on this machine in `.claude/settings.local.json` (the machine's own file, which it adds to `.gitignore`) and prints the line for a shell profile; `doctor` gives an INFO while the variable is unset or names no kit. The skills come from the plugin; the variable only names the script `AGENTS.md`'s commands run, so keep that clone on the version you want.
 
 To share one pinned version with everyone on the game's repository instead, add it as a submodule:
 `git submodule add https://github.com/nick-vas/hyperdot tools/hyperdot`. Its folders carry a `.gdignore` file, so

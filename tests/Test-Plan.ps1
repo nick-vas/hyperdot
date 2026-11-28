@@ -557,6 +557,33 @@ try {
         Assert-True ($source.source -eq 'github' -and $source.repo -eq 'nick-vas/hyperdot' -and $settings.enabledPlugins['hyperdot@hyperdot'] -eq $true) "init -Agents enables the plugin from GitHub: $($settings | ConvertTo-Json -Depth 6 -Compress)"
         Assert-True (-not (Test-Path -LiteralPath (Join-Path $agentsGame '.claude/skills')) -and -not (Test-Path -LiteralPath (Join-Path $agentsGame '.agents/skills')) -and -not (Test-Path -LiteralPath (Join-Path $agentsGame '.claude/agents'))) 'init -Agents copies no skill or subagent'
         Assert-True ((Test-Path -LiteralPath (Join-Path $agentsGame 'AGENTS.md')) -and (Test-Path -LiteralPath (Join-Path $agentsGame 'docs/kit-notes.md'))) 'init -Agents still writes AGENTS.md and the kit notes'
+        # The kit outside the game (issue 314): AGENTS.md runs it from HYPERDOT_KIT, names no path of this machine (it is shared),
+        # and says how the variable is set in bash and in PowerShell; this machine's path goes to .claude/settings.local.json,
+        # which git ignores, so Claude Code has the variable here.
+        $agentsText = Get-Content -LiteralPath (Join-Path $agentsGame 'AGENTS.md') -Raw
+        Assert-True ($agentsText.Contains('pwsh "$HYPERDOT_KIT/ci/godot/hyperdot.ps1" test -Json -Quiet') -and $agentsText.Contains('$env:HYPERDOT_KIT') -and -not $agentsText.Contains($kitFolder) -and -not $agentsText.Contains('{{')) "init -Agents with the kit outside the game writes `$HYPERDOT_KIT, not this machine's path: $($agentsText.Substring(0, [Math]::Min(600, $agentsText.Length)))"
+        $localSettings = Get-Content -LiteralPath (Join-Path $agentsGame '.claude/settings.local.json') -Raw | ConvertFrom-Json -AsHashtable
+        Assert-True ($localSettings.env.HYPERDOT_KIT -eq $kitFolder) "init sets HYPERDOT_KIT in .claude/settings.local.json: $($localSettings | ConvertTo-Json -Compress -Depth 4)"
+        Assert-True ((Get-Content -LiteralPath (Join-Path $agentsGame '.gitignore')) -contains '.claude/settings.local.json') 'init keeps .claude/settings.local.json out of git'
+        # doctor: an INFO while the variable is unset or points elsewhere, OK when it points at a kit.
+        $doctorKit = { param([string]$Value)
+            $saved = $env:HYPERDOT_KIT; $env:HYPERDOT_KIT = $Value
+            try { @((pwsh -NoProfile -NonInteractive -File $ci doctor -Json -Project $agentsGame 2>$null | Out-String | ConvertFrom-Json).checks | Where-Object { $_.message -match 'HYPERDOT_KIT' } | ForEach-Object { "$($_.status) $($_.message)" }) }
+            finally { $env:HYPERDOT_KIT = $saved } }
+        $unset = @(& $doctorKit '')
+        Assert-True ($unset.Count -eq 1 -and $unset[0] -match '^INFO .*not set') "doctor says HYPERDOT_KIT is not set: $($unset -join ' | ')"
+        $wrong = @(& $doctorKit (Join-Path $agentsGame 'nowhere'))
+        Assert-True ($wrong.Count -eq 1 -and $wrong[0] -match '^INFO .*has no ci/godot/hyperdot.ps1') "doctor says HYPERDOT_KIT points at no kit: $($wrong -join ' | ')"
+        $right = @(& $doctorKit $kitFolder)
+        Assert-True ($right.Count -eq 1 -and $right[0] -match '^OK HYPERDOT_KIT points at the kit') "doctor says HYPERDOT_KIT points at the kit: $($right -join ' | ')"
+        # The kit inside the game's repository (a submodule): a relative path, no HYPERDOT_KIT line and no local settings.
+        $insideGame = & $newGame 'init-inside'
+        New-Item -ItemType Directory -Force (Join-Path $insideGame 'tools/hyperdot') | Out-Null
+        Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../ci') -Destination (Join-Path $insideGame 'tools/hyperdot') -Recurse
+        pwsh -NoProfile -NonInteractive -File (Join-Path $insideGame 'tools/hyperdot/ci/godot/hyperdot.ps1') init -Agents -Project $insideGame 2>$null | Out-Null
+        $insideText = Get-Content -LiteralPath (Join-Path $insideGame 'AGENTS.md') -Raw
+        Assert-True ($insideText.Contains('pwsh tools/hyperdot/ci/godot/hyperdot.ps1 test -Json -Quiet') -and -not $insideText.Contains('HYPERDOT_KIT') -and -not $insideText.Contains('{{') -and -not (Test-Path -LiteralPath (Join-Path $insideGame '.claude/settings.local.json'))) "init -Agents with the kit inside the game writes its relative path: $($insideText.Substring(0, [Math]::Min(600, $insideText.Length)))"
+        Remove-Item -LiteralPath $insideGame -Recurse -Force
         # A fork's repository, by environment.
         $forkGame = & $newGame 'init-fork'
         $env:HYPERDOT_KIT_REPO = 'someone/hyperdot-fork'
@@ -578,6 +605,10 @@ try {
         $copyGame = & $newGame 'init-copy'
         pwsh -NoProfile -NonInteractive -File $ci init -Agents -CopySkills -Project $copyGame 2>$null | Out-Null
         Assert-True ((Test-Path -LiteralPath (Join-Path $copyGame '.claude/skills/game/SKILL.md')) -and (Test-Path -LiteralPath (Join-Path $copyGame '.agents/skills/game/SKILL.md')) -and (Test-Path -LiteralPath (Join-Path $copyGame '.claude/agents/godot-verifier.md')) -and -not (Test-Path -LiteralPath (Join-Path $copyGame '.claude/settings.json'))) 'init -Agents -CopySkills copies the skills and subagents and enables no plugin'
+        # The copies name the kit by HYPERDOT_KIT too, never by this machine's path.
+        $copied = @(Get-ChildItem -LiteralPath (Join-Path $copyGame '.claude') -Recurse -File -Filter '*.md' | Where-Object { (Get-Content -LiteralPath $_.FullName -Raw).Contains($kitFolder) } | ForEach-Object Name)
+        $viaKit = (Get-Content -LiteralPath (Join-Path $copyGame '.claude/agents/godot-verifier.md') -Raw).Contains('$HYPERDOT_KIT/ci/godot/hyperdot.ps1')
+        Assert-True ($copied.Count -eq 0 -and $viaKit) "-CopySkills copies name the kit by `$HYPERDOT_KIT (this machine's path in: $($copied -join ', '))"
         Remove-Item -LiteralPath $copyGame -Recurse -Force
         $refused = pwsh -NoProfile -NonInteractive -File $ci init -Agents -CopySkills -Json -Project $agentsGame 2>$null | ConvertFrom-Json
         Assert-True (-not (Test-Path -LiteralPath (Join-Path $agentsGame '.claude/skills')) -and @($refused.steps | Where-Object { $_.message -match 'already enables the hyperdot plugin, which supplies them' }).Count -eq 1) '-CopySkills copies nothing into a game that enables the plugin'

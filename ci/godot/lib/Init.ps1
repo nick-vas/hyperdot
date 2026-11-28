@@ -320,18 +320,23 @@ function Add-AgentFiles($Info, [string]$SuiteScript, [bool]$Copy, [string]$Plugi
     $root = $root ? $root : $Info.ProjectDir
     $suiteRoot = Split-Path (Split-Path (Split-Path $PSScriptRoot))
     # Inside the game repo (a submodule): a relative path, which works on every clone. Outside it (a separate clone of the
-    # kit, so it never ships with the game): the full path, since "../../Tools/..." would only hold on this machine anyway.
+    # kit, so it never ships with the game): the HYPERDOT_KIT variable, which each machine points at its own clone. This
+    # machine's path would be wrong on every other one (issue 314), so it goes only to .claude/settings.local.json, the
+    # machine's own file, and to the console.
     $relative = [System.IO.Path]::GetRelativePath($root, $SuiteScript)
-    $suitePath = if ($relative.StartsWith('..') -or [System.IO.Path]::IsPathRooted($relative)) { $SuiteScript } else { $relative }
-    $suitePath = $suitePath -replace '\\', '/'
-    if ($suitePath -match '\s') { $suitePath = "`"$suitePath`"" }
+    $outside = $relative.StartsWith('..') -or [System.IO.Path]::IsPathRooted($relative)
+    $suitePath = if ($outside) { '"$HYPERDOT_KIT/ci/godot/hyperdot.ps1"' } else { $relative -replace '\\', '/' }
+    if (-not $outside -and $suitePath -match '\s') { $suitePath = "`"$suitePath`"" }
+    $kitLocation = if ($outside) { $script:KitLocationText } else { '' }
     $agents = Join-Path $root 'AGENTS.md'
     if (Test-Path -LiteralPath $agents) { Write-InitStep skipped 'AGENTS.md exists' }
     else {
-        (Get-Content -LiteralPath (Join-Path $PSScriptRoot '../templates/AGENTS.md') -Raw) -replace '\{\{SUITE\}\}', $suitePath.Replace('$', '$$') |
-            Set-Content -LiteralPath $agents -Encoding utf8
+        $text = (Get-Content -LiteralPath (Join-Path $PSScriptRoot '../templates/AGENTS.md') -Raw).Replace('{{SUITE}}', $suitePath)
+        $text = if ($kitLocation) { $text.Replace('{{KIT_LOCATION}}', $kitLocation) } else { $text -replace '\{\{KIT_LOCATION\}\}\r?\n\r?\n', '' }
+        Set-Content -LiteralPath $agents -Value $text -NoNewline -Encoding utf8
         Write-InitStep added 'AGENTS.md'
     }
+    if ($outside) { Set-KitLocationSetting $root $suiteRoot }
     $claude = Join-Path $root 'CLAUDE.md'
     if (Test-Path -LiteralPath $claude) { Write-InitStep skipped 'CLAUDE.md exists (add "@AGENTS.md" to it)' }
     else { Set-Content -LiteralPath $claude -Value '@AGENTS.md' -Encoding utf8; Write-InitStep added 'CLAUDE.md (imports AGENTS.md)' }
@@ -359,7 +364,7 @@ function Add-AgentFiles($Info, [string]$SuiteScript, [bool]$Copy, [string]$Plugi
     $placeholder = '${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1'
     # Other kit files (templates) are named from the kit's folder.
     $rootPlaceholder = '${CLAUDE_PLUGIN_ROOT}'
-    $kitRoot = $suiteRoot -replace '\\', '/'
+    $kitRoot = if ($outside) { '$HYPERDOT_KIT' } else { $suiteRoot -replace '\\', '/' }
     $fill = { param([string]$Text) $Text.Replace($placeholder, $suitePath).Replace($rootPlaceholder, $kitRoot) }
     foreach ($skill in Get-ChildItem -LiteralPath (Join-Path $suiteRoot '.agents/skills') -Directory) {
         $copied = @(foreach ($base in '.agents/skills', '.claude/skills') {
@@ -383,6 +388,31 @@ function Add-AgentFiles($Info, [string]$SuiteScript, [bool]$Copy, [string]$Plugi
         Set-Content -LiteralPath $target -Value (& $fill (Get-Content -LiteralPath $agent.FullName -Raw)) -NoNewline -Encoding utf8
         Write-InitStep added "agent $($agent.BaseName) (.claude/agents)"
     }
+}
+
+# The kit outside the game: HYPERDOT_KIT for Claude Code on this machine, in .claude/settings.local.json (the machine's own
+# file, kept out of git), so the commands AGENTS.md gives work here without a shell profile. A value already there is left.
+function Set-KitLocationSetting([string]$Root, [string]$KitRoot) {
+    $kit = [System.IO.Path]::GetFullPath($KitRoot) -replace '\\', '/'
+    $file = Join-Path $Root '.claude/settings.local.json'
+    $settings = [ordered]@{}
+    if (Test-Path -LiteralPath $file) {
+        try { $settings = Get-Content -LiteralPath $file -Raw | ConvertFrom-Json -AsHashtable }
+        catch { Write-InitStep skipped ".claude/settings.local.json is not valid JSON, so HYPERDOT_KIT was not added: add `"env`": { `"HYPERDOT_KIT`": `"$kit`" }"; return }
+        if ($settings -isnot [System.Collections.IDictionary]) { Write-InitStep skipped '.claude/settings.local.json is not an object, so HYPERDOT_KIT was not added'; return }
+    }
+    if (-not $settings.Contains('env') -or $settings['env'] -isnot [System.Collections.IDictionary]) { $settings['env'] = [ordered]@{} }
+    $current = $settings['env']['HYPERDOT_KIT']
+    if ($current) {
+        Write-InitStep skipped ".claude/settings.local.json already sets HYPERDOT_KIT ($current)$(if ($current -ne $kit) { "; this kit is $kit" })"
+    } else {
+        $settings['env']['HYPERDOT_KIT'] = $kit
+        New-Item -ItemType Directory -Force (Split-Path $file) | Out-Null
+        Set-Content -LiteralPath $file -Value ($settings | ConvertTo-Json -Depth 10) -Encoding utf8
+        Write-InitStep updated ".claude/settings.local.json: HYPERDOT_KIT=$kit (this machine only; Claude Code reads it on its next start)"
+    }
+    Add-GitignoreEntries $Root @('.claude/settings.local.json')
+    if ($env:HYPERDOT_KIT -ne $kit) { Write-CiLog "For terminals outside Claude Code, set HYPERDOT_KIT=$kit in your shell profile: AGENTS.md runs the kit from it" }
 }
 
 # The GitHub repository the plugin is fetched from when -PluginSource is github: this kit's own, or a fork named in HYPERDOT_KIT_REPO.

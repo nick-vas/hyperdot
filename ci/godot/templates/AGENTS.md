@@ -3,9 +3,11 @@
 Godot 4.7.2 game. Tests, builds and checks go through Hyperdot (`{{SUITE}}`, PowerShell 7). Add `-Json -Quiet` and read `ok` and `error.code`;
 `-Quiet` keeps Godot's output in the log file the JSON's `log` field names.
 
+{{KIT_LOCATION}}
+
 Start each session with `/game`: where the game stands and what to do next. `/kit` lists the kit's commands and skills.
 
-```powershell
+```sh
 pwsh {{SUITE}} test -Json -Quiet      # build + every test runner; failures carry file, line, message
 pwsh {{SUITE}} doctor -Json           # misconfiguration, each with a fix
 pwsh {{SUITE}} help                   # every command, flag and skill
