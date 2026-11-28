@@ -85,12 +85,18 @@ function Resolve-KitParameter([string]$Name, [string[]]$Parameters) {
     return $null
 }
 
-# The kit's AGENTS.md template as one pattern per line ({{SUITE}} is any path). A line a game kept from the template is
+# What AGENTS.md says when the kit is outside the game, in place of {{KIT_LOCATION}}; Get-TemplateLinePatterns knows it as the
+# kit's own line.
+$script:KitLocationText = 'The kit is not in this repository: each machine sets `HYPERDOT_KIT` to its own clone of https://github.com/nick-vas/hyperdot (`$HYPERDOT_KIT` in bash, `$env:HYPERDOT_KIT` in PowerShell, where `$HYPERDOT_KIT` is empty). Claude Code reads it from `.claude/settings.local.json`, the machine''s own file: `"env": { "HYPERDOT_KIT": "<the clone>" }`.'
+
+# The kit's AGENTS.md template as one pattern per line ({{SUITE}} is any path; {{KIT_LOCATION}} is the line init writes for a
+# kit outside the game, $KitLocationText, word for word). A line a game kept from the template is
 # the kit's to keep right (tests/Test-Context.ps1 checks the template itself), so only the game's own lines are judged.
 function Get-TemplateLinePatterns {
     $template = Join-Path $PSScriptRoot '../templates/AGENTS.md'
     return @(foreach ($line in (Get-Content -LiteralPath $template)) {
-        if ($line.Trim()) { '^' + ([regex]::Escape($line.Trim()) -replace '\\\{\\\{SUITE}}', '.+?') + '$' }
+        if ($line.Trim() -eq '{{KIT_LOCATION}}') { '^' + [regex]::Escape($script:KitLocationText) + '$' }
+        elseif ($line.Trim()) { '^' + ([regex]::Escape($line.Trim()) -replace '\\\{\\\{SUITE}}', '.+?') + '$' }
     })
 }
 

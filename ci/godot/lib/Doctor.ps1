@@ -657,6 +657,19 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
         }
     }
 
+    # AGENTS.md runs the kit from HYPERDOT_KIT (init writes that when the kit is outside the game, issue 314): an agent copying
+    # its commands here gets /ci/godot/hyperdot.ps1 when the variable is unset or points elsewhere. INFO: doctor itself runs.
+    $agentsFile = Join-Path $(if ($gitRoot) { $gitRoot } else { $project }) 'AGENTS.md'
+    if ((Test-Path -LiteralPath $agentsFile) -and (Get-Content -LiteralPath $agentsFile -Raw).Contains('$HYPERDOT_KIT')) {
+        $thisKit = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../..')) -replace '\\', '/'
+        $set = "$env:HYPERDOT_KIT"
+        if (-not $set) {
+            Add-Check INFO 'AGENTS.md runs the kit from $HYPERDOT_KIT, which is not set in this shell' "Set HYPERDOT_KIT=$thisKit (init puts it in .claude/settings.local.json for Claude Code; a terminal needs it in the shell profile)"
+        } elseif (-not (Test-Path -LiteralPath (Join-Path $set 'ci/godot/hyperdot.ps1') -PathType Leaf)) {
+            Add-Check INFO "AGENTS.md runs the kit from `$HYPERDOT_KIT, but $set has no ci/godot/hyperdot.ps1" "Point HYPERDOT_KIT at the kit's clone, such as $thisKit"
+        } else { Add-Check OK "HYPERDOT_KIT points at the kit ($set)" }
+    }
+
     # Files the kit wrote that are not committed: a fresh clone of the game would lack the instructions, skills and
     # workflow its agents rely on.
     $kitFiles = @()

@@ -54,7 +54,7 @@ try {
     Set-Content -LiteralPath (Join-Path $dir 'scripts/player.gd') 'extends Node'
     Set-Content -LiteralPath (Join-Path $dir 'scenes/Main.tscn') '[gd_scene format=3]'
     & git -C $dir init -q
-    $template = (Get-Content -LiteralPath (Join-Path $root 'ci/godot/templates/AGENTS.md') -Raw) -replace '\{\{SUITE\}\}', 'tools/kit/ci/godot/hyperdot.ps1'
+    $template = (Get-Content -LiteralPath (Join-Path $root 'ci/godot/templates/AGENTS.md') -Raw) -replace '\{\{SUITE\}\}', 'tools/kit/ci/godot/hyperdot.ps1' -replace '\{\{KIT_LOCATION\}\}\r?\n\r?\n', ''
     Set-Content -LiteralPath (Join-Path $dir 'AGENTS.md') $template
     Set-Content -LiteralPath (Join-Path $dir 'CLAUDE.md') '@AGENTS.md'
 

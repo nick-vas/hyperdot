@@ -156,7 +156,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Detect.ps1` | 11/12 | `Test-Addons.ps1`, `Test-Plan.ps1`, `Test-Steam.ps1`, `Test-Detect.ps1`, `Test-Platforms.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1` and 43 more |
 | `Doctor.ps1` | 13/16 | `Test-Addons.ps1`, `Test-Steam.ps1`, `Test-SelectJobs.ps1`, `Test-DoctorFixture.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-ErrorCodes.ps1` and 8 more |
 | `Help.ps1` | 9/11 | `Test-Help.ps1`, `Test-ErrorCodes.ps1` |
-| `Init.ps1` | 13/15 | `Test-Promo.ps1`, `Test-KitPaths.ps1`, `Test-UpdatePins.ps1`, `Test-Plan.ps1`, `Test-ErrorCodes.ps1`, `Test-OldState.ps1` |
+| `Init.ps1` | 13/16 | `Test-Promo.ps1`, `Test-KitPaths.ps1`, `Test-UpdatePins.ps1`, `Test-Plan.ps1`, `Test-ErrorCodes.ps1`, `Test-OldState.ps1` |
 | `Juice.ps1` | 2/7 | `Test-JuiceLog.ps1`, `Test-Gdd.ps1`, `Test-Plan.ps1`, `Test-AssetManifest.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Handoffs.ps1`, `Test-Workflow.ps1` |
 | `Layout.ps1` | 3/3 | `Test-Deck.ps1`, `Test-Layout.ps1` |
 | `Localization.ps1` | 19/22 | `Test-Localization.ps1`, `Test-Data.ps1`, `Test-Detect.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-BenchHotspots.ps1`, `Test-BenchSweep.ps1` and 34 more |
